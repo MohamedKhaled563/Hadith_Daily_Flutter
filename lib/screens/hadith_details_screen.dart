@@ -84,7 +84,7 @@ class _HadithDetailsScreenState extends State<HadithDetailsScreen> {
           children: [
             _IntroHeader(number: hadith.number, title: hadith.title),
             const SizedBox(height: 16),
-            HadithCard(hadith: hadith, showNumber: false),
+            HadithCard(hadith: hadith),
             const SizedBox(height: 20),
             Row(
               children: [

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import '../models/hadith.dart';
+import '../../models/hadith.dart';
 import '../theme/app_theme.dart';
 
+/// Visual match for the reference mockup's card:
+/// - soft cream-to-mint gradient, generous rounded corners
+/// - small quote-mark glyph top-center
+/// - hadith text, bold, centered
+/// - thin divider + "من حديث: <short label>" footer line
+/// - small heart glyph at the very bottom (decorative, not the action button)
 class HadithCard extends StatelessWidget {
   final Hadith hadith;
   final bool compact;
-  final bool showNumber;
 
-  const HadithCard({
-    super.key,
-    required this.hadith,
-    this.compact = false,
-    this.showNumber = true,
-  });
+  const HadithCard({super.key, required this.hadith, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -21,87 +21,69 @@ class HadithCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(24, compact ? 22 : 26, 24, compact ? 22 : 26),
+      padding: EdgeInsets.symmetric(horizontal: 26, vertical: compact ? 30 : 40),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(32),
         gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: isDark ? AppColors.darkCardGradient : AppColors.cardGradient,
-        ),
-        border: Border.all(
-          color: isDark ? Colors.white10 : Colors.white,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDark
+              ? [AppColors.darkCard, AppColors.darkBackground]
+              : [AppColors.cardTop, AppColors.cardBottom],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.055),
-            blurRadius: 28,
-            offset: const Offset(0, 16),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 30,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white10 : AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  showNumber ? 'حديث رقم ${hadith.number}' : 'حديث اليوم',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Icon(
-                Icons.auto_awesome_outlined,
-                size: 18,
-                color: theme.colorScheme.secondary,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
           Text(
-            hadith.title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.primary,
+            '”',
+            style: TextStyle(
+              fontSize: 46,
+              height: 0.4,
+              fontWeight: FontWeight.w900,
+              color: theme.colorScheme.primary.withOpacity(0.35),
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Text(
             hadith.text,
-            style: theme.textTheme.bodyLarge,
             textAlign: TextAlign.center,
+            style: theme.textTheme.bodyLarge,
             maxLines: compact ? 7 : null,
             overflow: compact ? TextOverflow.ellipsis : TextOverflow.visible,
           ),
-          if (hadith.source != null) ...[
-            const SizedBox(height: 22),
-            Center(
-              child: Container(
-                width: 46,
-                height: 1,
-                color: isDark ? Colors.white24 : AppColors.divider,
-              ),
+          const SizedBox(height: 22),
+          if (hadith.source != null || hadith.title.isNotEmpty) ...[
+            Container(
+              width: 40,
+              height: 1.2,
+              color: theme.dividerColor,
             ),
             const SizedBox(height: 12),
             Text(
-              hadith.source!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDark ? AppColors.darkInk.withValues(alpha: 0.66) : AppColors.inkSoft,
-              ),
+              'من حديث: ${_shortLabel(hadith)}',
               textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
             ),
+            const SizedBox(height: 14),
           ],
+          Icon(Icons.favorite, size: 16, color: AppColors.heart.withOpacity(0.7)),
         ],
       ),
     );
+  }
+
+  /// A short, one-line label for the footer — first few words of the
+  /// hadith text, matching the reference's "من حديث: إنما الأعمال بالنيات" style.
+  String _shortLabel(Hadith hadith) {
+    final words = hadith.text.replaceAll('"', '').split(' ');
+    final short = words.take(5).join(' ');
+    return words.length > 5 ? '$short...' : short;
   }
 }
