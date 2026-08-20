@@ -24,6 +24,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Future<void> _load() async {
     final all = await HadithRepository.instance.loadAll();
     final favNumbers = await FavoritesService.instance.getAll();
+    if (!mounted) return;
     setState(() {
       _favorites = all.where((h) => favNumbers.contains(h.number)).toList();
       _loading = false;
@@ -34,61 +35,150 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('المفضلة')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _favorites.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(
-                      'لسه معندكش أحاديث محفوظة.\nاضغط على أيقونة القلب في أي حديث عشان تحفظه هنا.',
-                      textAlign: TextAlign.center,
+    return SafeArea(
+      child: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
+          children: [
+            Text('المحفوظات', style: theme.textTheme.headlineSmall),
+            const SizedBox(height: 6),
+            Text(
+              _favorites.isEmpty ? 'احتفظ بالأحاديث التي تريد الرجوع إليها لاحقًا.' : '${_arabicDigits(_favorites.length)} أحاديث محفوظة',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 22),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.only(top: 80),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_favorites.isEmpty)
+              const _EmptyFavorites()
+            else
+              ..._favorites.map((hadith) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _FavoriteCard(
+                      hadith: hadith,
+                      onOpen: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => HadithDetailsScreen(hadith: hadith)),
+                        );
+                        _load();
+                      },
+                    ),
+                  )),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FavoriteCard extends StatelessWidget {
+  final Hadith hadith;
+  final VoidCallback onOpen;
+
+  const _FavoriteCard({required this.hadith, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onOpen,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: theme.dividerColor),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.09),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(_arabicDigits(hadith.number), style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(hadith.title, style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 7),
+                    Text(
+                      hadith.text,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium,
                     ),
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _favorites.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final h = _favorites[index];
-                    return Card(
-                      elevation: 0,
-                      color: theme.colorScheme.surface,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: theme.dividerColor),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        title: Text(h.title, style: theme.textTheme.titleMedium),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(
-                            h.text,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                        onTap: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => HadithDetailsScreen(hadith: h),
-                            ),
-                          );
-                          _load(); // refresh in case they un-favorited
-                        },
-                      ),
-                    );
-                  },
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Icon(Icons.favorite_rounded, size: 15, color: theme.colorScheme.primary),
+                        const SizedBox(width: 5),
+                        Text('محفوظ', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary)),
+                        const Spacer(),
+                        const Icon(Icons.chevron_left_rounded, size: 20),
+                      ],
+                    ),
+                  ],
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+String _arabicDigits(int value) {
+  const western = '0123456789';
+  const arabic = '٠١٢٣٤٥٦٧٨٩';
+  return value.toString().split('').map((d) => arabic[western.indexOf(d)]).join();
+}
+
+class _EmptyFavorites extends StatelessWidget {
+  const _EmptyFavorites();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 70),
+      child: Column(
+        children: [
+          Container(
+            width: 92,
+            height: 92,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.09),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.favorite_border_rounded, size: 42, color: theme.colorScheme.primary),
+          ),
+          const SizedBox(height: 22),
+          Text('لسه مفيش أحاديث محفوظة', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            'لما تلاقي حديث تحب ترجع له، احفظه من علامة القلب وهيظهر هنا.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ],
+      ),
     );
   }
 }

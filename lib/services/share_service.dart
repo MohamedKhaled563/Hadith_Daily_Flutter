@@ -1,13 +1,13 @@
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
-import 'package:screenshot/screenshot.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
-/// Renders the given widget off-screen, captures it as a PNG, and opens
-/// the native share sheet. Used to share a hadith card "as an image"
-/// (like the reference app), not just as plain text.
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
+
+/// Renders a widget off-screen, captures it as PNG and opens the native
+/// share sheet.
 class ShareService {
   static final ScreenshotController _controller = ScreenshotController();
 
@@ -31,13 +31,15 @@ class ShareService {
     final file = File('${dir.path}/$fileName.png');
     await file.writeAsBytes(bytes);
 
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: text,
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        text: text,
+      ),
     );
   }
 
   static Future<void> shareText(String text) async {
-    await Share.share(text);
+    await SharePlus.instance.share(ShareParams(text: text));
   }
 }

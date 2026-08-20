@@ -1,14 +1,15 @@
 import '../data/hadith_repository.dart';
 import '../models/hadith.dart';
 
-/// Picks "today's hadith" deterministically from the date, so every user
-/// sees the same hadith on the same calendar day (like a real "tip of the
-/// day"), and it's stable if they reopen the app later the same day.
+/// Deterministically maps a calendar day to one hadith.
+/// The same date always returns the same hadith for every user.
 class DailyHadithService {
-  static Future<Hadith> getForToday() async {
+  static Future<Hadith> getForToday() => getForDate(DateTime.now());
+
+  static Future<Hadith> getForDate(DateTime date) async {
     final all = await HadithRepository.instance.loadAll();
-    final dayOfYear = _dayOfYear(DateTime.now());
-    final index = dayOfYear % all.length;
+    if (all.isEmpty) throw StateError('No hadith data available.');
+    final index = _dayOfYear(date) % all.length;
     return all[index];
   }
 
