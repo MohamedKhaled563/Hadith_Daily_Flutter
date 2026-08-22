@@ -6,6 +6,7 @@ class Hadith {
   final String reference;
   final String explanation;
   final List<String> keyLessons;
+  final bool isFavorite;
 
   const Hadith({
     required this.number,
@@ -15,6 +16,7 @@ class Hadith {
     String? reference,
     required this.explanation,
     this.keyLessons = const [],
+    this.isFavorite = false,
   }) : reference = reference ?? (source ?? 'رواه البخاري ومسلم');
 
   factory Hadith.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class Hadith {
       reference: (json['reference'] ?? json['source']) as String?,
       explanation: json['explanation'] as String? ?? '',
       keyLessons: lessonsList,
+      isFavorite: json['isFavorite'] as bool? ?? false,
     );
   }
 
@@ -44,6 +47,7 @@ class Hadith {
       'reference': reference,
       'explanation': explanation,
       'keyLessons': keyLessons,
+      'isFavorite': isFavorite,
     };
   }
 }

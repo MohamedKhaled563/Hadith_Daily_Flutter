@@ -9,6 +9,9 @@ class Insight {
     required this.english,
   });
 
+  String get message => arabic;
+  String get category => 'رسالة اليوم';
+
   factory Insight.fromJson(Map<String, dynamic> json) {
     return Insight(
       hadithNumber: json['hadithNumber'] as int,

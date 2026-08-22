@@ -91,6 +91,7 @@ class HadithRepository {
   ];
 
   List<Hadith> get hadiths => _hadiths;
+  List<Hadith> getAll() => _hadiths;
   List<Insight> get insights => _insights;
   List<CommunityPost> get communityPosts => _communityPosts;
 

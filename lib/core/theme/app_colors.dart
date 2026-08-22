@@ -4,6 +4,8 @@ class AppColors {
   static const background = Color(0xFFF8F3EA);
   static const card = Color(0xFFFFFDFC);
   static const secondaryCard = Color(0xFFF4EEE3);
+  static const softCream = Color(0xFFFAF6EE);
+  static const cardBorder = Color(0xFFE8DFC8);
 
   static const primaryGreen = Color(0xFF526B57);
   static const secondaryGreen = Color(0xFF7D8F78);
