@@ -93,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           shape: BoxShape.circle,
                           color: AppColors.card,
                           border: Border.all(
-                            color: AppColors.primaryGreen.withOpacity(0.4),
+                            color: const Color(0x664A6B53),
                             width: 1.5,
                           ),
                         ),
@@ -168,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   fallback: Container(
                     width: 60,
                     height: 2,
-                    color: AppColors.gold.withOpacity(0.5),
+                    color: const Color(0x80D1BE93),
                   ),
                 ),
               ],
@@ -205,11 +205,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       Color(0xFFF1E8D9),
                     ],
                   ),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
-                      color: const Color(0xFFB9A06A).withOpacity(0.28),
+                      color: Color(0x45B9A06A),
                       blurRadius: 36,
-                      offset: const Offset(0, 14),
+                      offset: Offset(0, 14),
                     ),
                   ],
                   border: Border.all(

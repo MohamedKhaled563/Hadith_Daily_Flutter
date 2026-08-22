@@ -101,20 +101,34 @@ class HadithRepository {
       final List<dynamic> jsonList = json.decode(jsonString);
       _hadiths = jsonList.map((e) => Hadith.fromJson(e as Map<String, dynamic>)).toList();
     } catch (_) {
-      // Fallback
+      // Fallback default sample if json asset is missing
+      _hadiths = [
+        const Hadith(
+          number: 1,
+          title: 'إنما الأعمال بالنيات',
+          text: 'إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى، فمن كانت هجرته إلى الله ورسوله فهجرته إلى الله ورسوله...',
+          reference: 'متفق عليه (البخاري ومسلم)',
+          explanation: 'هذا الحديث أصل عظيم من أصول الإسلام وقاعدة تدور عليها جميع تصرفات العبد، حيث يُربط قبول العمل بصلاح النية وإخلاصها لله تعالى.',
+          keyLessons: [
+            'النية هي الميزان الحقيقي لصحة الأعمال وقبولها.',
+            'تحويل العادات اليومية إلى عبادات عظيمة باستحضار النية الصالحة.',
+            'ضرورة مراقبة القلب والإخلاص لله في السر والعلن.',
+          ],
+        ),
+      ];
     }
   }
 
   Hadith? getByNumber(int number) {
     try {
-      return _hadiths.firstWhere((h) => h.number === number);
+      return _hadiths.firstWhere((h) => h.number == number);
     } catch (_) {
       return null;
     }
   }
 
   Insight getRandomInsight() {
-    final list = _insights;
+    final list = List<Insight>.from(_insights);
     list.shuffle();
     return list.first;
   }

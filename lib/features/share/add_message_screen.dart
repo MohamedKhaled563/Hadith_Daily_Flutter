@@ -23,7 +23,9 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedHadith = _repo.hadiths.first;
+    if (_repo.hadiths.isNotEmpty) {
+      _selectedHadith = _repo.hadiths.first;
+    }
   }
 
   @override
@@ -34,7 +36,8 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
   }
 
   void _submit() {
-    if (_messageController.text.trim().isEmpty) {
+    final messageText = _messageController.text.trim();
+    if (messageText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('الرجاء كتابة نص الرسالة أو التأمل', textDirection: TextDirection.rtl),
@@ -47,13 +50,15 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
     final newPost = CommunityPost(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       hadithNumber: _selectedHadith?.number ?? 1,
-      arabic: _messageController.text.trim(),
+      message: messageText,
       authorName: _authorController.text.trim().isEmpty ? 'فاعل خير' : _authorController.text.trim(),
       likes: 0,
       createdAt: DateTime.now(),
     );
 
-    _repo.addCommunityPost(newPost);
+    if (_shareWithCommunity) {
+      _repo.addCommunityPost(newPost);
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -72,6 +77,9 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hadithsList = _repo.hadiths;
+    final currentHadith = _selectedHadith ?? (hadithsList.isNotEmpty ? hadithsList.first : null);
+
     return AppBackground(
       child: Column(
         children: [
@@ -159,14 +167,14 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                       color: AppColors.card,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: const Color(0xFFD1BE93).withOpacity(0.4),
+                        color: const Color(0x66D1BE93),
                       ),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<Hadith>(
                         isExpanded: true,
-                        value: _selectedHadith,
-                        items: _repo.hadiths.map((h) {
+                        value: currentHadith,
+                        items: hadithsList.map((h) {
                           return DropdownMenuItem(
                             value: h,
                             child: Text(
@@ -197,7 +205,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                       color: AppColors.card,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: const Color(0xFFD1BE93).withOpacity(0.4),
+                        color: const Color(0x66D1BE93),
                       ),
                     ),
                     child: TextField(
@@ -226,7 +234,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                       color: AppColors.card,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: const Color(0xFFD1BE93).withOpacity(0.4),
+                        color: const Color(0x66D1BE93),
                       ),
                     ),
                     child: TextField(
@@ -263,6 +271,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                       ),
                       Switch(
                         value: _shareWithCommunity,
+                        activeTrackColor: AppColors.primaryGreen.withAlpha(180),
                         activeColor: AppColors.primaryGreen,
                         onChanged: (val) => setState(() => _shareWithCommunity = val),
                       ),
@@ -331,7 +340,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
           color: AppColors.card,
           shape: BoxShape.circle,
           border: Border.all(
-            color: const Color(0xFFD1BE93).withOpacity(0.4),
+            color: const Color(0x66D1BE93),
           ),
         ),
         child: Icon(icon, size: 22, color: AppColors.primaryText),

@@ -128,13 +128,13 @@ class _HadithListScreenState extends State<HadithListScreen> {
                             color: AppColors.card,
                             borderRadius: BorderRadius.circular(22),
                             border: Border.all(
-                              color: const Color(0xFFD1BE93).withOpacity(0.35),
+                              color: const Color(0x59D1BE93),
                             ),
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.02),
+                                color: Color(0x05000000),
                                 blurRadius: 8,
-                                offset: const Offset(0, 2),
+                                offset: Offset(0, 2),
                               ),
                             ],
                           ),
@@ -246,11 +246,11 @@ class _HadithListScreenState extends State<HadithListScreen> {
           color: AppColors.card,
           shape: BoxShape.circle,
           border: Border.all(
-            color: const Color(0xFFD1BE93).withOpacity(0.4),
+            color: const Color(0x66D1BE93),
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Color(0x0A000000),
               blurRadius: 8,
             ),
           ],

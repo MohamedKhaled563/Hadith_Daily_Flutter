@@ -12,7 +12,7 @@ class Insight {
   factory Insight.fromJson(Map<String, dynamic> json) {
     return Insight(
       hadithNumber: json['hadithNumber'] as int,
-      arabic: json['arabic'] as String,
+      arabic: json['arabic'] as String? ?? '',
       english: json['english'] as String? ?? '',
     );
   }
@@ -26,6 +26,8 @@ class CommunityPost {
   int likes;
   bool isLiked;
   final DateTime createdAt;
+
+  String get arabic => message;
 
   CommunityPost({
     required this.id,

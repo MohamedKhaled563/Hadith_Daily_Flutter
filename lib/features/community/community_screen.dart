@@ -73,7 +73,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       color: AppColors.card,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFFD1BE93).withOpacity(0.4),
+                        color: const Color(0x66D1BE93),
                       ),
                     ),
                     child: const Icon(
@@ -124,13 +124,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
                     color: AppColors.card,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
-                      color: const Color(0xFFD1BE93).withOpacity(0.35),
+                      color: const Color(0x59D1BE93),
                     ),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
+                        color: Color(0x05000000),
                         blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        offset: Offset(0, 2),
                       ),
                     ],
                   ),
@@ -163,7 +163,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                       color: AppColors.secondaryCard,
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                        color: AppColors.gold.withOpacity(0.5),
+                                        color: const Color(0x80D1BE93),
                                       ),
                                     ),
                                     alignment: Alignment.center,
@@ -215,7 +215,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
                           // Post message
                           Text(
-                            post.arabic,
+                            post.message,
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(

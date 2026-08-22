@@ -102,11 +102,11 @@ class _BotanicalPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = AppColors.secondaryGreen.withOpacity(0.25)
+      ..color = const Color(0x408B9B7E)
       ..style = PaintingStyle.fill;
 
     final stemPaint = Paint()
-      ..color = AppColors.primaryGreen.withOpacity(0.4)
+      ..color = const Color(0x664A6B53)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 

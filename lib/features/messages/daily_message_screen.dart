@@ -90,14 +90,14 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                       color: AppColors.card,
                       borderRadius: BorderRadius.circular(28),
                       border: Border.all(
-                        color: const Color(0xFFD1BE93).withOpacity(0.4),
+                        color: const Color(0x66D1BE93),
                         width: 1.2,
                       ),
-                      boxShadow: [
+                      boxShadow: const [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
+                          color: Color(0x0A000000),
                           blurRadius: 24,
-                          offset: const Offset(0, 8),
+                          offset: Offset(0, 8),
                         ),
                       ],
                     ),
@@ -134,7 +134,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                           Container(
                             width: 36,
                             height: 1.2,
-                            color: AppColors.gold.withOpacity(0.4),
+                            color: const Color(0x66D1BE93),
                           ),
                           const SizedBox(height: 14),
                           Text(
@@ -168,7 +168,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                                 color: AppColors.secondaryCard,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: AppColors.gold.withOpacity(0.35),
+                                  color: const Color(0x59D1BE93),
                                 ),
                               ),
                               child: Row(
@@ -236,16 +236,16 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppColors.secondaryCard.withOpacity(0.96),
+                  color: AppColors.secondaryCard,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: const Color(0xFFD1BE93).withOpacity(0.4),
+                    color: const Color(0x66D1BE93),
                   ),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Color(0x0F000000),
                       blurRadius: 16,
-                      offset: const Offset(0, 4),
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
@@ -338,11 +338,11 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
           color: AppColors.card,
           shape: BoxShape.circle,
           border: Border.all(
-            color: const Color(0xFFD1BE93).withOpacity(0.4),
+            color: const Color(0x66D1BE93),
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Color(0x0A000000),
               blurRadius: 8,
             ),
           ],
@@ -384,7 +384,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
     return Container(
       width: 1,
       height: 24,
-      color: const Color(0xFFD1BE93).withOpacity(0.3),
+      color: const Color(0x4DD1BE93),
     );
   }
 }
