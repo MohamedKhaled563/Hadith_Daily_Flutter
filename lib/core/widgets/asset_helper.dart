@@ -4,7 +4,7 @@ import '../theme/app_colors.dart';
 import 'app_decorations.dart';
 
 class AssetHelper {
-  /// Loads a PNG or SVG image with graceful fallback to programmatic vector art
+  /// Loads a PNG (preferred) or SVG image with graceful fallback to programmatic vector art
   static Widget assetOrFallback({
     required String assetPath,
     required double width,
@@ -12,24 +12,45 @@ class AssetHelper {
     BoxFit fit = BoxFit.contain,
     Widget? fallback,
   }) {
+    // If it's explicitly an SVG path
     if (assetPath.endsWith('.svg')) {
-      return SvgPicture.asset(
-        assetPath,
+      // First try to see if a PNG equivalent exists
+      final pngPath = assetPath.replaceAll('.svg', '.png');
+      return Image.asset(
+        pngPath,
         width: width,
         height: height,
         fit: fit,
-        placeholderBuilder: (BuildContext context) =>
-            fallback ?? _getFallbackWidget(assetPath, width, height),
+        errorBuilder: (context, error, stackTrace) {
+          return SvgPicture.asset(
+            assetPath,
+            width: width,
+            height: height,
+            fit: fit,
+            placeholderBuilder: (BuildContext context) =>
+                fallback ?? _getFallbackWidget(assetPath, width, height),
+          );
+        },
       );
     }
 
+    // If it's a PNG or other raster asset
     return Image.asset(
       assetPath,
       width: width,
       height: height,
       fit: fit,
       errorBuilder: (context, error, stackTrace) {
-        return fallback ?? _getFallbackWidget(assetPath, width, height);
+        // Also try SVG if PNG isn't found
+        final svgPath = assetPath.replaceAll('.png', '.svg');
+        return SvgPicture.asset(
+          svgPath,
+          width: width,
+          height: height,
+          fit: fit,
+          placeholderBuilder: (BuildContext context) =>
+              fallback ?? _getFallbackWidget(assetPath, width, height),
+        );
       },
     );
   }

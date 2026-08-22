@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 class BottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -44,7 +43,7 @@ class BottomNavigation extends StatelessWidget {
             Expanded(
               child: _buildNavItem(
                 icon: Icons.share_outlined,
-                activeIcon: Icons.share,
+                activeIcon: Icons.share_rounded,
                 label: 'المشاركة',
                 isSelected: currentIndex == 2,
                 onTap: () => onTap(2),
@@ -58,12 +57,12 @@ class BottomNavigation extends StatelessWidget {
               color: const Color(0x30B9A06A),
             ),
 
-            // Middle Section: جميع المجتمع (Index 1)
+            // Middle Section: جميع الأحاديث (Index 1) - Replaced "جميع المجتمع"
             Expanded(
               child: _buildNavItem(
-                icon: Icons.people_alt_outlined,
-                activeIcon: Icons.people_alt_rounded,
-                label: 'جميع المجتمع',
+                icon: Icons.menu_book_outlined,
+                activeIcon: Icons.menu_book_rounded,
+                label: 'جميع الأحاديث',
                 isSelected: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
@@ -99,37 +98,91 @@ class BottomNavigation extends StatelessWidget {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return _AnimatedNavItem(
+      icon: icon,
+      activeIcon: activeIcon,
+      label: label,
+      isSelected: isSelected,
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 44,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              color: isSelected ? const Color(0xFFEBE3D3) : Colors.transparent,
-            ),
-            child: Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected ? const Color(0xFF26352C) : const Color(0xFF5A7061),
-              size: 24,
-            ),
+    );
+  }
+}
+
+class _AnimatedNavItem extends StatefulWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _AnimatedNavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedNavItem> createState() => _AnimatedNavItemState();
+}
+
+class _AnimatedNavItemState extends State<_AnimatedNavItem> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedScale(
+          scale: _isPressed ? 0.92 : 1.0,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                width: widget.isSelected ? 48 : 42,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  color: widget.isSelected ? const Color(0xFFEBE3D3) : Colors.transparent,
+                ),
+                child: Icon(
+                  widget.isSelected ? widget.activeIcon : widget.icon,
+                  color: widget.isSelected ? const Color(0xFF26352C) : const Color(0xFF5A7061),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: widget.isSelected ? const Color(0xFF26352C) : const Color(0xFF5A7061),
+                  fontFamily: 'Tajawal',
+                ),
+                child: Text(
+                  widget.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-              color: isSelected ? const Color(0xFF26352C) : const Color(0xFF5A7061),
-              fontFamily: 'Tajawal',
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

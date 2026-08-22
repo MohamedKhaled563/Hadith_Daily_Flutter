@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/smooth_page_route.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
 import '../hadith/hadith_detail_screen.dart';
@@ -33,19 +35,19 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Column(
             children: [
-              // Top Bar matching الرسالة.png
+              // Top Bar
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Back Button
-                  _buildCircleButton(
+                  _buildAnimatedCircleButton(
                     icon: Icons.chevron_right,
                     onTap: () => Navigator.pop(context),
                   ),
 
                   // Center Emblem
                   AssetHelper.assetOrFallback(
-                    assetPath: 'assets/images/heart_leaf_emblem.svg',
+                    assetPath: 'assets/images/heart_leaf_emblem.png',
                     width: 44,
                     height: 44,
                     fallback: const Icon(
@@ -56,7 +58,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                   ),
 
                   // Bookmark Button
-                  _buildCircleButton(
+                  _buildAnimatedCircleButton(
                     icon: _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                     iconColor: _isBookmarked ? AppColors.gold : AppColors.primaryText,
                     onTap: () {
@@ -79,7 +81,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
 
               const Spacer(),
 
-              // The Main Quote Card matching الرسالة.png
+              // The Main Quote Card
               Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -104,94 +106,84 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Quotation Mark
-                        const Text(
-                          '”',
-                          style: TextStyle(
-                            fontSize: 44,
-                            height: 0.8,
-                            color: AppColors.gold,
-                            fontWeight: FontWeight.bold,
+                        // Category / Tag
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.softCream,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0x40D1BE93),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AssetHelper.assetOrFallback(
+                                assetPath: 'assets/images/leaf_accent.png',
+                                width: 14,
+                                height: 14,
+                                fallback: const Icon(
+                                  Icons.eco,
+                                  size: 13,
+                                  color: AppColors.primaryGreen,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.insight.category,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryGreen,
+                                  fontFamily: 'Tajawal',
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 20),
 
-                        // Arabic Message
+                        // Message Text in quotes
                         Text(
-                          widget.insight.arabic,
+                          '«${widget.insight.message}»',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 20,
-                            height: 2.0,
+                            height: 1.7,
                             fontWeight: FontWeight.w600,
                             color: AppColors.primaryText,
                             fontFamily: 'Tajawal',
                           ),
                         ),
+                        const SizedBox(height: 18),
 
-                        if (widget.insight.english.isNotEmpty) ...[
-                          const SizedBox(height: 18),
-                          Container(
-                            width: 36,
-                            height: 1.2,
-                            color: const Color(0x66D1BE93),
+                        // Golden Divider
+                        AssetHelper.assetOrFallback(
+                          assetPath: 'assets/images/golden_divider.png',
+                          width: 100,
+                          height: 14,
+                          fallback: Container(
+                            width: 60,
+                            height: 1.5,
+                            color: AppColors.gold,
                           ),
-                          const SizedBox(height: 14),
-                          Text(
-                            widget.insight.english,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              height: 1.6,
-                              color: AppColors.secondaryText,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
+                        ),
 
                         if (widget.hadith != null) ...[
                           const SizedBox(height: 24),
-                          GestureDetector(
+                          _HadithDetailPillButton(
+                            title: widget.hadith!.title,
                             onTap: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) => HadithDetailScreen(
+                                SmoothPageRoute(
+                                  child: HadithDetailScreen(
                                     hadith: widget.hadith!,
                                   ),
                                 ),
                               );
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: AppColors.secondaryCard,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: const Color(0x59D1BE93),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'شرح الحديث (${widget.hadith!.title})',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primaryGreen,
-                                      fontFamily: 'Tajawal',
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Icon(
-                                    Icons.arrow_back,
-                                    size: 13,
-                                    color: AppColors.primaryGreen,
-                                  ),
-                                ],
-                              ),
-                            ),
                           ),
                         ],
                       ],
@@ -206,7 +198,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                     height: 60,
                     child: IgnorePointer(
                       child: AssetHelper.assetOrFallback(
-                        assetPath: 'assets/images/botanical_top_right.svg',
+                        assetPath: 'assets/images/botanical_top_right.png',
                         width: 60,
                         height: 60,
                         fallback: const SizedBox.shrink(),
@@ -220,7 +212,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                     height: 60,
                     child: IgnorePointer(
                       child: AssetHelper.assetOrFallback(
-                        assetPath: 'assets/images/botanical_bottom_left.svg',
+                        assetPath: 'assets/images/botanical_bottom_left.png',
                         width: 60,
                         height: 60,
                         fallback: const SizedBox.shrink(),
@@ -232,7 +224,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
 
               const Spacer(),
 
-              // Floating 4-Action Bar matching الرسالة.png (مشاركة - حفظ - نسخ - تذكير)
+              // Floating 4-Action Bar (مشاركة - حفظ - نسخ - تذكير)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
@@ -252,14 +244,14 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildBottomAction(
-                      icon: Icons.share_outlined,
+                    _buildActionItem(
+                      icon: Icons.send_outlined,
                       label: 'مشاركة',
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                              'تم تجهيز الرسالة للمشاركة',
+                              'تم نسخ الرسالة لمشاركتها',
                               textDirection: TextDirection.rtl,
                               style: TextStyle(fontFamily: 'Tajawal'),
                             ),
@@ -268,24 +260,25 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                         );
                       },
                     ),
-                    _buildDivider(),
-                    _buildBottomAction(
+                    _buildActionDivider(),
+                    _buildActionItem(
                       icon: _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                       label: 'حفظ',
-                      color: _isBookmarked ? AppColors.gold : AppColors.primaryText,
+                      isSelected: _isBookmarked,
                       onTap: () {
                         setState(() => _isBookmarked = !_isBookmarked);
                       },
                     ),
-                    _buildDivider(),
-                    _buildBottomAction(
-                      icon: Icons.copy,
+                    _buildActionDivider(),
+                    _buildActionItem(
+                      icon: Icons.copy_rounded,
                       label: 'نسخ',
                       onTap: () {
+                        Clipboard.setData(ClipboardData(text: widget.insight.message));
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                              'تم نسخ نص الرسالة إلى الحافظة',
+                              'تم نسخ نص الرسالة',
                               textDirection: TextDirection.rtl,
                               style: TextStyle(fontFamily: 'Tajawal'),
                             ),
@@ -294,17 +287,17 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                         );
                       },
                     ),
-                    _buildDivider(),
-                    _buildBottomAction(
+                    _buildActionDivider(),
+                    _buildActionItem(
                       icon: _reminderSet ? Icons.notifications_active : Icons.notifications_none,
-                      label: _reminderSet ? 'مفعل' : 'تذكير',
-                      color: _reminderSet ? AppColors.primaryGreen : AppColors.primaryText,
+                      label: 'تذكير',
+                      isSelected: _reminderSet,
                       onTap: () {
                         setState(() => _reminderSet = !_reminderSet);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              _reminderSet ? 'تم تفعيل التذكير اليومي' : 'تم إلغاء التذكير',
+                              _reminderSet ? 'تم تفعيل التذكير اليومي بهذه الرسالة' : 'تم إلغاء التذكير',
                               textDirection: TextDirection.rtl,
                               style: const TextStyle(fontFamily: 'Tajawal'),
                             ),
@@ -324,67 +317,229 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
     );
   }
 
-  Widget _buildCircleButton({
+  Widget _buildActionDivider() {
+    return Container(
+      width: 1,
+      height: 28,
+      color: const Color(0x33D1BE93),
+    );
+  }
+
+  Widget _buildActionItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isSelected = false,
+  }) {
+    return _AnimatedActionItem(
+      icon: icon,
+      label: label,
+      isSelected: isSelected,
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildAnimatedCircleButton({
     required IconData icon,
     required VoidCallback onTap,
     Color iconColor = AppColors.primaryText,
   }) {
-    return GestureDetector(
+    return _AnimatedMessageTopButton(
+      icon: icon,
+      iconColor: iconColor,
       onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: const Color(0x66D1BE93),
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 8,
+    );
+  }
+}
+
+class _HadithDetailPillButton extends StatefulWidget {
+  final String title;
+  final VoidCallback onTap;
+
+  const _HadithDetailPillButton({
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  State<_HadithDetailPillButton> createState() => _HadithDetailPillButtonState();
+}
+
+class _HadithDetailPillButtonState extends State<_HadithDetailPillButton> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedScale(
+          scale: _isPressed ? 0.94 : (_isHovered ? 1.03 : 1.0),
+          duration: const Duration(milliseconds: 140),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+            decoration: BoxDecoration(
+              color: _isHovered ? const Color(0xFFEBE3D3) : AppColors.secondaryCard,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _isHovered ? AppColors.gold : const Color(0x59D1BE93),
+              ),
+              boxShadow: [
+                if (_isHovered)
+                  const BoxShadow(
+                    color: Color(0x153B5644),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+              ],
             ),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'شرح الحديث (${widget.title})',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryGreen,
+                    fontFamily: 'Tajawal',
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.arrow_back,
+                  size: 13,
+                  color: AppColors.primaryGreen,
+                ),
+              ],
+            ),
+          ),
         ),
-        child: Icon(icon, size: 22, color: iconColor),
       ),
     );
   }
+}
 
-  Widget _buildBottomAction({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color color = AppColors.primaryText,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-              fontFamily: 'Tajawal',
+class _AnimatedActionItem extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _AnimatedActionItem({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedActionItem> createState() => _AnimatedActionItemState();
+}
+
+class _AnimatedActionItemState extends State<_AnimatedActionItem> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedScale(
+          scale: _isPressed ? 0.88 : 1.0,
+          duration: const Duration(milliseconds: 140),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                widget.icon,
+                color: widget.isSelected ? AppColors.gold : AppColors.primaryGreen,
+                size: 22,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: widget.isSelected ? AppColors.gold : AppColors.primaryGreen,
+                  fontFamily: 'Tajawal',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedMessageTopButton extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color iconColor;
+
+  const _AnimatedMessageTopButton({
+    required this.icon,
+    required this.onTap,
+    required this.iconColor,
+  });
+
+  @override
+  State<_AnimatedMessageTopButton> createState() => _AnimatedMessageTopButtonState();
+}
+
+class _AnimatedMessageTopButtonState extends State<_AnimatedMessageTopButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedScale(
+          scale: _isPressed ? 0.88 : 1.0,
+          duration: const Duration(milliseconds: 140),
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.secondaryCard,
+              border: Border.all(
+                color: const Color(0x66D1BE93),
+              ),
+            ),
+            child: Icon(
+              widget.icon,
+              color: widget.iconColor,
+              size: 22,
             ),
           ),
-        ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Container(
-      width: 1,
-      height: 24,
-      color: const Color(0x4DD1BE93),
     );
   }
 }
