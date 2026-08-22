@@ -1,0 +1,6 @@
+{
+  "name": "حديثك اليوم - Hadith Daily",
+  "description": "تطبيق حديثك اليوم لقراءة أحاديث الأربعين النووية يومياً مع الشرح والمحفوظات ومشاركة البطاقات",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

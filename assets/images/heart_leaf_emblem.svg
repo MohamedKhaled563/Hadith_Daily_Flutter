@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="100%" height="100%" fill="none">
+  <!-- Top Dot -->
+  <circle cx="150" cy="38" r="7" fill="#3D5643"/>
+  
+  <!-- Heart Outline using Organic Leaf / Vine Curves -->
+  <!-- Left Half of Heart -->
+  <path d="M150 78 C135 52 95 44 68 70 C38 98 42 145 74 184 C100 216 135 244 150 258" 
+        stroke="#3D5643" stroke-width="7" stroke-linecap="round" fill="none"/>
+  <!-- Right Half of Heart -->
+  <path d="M150 78 C165 52 205 44 232 70 C262 98 258 145 226 184 C200 216 165 244 150 258" 
+        stroke="#3D5643" stroke-width="7" stroke-linecap="round" fill="none"/>
+
+  <!-- Inner Central Stem -->
+  <path d="M150 252 C150 210 152 145 150 86" stroke="#3D5643" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Central Top Leaf -->
+  <path d="M150 160 C138 135 140 100 150 82 C160 100 162 135 150 160 Z" 
+        fill="#5E7C65" stroke="#3D5643" stroke-width="2"/>
+  <path d="M150 160 L150 82" stroke="#8EAA94" stroke-width="1.5"/>
+
+  <!-- Left Inner Leaf -->
+  <path d="M150 195 C118 185 88 152 82 120 C108 122 138 148 150 195 Z" 
+        fill="#6F8D76" stroke="#3D5643" stroke-width="2"/>
+  <path d="M150 195 C118 165 92 135 82 120" stroke="#9BB4A1" stroke-width="1.5"/>
+
+  <!-- Right Inner Leaf -->
+  <path d="M150 185 C182 175 212 142 218 110 C192 112 162 138 150 185 Z" 
+        fill="#5E7C65" stroke="#3D5643" stroke-width="2"/>
+  <path d="M150 185 C182 155 208 125 218 110" stroke="#8EAA94" stroke-width="1.5"/>
+
+  <!-- Bottom Golden Ornament & Ribbon -->
+  <!-- Golden Center Petal/Leaf -->
+  <path d="M150 262 C146 270 146 278 150 286 C154 278 154 270 150 262 Z" fill="#B9A06A"/>
+  <!-- Golden Left Leaf -->
+  <path d="M148 266 C138 265 130 270 130 276 C138 276 145 272 148 266 Z" fill="#C9B27C"/>
+  <!-- Golden Right Leaf -->
+  <path d="M152 266 C162 265 170 270 170 276 C162 276 155 272 152 266 Z" fill="#C9B27C"/>
+
+  <!-- Golden Dots -->
+  <circle cx="125" cy="275" r="2.5" fill="#B9A06A"/>
+  <circle cx="175" cy="275" r="2.5" fill="#B9A06A"/>
+  <circle cx="150" cy="292" r="3" fill="#B9A06A"/>
+
+  <!-- Golden Swirl Ribbons -->
+  <path d="M120 275 C95 273 70 268 55 272" stroke="#C9B27C" stroke-width="2" stroke-linecap="round"/>
+  <path d="M180 275 C205 273 230 268 245 272" stroke="#C9B27C" stroke-width="2" stroke-linecap="round"/>
+</svg>

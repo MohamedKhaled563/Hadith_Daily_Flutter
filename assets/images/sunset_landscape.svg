@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Sky & Sun Gradient -->
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F8F3EA" stop-opacity="0"/>
+      <stop offset="35%" stop-color="#F6E7D2" stop-opacity="0.6"/>
+      <stop offset="60%" stop-color="#F3D5B5" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#F2C79E"/>
+    </linearGradient>
+
+    <!-- Water Reflection Gradient -->
+    <linearGradient id="waterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ECD7BA"/>
+      <stop offset="40%" stop-color="#B2C6BA"/>
+      <stop offset="100%" stop-color="#7B9988"/>
+    </linearGradient>
+
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD699" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#F7BA70" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#F2A550" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Sky Base -->
+  <rect x="0" y="0" width="500" height="500" fill="url(#skyGrad)"/>
+
+  <!-- Birds in Sky -->
+  <g fill="#7A8778" opacity="0.6">
+    <path d="M380 180 Q390 174 400 180 Q410 174 420 180 Q410 177 400 183 Q390 177 380 180 Z"/>
+    <path d="M420 160 Q427 155 435 160 Q443 155 450 160 Q443 158 435 162 Q427 158 420 160 Z" transform="scale(0.8) translate(80, 20)"/>
+    <path d="M350 205 Q357 200 365 205 Q373 200 380 205 Q373 203 365 207 Q357 203 350 205 Z" transform="scale(0.7) translate(130, 70)"/>
+  </g>
+
+  <!-- Distant Mountain Ranges -->
+  <!-- Layer 1: Furthest subtle mountains -->
+  <path d="M0 320 Q120 230 250 290 Q380 220 500 310 L500 500 L0 500 Z" fill="#98ABA0" opacity="0.45"/>
+
+  <!-- Layer 2: Mid-range mountains -->
+  <path d="M0 340 Q150 260 250 320 Q350 270 500 350 L500 500 L0 500 Z" fill="#758E80" opacity="0.65"/>
+
+  <!-- Sun on the Horizon -->
+  <circle cx="250" cy="335" r="42" fill="url(#sunGlow)"/>
+  <circle cx="250" cy="335" r="28" fill="#FCE5B8" opacity="0.9"/>
+
+  <!-- Lake Water Surface -->
+  <path d="M120 345 L380 345 L450 430 L50 430 Z" fill="url(#waterGrad)"/>
+  
+  <!-- Sun Shimmer Reflection on Water -->
+  <ellipse cx="250" cy="360" rx="35" ry="6" fill="#FFF2D6" opacity="0.8"/>
+  <ellipse cx="250" cy="375" rx="55" ry="9" fill="#FDE1AE" opacity="0.6"/>
+  <ellipse cx="250" cy="395" rx="80" ry="12" fill="#FCD492" opacity="0.4"/>
+
+  <!-- Lake Shore Hills with Forest silhouettes (Left and Right) -->
+  <path d="M0 350 Q80 340 140 370 Q70 410 0 420 Z" fill="#587463" opacity="0.9"/>
+  <path d="M500 350 Q420 340 360 370 Q430 410 500 420 Z" fill="#587463" opacity="0.9"/>
+
+  <!-- Foreground Grassy Meadow Shore & Path -->
+  <path d="M0 400 Q150 390 250 430 Q350 390 500 400 L500 500 L0 500 Z" fill="#607B69"/>
+  <path d="M180 500 Q240 440 250 430 Q260 440 320 500 Z" fill="#BAAA88" opacity="0.85"/>
+
+  <!-- Small White Jasmine Flowers on Hills -->
+  <g fill="#FFFFFF" stroke="#D1BE8E" stroke-width="0.8">
+    <!-- Flower 1 -->
+    <g transform="translate(60, 420)">
+      <circle cx="0" cy="-6" r="3.5"/><circle cx="6" cy="0" r="3.5"/>
+      <circle cx="0" cy="6" r="3.5"/><circle cx="-6" cy="0" r="3.5"/>
+      <circle cx="0" cy="0" r="2.5" fill="#E8C96C"/>
+    </g>
+    <!-- Flower 2 -->
+    <g transform="translate(85, 455) scale(0.9)">
+      <circle cx="0" cy="-6" r="3.5"/><circle cx="6" cy="0" r="3.5"/>
+      <circle cx="0" cy="6" r="3.5"/><circle cx="-6" cy="0" r="3.5"/>
+      <circle cx="0" cy="0" r="2.5" fill="#E8C96C"/>
+    </g>
+    <!-- Flower 3 -->
+    <g transform="translate(430, 430) scale(0.95)">
+      <circle cx="0" cy="-6" r="3.5"/><circle cx="6" cy="0" r="3.5"/>
+      <circle cx="0" cy="6" r="3.5"/><circle cx="-6" cy="0" r="3.5"/>
+      <circle cx="0" cy="0" r="2.5" fill="#E8C96C"/>
+    </g>
+    <!-- Flower 4 -->
+    <g transform="translate(450, 465) scale(0.85)">
+      <circle cx="0" cy="-6" r="3.5"/><circle cx="6" cy="0" r="3.5"/>
+      <circle cx="0" cy="6" r="3.5"/><circle cx="-6" cy="0" r="3.5"/>
+      <circle cx="0" cy="0" r="2.5" fill="#E8C96C"/>
+    </g>
+  </g>
+
+  <!-- Left Foreground Botanical Sprig -->
+  <path d="M-10 500 Q40 400 30 300" stroke="#3D5341" stroke-width="4" fill="none"/>
+  <g transform="translate(25, 330) rotate(-35)">
+    <path d="M0 0 C25 -10 55 -12 75 0 C55 18 25 15 0 0 Z" fill="#6A8570"/>
+  </g>
+  <g transform="translate(32, 380) rotate(-15)">
+    <path d="M0 0 C25 -10 55 -12 75 0 C55 18 25 15 0 0 Z" fill="#587460"/>
+  </g>
+
+  <!-- Right Foreground Botanical Sprig -->
+  <path d="M510 500 Q460 410 470 320" stroke="#3D5341" stroke-width="4" fill="none"/>
+  <g transform="translate(470, 350) rotate(145)">
+    <path d="M0 0 C25 -10 55 -12 75 0 C55 18 25 15 0 0 Z" fill="#6A8570"/>
+  </g>
+  <g transform="translate(465, 410) rotate(165)">
+    <path d="M0 0 C25 -10 55 -12 75 0 C55 18 25 15 0 0 Z" fill="#587460"/>
+  </g>
+</svg>

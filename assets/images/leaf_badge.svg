@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" fill="none">
+  <!-- Soft background circle -->
+  <circle cx="50" cy="50" r="45" fill="#EFE8DA" stroke="#D1BE93" stroke-width="1.5"/>
+  <!-- Leaf Stem Ornament -->
+  <g stroke="#556E58" stroke-width="2" stroke-linecap="round">
+    <path d="M50 78 C50 60 50 35 50 22"/>
+    <!-- Top Leaf -->
+    <path d="M50 22 C44 28 44 38 50 44 C56 38 56 28 50 22 Z" fill="#6E8A73"/>
+    <!-- Left Leaves -->
+    <path d="M50 42 C38 38 30 45 28 55 C38 58 48 50 50 42 Z" fill="#7D9982"/>
+    <path d="M50 60 C38 56 30 63 28 73 C38 76 48 68 50 60 Z" fill="#7D9982"/>
+    <!-- Right Leaves -->
+    <path d="M50 42 C62 38 70 45 72 55 C62 58 52 50 50 42 Z" fill="#6E8A73"/>
+    <path d="M50 60 C62 56 70 63 72 73 C62 76 52 68 50 60 Z" fill="#6E8A73"/>
+  </g>
+</svg>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 120" width="100%" height="100%" fill="none">
+  <defs>
+    <linearGradient id="goldRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C9B27C" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#C9B27C" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#DFC48B"/>
+      <stop offset="80%" stop-color="#C9B27C" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#C9B27C" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left Golden Curved Ribbon -->
+  <path d="M10 60 C80 60 140 38 210 50 C240 55 260 62 280 65" 
+        stroke="url(#goldRibbon)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Right Golden Curved Ribbon -->
+  <path d="M590 60 C520 60 460 38 390 50 C360 55 340 62 320 65" 
+        stroke="url(#goldRibbon)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Center Golden Leaf (Standing Upright) -->
+  <path d="M300 30 C290 45 292 65 300 78 C308 65 310 45 300 30 Z" 
+        fill="#BFA66D" stroke="#9E844E" stroke-width="1"/>
+  <path d="M300 30 L300 78" stroke="#E6D3A3" stroke-width="1"/>
+
+  <!-- Left Inner Sage Leaf -->
+  <path d="M298 72 C275 60 250 50 230 45 C255 70 280 75 298 75 Z" 
+        fill="#6E8A73" stroke="#4C6550" stroke-width="1"/>
+  <!-- Left Outer Light Sage Leaf -->
+  <path d="M275 68 C240 65 200 65 175 62 C205 80 245 78 275 72 Z" 
+        fill="#9BB19E" stroke="#5E7862" stroke-width="1"/>
+
+  <!-- Right Inner Sage Leaf -->
+  <path d="M302 72 C325 60 350 50 370 45 C345 70 320 75 302 75 Z" 
+        fill="#6E8A73" stroke="#4C6550" stroke-width="1"/>
+  <!-- Right Outer Light Sage Leaf -->
+  <path d="M325 68 C360 65 400 65 425 62 C395 80 355 78 325 72 Z" 
+        fill="#9BB19E" stroke="#5E7862" stroke-width="1"/>
+
+  <!-- Gold Accent Dots -->
+  <circle cx="280" cy="50" r="4" fill="#BFA66D"/>
+  <circle cx="320" cy="50" r="4" fill="#BFA66D"/>
+  <circle cx="205" cy="72" r="3.5" fill="#BFA66D"/>
+  <circle cx="395" cy="72" r="3.5" fill="#BFA66D"/>
+</svg>

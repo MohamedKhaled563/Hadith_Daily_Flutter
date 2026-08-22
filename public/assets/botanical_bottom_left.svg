@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="100%" height="100%" fill="none">
+  <defs>
+    <linearGradient id="blLeafGrad1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3D5341"/>
+      <stop offset="50%" stop-color="#556E58"/>
+      <stop offset="100%" stop-color="#8EA28B"/>
+    </linearGradient>
+    <linearGradient id="blLeafGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4C654F"/>
+      <stop offset="50%" stop-color="#738C72"/>
+      <stop offset="100%" stop-color="#B2C2B0"/>
+    </linearGradient>
+    <linearGradient id="blStemGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#334235"/>
+      <stop offset="100%" stop-color="#4A5E4D"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Main Branch Stem sweeping up from bottom left -->
+  <path d="M0 600 C20 560 70 490 80 420 C90 340 40 240 20 150 C15 130 20 100 30 80" 
+        stroke="url(#blStemGrad)" stroke-width="4.5" stroke-linecap="round" fill="none" opacity="0.85"/>
+
+  <!-- Sub-branches -->
+  <path d="M60 480 C120 460 190 480 290 520" stroke="url(#blStemGrad)" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.8"/>
+  <path d="M85 380 C120 350 180 300 190 240" stroke="url(#blStemGrad)" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.8"/>
+  <path d="M60 270 C100 230 120 170 110 100" stroke="url(#blStemGrad)" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.75"/>
+  <path d="M35 180 C60 140 65 80 50 20" stroke="url(#blStemGrad)" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.75"/>
+
+  <!-- Leaf clusters -->
+  <g transform="translate(180, 480) rotate(15)">
+    <path d="M0 0 C40 -20 100 -25 150 0 C100 35 40 30 0 0 Z" fill="url(#blLeafGrad1)" opacity="0.9"/>
+    <path d="M0 0 C50 -5 110 -5 150 0" stroke="#B8CBB5" stroke-width="1.5" opacity="0.7"/>
+  </g>
+
+  <g transform="translate(110, 360) rotate(-25)">
+    <path d="M0 0 C50 -25 120 -30 180 0 C120 40 50 35 0 0 Z" fill="url(#blLeafGrad1)" opacity="0.92"/>
+    <path d="M0 0 C60 -5 130 -5 180 0" stroke="#C4D5C1" stroke-width="1.8" opacity="0.8"/>
+  </g>
+
+  <g transform="translate(120, 220) rotate(-45)">
+    <path d="M0 0 C45 -20 100 -22 150 0 C100 30 45 25 0 0 Z" fill="url(#blLeafGrad2)" opacity="0.9"/>
+  </g>
+
+  <g transform="translate(70, 110) rotate(-70)">
+    <path d="M0 0 C40 -18 90 -20 130 0 C90 25 40 20 0 0 Z" fill="url(#blLeafGrad1)" opacity="0.85"/>
+  </g>
+
+  <!-- Golden Berries clusters -->
+  <circle cx="120" cy="485" r="5" fill="#C9B27C"/>
+  <circle cx="105" cy="472" r="4.5" fill="#B9A06A"/>
+  <circle cx="50" cy="395" r="5" fill="#C9B27C"/>
+  <circle cx="40" cy="375" r="4.5" fill="#B9A06A"/>
+</svg>
