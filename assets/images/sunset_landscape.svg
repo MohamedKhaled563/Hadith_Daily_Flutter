@@ -1,107 +1,129 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 900" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
   <defs>
-    <!-- Sky & Sun Gradient -->
+    <!-- Sky Gradient -->
     <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#F8F3EA" stop-opacity="0"/>
-      <stop offset="35%" stop-color="#F6E7D2" stop-opacity="0.6"/>
-      <stop offset="60%" stop-color="#F3D5B5" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#F2C79E"/>
+      <stop offset="0%" stop-color="#F8F4EC"/>
+      <stop offset="45%" stop-color="#F8F3EA"/>
+      <stop offset="60%" stop-color="#F5E8D6" stop-opacity="0.85"/>
+      <stop offset="70%" stop-color="#F0D4B2"/>
+      <stop offset="85%" stop-color="#E5C7A5"/>
+      <stop offset="100%" stop-color="#728B78"/>
     </linearGradient>
 
-    <!-- Water Reflection Gradient -->
-    <linearGradient id="waterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ECD7BA"/>
-      <stop offset="40%" stop-color="#B2C6BA"/>
-      <stop offset="100%" stop-color="#7B9988"/>
-    </linearGradient>
-
+    <!-- Sun Glow -->
     <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#FFD699" stop-opacity="1"/>
-      <stop offset="40%" stop-color="#F7BA70" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#F2A550" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#FFDF9E" stop-opacity="1"/>
+      <stop offset="45%" stop-color="#F9BE74" stop-opacity="0.85"/>
+      <stop offset="80%" stop-color="#F29F4C" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#F8F3EA" stop-opacity="0"/>
     </radialGradient>
+
+    <!-- Lake Reflection -->
+    <linearGradient id="lakeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ECD4AF"/>
+      <stop offset="35%" stop-color="#A5C0B2"/>
+      <stop offset="70%" stop-color="#6F8F7D"/>
+      <stop offset="100%" stop-color="#557563"/>
+    </linearGradient>
   </defs>
 
   <!-- Sky Base -->
-  <rect x="0" y="0" width="500" height="500" fill="url(#skyGrad)"/>
+  <rect x="0" y="0" width="420" height="900" fill="url(#skyGrad)"/>
 
-  <!-- Birds in Sky -->
-  <g fill="#7A8778" opacity="0.6">
-    <path d="M380 180 Q390 174 400 180 Q410 174 420 180 Q410 177 400 183 Q390 177 380 180 Z"/>
-    <path d="M420 160 Q427 155 435 160 Q443 155 450 160 Q443 158 435 162 Q427 158 420 160 Z" transform="scale(0.8) translate(80, 20)"/>
-    <path d="M350 205 Q357 200 365 205 Q373 200 380 205 Q373 203 365 207 Q357 203 350 205 Z" transform="scale(0.7) translate(130, 70)"/>
+  <!-- Birds in Sky (Top-Right) -->
+  <g fill="#7A8778" opacity="0.65">
+    <path d="M340 420 Q347 414 354 420 Q361 414 368 420 Q361 417 354 422 Q347 417 340 420 Z"/>
+    <path d="M358 405 Q363 400 369 405 Q375 400 380 405 Q375 402 369 406 Q363 402 358 405 Z" transform="scale(0.85) translate(65, 55)"/>
+    <path d="M372 415 Q376 411 381 415 Q386 411 390 415 Q386 413 381 416 Q376 413 372 415 Z" transform="scale(0.75) translate(120, 95)"/>
+    <path d="M315 480 Q321 475 328 480 Q335 475 341 480 Q335 478 328 482 Q321 478 315 480 Z" transform="scale(0.8) translate(80, 80)"/>
+    <path d="M295 500 Q300 496 306 500 Q312 496 317 500 Q312 498 306 502 Q300 498 295 500 Z" transform="scale(0.7) translate(130, 140)"/>
   </g>
 
-  <!-- Distant Mountain Ranges -->
-  <!-- Layer 1: Furthest subtle mountains -->
-  <path d="M0 320 Q120 230 250 290 Q380 220 500 310 L500 500 L0 500 Z" fill="#98ABA0" opacity="0.45"/>
+  <!-- Distant Mountains Layer 1 -->
+  <path d="M0 580 Q100 500 210 560 Q320 480 420 570 L420 900 L0 900 Z" fill="#9FB2A7" opacity="0.45"/>
 
-  <!-- Layer 2: Mid-range mountains -->
-  <path d="M0 340 Q150 260 250 320 Q350 270 500 350 L500 500 L0 500 Z" fill="#758E80" opacity="0.65"/>
+  <!-- Mid-Range Mountains Layer 2 -->
+  <path d="M0 610 Q120 530 210 595 Q300 525 420 620 L420 900 L0 900 Z" fill="#7D988A" opacity="0.7"/>
 
   <!-- Sun on the Horizon -->
-  <circle cx="250" cy="335" r="42" fill="url(#sunGlow)"/>
-  <circle cx="250" cy="335" r="28" fill="#FCE5B8" opacity="0.9"/>
+  <circle cx="210" cy="625" r="54" fill="url(#sunGlow)"/>
+  <circle cx="210" cy="625" r="32" fill="#FFE5B6" opacity="0.95"/>
 
   <!-- Lake Water Surface -->
-  <path d="M120 345 L380 345 L450 430 L50 430 Z" fill="url(#waterGrad)"/>
-  
-  <!-- Sun Shimmer Reflection on Water -->
-  <ellipse cx="250" cy="360" rx="35" ry="6" fill="#FFF2D6" opacity="0.8"/>
-  <ellipse cx="250" cy="375" rx="55" ry="9" fill="#FDE1AE" opacity="0.6"/>
-  <ellipse cx="250" cy="395" rx="80" ry="12" fill="#FCD492" opacity="0.4"/>
+  <path d="M80 635 L340 635 L420 760 L0 760 Z" fill="url(#lakeGrad)"/>
 
-  <!-- Lake Shore Hills with Forest silhouettes (Left and Right) -->
-  <path d="M0 350 Q80 340 140 370 Q70 410 0 420 Z" fill="#587463" opacity="0.9"/>
-  <path d="M500 350 Q420 340 360 370 Q430 410 500 420 Z" fill="#587463" opacity="0.9"/>
+  <!-- Sunlight Shimmer on Lake -->
+  <ellipse cx="210" cy="648" rx="42" ry="7" fill="#FFF5DC" opacity="0.85"/>
+  <ellipse cx="210" cy="668" rx="65" ry="10" fill="#FDE4B4" opacity="0.65"/>
+  <ellipse cx="210" cy="695" rx="90" ry="14" fill="#FCD59A" opacity="0.45"/>
+  <ellipse cx="210" cy="725" rx="120" ry="16" fill="#F8C982" opacity="0.25"/>
 
-  <!-- Foreground Grassy Meadow Shore & Path -->
-  <path d="M0 400 Q150 390 250 430 Q350 390 500 400 L500 500 L0 500 Z" fill="#607B69"/>
-  <path d="M180 500 Q240 440 250 430 Q260 440 320 500 Z" fill="#BAAA88" opacity="0.85"/>
+  <!-- Mountain Slopes Left & Right bordering Lake -->
+  <path d="M0 630 Q90 620 160 660 Q80 710 0 730 Z" fill="#587463" opacity="0.9"/>
+  <path d="M420 630 Q330 620 260 660 Q340 710 420 730 Z" fill="#587463" opacity="0.9"/>
 
-  <!-- Small White Jasmine Flowers on Hills -->
+  <!-- Meadow Shore & Sandy Path -->
+  <path d="M0 720 Q140 700 210 750 Q280 700 420 720 L420 900 L0 900 Z" fill="#5B7664"/>
+  <path d="M140 900 Q200 780 210 750 Q220 780 280 900 Z" fill="#BFAF90" opacity="0.85"/>
+
+  <!-- Jasmine White Flowers (Left Shore) -->
   <g fill="#FFFFFF" stroke="#D1BE8E" stroke-width="0.8">
-    <!-- Flower 1 -->
-    <g transform="translate(60, 420)">
-      <circle cx="0" cy="-6" r="3.5"/><circle cx="6" cy="0" r="3.5"/>
-      <circle cx="0" cy="6" r="3.5"/><circle cx="-6" cy="0" r="3.5"/>
-      <circle cx="0" cy="0" r="2.5" fill="#E8C96C"/>
+    <g transform="translate(45, 680)">
+      <circle cx="0" cy="-8" r="4.5"/><circle cx="8" cy="0" r="4.5"/>
+      <circle cx="0" cy="8" r="4.5"/><circle cx="-8" cy="0" r="4.5"/>
+      <circle cx="0" cy="0" r="3.2" fill="#E8C96C"/>
     </g>
-    <!-- Flower 2 -->
-    <g transform="translate(85, 455) scale(0.9)">
-      <circle cx="0" cy="-6" r="3.5"/><circle cx="6" cy="0" r="3.5"/>
-      <circle cx="0" cy="6" r="3.5"/><circle cx="-6" cy="0" r="3.5"/>
-      <circle cx="0" cy="0" r="2.5" fill="#E8C96C"/>
-    </g>
-    <!-- Flower 3 -->
-    <g transform="translate(430, 430) scale(0.95)">
-      <circle cx="0" cy="-6" r="3.5"/><circle cx="6" cy="0" r="3.5"/>
-      <circle cx="0" cy="6" r="3.5"/><circle cx="-6" cy="0" r="3.5"/>
-      <circle cx="0" cy="0" r="2.5" fill="#E8C96C"/>
-    </g>
-    <!-- Flower 4 -->
-    <g transform="translate(450, 465) scale(0.85)">
-      <circle cx="0" cy="-6" r="3.5"/><circle cx="6" cy="0" r="3.5"/>
-      <circle cx="0" cy="6" r="3.5"/><circle cx="-6" cy="0" r="3.5"/>
-      <circle cx="0" cy="0" r="2.5" fill="#E8C96C"/>
+    <g transform="translate(68, 735) scale(0.9)">
+      <circle cx="0" cy="-8" r="4.5"/><circle cx="8" cy="0" r="4.5"/>
+      <circle cx="0" cy="8" r="4.5"/><circle cx="-8" cy="0" r="4.5"/>
+      <circle cx="0" cy="0" r="3.2" fill="#E8C96C"/>
     </g>
   </g>
 
-  <!-- Left Foreground Botanical Sprig -->
-  <path d="M-10 500 Q40 400 30 300" stroke="#3D5341" stroke-width="4" fill="none"/>
-  <g transform="translate(25, 330) rotate(-35)">
-    <path d="M0 0 C25 -10 55 -12 75 0 C55 18 25 15 0 0 Z" fill="#6A8570"/>
-  </g>
-  <g transform="translate(32, 380) rotate(-15)">
-    <path d="M0 0 C25 -10 55 -12 75 0 C55 18 25 15 0 0 Z" fill="#587460"/>
+  <!-- Jasmine White Flowers (Right Shore) -->
+  <g fill="#FFFFFF" stroke="#D1BE8E" stroke-width="0.8">
+    <g transform="translate(375, 695) scale(0.95)">
+      <circle cx="0" cy="-8" r="4.5"/><circle cx="8" cy="0" r="4.5"/>
+      <circle cx="0" cy="8" r="4.5"/><circle cx="-8" cy="0" r="4.5"/>
+      <circle cx="0" cy="0" r="3.2" fill="#E8C96C"/>
+    </g>
+    <g transform="translate(350, 755) scale(0.85)">
+      <circle cx="0" cy="-8" r="4.5"/><circle cx="8" cy="0" r="4.5"/>
+      <circle cx="0" cy="8" r="4.5"/><circle cx="-8" cy="0" r="4.5"/>
+      <circle cx="0" cy="0" r="3.2" fill="#E8C96C"/>
+    </g>
   </g>
 
-  <!-- Right Foreground Botanical Sprig -->
-  <path d="M510 500 Q460 410 470 320" stroke="#3D5341" stroke-width="4" fill="none"/>
-  <g transform="translate(470, 350) rotate(145)">
-    <path d="M0 0 C25 -10 55 -12 75 0 C55 18 25 15 0 0 Z" fill="#6A8570"/>
+  <!-- Left Foreground Botanical Sprig (Rising gracefully up to middle screen) -->
+  <path d="M-10 880 Q45 680 15 460" stroke="#3D5341" stroke-width="5" fill="none"/>
+  
+  <g transform="translate(18, 490) rotate(-40)">
+    <path d="M0 0 C30 -14 65 -16 88 0 C65 22 30 18 0 0 Z" fill="#6A8570"/>
+    <path d="M0 0 L88 0" stroke="#8EAA94" stroke-width="1.5"/>
   </g>
-  <g transform="translate(465, 410) rotate(165)">
-    <path d="M0 0 C25 -10 55 -12 75 0 C55 18 25 15 0 0 Z" fill="#587460"/>
+  <g transform="translate(25, 560) rotate(-25)">
+    <path d="M0 0 C30 -14 65 -16 88 0 C65 22 30 18 0 0 Z" fill="#587460"/>
+    <path d="M0 0 L88 0" stroke="#7B9983" stroke-width="1.5"/>
+  </g>
+  <g transform="translate(32, 630) rotate(-15)">
+    <path d="M0 0 C32 -15 70 -18 95 0 C70 24 32 20 0 0 Z" fill="#6A8570"/>
+  </g>
+  <g transform="translate(36, 710) rotate(-10)">
+    <path d="M0 0 C32 -15 70 -18 95 0 C70 24 32 20 0 0 Z" fill="#506C58"/>
+  </g>
+
+  <!-- Right Foreground Botanical Sprig (Rising from bottom-right) -->
+  <path d="M430 880 Q375 700 405 520" stroke="#3D5341" stroke-width="5" fill="none"/>
+  
+  <g transform="translate(400, 550) rotate(145)">
+    <path d="M0 0 C30 -14 65 -16 88 0 C65 22 30 18 0 0 Z" fill="#6A8570"/>
+    <path d="M0 0 L88 0" stroke="#8EAA94" stroke-width="1.5"/>
+  </g>
+  <g transform="translate(390, 630) rotate(160)">
+    <path d="M0 0 C30 -14 65 -16 88 0 C65 22 30 18 0 0 Z" fill="#587460"/>
+    <path d="M0 0 L88 0" stroke="#7B9983" stroke-width="1.5"/>
+  </g>
+  <g transform="translate(385, 715) rotate(170)">
+    <path d="M0 0 C32 -15 70 -18 95 0 C70 24 32 20 0 0 Z" fill="#6A8570"/>
   </g>
 </svg>

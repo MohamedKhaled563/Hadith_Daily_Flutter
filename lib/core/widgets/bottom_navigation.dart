@@ -14,47 +14,80 @@ class BottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+      height: 76,
       decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(30),
+        color: const Color(0xFFFAF6EE),
+        borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: const Color(0x50D1BE93),
+          color: const Color(0x40D1BE93),
+          width: 1.2,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0F000000),
-            blurRadius: 16,
-            offset: Offset(0, 4),
+            color: Color(0x18000000),
+            blurRadius: 20,
+            offset: Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Color(0x20FFFDFC),
+            blurRadius: 4,
+            offset: Offset(0, -1),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(
-            icon: Icons.edit_note_outlined,
-            activeIcon: Icons.edit_note,
-            label: 'المشاركة',
-            isSelected: currentIndex == 2,
-            onTap: () => onTap(2),
-          ),
-          _buildNavItem(
-            icon: Icons.people_outline,
-            activeIcon: Icons.people,
-            label: 'المجتمع',
-            isSelected: currentIndex == 1,
-            onTap: () => onTap(1),
-          ),
-          _buildNavItem(
-            icon: Icons.home_outlined,
-            activeIcon: Icons.home,
-            label: 'الرئيسية',
-            isSelected: currentIndex == 0,
-            onTap: () => onTap(0),
-          ),
-        ],
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(
+          children: [
+            // Left Section: المشاركة (Index 2)
+            Expanded(
+              child: _buildNavItem(
+                icon: Icons.share_outlined,
+                activeIcon: Icons.share,
+                label: 'المشاركة',
+                isSelected: currentIndex == 2,
+                onTap: () => onTap(2),
+              ),
+            ),
+
+            // Vertical Divider 1
+            Container(
+              height: 38,
+              width: 1.2,
+              color: const Color(0x30B9A06A),
+            ),
+
+            // Middle Section: جميع المجتمع (Index 1)
+            Expanded(
+              child: _buildNavItem(
+                icon: Icons.people_alt_outlined,
+                activeIcon: Icons.people_alt_rounded,
+                label: 'جميع المجتمع',
+                isSelected: currentIndex == 1,
+                onTap: () => onTap(1),
+              ),
+            ),
+
+            // Vertical Divider 2
+            Container(
+              height: 38,
+              width: 1.2,
+              color: const Color(0x30B9A06A),
+            ),
+
+            // Right Section: الرئيسية (Index 0)
+            Expanded(
+              child: _buildNavItem(
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+                label: 'الرئيسية',
+                isSelected: currentIndex == 0,
+                onTap: () => onTap(0),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -69,28 +102,34 @@ class BottomNavigation extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 44,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: isSelected ? const Color(0xFFEBE3D3) : Colors.transparent,
+            ),
+            child: Icon(
               isSelected ? activeIcon : icon,
-              color: isSelected ? AppColors.primaryGreen : const Color(0xFF9E9D97),
-              size: 22,
+              color: isSelected ? const Color(0xFF26352C) : const Color(0xFF5A7061),
+              size: 24,
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? AppColors.primaryGreen : const Color(0xFF9E9D97),
-                fontFamily: 'Tajawal',
-              ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+              color: isSelected ? const Color(0xFF26352C) : const Color(0xFF5A7061),
+              fontFamily: 'Tajawal',
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
