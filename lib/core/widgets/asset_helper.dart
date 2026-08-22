@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'app_decorations.dart';
 
 class AssetHelper {
@@ -9,7 +10,29 @@ class AssetHelper {
     BoxFit fit = BoxFit.contain,
     Widget? fallback,
   }) {
-    // If the path refers to SVGs/images that have built-in high fidelity painters
+    if (assetPath.endsWith('.svg')) {
+      return SvgPicture.asset(
+        assetPath,
+        width: width,
+        height: height,
+        fit: fit,
+        placeholderBuilder: (BuildContext context) =>
+            fallback ?? _getFallbackWidget(assetPath, width, height),
+      );
+    }
+
+    return Image.asset(
+      assetPath,
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) {
+        return fallback ?? _getFallbackWidget(assetPath, width, height);
+      },
+    );
+  }
+
+  static Widget _getFallbackWidget(String assetPath, double width, double height) {
     if (assetPath.contains('heart_leaf_emblem')) {
       return AppDecorations.heartLeafEmblem(size: width);
     }
@@ -31,16 +54,6 @@ class AssetHelper {
     if (assetPath.contains('sunset_landscape')) {
       return AppDecorations.sunsetLandscape(height: height);
     }
-
-    // Default image loader
-    return Image.asset(
-      assetPath,
-      width: width,
-      height: height,
-      fit: fit,
-      errorBuilder: (context, error, stackTrace) {
-        return fallback ?? SizedBox(width: width, height: height);
-      },
-    );
+    return SizedBox(width: width, height: height);
   }
 }
