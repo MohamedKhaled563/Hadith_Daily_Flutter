@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../theme/app_colors.dart';
 import 'app_decorations.dart';
 
 class AssetHelper {
+  /// Loads a PNG or SVG image with graceful fallback to programmatic vector art
   static Widget assetOrFallback({
     required String assetPath,
     required double width,
@@ -51,7 +53,7 @@ class AssetHelper {
     if (assetPath.contains('botanical_bottom_left')) {
       return AppDecorations.botanicalBottomLeft(width: width, height: height);
     }
-    if (assetPath.contains('sunset_landscape')) {
+    if (assetPath.contains('sunset_landscape') || assetPath.contains('home_background')) {
       return AppDecorations.sunsetLandscape(height: height);
     }
     return SizedBox(width: width, height: height);

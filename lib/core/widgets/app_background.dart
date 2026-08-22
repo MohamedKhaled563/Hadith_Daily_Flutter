@@ -18,60 +18,83 @@ class AppBackground extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Background Base Color
+          // 1. Background Base Color
           const ColoredBox(
             color: AppColors.background,
           ),
 
-          // Full-Screen / High-Composition Sunset Landscape (for Home Screen)
+          // 2. Full-Screen Sunset Landscape (Home Screen)
+          // Tries the authentic PNG first ('assets/images/home_background.png'),
+          // then falls back seamlessly to the clean SVG or custom painter.
           if (showBottomLandscape)
             Positioned.fill(
               child: IgnorePointer(
-                child: AssetHelper.assetOrFallback(
-                  assetPath: 'assets/images/sunset_landscape.svg',
+                child: Image.asset(
+                  'assets/images/home_background.png',
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
-                  fallback: const SizedBox.shrink(),
+                  errorBuilder: (context, error, stackTrace) {
+                    return AssetHelper.assetOrFallback(
+                      assetPath: 'assets/images/sunset_landscape.svg',
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      fallback: const SizedBox.shrink(),
+                    );
+                  },
                 ),
               ),
             ),
 
-          // Gentle bottom botanical foliage for inner screens when landscape is off
-          if (!showBottomLandscape) ...[
-            Positioned(
-              bottom: 0,
-              left: 0,
-              width: 140,
-              height: 180,
+          // 3. Inner Screens Background
+          // Tries the authentic PNG ('assets/images/background_empty.png') first,
+          // then falls back to subtle corner botanical sprigs.
+          if (!showBottomLandscape)
+            Positioned.fill(
               child: IgnorePointer(
-                child: AssetHelper.assetOrFallback(
-                  assetPath: 'assets/images/botanical_bottom_left.svg',
-                  width: 140,
-                  height: 180,
-                  fit: BoxFit.contain,
-                  fallback: const SizedBox.shrink(),
+                child: Image.asset(
+                  'assets/images/background_empty.png',
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Stack(
+                      children: [
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          width: 140,
+                          height: 180,
+                          child: AssetHelper.assetOrFallback(
+                            assetPath: 'assets/images/botanical_bottom_left.svg',
+                            width: 140,
+                            height: 180,
+                            fit: BoxFit.contain,
+                            fallback: const SizedBox.shrink(),
+                          ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          width: 120,
+                          height: 150,
+                          child: AssetHelper.assetOrFallback(
+                            assetPath: 'assets/images/botanical_top_right.svg',
+                            width: 120,
+                            height: 150,
+                            fit: BoxFit.contain,
+                            fallback: const SizedBox.shrink(),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
-            Positioned(
-              top: 0,
-              right: 0,
-              width: 120,
-              height: 150,
-              child: IgnorePointer(
-                child: AssetHelper.assetOrFallback(
-                  assetPath: 'assets/images/botanical_top_right.svg',
-                  width: 120,
-                  height: 150,
-                  fit: BoxFit.contain,
-                  fallback: const SizedBox.shrink(),
-                ),
-              ),
-            ),
-          ],
 
-          // Safe Area Content
+          // 4. Safe Area Content
           SafeArea(
             child: child,
           ),
