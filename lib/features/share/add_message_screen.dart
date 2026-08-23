@@ -103,6 +103,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
     final currentHadith = _selectedHadith ?? (hadithsList.isNotEmpty ? hadithsList.first : null);
 
     return AppBackground(
+      showBottomLandscape: true,
       child: SafeArea(
         bottom: false,
         child: Column(

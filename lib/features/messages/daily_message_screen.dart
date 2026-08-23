@@ -160,11 +160,12 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
     final titleColor = isDark ? AppColors.primaryTextDark : const Color(0xFF26352C);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
+      body: AppBackground(
+        showBottomLandscape: true,
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
               const SizedBox(height: 6),
 
               // Top Bar with Back & Bookmark Buttons
@@ -258,6 +259,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
             ],
           ),
         ),
+      ),
 
       // Unified Global Bottom Navigation Bar (Same as HomeScreen)
       bottomNavigationBar: BottomNavigation(

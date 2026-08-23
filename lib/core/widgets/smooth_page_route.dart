@@ -1,26 +1,22 @@
 import 'package:flutter/material.dart';
 
-/// Ultra-smooth, professional page route that preserves background continuity
-/// and provides a luxury shared-axis scale, fade, and elevation transition.
+/// Ultra-smooth, professional page route that transitions gracefully
+/// with scale, fade, and elevation without any background bleed-through or overlaps.
 class SeamlessMessagePageRoute<T> extends PageRouteBuilder<T> {
   final Widget child;
 
   SeamlessMessagePageRoute({required this.child})
       : super(
-          opaque: false, // Allows seamless background continuity without flashes
-          barrierColor: Colors.black.withOpacity(0.04),
-          transitionDuration: const Duration(milliseconds: 440),
-          reverseTransitionDuration: const Duration(milliseconds: 320),
+          opaque: true, // Guarantees crisp rendering with zero background double-render or text overlap
+          transitionDuration: const Duration(milliseconds: 360),
+          reverseTransitionDuration: const Duration(milliseconds: 260),
           pageBuilder: (context, animation, secondaryAnimation) => child,
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            // High-end fluid easing curve (Apple / Material 3 Fluid Easing)
-            const forwardCurve = Curves.easeOutCubic;
-            const reverseCurve = Curves.easeInCubic;
-
+            const curve = Curves.easeOutCubic;
             final curvedAnimation = CurvedAnimation(
               parent: animation,
-              curve: forwardCurve,
-              reverseCurve: reverseCurve,
+              curve: curve,
+              reverseCurve: Curves.easeInCubic,
             );
 
             // 1. Soft, graceful fade
@@ -31,19 +27,19 @@ class SeamlessMessagePageRoute<T> extends PageRouteBuilder<T> {
               CurvedAnimation(
                 parent: animation,
                 curve: const Interval(0.0, 0.85, curve: Curves.easeOut),
-                reverseCurve: const Interval(0.2, 1.0, curve: Curves.easeIn),
+                reverseCurve: const Interval(0.15, 1.0, curve: Curves.easeIn),
               ),
             );
 
-            // 2. Subtle, natural scale expansion (from 0.92 to 1.0)
+            // 2. Subtle, natural scale expansion
             final scaleAnimation = Tween<double>(
-              begin: 0.92,
+              begin: 0.95,
               end: 1.0,
             ).animate(curvedAnimation);
 
             // 3. Gentle upward bloom
             final slideAnimation = Tween<Offset>(
-              begin: const Offset(0, 0.04),
+              begin: const Offset(0, 0.025),
               end: Offset.zero,
             ).animate(curvedAnimation);
 
@@ -68,18 +64,18 @@ class SmoothPageRoute<T> extends PageRouteBuilder<T> {
   SmoothPageRoute({required this.child})
       : super(
           pageBuilder: (context, animation, secondaryAnimation) => child,
-          transitionDuration: const Duration(milliseconds: 360),
-          reverseTransitionDuration: const Duration(milliseconds: 280),
+          transitionDuration: const Duration(milliseconds: 320),
+          reverseTransitionDuration: const Duration(milliseconds: 240),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             const curve = Curves.easeOutCubic;
             final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
               CurvedAnimation(parent: animation, curve: const Interval(0.0, 0.85, curve: curve)),
             );
-            final scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+            final scaleAnimation = Tween<double>(begin: 0.96, end: 1.0).animate(
               CurvedAnimation(parent: animation, curve: curve),
             );
             final slideAnimation = Tween<Offset>(
-              begin: const Offset(0, 0.03),
+              begin: const Offset(0, 0.02),
               end: Offset.zero,
             ).animate(
               CurvedAnimation(parent: animation, curve: curve),
