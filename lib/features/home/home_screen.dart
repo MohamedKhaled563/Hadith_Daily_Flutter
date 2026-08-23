@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_state_controller.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/asset_helper.dart';
@@ -9,6 +10,7 @@ import '../messages/daily_message_screen.dart';
 import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
 import '../share/add_message_screen.dart';
+import '../profile/settings_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,172 +22,227 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentTabIndex = 0;
   final HadithRepository _repo = HadithRepository();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
-    // Index 1: جميع الأحاديث
-    if (_currentTabIndex == 1) {
-      return Scaffold(
-        body: const HadithListScreen(),
-        bottomNavigationBar: BottomNavigation(
-          currentIndex: _currentTabIndex,
-          onTap: (index) => setState(() => _currentTabIndex = index),
-        ),
-      );
-    }
+    return Scaffold(
+      key: _scaffoldKey,
+      drawer: const SettingsDrawer(),
+      body: IndexedStack(
+        index: _currentTabIndex,
+        children: [
+          // Tab 0: Home Main Screen
+          _HomeMainView(
+            onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+            onOpenAllHadiths: () {
+              Navigator.push(
+                context,
+                SmoothPageRoute(
+                  child: const HadithListScreen(),
+                ),
+              );
+            },
+            onOpenCommunity: () {
+              setState(() => _currentTabIndex = 1);
+            },
+            onHeartClick: () {
+              final insight = _repo.getRandomInsight();
+              final hadith = _repo.getByNumber(insight.hadithNumber);
+              Navigator.push(
+                context,
+                SmoothPageRoute(
+                  child: DailyMessageScreen(
+                    insight: insight,
+                    hadith: hadith,
+                  ),
+                ),
+              );
+            },
+          ),
 
-    // Index 2: المشاركة
-    if (_currentTabIndex == 2) {
-      return Scaffold(
-        body: const AddMessageScreen(),
-        bottomNavigationBar: BottomNavigation(
-          currentIndex: _currentTabIndex,
-          onTap: (index) => setState(() => _currentTabIndex = index),
-        ),
-      );
-    }
+          // Tab 1: Community Posts ("جميع المجتمع")
+          CommunityScreen(
+            onSwitchToShareTab: () {
+              setState(() => _currentTabIndex = 2);
+            },
+          ),
 
+          // Tab 2: Share / Add Message ("المشاركة")
+          AddMessageScreen(
+            onPostCreated: () {
+              setState(() => _currentTabIndex = 1); // Switch to community to see the new post
+            },
+          ),
+        ],
+      ),
+
+      // Persistent Unified Bottom Navigation Bar that never jumps or shifts
+      bottomNavigationBar: BottomNavigation(
+        currentIndex: _currentTabIndex,
+        onTap: (index) => setState(() => _currentTabIndex = index),
+      ),
+    );
+  }
+}
+
+class _HomeMainView extends StatelessWidget {
+  final VoidCallback onOpenDrawer;
+  final VoidCallback onOpenAllHadiths;
+  final VoidCallback onOpenCommunity;
+  final VoidCallback onHeartClick;
+
+  const _HomeMainView({
+    required this.onOpenDrawer,
+    required this.onOpenAllHadiths,
+    required this.onOpenCommunity,
+    required this.onHeartClick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AppStateController();
+    final isDark = state.isDarkMode;
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final cardDiameter = (screenWidth * 0.78).clamp(280.0, 330.0);
 
-    // Card diameter: Large and responsive, occupying ~80% of screen width
-    final cardDiameter = (screenWidth * 0.80).clamp(290.0, 340.0);
+    final titleColor = isDark ? AppColors.primaryTextDark : const Color(0xFF26352C);
 
-    return Scaffold(
-      body: AppBackground(
-        showBottomLandscape: true,
+    return AppBackground(
+      showBottomLandscape: true,
+      child: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
 
-            // Top Header: Left = Hamburger, Right = Greeting + Large Profile
+            // Top Header: Left = All Hadiths Menu, Right = Greeting + Profile Avatar (Opens Settings / Auth)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
-              child: Directionality(
-                textDirection: TextDirection.ltr,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Left: Hamburger Menu (Opens All Hadiths list)
-                    _HeaderIconButton(
-                      icon: Icons.menu,
-                      tooltip: 'جميع الأحاديث',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          SmoothPageRoute(
-                            child: const HadithListScreen(),
-                          ),
-                        );
-                      },
-                    ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Left (in LTR context or Right in RTL): Drawer / Settings button
+                  _HeaderIconButton(
+                    icon: Icons.menu_rounded,
+                    tooltip: 'الإعدادات والملف الشخصي',
+                    isDark: isDark,
+                    onPressed: onOpenDrawer,
+                  ),
 
-                    // Right: Greeting Text + Leaf + Large Profile Icon
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AssetHelper.assetOrFallback(
-                          assetPath: 'assets/images/leaf_accent.png',
-                          width: 20,
-                          height: 20,
-                          fallback: const Icon(
-                            Icons.eco_rounded,
-                            size: 18,
-                            color: Color(0xFF5A7A62),
+                  // Center: Browse all Hadiths Pill
+                  InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: onOpenAllHadiths,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.cardDark : const Color(0xFFFAF6EE),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0x60D1BE93),
+                        ),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.auto_stories_rounded,
+                            size: 16,
+                            color: isDark ? AppColors.gold : const Color(0xFF385240),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'أهلاً أميرة',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF26352C),
-                            fontFamily: 'Tajawal',
+                          const SizedBox(width: 6),
+                          Text(
+                            'الأربعين النووية',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              color: titleColor,
+                              fontFamily: 'Tajawal',
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        _HeaderProfileAvatar(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              SmoothPageRoute(
-                                child: const CommunityScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  // Right: Profile Avatar
+                  _HeaderProfileAvatar(
+                    isDark: isDark,
+                    onTap: onOpenDrawer,
+                  ),
+                ],
               ),
             ),
 
-            SizedBox(height: (screenHeight * 0.02).clamp(8.0, 20.0)),
+            SizedBox(height: (screenHeight * 0.015).clamp(6.0, 18.0)),
 
             // Hero Title: هل سمعت كلام النبي ﷺ اليوم؟
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     'هل سمعت',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 32,
+                      fontSize: 30,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF26352C),
+                      color: titleColor,
                       fontFamily: 'Tajawal',
                       height: 1.15,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
-                    children: const [
+                    children: [
                       Text(
                         'كلام النبي',
                         style: TextStyle(
-                          fontSize: 32,
+                          fontSize: 30,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF26352C),
+                          color: titleColor,
                           fontFamily: 'Tajawal',
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
                         'ﷺ',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF3B5644),
+                          color: isDark ? AppColors.gold : const Color(0xFF3B5644),
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
                         'اليوم؟',
                         style: TextStyle(
-                          fontSize: 32,
+                          fontSize: 30,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF26352C),
+                          color: titleColor,
                           fontFamily: 'Tajawal',
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
                   // Gold & Leaf Flourish Divider
                   AssetHelper.assetOrFallback(
                     assetPath: 'assets/images/golden_divider.png',
-                    width: 140,
-                    height: 22,
+                    width: 130,
+                    height: 18,
                     fallback: Container(
-                      width: 80,
+                      width: 70,
                       height: 2,
                       color: const Color(0xFFD6BE88),
                     ),
@@ -194,33 +251,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            SizedBox(height: (screenHeight * 0.02).clamp(10.0, 22.0)),
+            SizedBox(height: (screenHeight * 0.02).clamp(10.0, 24.0)),
 
-            // Main Interactive Circular Card "طيّب قلبك" with Smooth Organic Breathing & Hover/Click Physics
-            _InteractiveHadithCircle(
+            // Main Interactive Realistic Heartbeat "طيّب قلبك" Circle
+            _HeartbeatHadithCircle(
               cardDiameter: cardDiameter,
-              onTap: () {
-                final insight = _repo.getRandomInsight();
-                final hadith = _repo.getByNumber(insight.hadithNumber);
-                Navigator.push(
-                  context,
-                  SmoothPageRoute(
-                    child: DailyMessageScreen(
-                      insight: insight,
-                      hadith: hadith,
-                    ),
-                  ),
-                );
-              },
+              isDark: isDark,
+              onTap: onHeartClick,
             ),
 
             const Spacer(),
-
-            // Floating Bottom Navigation
-            BottomNavigation(
-              currentIndex: _currentTabIndex,
-              onTap: (index) => setState(() => _currentTabIndex = index),
-            ),
           ],
         ),
       ),
@@ -228,48 +268,112 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// Interactive Circular Card with Subtle Ambient Breathing Pulse, Hover Elevation & Tactile Tap Feedback
-class _InteractiveHadithCircle extends StatefulWidget {
+/// Dynamic Living Heartbeat Circle with Rhythmic Lub-Dub Pulse & Orbiting Ambient Rings
+class _HeartbeatHadithCircle extends StatefulWidget {
   final double cardDiameter;
+  final bool isDark;
   final VoidCallback onTap;
 
-  const _InteractiveHadithCircle({
+  const _HeartbeatHadithCircle({
     required this.cardDiameter,
+    required this.isDark,
     required this.onTap,
   });
 
   @override
-  State<_InteractiveHadithCircle> createState() => _InteractiveHadithCircleState();
+  State<_HeartbeatHadithCircle> createState() => _HeartbeatHadithCircleState();
 }
 
-class _InteractiveHadithCircleState extends State<_InteractiveHadithCircle>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
+class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
+    with TickerProviderStateMixin {
+  late AnimationController _heartbeatController;
+  late Animation<double> _heartbeatAnimation;
+
+  late AnimationController _orbitController;
+  late AnimationController _clickController;
+  late Animation<double> _clickScaleAnimation;
+
   bool _isHovered = false;
-  bool _isPressed = false;
 
   @override
   void initState() {
     super.initState();
-    // Gentle, peaceful breathing animation (6-second cycle for spiritual tranquility)
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat(reverse: true);
 
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.035).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOutSine,
+    // Authentic Heartbeat Cycle (Lub-Dub rhythmic pulse: thump-thump ... rest)
+    _heartbeatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat();
+
+    _heartbeatAnimation = TweenSequence<double>([
+      // First Systolic Thump (Lub)
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.055)
+            .chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 14,
       ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.055, end: 1.015)
+            .chain(CurveTween(curve: Curves.easeInOutQuad)),
+        weight: 10,
+      ),
+      // Second Stronger Systolic Thump (Dub)
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.015, end: 1.075)
+            .chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 16,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.075, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOutSine)),
+        weight: 22,
+      ),
+      // Resting Diastole period
+      TweenSequenceItem(
+        tween: ConstantTween<double>(1.0),
+        weight: 38,
+      ),
+    ]).animate(_heartbeatController);
+
+    // Orbiting slow background halo rotation
+    _orbitController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 16),
+    )..repeat();
+
+    // Tactile Click animation
+    _clickController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
     );
+
+    _clickScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.92)
+            .chain(CurveTween(curve: Curves.easeOutQuad)),
+        weight: 45,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.92, end: 1.04)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 55,
+      ),
+    ]).animate(_clickController);
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
+    _heartbeatController.dispose();
+    _orbitController.dispose();
+    _clickController.dispose();
     super.dispose();
+  }
+
+  void _handleTap() {
+    _clickController.forward(from: 0.0).then((_) {
+      _clickController.reverse();
+      widget.onTap();
+    });
   }
 
   @override
@@ -279,109 +383,126 @@ class _InteractiveHadithCircleState extends State<_InteractiveHadithCircle>
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
-        onTapUp: (_) {
-          setState(() => _isPressed = false);
-          widget.onTap();
-        },
-        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: _handleTap,
         child: AnimatedBuilder(
-          animation: _pulseAnimation,
+          animation: Listenable.merge([
+            _heartbeatAnimation,
+            _orbitController,
+            _clickScaleAnimation,
+          ]),
           builder: (context, child) {
-            // Combine organic breathing with user interaction (hover & press)
-            double scale = _pulseAnimation.value;
-            if (_isHovered) scale *= 1.025;
-            if (_isPressed) scale *= 0.95;
+            double totalScale = _heartbeatAnimation.value * _clickScaleAnimation.value;
+            if (_isHovered) totalScale *= 1.025;
 
             return Transform.scale(
-              scale: scale,
+              scale: totalScale,
               child: child,
             );
           },
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Layer 1: Outermost Soft Golden Ambient Aura
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: widget.cardDiameter + (_isHovered ? 48 : 38),
-                height: widget.cardDiameter + (_isHovered ? 48 : 38),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0x35FAF4E8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _isHovered
-                          ? const Color(0x55E0CEB0)
-                          : const Color(0x30E0CEB0),
-                      blurRadius: _isHovered ? 44 : 36,
-                      spreadRadius: _isHovered ? 10 : 6,
+              // Moving Outer Orbiting Dashed Ring 1
+              RotationTransition(
+                turns: _orbitController,
+                child: Container(
+                  width: widget.cardDiameter + 68,
+                  height: widget.cardDiameter + 68,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0x30D1BE93),
+                      width: 1.5,
                     ),
-                  ],
-                ),
-              ),
-
-              // Layer 2: Translucent Glass Ring with Subtle Border
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                width: widget.cardDiameter + 16,
-                height: widget.cardDiameter + 16,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _isHovered
-                      ? const Color(0x65FAF5EC)
-                      : const Color(0x45FAF5EC),
-                  border: Border.all(
-                    color: _isHovered
-                        ? const Color(0x95D4BE92)
-                        : const Color(0x65D4BE92),
-                    width: _isHovered ? 2.0 : 1.5,
                   ),
                 ),
               ),
 
-              // Layer 3: Main Gold Border and Card Face
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
+              // Moving Reverse Orbiting Dotted Ring 2
+              RotationTransition(
+                turns: ReverseAnimation(_orbitController),
+                child: Container(
+                  width: widget.cardDiameter + 42,
+                  height: widget.cardDiameter + 42,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0x45D1BE93),
+                      width: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Glowing Ambient Golden Wave Aura
+              AnimatedBuilder(
+                animation: _heartbeatAnimation,
+                builder: (context, child) {
+                  return Container(
+                    width: widget.cardDiameter + 24 * _heartbeatAnimation.value,
+                    height: widget.cardDiameter + 24 * _heartbeatAnimation.value,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0x22D1BE93),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _isHovered
+                              ? const Color(0x60E0CEB0)
+                              : const Color(0x35E0CEB0),
+                          blurRadius: 40 * _heartbeatAnimation.value,
+                          spreadRadius: 8,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
+              // Main Heart Face Circle
+              Container(
                 width: widget.cardDiameter,
                 height: widget.cardDiameter,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFFFFFDFC),
-                      Color(0xFFFAF5EB),
-                      Color(0xFFF1E6D3),
-                    ],
+                    colors: widget.isDark
+                        ? [
+                            const Color(0xFF26352C),
+                            const Color(0xFF1C2720),
+                            const Color(0xFF141D17),
+                          ]
+                        : [
+                            const Color(0xFFFFFDFC),
+                            const Color(0xFFFAF5EB),
+                            const Color(0xFFF1E6D3),
+                          ],
                   ),
                   border: Border.all(
                     color: _isHovered
                         ? const Color(0xFFE2CB96)
                         : const Color(0xFFD6BE88),
-                    width: _isHovered ? 4.0 : 3.5,
+                    width: 3.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: _isHovered
-                          ? const Color(0x45B9A06A)
-                          : const Color(0x35B9A06A),
-                      blurRadius: _isHovered ? 36 : 28,
-                      offset: Offset(0, _isHovered ? 14 : 10),
+                      color: const Color(0x35B9A06A),
+                      blurRadius: 28,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Top Emblem: Heart with Leaf and Dot
+                    // Top Emblem: Heart with Leaf
                     AssetHelper.assetOrFallback(
                       assetPath: 'assets/images/heart_leaf_emblem.png',
-                      width: 68,
-                      height: 68,
+                      width: 64,
+                      height: 64,
                       fallback: const Icon(
-                        Icons.favorite_border,
+                        Icons.favorite_rounded,
                         color: Color(0xFF385240),
                         size: 44,
                       ),
@@ -389,12 +510,12 @@ class _InteractiveHadithCircleState extends State<_InteractiveHadithCircle>
                     const SizedBox(height: 6),
 
                     // Title: طيّب قلبك
-                    const Text(
+                    Text(
                       'طيّب قلبك',
                       style: TextStyle(
-                        fontSize: 38,
+                        fontSize: 36,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF26352C),
+                        color: widget.isDark ? AppColors.primaryTextDark : const Color(0xFF26352C),
                         fontFamily: 'Tajawal',
                         letterSpacing: -0.5,
                       ),
@@ -406,21 +527,25 @@ class _InteractiveHadithCircleState extends State<_InteractiveHadithCircle>
                       assetPath: 'assets/images/golden_divider.png',
                       width: 88,
                       height: 14,
-                      fallback: const SizedBox(height: 6),
+                      fallback: Container(
+                        width: 50,
+                        height: 1.5,
+                        color: const Color(0xFFD6BE88),
+                      ),
                     ),
                     const SizedBox(height: 8),
 
-                    // Subtitle: اضغط لاختيار رسالة عشوائية مربوطة بحديث
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24),
+                    // Spiritual, Elegant & Concise Subtitle
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Text(
-                        'اضغط لاختيار رسالة عشوائية\nمربوطة بحديث',
+                        'انقر لتهدأ روحك بنور النبوة 🌿',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 14,
-                          height: 1.45,
+                          fontSize: 13.5,
+                          height: 1.4,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF3B5644),
+                          color: widget.isDark ? AppColors.gold : const Color(0xFF3B5644),
                           fontFamily: 'Tajawal',
                         ),
                       ),
@@ -439,11 +564,13 @@ class _InteractiveHadithCircleState extends State<_InteractiveHadithCircle>
 class _HeaderIconButton extends StatefulWidget {
   final IconData icon;
   final String tooltip;
+  final bool isDark;
   final VoidCallback onPressed;
 
   const _HeaderIconButton({
     required this.icon,
     required this.tooltip,
+    required this.isDark,
     required this.onPressed,
   });
 
@@ -474,12 +601,16 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              color: _isPressed ? const Color(0x20000000) : Colors.transparent,
+              color: widget.isDark ? AppColors.cardDark : const Color(0xFFFAF6EE),
+              border: Border.all(color: const Color(0x60D1BE93)),
+              boxShadow: const [
+                BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2)),
+              ],
             ),
             child: Icon(
               widget.icon,
-              color: const Color(0xFF26352C),
-              size: 28,
+              color: widget.isDark ? AppColors.primaryTextDark : const Color(0xFF26352C),
+              size: 24,
             ),
           ),
         ),
@@ -489,9 +620,13 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
 }
 
 class _HeaderProfileAvatar extends StatefulWidget {
+  final bool isDark;
   final VoidCallback onTap;
 
-  const _HeaderProfileAvatar({required this.onTap});
+  const _HeaderProfileAvatar({
+    required this.isDark,
+    required this.onTap,
+  });
 
   @override
   State<_HeaderProfileAvatar> createState() => _HeaderProfileAvatarState();
@@ -515,14 +650,14 @@ class _HeaderProfileAvatarState extends State<_HeaderProfileAvatar> {
           scale: _isPressed ? 0.90 : 1.0,
           duration: const Duration(milliseconds: 140),
           child: Container(
-            width: 46,
-            height: 46,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFFBF8F2),
+              color: widget.isDark ? AppColors.softCreamDark : const Color(0xFFFBF8F2),
               border: Border.all(
-                color: const Color(0xFF63836B),
-                width: 1.8,
+                color: const Color(0xFFD6BE88),
+                width: 1.6,
               ),
               boxShadow: const [
                 BoxShadow(
@@ -532,10 +667,10 @@ class _HeaderProfileAvatarState extends State<_HeaderProfileAvatar> {
                 ),
               ],
             ),
-            child: const Icon(
+            child: Icon(
               Icons.person_outline_rounded,
-              color: Color(0xFF385240),
-              size: 26,
+              color: widget.isDark ? AppColors.gold : const Color(0xFF385240),
+              size: 24,
             ),
           ),
         ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_state_controller.dart';
 
 class BottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -12,86 +14,88 @@ class BottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = AppStateController();
+    final isDark = state.isDarkMode;
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-      height: 76,
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+      height: 74,
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF6EE),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: const Color(0x40D1BE93),
-          width: 1.2,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDark
+              ? [const Color(0xFF1B2B20), const Color(0xFF121D16)]
+              : [const Color(0xFF2C4334), const Color(0xFF1E3024)],
         ),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(34),
+        border: Border.all(
+          color: const Color(0xFFD6BE88).withOpacity(isDark ? 0.45 : 0.65),
+          width: 1.3,
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x18000000),
-            blurRadius: 20,
-            offset: Offset(0, 6),
+            color: Colors.black.withOpacity(0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
           BoxShadow(
-            color: Color(0x20FFFDFC),
-            blurRadius: 4,
-            offset: Offset(0, -1),
+            color: const Color(0xFFD6BE88).withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, -1),
           ),
         ],
       ),
-      child: Directionality(
-        textDirection: TextDirection.ltr,
-        child: Row(
-          children: [
-            // Left Section: المشاركة (Index 2)
-            Expanded(
-              child: _buildNavItem(
-                icon: Icons.share_outlined,
-                activeIcon: Icons.share_rounded,
-                label: 'المشاركة',
-                isSelected: currentIndex == 2,
-                onTap: () => onTap(2),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(34),
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Row(
+            children: [
+              // 1. الرئيسية (Home - Index 0)
+              Expanded(
+                child: _buildNavItem(
+                  index: 0,
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home_rounded,
+                  label: 'الرئيسية',
+                  isSelected: currentIndex == 0,
+                  onTap: () => onTap(0),
+                ),
               ),
-            ),
 
-            // Vertical Divider 1
-            Container(
-              height: 38,
-              width: 1.2,
-              color: const Color(0x30B9A06A),
-            ),
-
-            // Middle Section: جميع الأحاديث (Index 1) - Replaced "جميع المجتمع"
-            Expanded(
-              child: _buildNavItem(
-                icon: Icons.menu_book_outlined,
-                activeIcon: Icons.menu_book_rounded,
-                label: 'جميع الأحاديث',
-                isSelected: currentIndex == 1,
-                onTap: () => onTap(1),
+              // 2. جميع المجتمع (Community - Index 1)
+              Expanded(
+                child: _buildNavItem(
+                  index: 1,
+                  icon: Icons.groups_outlined,
+                  activeIcon: Icons.groups_rounded,
+                  label: 'جميع المجتمع',
+                  isSelected: currentIndex == 1,
+                  onTap: () => onTap(1),
+                ),
               ),
-            ),
 
-            // Vertical Divider 2
-            Container(
-              height: 38,
-              width: 1.2,
-              color: const Color(0x30B9A06A),
-            ),
-
-            // Right Section: الرئيسية (Index 0)
-            Expanded(
-              child: _buildNavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_rounded,
-                label: 'الرئيسية',
-                isSelected: currentIndex == 0,
-                onTap: () => onTap(0),
+              // 3. المشاركة (Share - Index 2)
+              Expanded(
+                child: _buildNavItem(
+                  index: 2,
+                  icon: Icons.share_outlined,
+                  activeIcon: Icons.share_rounded,
+                  label: 'المشاركة',
+                  isSelected: currentIndex == 2,
+                  onTap: () => onTap(2),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildNavItem({
+    required int index,
     required IconData icon,
     required IconData activeIcon,
     required String label,
@@ -146,39 +150,66 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
           scale: _isPressed ? 0.92 : 1.0,
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutCubic,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                width: widget.isSelected ? 48 : 42,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  color: widget.isSelected ? const Color(0xFFEBE3D3) : Colors.transparent,
+              // Golden Halo arch behind active tab
+              if (widget.isSelected)
+                Positioned(
+                  top: 0,
+                  child: Container(
+                    width: 68,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        colors: [
+                          const Color(0xFFE8D49E).withOpacity(0.55),
+                          const Color(0xFFC59B27).withOpacity(0.25),
+                          Colors.transparent,
+                        ],
+                        radius: 0.85,
+                      ),
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+                    ),
+                  ),
                 ),
-                child: Icon(
-                  widget.isSelected ? widget.activeIcon : widget.icon,
-                  color: widget.isSelected ? const Color(0xFF26352C) : const Color(0xFF5A7061),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(height: 2),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.w600,
-                  color: widget.isSelected ? const Color(0xFF26352C) : const Color(0xFF5A7061),
-                  fontFamily: 'Tajawal',
-                ),
-                child: Text(
-                  widget.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+
+              // Tab Icon and Label
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    widget.isSelected ? widget.activeIcon : widget.icon,
+                    color: widget.isSelected ? Colors.white : const Color(0xFFB0C4B8),
+                    size: 24,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    widget.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: widget.isSelected ? Colors.white : const Color(0xFFB0C4B8),
+                      fontFamily: 'Tajawal',
+                    ),
+                  ),
+                  if (widget.isSelected) ...[
+                    const SizedBox(height: 2),
+                    Container(
+                      width: 4.5,
+                      height: 4.5,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFE8D49E),
+                        boxShadow: [
+                          BoxShadow(color: Color(0xFFE8D49E), blurRadius: 4),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
