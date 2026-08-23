@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_state_controller.dart';
@@ -51,24 +52,28 @@ class _HomeScreenState extends State<HomeScreen> {
               final hadith = _repo.getByNumber(insight.hadithNumber);
               Navigator.push(
                 context,
-                SmoothPageRoute(
+                SeamlessMessagePageRoute(
                   child: DailyMessageScreen(
                     insight: insight,
                     hadith: hadith,
+                    onTabSelected: (index) {
+                      Navigator.pop(context);
+                      setState(() => _currentTabIndex = index);
+                    },
                   ),
                 ),
               );
             },
           ),
 
-          // Tab 1: Community Posts ("جميع المجتمع")
+          // Tab 1: Community Posts ("المشاركات")
           CommunityScreen(
             onSwitchToShareTab: () {
               setState(() => _currentTabIndex = 2);
             },
           ),
 
-          // Tab 2: Share / Add Message ("المشاركة")
+          // Tab 2: Share / Add Message ("اكتب رسالة")
           AddMessageScreen(
             onPostCreated: () {
               setState(() => _currentTabIndex = 1); // Switch to community to see the new post
@@ -77,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-      // Persistent Unified Bottom Navigation Bar that never jumps or shifts
+      // Persistent Unified Bottom Navigation Bar
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentTabIndex,
         onTap: (index) => setState(() => _currentTabIndex = index),
@@ -105,7 +110,7 @@ class _HomeMainView extends StatelessWidget {
     final isDark = state.isDarkMode;
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardDiameter = (screenWidth * 0.78).clamp(280.0, 330.0);
+    final cardDiameter = (screenWidth * 0.76).clamp(275.0, 325.0);
 
     final titleColor = isDark ? AppColors.primaryTextDark : const Color(0xFF26352C);
 
@@ -117,30 +122,25 @@ class _HomeMainView extends StatelessWidget {
           children: [
             const SizedBox(height: 6),
 
-            // Top Header: Left = All Hadiths Menu, Right = Greeting + Profile Avatar (Opens Settings / Auth)
+            // Top Header: Center Pill for All Hadiths + Right Profile Avatar (Removed redundant left icon)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Left (in LTR context or Right in RTL): Drawer / Settings button
-                  _HeaderIconButton(
-                    icon: Icons.menu_rounded,
-                    tooltip: 'الإعدادات والملف الشخصي',
-                    isDark: isDark,
-                    onPressed: onOpenDrawer,
-                  ),
+                  // Left Spacer to maintain balanced centering
+                  const SizedBox(width: 44),
 
                   // Center: Browse all Hadiths Pill
                   InkWell(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                     onTap: onOpenAllHadiths,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                       decoration: BoxDecoration(
                         color: isDark ? AppColors.cardDark : const Color(0xFFFAF6EE),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color: const Color(0x60D1BE93),
                         ),
@@ -171,7 +171,7 @@ class _HomeMainView extends StatelessWidget {
                     ),
                   ),
 
-                  // Right: Profile Avatar
+                  // Right: Profile Avatar (Opens Drawer/Settings)
                   _HeaderProfileAvatar(
                     isDark: isDark,
                     onTap: onOpenDrawer,
@@ -253,7 +253,7 @@ class _HomeMainView extends StatelessWidget {
 
             SizedBox(height: (screenHeight * 0.02).clamp(10.0, 24.0)),
 
-            // Main Interactive Realistic Heartbeat "طيّب قلبك" Circle
+            // Main Interactive Meditative Heart Circle with Distinct Hover & Organic Ambient Rings
             _HeartbeatHadithCircle(
               cardDiameter: cardDiameter,
               isDark: isDark,
@@ -268,7 +268,7 @@ class _HomeMainView extends StatelessWidget {
   }
 }
 
-/// Dynamic Living Heartbeat Circle with Rhythmic Lub-Dub Pulse & Orbiting Ambient Rings
+/// Dynamic Living Heartbeat Circle with Meditative Balanced Pulse, Distinct Hover Glow & Independent Multi-Layer Rings
 class _HeartbeatHadithCircle extends StatefulWidget {
   final double cardDiameter;
   final bool isDark;
@@ -286,10 +286,20 @@ class _HeartbeatHadithCircle extends StatefulWidget {
 
 class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
     with TickerProviderStateMixin {
+  // 1. Serene Spiritual Heart Pulse (Gentle & Balanced)
   late AnimationController _heartbeatController;
   late Animation<double> _heartbeatAnimation;
 
-  late AnimationController _orbitController;
+  // 2. Multi-speed Independent Orbiting Rings
+  late AnimationController _outerOrbitController;
+  late AnimationController _innerOrbitController;
+
+  // 3. Independent Fluid Breathing Waves for Surrounding Halos
+  late AnimationController _ringsBreathController;
+  late Animation<double> _ringsScaleAnimation;
+  late Animation<double> _ringsOpacityAnimation;
+
+  // 4. Click Tactile Feedback
   late AnimationController _clickController;
   late Animation<double> _clickScaleAnimation;
 
@@ -299,49 +309,59 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
   void initState() {
     super.initState();
 
-    // Authentic Heartbeat Cycle (Lub-Dub rhythmic pulse: thump-thump ... rest)
+    // Balanced Serene Pulse (Soothing 2.8s cycle, peak only 1.026 - calm & natural)
     _heartbeatController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1600),
+      duration: const Duration(milliseconds: 2800),
     )..repeat();
 
     _heartbeatAnimation = TweenSequence<double>([
-      // First Systolic Thump (Lub)
+      // Soft gentle expansion
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.055)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 14,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.055, end: 1.015)
-            .chain(CurveTween(curve: Curves.easeInOutQuad)),
-        weight: 10,
-      ),
-      // Second Stronger Systolic Thump (Dub)
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.015, end: 1.075)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 16,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.075, end: 1.0)
+        tween: Tween<double>(begin: 1.0, end: 1.026)
             .chain(CurveTween(curve: Curves.easeInOutSine)),
-        weight: 22,
+        weight: 35,
       ),
-      // Resting Diastole period
+      // Gentle calm exhale
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.026, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOutSine)),
+        weight: 35,
+      ),
+      // Peaceful resting pause
       TweenSequenceItem(
         tween: ConstantTween<double>(1.0),
-        weight: 38,
+        weight: 30,
       ),
     ]).animate(_heartbeatController);
 
-    // Orbiting slow background halo rotation
-    _orbitController = AnimationController(
+    // Independent Ring 1: Slow majestic clockwise rotation (28 seconds)
+    _outerOrbitController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 16),
+      duration: const Duration(seconds: 28),
     )..repeat();
 
-    // Tactile Click animation
+    // Independent Ring 2: Counter-clockwise harmonic rotation (20 seconds)
+    _innerOrbitController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+
+    // Independent Rings Organic Breathing (4.2 seconds cycle, independent of center)
+    _ringsBreathController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4200),
+    )..repeat(reverse: true);
+
+    _ringsScaleAnimation = Tween<double>(begin: 0.98, end: 1.045).animate(
+      CurvedAnimation(parent: _ringsBreathController, curve: Curves.easeInOutCubic),
+    );
+
+    _ringsOpacityAnimation = Tween<double>(begin: 0.45, end: 0.85).animate(
+      CurvedAnimation(parent: _ringsBreathController, curve: Curves.easeInOut),
+    );
+
+    // Tactile Click Animation
     _clickController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
@@ -349,12 +369,12 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
 
     _clickScaleAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.92)
+        tween: Tween<double>(begin: 1.0, end: 0.94)
             .chain(CurveTween(curve: Curves.easeOutQuad)),
         weight: 45,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.92, end: 1.04)
+        tween: Tween<double>(begin: 0.94, end: 1.03)
             .chain(CurveTween(curve: Curves.easeOutBack)),
         weight: 55,
       ),
@@ -364,7 +384,9 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
   @override
   void dispose() {
     _heartbeatController.dispose();
-    _orbitController.dispose();
+    _outerOrbitController.dispose();
+    _innerOrbitController.dispose();
+    _ringsBreathController.dispose();
     _clickController.dispose();
     super.dispose();
   }
@@ -387,79 +409,111 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
         child: AnimatedBuilder(
           animation: Listenable.merge([
             _heartbeatAnimation,
-            _orbitController,
+            _outerOrbitController,
+            _innerOrbitController,
+            _ringsBreathController,
             _clickScaleAnimation,
           ]),
           builder: (context, child) {
-            double totalScale = _heartbeatAnimation.value * _clickScaleAnimation.value;
-            if (_isHovered) totalScale *= 1.025;
+            // Combine natural gentle pulse + click feedback
+            final baseScale = _heartbeatAnimation.value * _clickScaleAnimation.value;
 
-            return Transform.scale(
-              scale: totalScale,
+            return AnimatedScale(
+              scale: _isHovered ? baseScale * 1.048 : baseScale,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
               child: child,
             );
           },
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Moving Outer Orbiting Dashed Ring 1
-              RotationTransition(
-                turns: _orbitController,
-                child: Container(
-                  width: widget.cardDiameter + 68,
-                  height: widget.cardDiameter + 68,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0x30D1BE93),
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Moving Reverse Orbiting Dotted Ring 2
-              RotationTransition(
-                turns: ReverseAnimation(_orbitController),
-                child: Container(
-                  width: widget.cardDiameter + 42,
-                  height: widget.cardDiameter + 42,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0x45D1BE93),
-                      width: 1.2,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Glowing Ambient Golden Wave Aura
+              // Layer A: Outer Independent Orbiting Geometric Ring with 8-Point Islamic Nodes
               AnimatedBuilder(
-                animation: _heartbeatAnimation,
+                animation: _ringsBreathController,
                 builder: (context, child) {
-                  return Container(
-                    width: widget.cardDiameter + 24 * _heartbeatAnimation.value,
-                    height: widget.cardDiameter + 24 * _heartbeatAnimation.value,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0x22D1BE93),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _isHovered
-                              ? const Color(0x60E0CEB0)
-                              : const Color(0x35E0CEB0),
-                          blurRadius: 40 * _heartbeatAnimation.value,
-                          spreadRadius: 8,
-                        ),
-                      ],
+                  return Transform.scale(
+                    scale: _ringsScaleAnimation.value,
+                    child: Opacity(
+                      opacity: _ringsOpacityAnimation.value,
+                      child: child,
                     ),
                   );
                 },
+                child: RotationTransition(
+                  turns: _outerOrbitController,
+                  child: SizedBox(
+                    width: widget.cardDiameter + 68,
+                    height: widget.cardDiameter + 68,
+                    child: CustomPaint(
+                      painter: _OuterPatternedRingPainter(
+                        color: widget.isDark
+                            ? const Color(0x70D1BE93)
+                            : const Color(0x60D1BE93),
+                      ),
+                    ),
+                  ),
+                ),
               ),
 
-              // Main Heart Face Circle
-              Container(
+              // Layer B: Inner Counter-Rotating Delicate Dashed Ring
+              AnimatedBuilder(
+                animation: _ringsBreathController,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: 1.0 / _ringsScaleAnimation.value,
+                    child: child,
+                  );
+                },
+                child: RotationTransition(
+                  turns: ReverseAnimation(_innerOrbitController),
+                  child: Container(
+                    width: widget.cardDiameter + 38,
+                    height: widget.cardDiameter + 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _isHovered
+                            ? const Color(0xFFD6BE88).withOpacity(0.7)
+                            : (widget.isDark
+                                ? const Color(0x40D1BE93)
+                                : const Color(0x45D1BE93)),
+                        width: _isHovered ? 1.8 : 1.3,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Layer C: Radiant Ambient Golden Glow (Becomes highly vibrant on Hover)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                width: widget.cardDiameter + (_isHovered ? 26 : 14),
+                height: widget.cardDiameter + (_isHovered ? 26 : 14),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _isHovered
+                      ? const Color(0x45E5C378)
+                      : (widget.isDark
+                          ? const Color(0x20D1BE93)
+                          : const Color(0x18D1BE93)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _isHovered
+                          ? const Color(0x70E6CCA0)
+                          : (widget.isDark
+                              ? const Color(0x35000000)
+                              : const Color(0x25B9A06A)),
+                      blurRadius: _isHovered ? 48 : 26,
+                      spreadRadius: _isHovered ? 8 : 2,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Layer D: Main Heart Face Circle
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
                 width: widget.cardDiameter,
                 height: widget.cardDiameter,
                 decoration: BoxDecoration(
@@ -469,27 +523,29 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
                     end: Alignment.bottomCenter,
                     colors: widget.isDark
                         ? [
-                            const Color(0xFF26352C),
+                            _isHovered ? const Color(0xFF2E3F35) : const Color(0xFF26352C),
                             const Color(0xFF1C2720),
                             const Color(0xFF141D17),
                           ]
                         : [
-                            const Color(0xFFFFFDFC),
-                            const Color(0xFFFAF5EB),
-                            const Color(0xFFF1E6D3),
+                            _isHovered ? const Color(0xFFFFFFFF) : const Color(0xFFFFFDFC),
+                            _isHovered ? const Color(0xFFFDF8EE) : const Color(0xFFFAF5EB),
+                            _isHovered ? const Color(0xFFF5EAD7) : const Color(0xFFF1E6D3),
                           ],
                   ),
                   border: Border.all(
                     color: _isHovered
-                        ? const Color(0xFFE2CB96)
+                        ? const Color(0xFFF3DEAE)
                         : const Color(0xFFD6BE88),
-                    width: 3.5,
+                    width: _isHovered ? 4.0 : 3.2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0x35B9A06A),
-                      blurRadius: 28,
-                      offset: const Offset(0, 10),
+                      color: _isHovered
+                          ? const Color(0x55B9A06A)
+                          : const Color(0x28B9A06A),
+                      blurRadius: _isHovered ? 34 : 22,
+                      offset: Offset(0, _isHovered ? 12 : 8),
                     ),
                   ],
                 ),
@@ -497,14 +553,21 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Top Emblem: Heart with Leaf
-                    AssetHelper.assetOrFallback(
-                      assetPath: 'assets/images/heart_leaf_emblem.png',
-                      width: 64,
-                      height: 64,
-                      fallback: const Icon(
-                        Icons.favorite_rounded,
-                        color: Color(0xFF385240),
-                        size: 44,
+                    AnimatedScale(
+                      scale: _isHovered ? 1.08 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Hero(
+                        tag: 'heart_leaf_emblem_hero',
+                        child: AssetHelper.assetOrFallback(
+                          assetPath: 'assets/images/heart_leaf_emblem.png',
+                          width: 64,
+                          height: 64,
+                          fallback: const Icon(
+                            Icons.favorite_rounded,
+                            color: Color(0xFF385240),
+                            size: 44,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -535,17 +598,19 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
                     ),
                     const SizedBox(height: 8),
 
-                    // Spiritual, Elegant & Concise Subtitle
+                    // Spiritual & Inviting Subtitle
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Text(
-                        'انقر لتهدأ روحك بنور النبوة 🌿',
+                        _isHovered ? '✨ اضغط الآن لحديث اليوم ✨' : 'انقر لتهدأ روحك بنور النبوة 🌿',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13.5,
                           height: 1.4,
                           fontWeight: FontWeight.w700,
-                          color: widget.isDark ? AppColors.gold : const Color(0xFF3B5644),
+                          color: _isHovered
+                              ? (widget.isDark ? Colors.white : const Color(0xFF26352C))
+                              : (widget.isDark ? AppColors.gold : const Color(0xFF3B5644)),
                           fontFamily: 'Tajawal',
                         ),
                       ),
@@ -561,62 +626,46 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
   }
 }
 
-class _HeaderIconButton extends StatefulWidget {
-  final IconData icon;
-  final String tooltip;
-  final bool isDark;
-  final VoidCallback onPressed;
+/// Custom Painter for the Outer Islamic Patterned Ring with 8-Point Star Nodes
+class _OuterPatternedRingPainter extends CustomPainter {
+  final Color color;
 
-  const _HeaderIconButton({
-    required this.icon,
-    required this.tooltip,
-    required this.isDark,
-    required this.onPressed,
-  });
+  _OuterPatternedRingPainter({required this.color});
 
   @override
-  State<_HeaderIconButton> createState() => _HeaderIconButtonState();
-}
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
 
-class _HeaderIconButtonState extends State<_HeaderIconButton> {
-  bool _isPressed = false;
+    final ringPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3
+      ..isAntiAlias = true;
 
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
-        onTapUp: (_) {
-          setState(() => _isPressed = false);
-          widget.onPressed();
-        },
-        onTapCancel: () => setState(() => _isPressed = false),
-        child: AnimatedScale(
-          scale: _isPressed ? 0.88 : 1.0,
-          duration: const Duration(milliseconds: 140),
-          child: Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              color: widget.isDark ? AppColors.cardDark : const Color(0xFFFAF6EE),
-              border: Border.all(color: const Color(0x60D1BE93)),
-              boxShadow: const [
-                BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2)),
-              ],
-            ),
-            child: Icon(
-              widget.icon,
-              color: widget.isDark ? AppColors.primaryTextDark : const Color(0xFF26352C),
-              size: 24,
-            ),
-          ),
-        ),
-      ),
-    );
+    final dotPaint = Paint()
+      ..color = color.withOpacity(0.9)
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+
+    // Draw base outer circle
+    canvas.drawCircle(center, radius - 2, ringPaint);
+
+    // Draw 8 celestial decorative nodes
+    const int nodes = 8;
+    for (int i = 0; i < nodes; i++) {
+      final angle = (i * 2 * math.pi) / nodes;
+      final nodePos = Offset(
+        center.dx + (radius - 2) * math.cos(angle),
+        center.dy + (radius - 2) * math.sin(angle),
+      );
+      canvas.drawCircle(nodePos, 2.6, dotPaint);
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant _OuterPatternedRingPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class _HeaderProfileAvatar extends StatefulWidget {

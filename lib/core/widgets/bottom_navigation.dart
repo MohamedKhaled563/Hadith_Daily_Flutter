@@ -64,25 +64,25 @@ class BottomNavigation extends StatelessWidget {
                 ),
               ),
 
-              // 2. جميع المجتمع (Community - Index 1)
+              // 2. المشاركات (Community / Posts - Index 1)
               Expanded(
                 child: _buildNavItem(
                   index: 1,
-                  icon: Icons.groups_outlined,
-                  activeIcon: Icons.groups_rounded,
-                  label: 'جميع المجتمع',
+                  icon: Icons.forum_outlined,
+                  activeIcon: Icons.forum_rounded,
+                  label: 'المشاركات',
                   isSelected: currentIndex == 1,
                   onTap: () => onTap(1),
                 ),
               ),
 
-              // 3. المشاركة (Share - Index 2)
+              // 3. اكتب رسالة (Share / Add message - Index 2)
               Expanded(
                 child: _buildNavItem(
                   index: 2,
-                  icon: Icons.share_outlined,
-                  activeIcon: Icons.share_rounded,
-                  label: 'المشاركة',
+                  icon: Icons.edit_note_rounded,
+                  activeIcon: Icons.edit_note_rounded,
+                  label: 'اكتب رسالة',
                   isSelected: currentIndex == 2,
                   onTap: () => onTap(2),
                 ),

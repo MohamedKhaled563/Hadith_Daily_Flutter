@@ -29,11 +29,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _sortByLikes = true; // true = Most liked, false = Newest
 
-  String _toArabicDigits(int number) {
-    const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-    return number.toString().split('').map((d) => arabicDigits[int.parse(d)]).join();
-  }
-
   void _openAddMessage() {
     if (widget.onSwitchToShareTab != null) {
       widget.onSwitchToShareTab!();
@@ -50,8 +45,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = _state.isDarkMode;
-    final textColor = isDark ? AppColors.primaryTextDark : AppColors.primaryText;
-    final subTextColor = isDark ? AppColors.secondaryTextDark : AppColors.secondaryText;
+    final subTextColor = isDark ? AppColors.secondaryTextDark : const Color(0xFF5A7061);
 
     // Get posts and sort
     final posts = List<CommunityPost>.from(_repo.communityPosts);
@@ -65,6 +59,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
       key: _scaffoldKey,
       drawer: const SettingsDrawer(),
       body: AppBackground(
+        showBottomLandscape: true,
         child: SafeArea(
           bottom: false,
           child: Column(
@@ -80,7 +75,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                     // Brushed Gold '+' Button (Matches Reference Image top-left)
                     _buildBrushedGoldAddButton(onTap: _openAddMessage),
 
-                    // Center Emblem with circular frame
+                    // Center Emblem with circular copper/gold ring frame
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
@@ -163,7 +158,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
               const SizedBox(height: 12),
 
-              // Posts List
+              // Posts List with Authentic Parchment Cards & Islamic Watermark
               Expanded(
                 child: posts.isEmpty
                     ? Center(
@@ -177,6 +172,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                         ),
                       )
                     : ListView.builder(
+                        physics: const BouncingScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
                         itemCount: posts.length,
                         itemBuilder: (context, index) {
@@ -432,10 +428,19 @@ class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
 
   @override
   Widget build(BuildContext context) {
-    final bgCard = widget.isDark ? AppColors.cardDark : const Color(0xFFFFFDFC);
+    // Exact warm parchment tones from reference screenshot
+    final bgGradientColors = widget.isDark
+        ? [
+            const Color(0xFF23342A),
+            const Color(0xFF1B2A20),
+          ]
+        : [
+            const Color(0xFFEFE8DC),
+            const Color(0xFFECE4D7),
+          ];
+
     final textColor = widget.isDark ? AppColors.primaryTextDark : const Color(0xFF26352C);
-    final subTextColor = widget.isDark ? AppColors.secondaryTextDark : const Color(0xFF5A7061);
-    final borderColor = widget.isDark ? AppColors.cardBorderDark : const Color(0x60D1BE93);
+    final borderColor = widget.isDark ? const Color(0x60D1BE93) : const Color(0x75D1BE93);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -455,19 +460,23 @@ class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
           child: Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: bgCard,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: bgGradientColors,
+              ),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
                 color: _isHovered ? const Color(0xFFD6BE88) : borderColor,
-                width: _isHovered ? 1.4 : 1.1,
+                width: _isHovered ? 1.5 : 1.1,
               ),
               boxShadow: [
                 BoxShadow(
                   color: _isHovered
-                      ? const Color(0x183B5644)
-                      : const Color(0x0A000000),
-                  blurRadius: _isHovered ? 14 : 8,
-                  offset: Offset(0, _isHovered ? 4 : 2),
+                      ? (widget.isDark ? const Color(0x50000000) : const Color(0x203B5644))
+                      : (widget.isDark ? const Color(0x28000000) : const Color(0x0E000000)),
+                  blurRadius: _isHovered ? 16 : 8,
+                  offset: Offset(0, _isHovered ? 5 : 3),
                 ),
               ],
             ),
@@ -475,14 +484,14 @@ class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
               borderRadius: BorderRadius.circular(22),
               child: Stack(
                 children: [
-                  // Subtle Islamic geometric watermark in center (Matches screenshot aesthetic!)
+                  // Subtle & Visible Islamic geometric watermark in center (Matches screenshot aesthetic!)
                   Positioned.fill(
                     child: CustomPaint(
                       painter: IslamicWatermarkPainter(
                         color: widget.isDark
-                            ? const Color(0x0CD1BE93)
-                            : const Color(0x0AD1BE93),
-                        strokeWidth: 0.9,
+                            ? const Color(0x1AD1BE93)
+                            : const Color(0x28B89F70),
+                        strokeWidth: 1.1,
                       ),
                     ),
                   ),
@@ -529,6 +538,7 @@ class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
                         // Message Text (Generous line-height for Arabic readability)
                         Text(
                           widget.post.message,
+                          textAlign: TextAlign.right,
                           style: TextStyle(
                             fontSize: 14,
                             height: 1.75,
@@ -544,17 +554,19 @@ class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.chevron_left_rounded,
                               size: 20,
-                              color: Color(0xFF8E9990),
+                              color: _isHovered
+                                  ? (widget.isDark ? AppColors.gold : const Color(0xFF385240))
+                                  : (widget.isDark ? const Color(0xFF8E9990) : const Color(0xFF857E70)),
                             ),
                             Text(
                               'مرتبط بالحديث رقم ${_toArabicDigits(widget.post.hadithNumber)}',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: subTextColor,
+                                color: widget.isDark ? AppColors.gold : const Color(0xFF7A8D80),
                                 fontFamily: 'Tajawal',
                               ),
                             ),
@@ -588,10 +600,8 @@ class _HeartLikeLeftWidget extends StatefulWidget {
   State<_HeartLikeLeftWidget> createState() => _HeartLikeLeftWidgetState();
 }
 
-class _HeartLikeLeftWidgetState extends State<_HeartLikeLeftWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
-  late Animation<double> _scaleAnim;
+class _HeartLikeLeftWidgetState extends State<_HeartLikeLeftWidget> {
+  bool _isHovered = false;
 
   String _toArabicDigits(int number) {
     const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -599,56 +609,37 @@ class _HeartLikeLeftWidgetState extends State<_HeartLikeLeftWidget>
   }
 
   @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 220),
-    );
-    _scaleAnim = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.4), weight: 50),
-      TweenSequenceItem(tween: Tween(begin: 1.4, end: 1.0), weight: 50),
-    ]).animate(CurvedAnimation(parent: _animController, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    const heartRed = Color(0xFFC73E3E);
-
-    return GestureDetector(
-      onTap: () {
-        _animController.forward(from: 0.0);
-        widget.onTap();
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ScaleTransition(
-            scale: _scaleAnim,
-            child: Icon(
-              widget.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-              size: 20,
-              color: widget.isLiked ? heartRed : const Color(0xFF8E9990),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedScale(
+              scale: _isHovered ? 1.2 : 1.0,
+              duration: const Duration(milliseconds: 150),
+              child: Icon(
+                widget.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                size: 18,
+                color: widget.isLiked ? const Color(0xFFC73E3E) : const Color(0xFF6B726C),
+              ),
             ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            _toArabicDigits(widget.likes),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: widget.isLiked ? heartRed : const Color(0xFF5A7061),
-              fontFamily: 'Tajawal',
+            const SizedBox(width: 5),
+            Text(
+              _toArabicDigits(widget.likes),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: widget.isLiked ? const Color(0xFFC73E3E) : const Color(0xFF6B726C),
+                fontFamily: 'Tajawal',
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
