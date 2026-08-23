@@ -3,20 +3,34 @@ class Insight {
   final String arabic;
   final String english;
 
+  /// Message type from the source workbook — تأمّل, إرشاد عملي, and so on.
+  /// Used as the pill label on the daily-message card.
+  final String category;
+
+  final String themes;
+  final String keywords;
+
   const Insight({
     required this.hadithNumber,
     required this.arabic,
     required this.english,
+    this.category = 'رسالة اليوم',
+    this.themes = '',
+    this.keywords = '',
   });
 
   String get message => arabic;
-  String get category => 'رسالة اليوم';
 
   factory Insight.fromJson(Map<String, dynamic> json) {
+    final category = (json['category'] as String? ?? '').trim();
+
     return Insight(
       hadithNumber: json['hadithNumber'] as int,
       arabic: json['arabic'] as String? ?? '',
       english: json['english'] as String? ?? '',
+      category: category.isEmpty ? 'رسالة اليوم' : category,
+      themes: json['themes'] as String? ?? '',
+      keywords: json['keywords'] as String? ?? '',
     );
   }
 }

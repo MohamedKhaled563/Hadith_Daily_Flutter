@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/smooth_page_route.dart';
+import '../../core/theme/app_state_controller.dart';
+import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -23,6 +26,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   int _currentQuoteIndex = 0;
   Timer? _quoteTimer;
+  Timer? _autoAdvanceTimer;
 
   final List<String> _inspirationalQuotes = [
     'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ 🌿',
@@ -95,18 +99,26 @@ class _SplashScreenState extends State<SplashScreen>
       }
     });
 
-    // Auto-navigate after 2.8 seconds
-    Timer(const Duration(milliseconds: 2800), () {
-      _navigateToHome();
-    });
+    // Auto-navigate after 2.8 seconds. Held so it can be cancelled when the
+    // reader taps to skip, or the screen is disposed first.
+    _autoAdvanceTimer = Timer(
+      const Duration(milliseconds: 2800),
+      _navigateToHome,
+    );
   }
 
   void _navigateToHome() {
     if (!mounted) return;
     _quoteTimer?.cancel();
+    _autoAdvanceTimer?.cancel();
+
+    // Straight to Home for a signed-in user; otherwise through the login page.
+    final signedIn = AppStateController().isLoggedIn;
     Navigator.pushReplacement(
       context,
-      SmoothPageRoute(child: const HomeScreen()),
+      SmoothPageRoute(
+        child: signedIn ? const HomeScreen() : const LoginScreen(),
+      ),
     );
   }
 
@@ -116,6 +128,7 @@ class _SplashScreenState extends State<SplashScreen>
     _haloRotateController.dispose();
     _quoteFadeController.dispose();
     _quoteTimer?.cancel();
+    _autoAdvanceTimer?.cancel();
     super.dispose();
   }
 
@@ -230,7 +243,7 @@ class _SplashScreenState extends State<SplashScreen>
                     fontSize: 34,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF26352C),
-                    fontFamily: 'Tajawal',
+                    fontFamily: kSans,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -255,7 +268,7 @@ class _SplashScreenState extends State<SplashScreen>
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF5A7061),
-                    fontFamily: 'Tajawal',
+                    fontFamily: kSans,
                   ),
                 ),
 
@@ -281,7 +294,7 @@ class _SplashScreenState extends State<SplashScreen>
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF385240),
-                        fontFamily: 'Tajawal',
+                        fontFamily: kSans,
                         height: 1.5,
                       ),
                     ),

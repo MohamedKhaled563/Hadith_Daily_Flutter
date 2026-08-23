@@ -20,15 +20,40 @@ class AppStateController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Auth / Profile state (Ready for future Auth)
+  // ---------------------------------------------------------------- auth ----
+  //
+  // PLACEHOLDER AUTHENTICATION — NOT SECURE, NOT REAL.
+  //
+  // Credentials are hardcoded in the client so the UI can be built and
+  // demonstrated before the backend exists. Anyone can read them by
+  // decompiling the app. Before this ships to real users, `signIn` must call a
+  // real auth service and this constant pair must be deleted.
+  static const _demoUsername = 'admin';
+  static const _demoPassword = 'admin';
+  static const _demoDisplayName = 'محمد';
+  static const _demoEmail = 'admin@tayyibqalbak.app';
+
   bool _isLoggedIn = false;
   bool get isLoggedIn => _isLoggedIn;
 
-  String _userName = 'عبد الله بن محمد';
+  String _userName = _demoDisplayName;
   String get userName => _userName;
 
-  String _userEmail = 'abdullah@example.com';
+  String _userEmail = _demoEmail;
   String get userEmail => _userEmail;
+
+  /// Placeholder sign-in. Returns true when the demo credentials match.
+  bool signIn({required String username, required String password}) {
+    if (username.trim() != _demoUsername || password != _demoPassword) {
+      return false;
+    }
+
+    _userName = _demoDisplayName;
+    _userEmail = _demoEmail;
+    _isLoggedIn = true;
+    notifyListeners();
+    return true;
+  }
 
   int _savedHadithsCount = 5;
   int get savedHadithsCount => _savedHadithsCount;
@@ -49,6 +74,10 @@ class AppStateController extends ChangeNotifier {
     _userEmail = '';
     notifyListeners();
   }
+
+  /// Demo credentials, surfaced so the login screen can show the hint while
+  /// this is still a placeholder. Remove alongside [signIn].
+  static String get demoHint => 'اسم المستخدم: $_demoUsername • كلمة المرور: $_demoPassword';
 
   void updateProfileName(String newName) {
     if (newName.isNotEmpty) {
@@ -106,11 +135,26 @@ class AppStateController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Font Size Settings (1.0 = Regular, 1.15 = Medium, 1.3 = Large)
+  // Reading size. Applied in MaterialApp.builder on top of the reader's OS
+  // text-size setting, then clamped — see main.dart.
+  static const fontSizeSteps = <String, double>{
+    'عادي': 1.0,
+    'متوسط': 1.15,
+    'كبير': 1.3,
+  };
+
   double _fontSizeScale = 1.0;
   double get fontSizeScale => _fontSizeScale;
 
+  String get fontSizeLabel => fontSizeSteps.entries
+      .firstWhere(
+        (e) => (e.value - _fontSizeScale).abs() < 0.001,
+        orElse: () => fontSizeSteps.entries.first,
+      )
+      .key;
+
   void setFontSizeScale(double scale) {
+    if (_fontSizeScale == scale) return;
     _fontSizeScale = scale;
     notifyListeners();
   }

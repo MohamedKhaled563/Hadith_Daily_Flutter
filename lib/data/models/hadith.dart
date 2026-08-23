@@ -6,6 +6,11 @@ class Hadith {
   final String reference;
   final String explanation;
   final List<String> keyLessons;
+
+  /// Biography of the companion who narrated the hadith, from the source
+  /// workbook. Empty when unavailable.
+  final String narratorBio;
+
   final bool isFavorite;
 
   const Hadith({
@@ -16,8 +21,9 @@ class Hadith {
     String? reference,
     required this.explanation,
     this.keyLessons = const [],
+    this.narratorBio = '',
     this.isFavorite = false,
-  }) : reference = reference ?? (source ?? 'رواه البخاري ومسلم');
+  }) : reference = reference ?? (source ?? 'من الأربعين النووية');
 
   factory Hadith.fromJson(Map<String, dynamic> json) {
     final rawLessons = json['keyLessons'];
@@ -34,6 +40,7 @@ class Hadith {
       reference: (json['reference'] ?? json['source']) as String?,
       explanation: json['explanation'] as String? ?? '',
       keyLessons: lessonsList,
+      narratorBio: json['narratorBio'] as String? ?? '',
       isFavorite: json['isFavorite'] as bool? ?? false,
     );
   }
@@ -47,6 +54,7 @@ class Hadith {
       'reference': reference,
       'explanation': explanation,
       'keyLessons': keyLessons,
+      'narratorBio': narratorBio,
       'isFavorite': isFavorite,
     };
   }

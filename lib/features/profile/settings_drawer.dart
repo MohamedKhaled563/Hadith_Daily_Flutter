@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_state_controller.dart';
-import '../../core/widgets/asset_helper.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/arabic_numerals.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/botanical_sheet.dart';
+import '../../core/widgets/smooth_page_route.dart';
+import '../../core/widgets/tap_target.dart';
+import '../../data/repositories/hadith_repository.dart';
+import '../auth/login_screen.dart';
 
 class SettingsDrawer extends StatefulWidget {
   const SettingsDrawer({super.key});
@@ -13,627 +21,259 @@ class SettingsDrawer extends StatefulWidget {
 
 class _SettingsDrawerState extends State<SettingsDrawer> {
   final AppStateController _state = AppStateController();
+  final HadithRepository _repo = HadithRepository();
 
   String _formatTime(TimeOfDay time) {
     final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
     final period = time.period == DayPeriod.am ? 'ص' : 'م';
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute $period';
+    return '$hour:${time.minute.toString().padLeft(2, '0')} $period';
   }
 
-  void _showAuthModal() {
-    final nameCtrl = TextEditingController(text: _state.isLoggedIn ? _state.userName : '');
-    final emailCtrl = TextEditingController(text: _state.isLoggedIn ? _state.userEmail : '');
-    bool isRegister = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final isDark = _state.isDarkMode;
-            final bgCard = isDark ? AppColors.cardDark : AppColors.card;
-            final textColor = isDark ? AppColors.primaryTextDark : AppColors.primaryText;
-
-            return Container(
-              padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 24,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-              ),
-              decoration: BoxDecoration(
-                color: bgCard,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                border: Border.all(
-                  color: isDark ? AppColors.cardBorderDark : AppColors.cardBorder,
-                ),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Handle bar
-                    Container(
-                      width: 44,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Title
-                    Text(
-                      _state.isLoggedIn
-                          ? 'الملف الشخصي والحساب'
-                          : (isRegister ? 'إنشاء حساب جديد 🌿' : 'تسجيل الدخول'),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                        fontFamily: 'Tajawal',
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _state.isLoggedIn
-                          ? 'بيانات حسابك في مجتمع طيّب قلبك'
-                          : 'انضم لمجتمع الحديث لحفظ مشاركاتك ومزامنتها',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? AppColors.secondaryTextDark : AppColors.secondaryText,
-                        fontFamily: 'Tajawal',
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    if (!_state.isLoggedIn) ...[
-                      // Name input (for register or login)
-                      _buildAuthField(
-                        controller: nameCtrl,
-                        label: 'الاسم أو اللقب',
-                        icon: Icons.person_outline_rounded,
-                        hint: 'مثال: عبد الله بن محمد',
-                        isDark: isDark,
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Email input
-                      _buildAuthField(
-                        controller: emailCtrl,
-                        label: 'البريد الإلكتروني',
-                        icon: Icons.email_outlined,
-                        hint: 'name@example.com',
-                        isDark: isDark,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Submit Auth Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            final name = nameCtrl.text.trim();
-                            final email = emailCtrl.text.trim();
-                            _state.login(
-                              name.isNotEmpty ? name : 'عبد الله بن محمد',
-                              email.isNotEmpty ? email : 'user@example.com',
-                            );
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('مرحباً بك! تم تسجيل الدخول بنجاح 🌿', textDirection: TextDirection.rtl, style: TextStyle(fontFamily: 'Tajawal')),
-                                backgroundColor: AppColors.primaryGreen,
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryGreen,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                          ),
-                          child: Text(
-                            isRegister ? 'إنشاء الحساب' : 'تسجيل الدخول',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, fontFamily: 'Tajawal'),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Toggle Register / Login
-                      TextButton(
-                        onPressed: () => setModalState(() => isRegister = !isRegister),
-                        child: Text(
-                          isRegister
-                              ? 'لديك حساب بالفعل؟ تسجيل الدخول'
-                              : 'ليس لديك حساب؟ اضغط لإنشاء حساب جديد',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.gold,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Tajawal',
-                          ),
-                        ),
-                      ),
-                    ] else ...[
-                      // Logged In view
-                      ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: AppColors.primaryGreen,
-                          child: Icon(Icons.person, color: Colors.white),
-                        ),
-                        title: Text(_state.userName, style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Tajawal')),
-                        subtitle: Text(_state.userEmail, style: TextStyle(color: isDark ? AppColors.secondaryTextDark : AppColors.secondaryText, fontFamily: 'Tajawal')),
-                      ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 46,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            _state.logout();
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('تم تسجيل الخروج بنجاح', textDirection: TextDirection.rtl, style: TextStyle(fontFamily: 'Tajawal')),
-                                backgroundColor: AppColors.primaryGreen,
-                              ),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.redAccent,
-                            side: const BorderSide(color: Colors.redAccent),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
-                          ),
-                          child: const Text('تسجيل الخروج', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
-  Widget _buildAuthField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    required String hint,
-    required bool isDark,
-    TextInputType? keyboardType,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.primaryGreenDark : AppColors.primaryGreen,
-            fontFamily: 'Tajawal',
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.softCreamDark : AppColors.softCream,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? AppColors.cardBorderDark : AppColors.cardBorder,
-            ),
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            textDirection: TextDirection.rtl,
-            style: TextStyle(
-              fontFamily: 'Tajawal',
-              fontSize: 14,
-              color: isDark ? AppColors.primaryTextDark : AppColors.primaryText,
-            ),
-            decoration: InputDecoration(
-              icon: Icon(icon, size: 20, color: AppColors.gold),
-              hintText: hint,
-              hintStyle: TextStyle(
-                color: isDark ? Colors.white38 : AppColors.placeholder,
-                fontSize: 13,
-                fontFamily: 'Tajawal',
-              ),
-              border: InputBorder.none,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // ------------------------------------------------------------- account ----
 
-  void _showAboutDialog() {
-    final isDark = _state.isDarkMode;
-    showDialog(
+  void _confirmLogout() {
+    showBotanicalSheet<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.cardDark : AppColors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Row(
+      title: 'تسجيل الخروج',
+      subtitle: 'هل تريد الخروج من حسابك؟ ستبقى محفوظاتك كما هي.',
+      child: Builder(
+        builder: (sheetContext) => Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            AssetHelper.assetOrFallback(
-              assetPath: 'assets/images/heart_leaf_emblem.png',
-              width: 32,
-              height: 32,
-              fallback: const Icon(Icons.favorite, color: AppColors.primaryGreen),
+            AppButton(
+              text: 'تسجيل الخروج',
+              icon: Icons.logout_rounded,
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                _logout();
+              },
             ),
-            const SizedBox(width: 10),
-            Text(
-              'عن تطبيق «طيّب قلبك»',
-              style: TextStyle(
-                fontFamily: 'Tajawal',
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: isDark ? AppColors.primaryTextDark : AppColors.primaryText,
-              ),
+            const SizedBox(height: 10),
+            AppButton(
+              text: 'إلغاء',
+              isSecondary: true,
+              onPressed: () => Navigator.pop(sheetContext),
             ),
           ],
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '«طيّب قلبك» هو تطبيق روحي وتأملي يهدف إلى تقريب أحاديث الأربعين النووية لحياتنا اليومية، واستخلاص الهدايات والرسائل القلبية التي تبث السكينة والنور في النفوس.',
-                style: TextStyle(
-                  fontFamily: 'Tajawal',
-                  fontSize: 13.5,
-                  height: 1.8,
-                  color: isDark ? AppColors.primaryTextDark : AppColors.primaryText,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                '📚 المصادر والتوثيق:',
-                style: TextStyle(
-                  fontFamily: 'Tajawal',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: isDark ? AppColors.primaryGreenDark : AppColors.primaryGreen,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '• متن الأربعين النووية للإمام يحيى بن شرف النووي.\n• جامع العلوم والحكم للحافظ ابن رجب الحنبلي.\n• صحيح الإمام البخاري وصحيح الإمام مسلم.',
-                style: TextStyle(
-                  fontFamily: 'Tajawal',
-                  fontSize: 12.5,
-                  height: 1.7,
-                  color: isDark ? AppColors.secondaryTextDark : AppColors.secondaryText,
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('إغلاق', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold, color: AppColors.gold)),
-          ),
-        ],
       ),
     );
   }
 
-  void _showFeedbackDialog() {
-    final isDark = _state.isDarkMode;
+  void _logout() {
+    _state.logout();
+
+    // Drop the whole stack: there is nothing to come back to once signed out.
+    Navigator.of(context).pushAndRemoveUntil(
+      SmoothPageRoute(child: const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  // -------------------------------------------------------------- dialogs ----
+
+  void _showAboutSheet() {
+    showBotanicalSheet<void>(
+      context: context,
+      title: 'عن تطبيق «طيّب قلبك»',
+      child: Builder(
+        builder: (sheetContext) {
+          final palette = sheetContext.palette;
+          final textTheme = Theme.of(sheetContext).textTheme;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '«طيّب قلبك» تطبيق روحي وتأملي يقرّب أحاديث الأربعين النووية '
+                'لحياتنا اليومية، ويستخلص الهدايات والرسائل القلبية التي تبث '
+                'السكينة والنور في النفوس.',
+                style: textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '📚 المصادر والتوثيق',
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: palette.goldText,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '• متن الأربعين النووية للإمام يحيى بن شرف النووي.\n'
+                '• جامع العلوم والحكم للحافظ ابن رجب الحنبلي.\n'
+                '• صحيح الإمام البخاري وصحيح الإمام مسلم.',
+                style: textTheme.bodySmall,
+              ),
+              const SizedBox(height: 20),
+              AppButton(
+                text: 'إغلاق',
+                isSecondary: true,
+                onPressed: () => Navigator.pop(sheetContext),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showFeedbackSheet() {
     final msgCtrl = TextEditingController();
 
-    showDialog(
+    showBotanicalSheet<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.cardDark : AppColors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          'تواصل معنا واقترح 🌿',
-          style: TextStyle(
-            fontFamily: 'Tajawal',
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.primaryTextDark : AppColors.primaryText,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'يسعدنا سماع رأيك، أو أي فكرة تود إضافتها لتطوير التطبيق:',
-              style: TextStyle(
-                fontFamily: 'Tajawal',
-                fontSize: 13,
-                color: isDark ? AppColors.secondaryTextDark : AppColors.secondaryText,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.softCreamDark : AppColors.softCream,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? AppColors.cardBorderDark : AppColors.cardBorder),
-              ),
-              child: TextField(
-                controller: msgCtrl,
-                maxLines: 4,
-                textDirection: TextDirection.rtl,
-                style: TextStyle(
-                  fontFamily: 'Tajawal',
-                  fontSize: 13.5,
-                  color: isDark ? AppColors.primaryTextDark : AppColors.primaryText,
+      title: 'تواصل معنا واقترح 🌿',
+      subtitle: 'يسعدنا سماع رأيك، أو أي فكرة تود إضافتها لتطوير التطبيق',
+      child: Builder(
+        builder: (sheetContext) {
+          final palette = sheetContext.palette;
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: palette.surface,
+                  borderRadius: BorderRadius.circular(AppRadii.listItem),
+                  border: Border.all(color: palette.cardBorder),
                 ),
-                decoration: const InputDecoration(
-                  hintText: 'اكتب رسالتك أو اقتراحك هنا...',
-                  hintStyle: TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppColors.placeholder),
-                  border: InputBorder.none,
+                child: TextField(
+                  controller: msgCtrl,
+                  maxLines: 4,
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 13.5,
+                    height: AppLeading.body,
+                    color: palette.bodyText,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'اكتب رسالتك أو اقتراحك هنا...',
+                    hintStyle: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 12.5,
+                      color: palette.mutedText,
+                    ),
+                    border: InputBorder.none,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'إلغاء',
-              style: TextStyle(
-                fontFamily: 'Tajawal',
-                color: isDark ? AppColors.secondaryTextDark : AppColors.secondaryText,
+              const SizedBox(height: 20),
+              AppButton(
+                text: 'إرسال الاقتراح',
+                icon: Icons.send_rounded,
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  _toast('شكراً لك! وصلتنا رسالتك وسنعمل بها بإذن الله 🌿');
+                },
               ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('شكراً لك! وصلتنا رسالتك وسنعمل بها بإذن الله 🌿', textDirection: TextDirection.rtl, style: TextStyle(fontFamily: 'Tajawal')),
-                  backgroundColor: AppColors.primaryGreen,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            ),
-            child: const Text('إرسال الاقتراح', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold)),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
   void _shareApp() {
-    Clipboard.setData(const ClipboardData(
-      text: '🌿 تطبيق «طيّب قلبك» — هدايات وأحاديث الأربعين النووية بأسلوب روحي هادئ يملأ يومك طمأنينة وسكينة.',
-    ));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم نسخ رابط وعبارة المشاركة للأجر 🌿', textDirection: TextDirection.rtl, style: TextStyle(fontFamily: 'Tajawal')),
-        backgroundColor: AppColors.primaryGreen,
+    Clipboard.setData(
+      const ClipboardData(
+        text: '🌿 تطبيق «طيّب قلبك» — هدايات وأحاديث الأربعين النووية بأسلوب '
+            'روحي هادئ يملأ يومك طمأنينة وسكينة.',
       ),
     );
+    _toast('تم نسخ عبارة المشاركة 🌿');
   }
 
   Future<void> _pickTime(bool isMorning) async {
-    final initial = isMorning ? _state.morningReminderTime : _state.eveningReminderTime;
     final picked = await showTimePicker(
       context: context,
-      initialTime: initial,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primaryGreen,
-              onPrimary: Colors.white,
-              onSurface: _state.isDarkMode ? Colors.white : AppColors.primaryText,
-              surface: _state.isDarkMode ? AppColors.cardDark : AppColors.card,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      initialTime:
+          isMorning ? _state.morningReminderTime : _state.eveningReminderTime,
     );
 
-    if (picked != null) {
-      if (isMorning) {
-        _state.setMorningReminderTime(picked);
-      } else {
-        _state.setEveningReminderTime(picked);
-      }
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'تم ضبط وقت ${isMorning ? "تذكير الصباح" : "تذكير المساء"} على ${_formatTime(picked)} ✨',
-            textDirection: TextDirection.rtl,
-            style: const TextStyle(fontFamily: 'Tajawal'),
-          ),
-          backgroundColor: AppColors.primaryGreen,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+    if (picked == null || !mounted) return;
+
+    isMorning
+        ? _state.setMorningReminderTime(picked)
+        : _state.setEveningReminderTime(picked);
+
+    setState(() {});
+    _toast(
+      'تم ضبط وقت ${isMorning ? "تذكير الصباح" : "تذكير المساء"} '
+      'على ${_formatTime(picked)} ✨',
+    );
   }
+
+  // ---------------------------------------------------------------- build ----
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _state,
-      builder: (context, child) {
-        final isDark = _state.isDarkMode;
-        final bg = isDark ? AppColors.backgroundDark : AppColors.background;
-        final cardBg = isDark ? AppColors.cardDark : AppColors.card;
-        final textColor = isDark ? AppColors.primaryTextDark : AppColors.primaryText;
-        final subTextColor = isDark ? AppColors.secondaryTextDark : AppColors.secondaryText;
-        final borderColor = isDark ? AppColors.cardBorderDark : AppColors.cardBorder;
+      builder: (context, _) {
+        final palette = context.palette;
+        final isDark = context.isDarkMode;
 
         return Drawer(
-          backgroundColor: bg,
+          backgroundColor:
+              isDark ? AppColors.backgroundDark : AppColors.background,
           child: SafeArea(
             child: Column(
               children: [
-                // 1. Profile Header Card
-                Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: borderColor),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      // Avatar
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isDark ? AppColors.softCreamDark : AppColors.softCream,
-                          border: Border.all(color: AppColors.gold, width: 1.5),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            _state.isLoggedIn ? Icons.person_rounded : Icons.person_outline_rounded,
-                            color: AppColors.primaryGreen,
-                            size: 28,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-
-                      // User Info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _state.userName,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                                fontFamily: 'Tajawal',
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _state.isLoggedIn ? _state.userEmail : 'عضو في مجتمع طيّب قلبك',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: subTextColor,
-                                fontFamily: 'Tajawal',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Edit / Auth Button
-                      GestureDetector(
-                        onTap: _showAuthModal,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryGreen.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            _state.isLoggedIn ? 'حسابي' : 'دخول',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryGreen,
-                              fontFamily: 'Tajawal',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 2. Settings & Menu Sections
+                _ProfileHeader(state: _state, repo: _repo),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
-                      // Section A: المظهر والثيم (Appearance)
-                      _buildSectionHeader('المظهر والألوان', isDark),
-                      _buildSettingsCard(
-                        cardBg: cardBg,
-                        borderColor: borderColor,
+                      _SectionHeader('المظهر والقراءة'),
+                      _SettingsCard(
                         children: [
-                          _buildSwitchTile(
-                            icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                            iconColor: AppColors.gold,
-                            title: 'الوضع الليلي (Dark Mode)',
-                            subtitle: isDark ? 'مفعل — مريح للعين' : 'الوضع الفاتح مفعّل',
+                          _SwitchTile(
+                            icon: isDark
+                                ? Icons.dark_mode_rounded
+                                : Icons.light_mode_rounded,
+                            title: 'الوضع الليلي',
+                            subtitle: isDark
+                                ? 'مفعل — مريح للعين'
+                                : 'الوضع الفاتح مفعّل',
                             value: isDark,
-                            textColor: textColor,
-                            subTextColor: subTextColor,
-                            onChanged: (val) => _state.toggleTheme(),
+                            onChanged: (_) => _state.toggleTheme(),
                           ),
+                          _Divider(),
+                          // The reading-size control this app was missing: the
+                          // state existed but nothing exposed or consumed it.
+                          _FontSizeTile(state: _state),
                         ],
                       ),
 
                       const SizedBox(height: 14),
 
-                      // Section B: التنبيهات والمواعيد (Daily Reminders)
-                      _buildSectionHeader('مواعيد التنبيهات اليومية', isDark),
-                      _buildSettingsCard(
-                        cardBg: cardBg,
-                        borderColor: borderColor,
+                      _SectionHeader('مواعيد التنبيهات اليومية'),
+                      _SettingsCard(
                         children: [
-                          // Morning Reminder
-                          _buildTimeTile(
+                          _TimeTile(
                             icon: Icons.wb_sunny_outlined,
-                            iconColor: const Color(0xFFD69E2E),
                             title: 'تذكير رسالة الصباح',
-                            subtitle: _formatTime(_state.morningReminderTime),
+                            time: _formatTime(_state.morningReminderTime),
                             isEnabled: _state.morningReminderEnabled,
-                            textColor: textColor,
-                            subTextColor: subTextColor,
-                            onToggle: (val) => _state.toggleMorningReminder(val),
+                            onToggle: _state.toggleMorningReminder,
                             onTapTime: () => _pickTime(true),
                           ),
-                          Divider(height: 1, color: borderColor),
-
-                          // Evening Reminder
-                          _buildTimeTile(
+                          _Divider(),
+                          _TimeTile(
                             icon: Icons.nights_stay_outlined,
-                            iconColor: const Color(0xFF805AD5),
                             title: 'تذكير تأمل المساء',
-                            subtitle: _formatTime(_state.eveningReminderTime),
+                            time: _formatTime(_state.eveningReminderTime),
                             isEnabled: _state.eveningReminderEnabled,
-                            textColor: textColor,
-                            subTextColor: subTextColor,
-                            onToggle: (val) => _state.toggleEveningReminder(val),
+                            onToggle: _state.toggleEveningReminder,
                             onTapTime: () => _pickTime(false),
                           ),
                         ],
@@ -641,58 +281,68 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
 
                       const SizedBox(height: 14),
 
-                      // Section C: عن التطبيق والتواصل (About & Contact)
-                      _buildSectionHeader('المعلومات والتواصل', isDark),
-                      _buildSettingsCard(
-                        cardBg: cardBg,
-                        borderColor: borderColor,
+                      _SectionHeader('المعلومات والتواصل'),
+                      _SettingsCard(
                         children: [
-                          _buildNavigationTile(
+                          _NavTile(
                             icon: Icons.info_outline_rounded,
                             title: 'من نحن وعن التطبيق',
-                            textColor: textColor,
-                            onTap: _showAboutDialog,
+                            onTap: _showAboutSheet,
                           ),
-                          Divider(height: 1, color: borderColor),
-                          _buildNavigationTile(
+                          _Divider(),
+                          _NavTile(
                             icon: Icons.chat_bubble_outline_rounded,
                             title: 'تواصل معنا واقترح فكرة',
-                            textColor: textColor,
-                            onTap: _showFeedbackDialog,
+                            onTap: _showFeedbackSheet,
                           ),
-                          Divider(height: 1, color: borderColor),
-                          _buildNavigationTile(
+                          _Divider(),
+                          _NavTile(
                             icon: Icons.share_rounded,
                             title: 'شارك التطبيق وكن داعياً للخير 🌿',
-                            textColor: textColor,
                             onTap: _shareApp,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // Sign-out lives here rather than behind the profile
+                      // name: tapping your own name should show you your
+                      // account, not offer to end the session.
+                      _SectionHeader('الحساب'),
+                      _SettingsCard(
+                        children: [
+                          _NavTile(
+                            icon: Icons.logout_rounded,
+                            title: 'تسجيل الخروج',
+                            onTap: _confirmLogout,
+                            destructive: true,
                           ),
                         ],
                       ),
 
                       const SizedBox(height: 24),
 
-                      // App Footer Quote
                       Center(
                         child: Column(
                           children: [
                             Text(
                               '«طِبْ نفساً واستبشر بنور النبوة»',
+                              textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 13,
-                                fontStyle: FontStyle.italic,
-                                color: AppColors.gold,
-                                fontFamily: 'Tajawal',
+                                fontFamily: kNaskh,
+                                fontSize: 15,
+                                height: AppLeading.body,
+                                color: palette.goldText,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'إصدار 1.0.0 — الأربعين النووية',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: subTextColor,
-                                fontFamily: 'Tajawal',
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(fontSize: 11),
                             ),
                           ],
                         ),
@@ -708,96 +358,408 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
       },
     );
   }
+}
 
-  Widget _buildSectionHeader(String title, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6, bottom: 6),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.bold,
-          color: isDark ? AppColors.gold : AppColors.primaryGreen,
-          fontFamily: 'Tajawal',
-        ),
-      ),
-    );
-  }
+// ------------------------------------------------------------- fragments ----
 
-  Widget _buildSettingsCard({
-    required Color cardBg,
-    required Color borderColor,
-    required List<Widget> children,
-  }) {
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({required this.state, required this.repo});
+
+  final AppStateController state;
+  final HadithRepository repo;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
+    // Real counts rather than the placeholder figures that used to sit on the
+    // state controller.
+    final saved =
+        repo.favoriteHadithNumbers.length + repo.favoriteInsightTexts.length;
+    final contributions = repo.communityPosts
+        .where((post) => post.authorName == state.userName)
+        .length;
+
     return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor),
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: palette.cardBorder),
+        boxShadow: AppElevation.card,
       ),
       child: Column(
-        children: children,
-      ),
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required Color textColor,
-    required Color subTextColor,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Row(
         children: [
-          Icon(icon, color: iconColor, size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Tajawal'),
+                Container(
+                  width: 52,
+                  height: 52,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: palette.surfaceSunken,
+                    border: Border.all(
+                      color: palette.cardBorderStrong,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    firstInitial(state.userName),
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 22,
+                      height: AppLeading.chrome,
+                      fontWeight: FontWeight.w900,
+                      color: palette.goldText,
+                    ),
+                  ),
                 ),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 11.5, color: subTextColor, fontFamily: 'Tajawal'),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        state.userName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        state.userEmail,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodySmall?.copyWith(
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          Switch(
-            value: value,
-            activeColor: AppColors.primaryGreen,
-            onChanged: onChanged,
+          Divider(height: 1, color: palette.cardBorder),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _Stat(
+                    icon: Icons.bookmark_rounded,
+                    value: saved,
+                    label: 'محفوظاتي',
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 28,
+                  color: palette.cardBorder,
+                ),
+                Expanded(
+                  child: _Stat(
+                    icon: Icons.edit_note_rounded,
+                    value: contributions,
+                    label: 'مشاركاتي',
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildTimeTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required bool isEnabled,
-    required Color textColor,
-    required Color subTextColor,
-    required ValueChanged<bool> onToggle,
-    required VoidCallback onTapTime,
-  }) {
+class _Stat extends StatelessWidget {
+  const _Stat({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final int value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 15, color: palette.goldText),
+            const SizedBox(width: 6),
+            Text(
+              toArabicDigits(value),
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 17,
+                height: AppLeading.chrome,
+                fontWeight: FontWeight.w900,
+                color: palette.bodyText,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: kSans,
+            fontSize: 11.5,
+            height: AppLeading.chrome,
+            fontWeight: FontWeight.w600,
+            color: palette.mutedText,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsetsDirectional.only(start: 6, bottom: 6),
+      child: Semantics(
+        header: true,
+        child: Text(
+          title,
+          style: TextStyle(
+            fontFamily: kSans,
+            fontSize: 12.5,
+            height: AppLeading.chrome,
+            fontWeight: FontWeight.w700,
+            color: context.palette.goldText,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(AppRadii.listItem),
+        border: Border.all(color: palette.cardBorder),
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Divider(height: 1, color: context.palette.cardBorder);
+  }
+}
+
+class _SwitchTile extends StatelessWidget {
+  const _SwitchTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
+    return SwitchListTile.adaptive(
+      value: value,
+      onChanged: onChanged,
+      activeThumbColor: AppColors.primaryGreen,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      secondary: Icon(icon, color: palette.goldText, size: 22),
+      title: Text(
+        title,
+        style: textTheme.bodyMedium?.copyWith(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: textTheme.bodySmall?.copyWith(fontSize: 11.5),
+      ),
+    );
+  }
+}
+
+class _FontSizeTile extends StatelessWidget {
+  const _FontSizeTile({required this.state});
+
+  final AppStateController state;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+    final steps = AppStateController.fontSizeSteps;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.format_size_rounded,
+                color: palette.goldText,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'حجم النص',
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: palette.surfaceSunken,
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              border: Border.all(color: palette.cardBorder),
+            ),
+            child: Row(
+              children: [
+                for (final entry in steps.entries)
+                  Expanded(
+                    child: _FontSizeOption(
+                      label: entry.key,
+                      selected:
+                          (state.fontSizeScale - entry.value).abs() < 0.001,
+                      onTap: () => state.setFontSizeScale(entry.value),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FontSizeOption extends StatelessWidget {
+  const _FontSizeOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return TapTarget(
+      onTap: onTap,
+      semanticLabel: 'حجم النص: $label',
+      selected: selected,
+      minSize: 44,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? palette.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+          boxShadow: selected ? AppElevation.card : null,
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: kSans,
+            fontSize: 12.5,
+            height: AppLeading.chrome,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? palette.goldText : palette.mutedText,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimeTile extends StatelessWidget {
+  const _TimeTile({
+    required this.icon,
+    required this.title,
+    required this.time,
+    required this.isEnabled,
+    required this.onToggle,
+    required this.onTapTime,
+  });
+
+  final IconData icon;
+  final String title;
+  final String time;
+  final bool isEnabled;
+  final ValueChanged<bool> onToggle;
+  final VoidCallback onTapTime;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Row(
         children: [
-          Icon(icon, color: iconColor, size: 22),
+          Icon(icon, color: palette.goldText, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -805,31 +767,45 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Tajawal'),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                GestureDetector(
+                TapTarget(
                   onTap: onTapTime,
+                  semanticLabel: '$title — الوقت الحالي $time، اضغط للتغيير',
+                  minSize: 44,
                   child: Container(
                     margin: const EdgeInsets.only(top: 3),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.gold.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
+                      color: palette.surfaceSunken,
+                      borderRadius: BorderRadius.circular(AppRadii.pill),
+                      border: Border.all(color: palette.cardBorder),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          subtitle,
-                          style: const TextStyle(
+                          time,
+                          style: TextStyle(
+                            fontFamily: kSans,
                             fontSize: 11.5,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.gold,
-                            fontFamily: 'Tajawal',
+                            height: AppLeading.chrome,
+                            fontWeight: FontWeight.w700,
+                            color: palette.goldText,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.edit, size: 11, color: AppColors.gold),
+                        Icon(
+                          Icons.edit,
+                          size: 11,
+                          color: palette.goldText,
+                        ),
                       ],
                     ),
                   ),
@@ -837,39 +813,78 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
               ],
             ),
           ),
-          Switch(
+          Switch.adaptive(
             value: isEnabled,
-            activeColor: AppColors.primaryGreen,
+            activeThumbColor: AppColors.primaryGreen,
             onChanged: onToggle,
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildNavigationTile({
-    required IconData icon,
-    required String title,
-    required Color textColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.primaryGreen, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: textColor, fontFamily: 'Tajawal'),
-              ),
+class _NavTile extends StatelessWidget {
+  const _NavTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.destructive = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  /// Sign-out and anything else that ends or removes something. Colours the
+  /// row so it cannot be mistaken for another navigation item.
+  final bool destructive;
+
+  static const _destructive = Color(0xFFB3261E);
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Semantics(
+      button: true,
+      label: title,
+      child: ExcludeSemantics(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadii.listItem),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: destructive ? _destructive : palette.goldText,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 13.5,
+                          fontWeight:
+                              destructive ? FontWeight.w700 : FontWeight.w600,
+                          color: destructive ? _destructive : null,
+                        ),
+                  ),
+                ),
+                if (!destructive)
+                  // chevron_left points "forward" under RTL.
+                  Icon(
+                    Icons.chevron_left_rounded,
+                    size: 20,
+                    color: palette.mutedText,
+                  ),
+              ],
             ),
-            const Icon(Icons.chevron_left_rounded, size: 20, color: AppColors.placeholder),
-          ],
+          ),
         ),
       ),
     );

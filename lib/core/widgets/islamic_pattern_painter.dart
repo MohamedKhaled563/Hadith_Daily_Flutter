@@ -1,111 +1,95 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Authentic Traditional Islamic Geometric Arabesque Watermark Pattern
-/// Draws an intricate 8-pointed star rosette (Shamsah medallion) with interlacing geometric petals and embossed relief
+/// Tonal depth for a parchment card: a warm vellum vignette, plus one soft
+/// eight-point star bloom set away from the centre.
+///
+/// Every earlier version of this drew the motif in *strokes*. Hairlines behind
+/// running text fight the text however faint they are — straight edges cut
+/// across Arabic letterforms and the eye keeps resolving them as lines rather
+/// than as ground. Real paper reads calm because of tone, not line work, so
+/// this paints no outlines at all: soft filled shapes only, blurred past the
+/// point where an edge is legible.
 class IslamicWatermarkPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-
   IslamicWatermarkPainter({
     this.color = const Color(0x30B89F70),
-    this.strokeWidth = 1.15,
+    this.strokeWidth = 1.1,
   });
+
+  /// Tint for both the vignette and the star bloom.
+  final Color color;
+
+  /// Retained for call-site compatibility; nothing is stroked any more.
+  final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = math.min(size.width, size.height) * 0.44;
+    if (size.shortestSide <= 8) return;
 
-    if (radius <= 0) return;
+    final bounds = Offset.zero & size;
 
-    final linePaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..isAntiAlias = true;
+    // 1. Vellum vignette — barely-there warmth gathering at the edges, so the
+    //    card centre reads as slightly lifted, the way held paper does.
+    canvas.drawRect(
+      bounds,
+      Paint()
+        ..shader = RadialGradient(
+          center: Alignment.center,
+          radius: 0.95,
+          colors: [
+            color.withValues(alpha: 0.0),
+            color.withValues(alpha: color.a * 0.45),
+            color.withValues(alpha: color.a * 1.15),
+          ],
+          stops: const [0.45, 0.82, 1.0],
+        ).createShader(bounds)
+        ..isAntiAlias = true,
+    );
 
-    final subtleFillPaint = Paint()
-      ..color = color.withOpacity(color.opacity * 0.22)
-      ..style = PaintingStyle.fill
-      ..isAntiAlias = true;
+    // 2. A single eight-point star, filled and blurred, tucked toward the top
+    //    corner rather than sitting behind the text block.
+    final radius = size.shortestSide * 0.42;
+    if (radius <= 6) return;
 
-    // 1. Outer Concentric Ring
-    canvas.drawCircle(center, radius, linePaint);
-    canvas.drawCircle(center, radius * 0.78, linePaint);
-    canvas.drawCircle(center, radius * 0.48, linePaint);
-    canvas.drawCircle(center, radius * 0.22, subtleFillPaint);
-    canvas.drawCircle(center, radius * 0.22, linePaint);
+    final centre = Offset(size.width * 0.80, size.height * 0.20);
+    final blur = radius * 0.18;
 
-    // 2. 8-Pointed Star (Octagram / 8-pointed Girih star)
-    final double squareSize = radius * 1.38;
-    _drawRotatedSquare(canvas, center, squareSize, 0, linePaint);
-    _drawRotatedSquare(canvas, center, squareSize, math.pi / 4, linePaint);
-
-    // 3. 8 Curved Interlaced Petals
-    const int points = 8;
-    for (int i = 0; i < points; i++) {
-      final double angle = (i * 2 * math.pi) / points;
-      final double nextAngle = ((i + 1) * 2 * math.pi) / points;
-      final double midAngle = (angle + nextAngle) / 2;
-
-      // Outer Star Tip
-      final tip = Offset(
-        center.dx + radius * math.cos(angle),
-        center.dy + radius * math.sin(angle),
-      );
-
-      // Inner Valley
-      final innerValley = Offset(
-        center.dx + (radius * 0.52) * math.cos(midAngle),
-        center.dy + (radius * 0.52) * math.sin(midAngle),
-      );
-
-      // Core Node
-      final coreNode = Offset(
-        center.dx + (radius * 0.26) * math.cos(angle),
-        center.dy + (radius * 0.26) * math.sin(angle),
-      );
-
-      // Draw Diamond rosette facet
-      final path = Path()
-        ..moveTo(tip.dx, tip.dy)
-        ..lineTo(innerValley.dx, innerValley.dy)
-        ..lineTo(coreNode.dx, coreNode.dy);
-      canvas.drawPath(path, linePaint);
-
-      // Intersecting petal arc
-      final petalArc = Path()
-        ..moveTo(tip.dx, tip.dy)
-        ..quadraticBezierTo(
-          center.dx + (radius * 0.7) * math.cos(midAngle),
-          center.dy + (radius * 0.7) * math.sin(midAngle),
-          center.dx + (radius * 0.32) * math.cos(nextAngle),
-          center.dy + (radius * 0.32) * math.sin(nextAngle),
-        );
-      canvas.drawPath(petalArc, linePaint);
-
-      // Decorative mini node at each star tip
-      canvas.drawCircle(tip, 1.6, linePaint);
-    }
-  }
-
-  void _drawRotatedSquare(
-      Canvas canvas, Offset center, double size, double rotation, Paint paint) {
     canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(rotation);
-    final rect = Rect.fromCenter(center: Offset.zero, width: size, height: size);
-    canvas.drawRect(rect, paint);
+    canvas.clipRect(bounds);
+    canvas.drawPath(
+      _eightPointStar(centre, radius),
+      Paint()
+        ..color = color.withValues(alpha: color.a * 0.85)
+        ..style = PaintingStyle.fill
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, blur)
+        ..isAntiAlias = true,
+    );
     canvas.restore();
   }
 
-  @override
-  bool shouldRepaint(covariant IslamicWatermarkPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
+  /// Eight-point star as a filled polygon, alternating outer and inner radius.
+  Path _eightPointStar(Offset centre, double outer) {
+    const points = 8;
+    final inner = outer * 0.56;
+    final path = Path();
+
+    for (var i = 0; i < points * 2; i++) {
+      final r = i.isEven ? outer : inner;
+      // Start at -90° so a point sits at the top.
+      final angle = (i * math.pi / points) - math.pi / 2;
+      final p = Offset(
+        centre.dx + r * math.cos(angle),
+        centre.dy + r * math.sin(angle),
+      );
+      i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+    }
+
+    return path..close();
   }
+
+  @override
+  bool shouldRepaint(covariant IslamicWatermarkPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// Painter for traditional subtle gold corner brackets inside parchment cards

@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 class AppDecorations {
   // 1. Center Heart Leaf Emblem (طيّب قلبك)

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/hadith.dart';
 import '../models/insight.dart';
@@ -47,53 +49,42 @@ class HadithRepository {
     ),
   ];
 
-  final List<Insight> _insights = const [
-    Insight(
-      hadithNumber: 1,
-      arabic: 'قد يكون العمل نفسه عبادة عند شخص... وعادة عند آخر. والفرق يبدأ من النية.',
-      english: 'The intention transforms daily habits into beloved acts of worship.',
-    ),
-    Insight(
-      hadithNumber: 2,
-      arabic: 'الإحسان أن تعبد الله كأنك تراه؛ استشعار قربه يملأ القلب سكينة وخشوعاً.',
-      english: 'Excellence is to live with the conscious awareness of the Creator.',
-    ),
-    Insight(
-      hadithNumber: 11,
-      arabic: 'دع ما يريبك إلى ما لا يريبك؛ راحة الضمير وطمأنينة القلب أثمن ما تملكه.',
-      english: 'Leave that which causes you doubt for that which brings clarity and peace.',
-    ),
-    Insight(
-      hadithNumber: 12,
-      arabic: 'سلامة قلبك تبدأ عندما تترك ما لا يعنيك، وتنشغل بما يصلح حالك ويقربك من ربك.',
-      english: 'True mindfulness begins by letting go of matters that do not concern you.',
-    ),
-    Insight(
-      hadithNumber: 13,
-      arabic: 'اتساع قلبك لمحبة الخير للناس علامة اكتمال إيمانك ونقاء سريرتك.',
-      english: 'Loving for others what you love for yourself is the essence of faith.',
-    ),
-    Insight(
-      hadithNumber: 15,
-      arabic: 'الكلمة الطيبة صدقة، والصمت عن الأذى سلامة لك ولمن حولك.',
-      english: 'Speak good or remain silent; gentle words mend hearts.',
-    ),
-    Insight(
-      hadithNumber: 16,
-      arabic: 'لا تغضب؛ وصية نبوية جامعة تحفظ بها هدوءك وعلاقاتك وصفاء روحك.',
-      english: 'Do not be overcome by anger; tranquility is the hallmark of strength.',
-    ),
-    Insight(
-      hadithNumber: 18,
-      arabic: 'اتق الله حيثما كنت، وأتبع السيئة الحسنة تمحها، وخالق الناس بخلق حسن.',
-      english: 'Consciousness of God and beautiful character adorn every action.',
-    ),
-  ];
+  List<Insight> _insights = [];
 
   List<Hadith> get hadiths => _hadiths;
   List<Hadith> getAll() => _hadiths;
   List<Insight> get insights => _insights;
   List<CommunityPost> get communityPosts => _communityPosts;
+
+  /// Loads the bundled content. Both files are generated from
+  /// `assets/data/Hadith App DB.xlsx` by `tool/import_hadith_db.py` — re-run
+  /// that script rather than editing the JSON by hand.
+  Future<void> load() async {
+    await Future.wait([loadHadiths(), _loadInsights()]);
+  }
+
+  Future<void> _loadInsights() async {
+    if (_insights.isNotEmpty) return;
+    try {
+      final jsonString =
+          await rootBundle.loadString('assets/data/insights.json');
+      final List<dynamic> jsonList = json.decode(jsonString);
+      _insights = jsonList
+          .map((e) => Insight.fromJson(e as Map<String, dynamic>))
+          .where((i) => i.arabic.isNotEmpty)
+          .toList();
+    } catch (error, stackTrace) {
+      assert(() {
+        debugPrint(
+          'HadithRepository: failed to load assets/data/insights.json. '
+          'Error: $error',
+        );
+        debugPrintStack(stackTrace: stackTrace);
+        return true;
+      }());
+      _insights = const [];
+    }
+  }
 
   Future<void> loadHadiths() async {
     if (_hadiths.isNotEmpty) return;
@@ -101,8 +92,20 @@ class HadithRepository {
       final String jsonString = await rootBundle.loadString('assets/data/hadiths.json');
       final List<dynamic> jsonList = json.decode(jsonString);
       _hadiths = jsonList.map((e) => Hadith.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (_) {
-      // Fallback default sample if json asset is missing
+    } catch (error, stackTrace) {
+      // assets/data/hadiths.json is currently absent from the bundle, so this
+      // path is the one that actually runs — the app ships with 1 of the 42
+      // hadiths. This used to be `catch (_) {}`, which hid the failure
+      // completely. Keep it loud until the real data file is added.
+      assert(() {
+        debugPrint(
+          'HadithRepository: failed to load assets/data/hadiths.json — '
+          'falling back to a single sample hadith. Error: $error',
+        );
+        debugPrintStack(stackTrace: stackTrace);
+        return true;
+      }());
+
       _hadiths = [
         const Hadith(
           number: 1,
@@ -121,10 +124,9 @@ class HadithRepository {
   }
 
   final Set<int> _favoriteHadithNumbers = {1, 2, 12};
-  final Set<String> _favoriteInsightTexts = {
-    'اتساع قلبك لمحبة الخير للناس علامة اكتمال إيمانك ونقاء سريرتك.',
-    'الإحسان أن تعبد الله كأنك تراه؛ استشعار قربه يملأ القلب سكينة وخشوعاً.',
-  };
+  // Seeded empty: the previous demo entries referenced sample messages that
+  // no longer exist now that the content comes from the workbook.
+  final Set<String> _favoriteInsightTexts = <String>{};
 
   Set<int> get favoriteHadithNumbers => _favoriteHadithNumbers;
   Set<String> get favoriteInsightTexts => _favoriteInsightTexts;
@@ -165,17 +167,16 @@ class HadithRepository {
     }
   }
 
-  Insight getRandomInsight() {
-    final list = List<Insight>.from(_insights);
-    list.shuffle();
-    return list.first;
+  /// A random daily message, or null when none are loaded.
+  Insight? getRandomInsight() {
+    if (_insights.isEmpty) return null;
+    return _insights[Random().nextInt(_insights.length)];
   }
 
-  Insight getInsightForHadith(int hadithNumber) {
-    return _insights.firstWhere(
-      (i) => i.hadithNumber == hadithNumber,
-      orElse: () => _insights.first,
-    );
+  /// Messages attached to a given hadith. The workbook currently supplies
+  /// these for hadiths 1-22 only, so this is empty for the rest.
+  List<Insight> getInsightsForHadith(int hadithNumber) {
+    return _insights.where((i) => i.hadithNumber == hadithNumber).toList();
   }
 
   void addCommunityPost(CommunityPost post) {
