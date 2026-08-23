@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_state_controller.dart';
 import 'asset_helper.dart';
 
 class AppBackground extends StatelessWidget {
@@ -14,53 +15,76 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          // 1. Background Base Warm Tone
-          const ColoredBox(
-            color: AppColors.background,
-          ),
+    final state = AppStateController();
 
-          // 2. Full-Screen Natural Landscape PNG (Home Screen)
-          if (showBottomLandscape)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: _buildHomeImage(),
+    return AnimatedBuilder(
+      animation: state,
+      builder: (context, _) {
+        final isDark = state.isDarkMode;
+        final bgColor = isDark ? AppColors.backgroundDark : AppColors.background;
+
+        return Scaffold(
+          backgroundColor: bgColor,
+          body: Stack(
+            children: [
+              // 1. Background Base Tone
+              ColoredBox(
+                color: bgColor,
+                child: const SizedBox.expand(),
               ),
-            ),
 
-          // 3. Inner Screens Background
-          if (!showBottomLandscape)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: _buildInnerImage(),
+              // 2. Full-Screen Natural Landscape PNG (Home Screen)
+              if (showBottomLandscape)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: _buildHomeImage(isDark),
+                  ),
+                ),
+
+              // 3. Inner Screens Background
+              if (!showBottomLandscape)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: _buildInnerImage(isDark),
+                  ),
+                ),
+
+              // 4. Subtle Dark Mode Harmonizing Tint (keeps the night serene & balanced)
+              if (isDark)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.42),
+                    ),
+                  ),
+                ),
+
+              // 5. Safe Area Content
+              SafeArea(
+                child: child,
               ),
-            ),
-
-          // 4. Safe Area Content
-          SafeArea(
-            child: child,
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildHomeImage() {
+  Widget _buildHomeImage(bool isDark) {
     // Supports standard naming and Windows double-extension (.png.png)
     return Image.asset(
       'assets/images/home_background.png',
       width: double.infinity,
       height: double.infinity,
       fit: BoxFit.cover,
+      opacity: AlwaysStoppedAnimation(isDark ? 0.45 : 1.0),
       errorBuilder: (context, error, stackTrace) {
         return Image.asset(
           'assets/images/home_background.png.png',
           width: double.infinity,
           height: double.infinity,
           fit: BoxFit.cover,
+          opacity: AlwaysStoppedAnimation(isDark ? 0.45 : 1.0),
           errorBuilder: (context, error, stackTrace) {
             return AssetHelper.assetOrFallback(
               assetPath: 'assets/images/sunset_landscape.svg',
@@ -75,18 +99,20 @@ class AppBackground extends StatelessWidget {
     );
   }
 
-  Widget _buildInnerImage() {
+  Widget _buildInnerImage(bool isDark) {
     return Image.asset(
       'assets/images/background_empty.png',
       width: double.infinity,
       height: double.infinity,
       fit: BoxFit.cover,
+      opacity: AlwaysStoppedAnimation(isDark ? 0.35 : 1.0),
       errorBuilder: (context, error, stackTrace) {
         return Image.asset(
           'assets/images/background_empty.png.png',
           width: double.infinity,
           height: double.infinity,
           fit: BoxFit.cover,
+          opacity: AlwaysStoppedAnimation(isDark ? 0.35 : 1.0),
           errorBuilder: (context, error, stackTrace) {
             return Stack(
               children: [

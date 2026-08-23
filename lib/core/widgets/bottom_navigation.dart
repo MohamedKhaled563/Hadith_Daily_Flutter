@@ -15,94 +15,103 @@ class BottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = AppStateController();
-    final isDark = state.isDarkMode;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-      height: 74,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [const Color(0xFF1B2B20), const Color(0xFF121D16)]
-              : [const Color(0xFF2C4334), const Color(0xFF1E3024)],
-        ),
-        borderRadius: BorderRadius.circular(34),
-        border: Border.all(
-          color: const Color(0xFFD6BE88).withOpacity(isDark ? 0.45 : 0.65),
-          width: 1.3,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+    return AnimatedBuilder(
+      animation: state,
+      builder: (context, _) {
+        final isDark = state.isDarkMode;
+
+        return Container(
+          color: Colors.transparent, // Outer wrapper is completely transparent
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+          child: Container(
+            height: 72,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: isDark
+                    ? [const Color(0xFF1D2B21), const Color(0xFF141F18)]
+                    : [const Color(0xFF2C4334), const Color(0xFF1E3024)],
+              ),
+              borderRadius: BorderRadius.circular(36),
+              border: Border.all(
+                color: const Color(0xFFD6BE88).withOpacity(isDark ? 0.45 : 0.65),
+                width: 1.3,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.45 : 0.30),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+                BoxShadow(
+                  color: const Color(0xFFD6BE88).withOpacity(isDark ? 0.12 : 0.20),
+                  blurRadius: 10,
+                  offset: const Offset(0, -1),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(36),
+              child: Directionality(
+                textDirection: TextDirection.rtl,
+                child: Row(
+                  children: [
+                    // 1. الرئيسية (Home - Index 0)
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 0,
+                        icon: Icons.home_outlined,
+                        activeIcon: Icons.home_rounded,
+                        label: 'الرئيسية',
+                        isSelected: currentIndex == 0,
+                        onTap: () => onTap(0),
+                      ),
+                    ),
+
+                    // 2. المفضلة (Favorites / Bookmarks - Index 1)
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 1,
+                        icon: Icons.bookmark_border_rounded,
+                        activeIcon: Icons.bookmark_rounded,
+                        label: 'المفضلة',
+                        isSelected: currentIndex == 1,
+                        onTap: () => onTap(1),
+                      ),
+                    ),
+
+                    // 3. المشاركات (Community / Posts - Index 2)
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 2,
+                        icon: Icons.forum_outlined,
+                        activeIcon: Icons.forum_rounded,
+                        label: 'المشاركات',
+                        isSelected: currentIndex == 2,
+                        onTap: () => onTap(2),
+                      ),
+                    ),
+
+                    // 4. اكتب رسالة (Share / Add message - Index 3)
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 3,
+                        icon: Icons.edit_note_rounded,
+                        activeIcon: Icons.edit_note_rounded,
+                        label: 'اكتب رسالة',
+                        isSelected: currentIndex == 3,
+                        onTap: () => onTap(3),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          BoxShadow(
-            color: const Color(0xFFD6BE88).withOpacity(0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -1),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(34),
-        child: Directionality(
-          textDirection: TextDirection.rtl,
-          child: Row(
-            children: [
-              // 1. الرئيسية (Home - Index 0)
-              Expanded(
-                child: _buildNavItem(
-                  index: 0,
-                  icon: Icons.home_outlined,
-                  activeIcon: Icons.home_rounded,
-                  label: 'الرئيسية',
-                  isSelected: currentIndex == 0,
-                  onTap: () => onTap(0),
-                ),
-              ),
-
-              // 2. المفضلة (Favorites / Bookmarks - Index 1)
-              Expanded(
-                child: _buildNavItem(
-                  index: 1,
-                  icon: Icons.bookmark_border_rounded,
-                  activeIcon: Icons.bookmark_rounded,
-                  label: 'المفضلة',
-                  isSelected: currentIndex == 1,
-                  onTap: () => onTap(1),
-                ),
-              ),
-
-              // 3. المشاركات (Community / Posts - Index 2)
-              Expanded(
-                child: _buildNavItem(
-                  index: 2,
-                  icon: Icons.forum_outlined,
-                  activeIcon: Icons.forum_rounded,
-                  label: 'المشاركات',
-                  isSelected: currentIndex == 2,
-                  onTap: () => onTap(2),
-                ),
-              ),
-
-              // 4. اكتب رسالة (Share / Add message - Index 3)
-              Expanded(
-                child: _buildNavItem(
-                  index: 3,
-                  icon: Icons.edit_note_rounded,
-                  activeIcon: Icons.edit_note_rounded,
-                  label: 'اكتب رسالة',
-                  isSelected: currentIndex == 3,
-                  onTap: () => onTap(3),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
