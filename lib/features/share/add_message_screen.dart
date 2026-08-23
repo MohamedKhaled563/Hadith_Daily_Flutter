@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_state_controller.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../data/models/hadith.dart';
@@ -17,6 +18,7 @@ class AddMessageScreen extends StatefulWidget {
 
 class _AddMessageScreenState extends State<AddMessageScreen> {
   final HadithRepository _repo = HadithRepository();
+  final AppStateController _state = AppStateController();
   final _messageController = TextEditingController();
   final _authorController = TextEditingController();
   Hadith? _selectedHadith;
@@ -27,6 +29,9 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
     super.initState();
     if (_repo.hadiths.isNotEmpty) {
       _selectedHadith = _repo.hadiths.first;
+    }
+    if (_state.isLoggedIn && _state.userName.isNotEmpty) {
+      _authorController.text = _state.userName;
     }
   }
 
@@ -49,11 +54,15 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
       return;
     }
 
+    final authorName = _authorController.text.trim().isEmpty
+        ? (_state.isLoggedIn && _state.userName.isNotEmpty ? _state.userName : 'فاعل خير')
+        : _authorController.text.trim();
+
     final newPost = CommunityPost(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       hadithNumber: _selectedHadith?.number ?? 1,
       message: messageText,
-      authorName: _authorController.text.trim().isEmpty ? 'فاعل خير' : _authorController.text.trim(),
+      authorName: authorName,
       likes: 1, // Author's initial like
       isLiked: true,
       createdAt: DateTime.now(),
@@ -71,7 +80,9 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
     );
 
     _messageController.clear();
-    _authorController.clear();
+    if (!_state.isLoggedIn) {
+      _authorController.clear();
+    }
 
     if (widget.onPostCreated != null) {
       widget.onPostCreated!();
@@ -82,6 +93,12 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = _state.isDarkMode;
+    final bgCard = isDark ? AppColors.cardDark : const Color(0xFFFFFDFC);
+    final textColor = isDark ? AppColors.primaryTextDark : const Color(0xFF26352C);
+    final subTextColor = isDark ? AppColors.secondaryTextDark : const Color(0xFF5A7061);
+    final borderColor = isDark ? AppColors.cardBorderDark : const Color(0x66D1BE93);
+
     final hadithsList = _repo.hadiths;
     final currentHadith = _selectedHadith ?? (hadithsList.isNotEmpty ? hadithsList.first : null);
 
@@ -101,6 +118,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                   if (Navigator.canPop(context))
                     _buildCircleButton(
                       icon: Icons.chevron_right,
+                      isDark: isDark,
                       onTap: () {
                         if (Navigator.canPop(context)) Navigator.pop(context);
                       },
@@ -139,21 +157,21 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
             const SizedBox(height: 10),
 
             // Titles
-            const Text(
+            Text(
               'أضف رسالتك',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF26352C),
+                color: textColor,
                 fontFamily: 'Tajawal',
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'شارك خاطرة أو تأملاً مربوطاً بحديث نبوي شريف',
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF5A7061),
+                color: subTextColor,
                 fontFamily: 'Tajawal',
               ),
             ),
@@ -168,34 +186,33 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Field 1: Choose Hadith
-                    _buildLabel('اختر الحديث المرتبط بالرسالة'),
+                    _buildLabel('اختر الحديث المرتبط بالرسالة', isDark),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFFDFC),
+                        color: bgCard,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: const Color(0x66D1BE93),
-                        ),
+                        border: Border.all(color: borderColor),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<Hadith>(
                           isExpanded: true,
                           value: currentHadith,
+                          dropdownColor: bgCard,
                           items: hadithsList.map((h) {
                             return DropdownMenuItem(
                               value: h,
                               child: Text(
                                 'الحديث ${h.number}: ${h.title}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF26352C),
+                                  color: textColor,
                                   fontFamily: 'Tajawal',
                                 ),
                               ),
                             );
-                          }).toList>,
+                          }).toList(),
                           onChanged: (val) {
                             if (val != null) setState(() => _selectedHadith = val);
                           },
@@ -206,25 +223,23 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                     const SizedBox(height: 16),
 
                     // Field 2: Your Name
-                    _buildLabel('اسمك أو لقبك (اختياري)'),
+                    _buildLabel('اسمك أو لقبك (اختياري)', isDark),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFFDFC),
+                        color: bgCard,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: const Color(0x66D1BE93),
-                        ),
+                        border: Border.all(color: borderColor),
                       ),
                       child: TextField(
                         controller: _authorController,
                         textDirection: TextDirection.rtl,
-                        style: const TextStyle(fontFamily: 'Tajawal', color: Color(0xFF26352C)),
-                        decoration: const InputDecoration(
+                        style: TextStyle(fontFamily: 'Tajawal', color: textColor),
+                        decoration: InputDecoration(
                           hintText: 'مثال: سارة، فاعل خير...',
                           hintStyle: TextStyle(
-                            color: Color(0xFF9E9D97),
+                            color: isDark ? Colors.white38 : const Color(0xFF9E9D97),
                             fontSize: 13,
                             fontFamily: 'Tajawal',
                           ),
@@ -236,26 +251,24 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                     const SizedBox(height: 16),
 
                     // Field 3: Reflection Text
-                    _buildLabel('نص الرسالة أو التأمل'),
+                    _buildLabel('نص الرسالة أو التأمل', isDark),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFFDFC),
+                        color: bgCard,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: const Color(0x66D1BE93),
-                        ),
+                        border: Border.all(color: borderColor),
                       ),
                       child: TextField(
                         controller: _messageController,
                         maxLines: 5,
                         textDirection: TextDirection.rtl,
-                        style: const TextStyle(fontFamily: 'Tajawal', color: Color(0xFF26352C), height: 1.6),
-                        decoration: const InputDecoration(
+                        style: TextStyle(fontFamily: 'Tajawal', color: textColor, height: 1.6),
+                        decoration: InputDecoration(
                           hintText: 'اكتب ما فتح الله به عليك من أثر هذا الحديث في حياتك...',
                           hintStyle: TextStyle(
-                            color: Color(0xFF9E9D97),
+                            color: isDark ? Colors.white38 : const Color(0xFF9E9D97),
                             fontSize: 13,
                             height: 1.6,
                             fontFamily: 'Tajawal',
@@ -271,12 +284,12 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'مشاركة الرسالة في مجتمع الحديث العام',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF26352C),
+                            color: textColor,
                             fontFamily: 'Tajawal',
                           ),
                         ),
@@ -327,13 +340,13 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, bool isDark) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF385240),
+        color: isDark ? AppColors.primaryGreenDark : const Color(0xFF385240),
         fontFamily: 'Tajawal',
       ),
     );
@@ -341,6 +354,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
 
   Widget _buildCircleButton({
     required IconData icon,
+    required bool isDark,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -349,13 +363,13 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFFFAF6EE),
+          color: isDark ? AppColors.cardDark : const Color(0xFFFAF6EE),
           shape: BoxShape.circle,
           border: Border.all(
             color: const Color(0x66D1BE93),
           ),
         ),
-        child: Icon(icon, size: 22, color: const Color(0xFF26352C)),
+        child: Icon(icon, size: 22, color: isDark ? AppColors.primaryTextDark : const Color(0xFF26352C)),
       ),
     );
   }
