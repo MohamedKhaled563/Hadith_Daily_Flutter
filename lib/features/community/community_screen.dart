@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_state_controller.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/islamic_pattern_painter.dart';
 import '../../core/widgets/smooth_page_route.dart';
+import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
 import 'community_post_screen.dart';
