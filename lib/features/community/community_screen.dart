@@ -66,14 +66,17 @@ class _CommunityScreenState extends State<CommunityScreen> {
             children: [
               const SizedBox(height: 8),
 
-              // Top Bar (Left '+' Brushed Gold button, Center Emblem with Ring, Right Menu/Drawer button)
+              // Top Bar: Options Menu button on Top-Right (RTL Start), Center Emblem, '+' Add button on Top-Left (RTL End)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Brushed Gold '+' Button (Matches Reference Image top-left)
-                    _buildBrushedGoldAddButton(onTap: _openAddMessage),
+                    // Top-Right in RTL: Settings & Profile Drawer Trigger with Menu icon
+                    _buildMenuButton(
+                      isDark: isDark,
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                    ),
 
                     // Center Emblem with circular copper/gold ring frame
                     Container(
@@ -101,11 +104,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       ),
                     ),
 
-                    // Top Right: Settings & Profile Drawer Trigger
-                    _buildMenuButton(
-                      isDark: isDark,
-                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                    ),
+                    // Top-Left in RTL: Brushed Gold '+' Button
+                    _buildBrushedGoldAddButton(onTap: _openAddMessage),
                   ],
                 ),
               ),
@@ -357,6 +357,7 @@ class _RefinedCommunityPostCard extends StatefulWidget {
 }
 
 class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
+  final HadithRepository _repo = HadithRepository();
   bool _isHovered = false;
   bool _isPressed = false;
 
@@ -365,7 +366,27 @@ class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
     return number.toString().split('').map((d) => arabicDigits[int.parse(d)]).join();
   }
 
-  Widget _getAvatarWidget(int rank, String authorName) {
+  void _copyPostText() {
+    final hadith = _repo.getByNumber(widget.post.hadithNumber);
+    final textToCopy = '« ${widget.post.message} »\n\n'
+        '✍️ بقلم: ${widget.post.authorName}\n'
+        '📌 المرتبط بـ: ${hadith?.title ?? 'الحديث رقم ${widget.post.hadithNumber}'}\n'
+        '🌿 من تطبيق: طيّب قلبك - مجتمع المتأملين';
+    Clipboard.setData(ClipboardData(text: textToCopy));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'تم نسخ نص المشاركة بنجاح 🌿',
+          textDirection: TextDirection.rtl,
+          style: TextStyle(fontFamily: 'Tajawal'),
+        ),
+        duration: Duration(seconds: 2),
+        backgroundColor: AppColors.primaryGreen,
+      ),
+    );
+  }
+
+  Widget _getAvatarWidget(int rank, String authorName, bool isDark) {
     final initial = authorName.isNotEmpty ? authorName.substring(0, 1) : 'م';
     final List<Color> avatarColors = [
       const Color(0xFF6B8E76),
@@ -379,43 +400,53 @@ class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
       clipBehavior: Clip.none,
       children: [
         Container(
-          width: 38,
-          height: 38,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: color.withOpacity(0.2),
+            color: isDark ? const Color(0xFF1B2B20) : const Color(0xFFFAF5EB),
             border: Border.all(
               color: const Color(0xFFD6BE88),
-              width: 1.2,
+              width: 1.4,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFD6BE88).withOpacity(0.25),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           alignment: Alignment.center,
           child: Text(
             initial,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: color,
               fontFamily: 'Tajawal',
             ),
           ),
         ),
-        // Mini Rank Pill Badge (Matches screenshot: 1, 2, 3, 4 beside avatar)
+        // Mini Rank Badge
         Positioned(
           bottom: -2,
           left: -4,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
             decoration: BoxDecoration(
               color: const Color(0xFFC7A566),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white, width: 0.8),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white, width: 1.0),
+              boxShadow: const [
+                BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 1)),
+              ],
             ),
             child: Text(
               _toArabicDigits(rank),
               style: const TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
                 color: Colors.white,
                 fontFamily: 'Tajawal',
               ),
@@ -428,19 +459,25 @@ class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Exact warm parchment tones from reference screenshot
+    final hadith = _repo.getByNumber(widget.post.hadithNumber);
+
+    // Exact warm parchment tones with subtle luxury gradient matching Daily Message Card
     final bgGradientColors = widget.isDark
         ? [
-            const Color(0xFF23342A),
+            const Color(0xFF24362B),
             const Color(0xFF1B2A20),
+            const Color(0xFF152219),
           ]
         : [
-            const Color(0xFFEFE8DC),
-            const Color(0xFFECE4D7),
+            const Color(0xFFF2ECE0),
+            const Color(0xFFEBE3D4),
+            const Color(0xFFE5DCCB),
           ];
 
-    final textColor = widget.isDark ? AppColors.primaryTextDark : const Color(0xFF26352C);
-    final borderColor = widget.isDark ? const Color(0x60D1BE93) : const Color(0x75D1BE93);
+    final textColor = widget.isDark ? const Color(0xFFF7F5EE) : const Color(0xFF243329);
+    final borderColor = widget.isDark
+        ? (_isHovered ? const Color(0xFFD6BE88) : const Color(0x80D1BE93))
+        : (_isHovered ? const Color(0xFFD6BE88) : const Color(0xA5D1BE93));
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -458,117 +495,248 @@ class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutCubic,
           child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: 18),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: bgGradientColors,
               ),
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(26),
               border: Border.all(
-                color: _isHovered ? const Color(0xFFD6BE88) : borderColor,
-                width: _isHovered ? 1.5 : 1.1,
+                color: borderColor,
+                width: 1.4,
               ),
               boxShadow: [
+                // 1. Ambient deep ground shadow
                 BoxShadow(
-                  color: _isHovered
-                      ? (widget.isDark ? const Color(0x50000000) : const Color(0x203B5644))
-                      : (widget.isDark ? const Color(0x28000000) : const Color(0x0E000000)),
-                  blurRadius: _isHovered ? 16 : 8,
-                  offset: Offset(0, _isHovered ? 5 : 3),
+                  color: widget.isDark
+                      ? Colors.black.withOpacity(0.50)
+                      : const Color(0xFF1B3322).withOpacity(0.16),
+                  blurRadius: _isHovered ? 28 : 22,
+                  offset: const Offset(0, 8),
+                  spreadRadius: -2,
+                ),
+                // 2. Crisp tactile directional drop shadow
+                BoxShadow(
+                  color: widget.isDark ? const Color(0x35000000) : const Color(0x10000000),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+                // 3. Specular Gold Rim Light
+                BoxShadow(
+                  color: const Color(0xFFD6BE88).withOpacity(widget.isDark ? 0.14 : 0.22),
+                  blurRadius: _isHovered ? 16 : 10,
+                  offset: const Offset(0, -1),
+                  spreadRadius: 0.5,
                 ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(26),
               child: Stack(
                 children: [
-                  // Subtle & Visible Islamic geometric watermark in center (Matches screenshot aesthetic!)
+                  // 1. Subtle & Authentic Islamic geometric watermark in center
                   Positioned.fill(
                     child: CustomPaint(
                       painter: IslamicWatermarkPainter(
                         color: widget.isDark
-                            ? const Color(0x1AD1BE93)
+                            ? const Color(0x1CD1BE93)
                             : const Color(0x28B89F70),
-                        strokeWidth: 1.1,
+                        strokeWidth: 1.15,
                       ),
                     ),
                   ),
 
-                  // Card Content
+                  // 2. Corner Ornament Painter for crisp luxury gold brackets
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: CornerOrnamentPainter(
+                        color: widget.isDark
+                            ? const Color(0x55D1BE93)
+                            : const Color(0x77B89F70),
+                      ),
+                    ),
+                  ),
+
+                  // 3. Botanical Top-Right Watercolor Branch Asset
+                  Positioned(
+                    top: -6,
+                    right: -6,
+                    child: IgnorePointer(
+                      child: Opacity(
+                        opacity: widget.isDark ? 0.35 : 0.60,
+                        child: AssetHelper.assetOrFallback(
+                          assetPath: 'assets/images/botanical_top_right.png',
+                          width: 95,
+                          height: 115,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 4. Botanical Bottom-Left Watercolor Branch Asset
+                  Positioned(
+                    bottom: -6,
+                    left: -6,
+                    child: IgnorePointer(
+                      child: Opacity(
+                        opacity: widget.isDark ? 0.35 : 0.60,
+                        child: AssetHelper.assetOrFallback(
+                          assetPath: 'assets/images/botanical_bottom_left.png',
+                          width: 95,
+                          height: 115,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 5. Card Inner Content
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Top Row: Author & Avatar on Right, Heart & Likes on Left (in RTL layout)
+                        // Top Header Row with Like Counter on the Left (in RTL layout)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // Left: Heart Like interactive counter (Matches screenshot)
-                            _HeartLikeLeftWidget(
-                              likes: widget.post.likes,
-                              isLiked: widget.post.isLiked,
-                              onTap: widget.onLikeToggle,
-                            ),
+                            // Left: Interactive Like Heart Counter
+                            _buildHeartLikeCounter(widget.isDark),
 
-                            // Right: Author Name + Avatar with Rank
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  widget.post.authorName,
-                                  style: TextStyle(
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                    fontFamily: 'Tajawal',
+                            // Center: Author Circular Avatar with Gold Rim & Rank
+                            _getAvatarWidget(widget.rank, widget.post.authorName, widget.isDark),
+
+                            // Right: Quick Copy Icon Button
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: _copyPostText,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: widget.isDark ? const Color(0xFF1B2B20) : const Color(0xFFFAF6EE),
+                                    border: Border.all(
+                                      color: const Color(0x70D1BE93),
+                                      width: 1.1,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.copy_rounded,
+                                    size: 17,
+                                    color: widget.isDark ? AppColors.gold : const Color(0xFF385240),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                _getAvatarWidget(widget.rank, widget.post.authorName),
-                              ],
+                              ),
                             ),
                           ],
                         ),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
 
-                        // Message Text (Generous line-height for Arabic readability)
+                        // Author Name & Subtitle
                         Text(
-                          widget.post.message,
-                          textAlign: TextAlign.right,
+                          widget.post.authorName,
                           style: TextStyle(
-                            fontSize: 14,
-                            height: 1.75,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
                             color: textColor,
                             fontFamily: 'Tajawal',
                           ),
                         ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'متأمل في الحديث الشريف ${_toArabicDigits(widget.post.hadithNumber)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: widget.isDark ? AppColors.gold : const Color(0xFF8C6B1B),
+                            fontFamily: 'Tajawal',
+                          ),
+                        ),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
 
-                        // Bottom Row: "مرتبط بالحديث رقم X" with subtle chevron icon (Matches screenshot)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Icon(
-                              Icons.chevron_left_rounded,
-                              size: 20,
-                              color: _isHovered
-                                  ? (widget.isDark ? AppColors.gold : const Color(0xFF385240))
-                                  : (widget.isDark ? const Color(0xFF8E9990) : const Color(0xFF857E70)),
+                        // Top Golden Divider
+                        AssetHelper.assetOrFallback(
+                          assetPath: 'assets/images/golden_divider.png',
+                          width: 110,
+                          height: 14,
+                          fallback: Container(
+                            width: 60,
+                            height: 1.5,
+                            color: const Color(0xFFD6BE88),
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Central Message Quote with Refined Typography
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            '« ${widget.post.message} »',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              height: 1.8,
+                              fontWeight: FontWeight.w800,
+                              color: textColor,
+                              fontFamily: 'Tajawal',
                             ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Bottom Golden Divider
+                        AssetHelper.assetOrFallback(
+                          assetPath: 'assets/images/golden_divider.png',
+                          width: 110,
+                          height: 14,
+                          fallback: Container(
+                            width: 60,
+                            height: 1.5,
+                            color: const Color(0xFFD6BE88),
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Associated Hadith Link Button
+                        if (hadith != null) ...[
+                          _buildHadithLinkPill(hadith, widget.isDark),
+                          const SizedBox(height: 14),
+                        ],
+
+                        // Brand Watermark Signature
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 16,
+                              height: 1,
+                              color: const Color(0x70D1BE93),
+                            ),
+                            const SizedBox(width: 6),
                             Text(
-                              'مرتبط بالحديث رقم ${_toArabicDigits(widget.post.hadithNumber)}',
+                              '🌿 طيّب قلبك • مشاركات المجتمع',
                               style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: widget.isDark ? AppColors.gold : const Color(0xFF7A8D80),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: widget.isDark ? AppColors.gold : const Color(0xFF5A7562),
                                 fontFamily: 'Tajawal',
                               ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 16,
+                              height: 1,
+                              color: const Color(0x70D1BE93),
                             ),
                           ],
                         ),
@@ -583,63 +751,104 @@ class _RefinedCommunityPostCardState extends State<_RefinedCommunityPostCard> {
       ),
     );
   }
-}
 
-class _HeartLikeLeftWidget extends StatefulWidget {
-  final int likes;
-  final bool isLiked;
-  final VoidCallback onTap;
-
-  const _HeartLikeLeftWidget({
-    required this.likes,
-    required this.isLiked,
-    required this.onTap,
-  });
-
-  @override
-  State<_HeartLikeLeftWidget> createState() => _HeartLikeLeftWidgetState();
-}
-
-class _HeartLikeLeftWidgetState extends State<_HeartLikeLeftWidget> {
-  bool _isHovered = false;
-
-  String _toArabicDigits(int number) {
-    const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-    return number.toString().split('').map((d) => arabicDigits[int.parse(d)]).join();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  /// Interactive Heart Like Counter inside the Card
+  Widget _buildHeartLikeCounter(bool isDark) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-        onTap: widget.onTap,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedScale(
-              scale: _isHovered ? 1.2 : 1.0,
-              duration: const Duration(milliseconds: 150),
-              child: Icon(
-                widget.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                size: 18,
-                color: widget.isLiked ? const Color(0xFFC73E3E) : const Color(0xFF6B726C),
-              ),
+        onTap: widget.onLikeToggle,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: isDark
+                ? (widget.post.isLiked ? const Color(0xFF382323) : const Color(0xFF1B2B20))
+                : (widget.post.isLiked ? const Color(0xFFFDE8E8) : const Color(0xFFFAF6EE)),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: widget.post.isLiked ? const Color(0xFFC73E3E).withOpacity(0.6) : const Color(0x70D1BE93),
+              width: 1.1,
             ),
-            const SizedBox(width: 5),
-            Text(
-              _toArabicDigits(widget.likes),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedScale(
+                scale: widget.post.isLiked ? 1.2 : 1.0,
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOutBack,
+                child: Icon(
+                  widget.post.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  size: 18,
+                  color: widget.post.isLiked ? const Color(0xFFC73E3E) : const Color(0xFF6B726C),
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                _toArabicDigits(widget.post.likes),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  color: widget.post.isLiked
+                      ? const Color(0xFFC73E3E)
+                      : (isDark ? AppColors.primaryTextDark : const Color(0xFF385240)),
+                  fontFamily: 'Tajawal',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHadithLinkPill(Hadith hadith, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF283B2E) : const Color(0xFFFAF5EB),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0x70D1BE93),
+          width: 1.1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.auto_stories_rounded,
+            size: 14,
+            color: isDark ? AppColors.gold : const Color(0xFF385240),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              'الحديث ${hadith.number}: ${hadith.title}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: widget.isLiked ? const Color(0xFFC73E3E) : const Color(0xFF6B726C),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.primaryTextDark : const Color(0xFF385240),
                 fontFamily: 'Tajawal',
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 6),
+          Icon(
+            Icons.arrow_back_rounded,
+            size: 13,
+            color: isDark ? AppColors.gold : const Color(0xFF385240),
+          ),
+        ],
       ),
     );
   }

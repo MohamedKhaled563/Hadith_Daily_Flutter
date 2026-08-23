@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_state_controller.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/islamic_pattern_painter.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../data/models/hadith.dart';
@@ -98,19 +99,6 @@ class _DailyMessageScreenState extends State<DailyMessageScreen>
         backgroundColor: AppColors.primaryGreen,
       ),
     );
-  }
-
-  void _openFavorites() {
-    if (widget.onTabSelected != null) {
-      widget.onTabSelected!(1);
-    } else {
-      Navigator.push(
-        context,
-        SmoothPageRoute(
-          child: const FavoritesScreen(),
-        ),
-      );
-    }
   }
 
   void _showSharePreviewDialog(bool isDark) {
@@ -219,7 +207,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen>
             children: [
               const SizedBox(height: 6),
 
-              // Top Bar with Back & Bookmark Buttons
+              // Top Bar with Back, Title & Bookmark/Share Buttons
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                 child: Row(
@@ -261,12 +249,23 @@ class _DailyMessageScreenState extends State<DailyMessageScreen>
                       ],
                     ),
 
-                    // Left Bookmark Button (in RTL)
-                    _buildAnimatedCircleButton(
-                      icon: _isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                      iconColor: _isBookmarked ? const Color(0xFFC59B27) : (isDark ? AppColors.primaryTextDark : const Color(0xFF26352C)),
-                      isDark: isDark,
-                      onTap: _toggleBookmark,
+                    // Left Actions (Share + Bookmark)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildAnimatedCircleButton(
+                          icon: Icons.share_rounded,
+                          isDark: isDark,
+                          onTap: () => _showSharePreviewDialog(isDark),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildAnimatedCircleButton(
+                          icon: _isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                          iconColor: _isBookmarked ? const Color(0xFFC59B27) : (isDark ? AppColors.primaryTextDark : const Color(0xFF26352C)),
+                          isDark: isDark,
+                          onTap: _toggleBookmark,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -303,8 +302,20 @@ class _DailyMessageScreenState extends State<DailyMessageScreen>
         ),
       ),
 
-      // Unified 4-Item Luxury Bottom Bar (الرئيسية • المفضلة • مشاركة • نسخ الرسالة)
-      bottomNavigationBar: _buildMessageBottomBar(isDark),
+      // Persistent Unified 4-Item Bottom Navigation Bar (الرئيسية • المفضلة • المشاركات • اكتب رسالة)
+      bottomNavigationBar: BottomNavigation(
+        currentIndex: 0,
+        onTap: (index) {
+          if (widget.onTabSelected != null) {
+            widget.onTabSelected!(index);
+          } else if (index == 0) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pop(context);
+            // Re-routed through parent tab index
+          }
+        },
+      ),
     );
   }
 
@@ -322,7 +333,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen>
         : [
             const Color(0xFFF2ECE0),
             const Color(0xFFEBE3D4),
-            const Color(0xFFE5DCcb),
+            const Color(0xFFE5DCCB),
           ];
 
     final textColor = isDark ? const Color(0xFFF7F5EE) : const Color(0xFF243329);
@@ -387,7 +398,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen>
             // 2. Corner Ornament Painter for crisp luxury gold brackets
             Positioned.fill(
               child: CustomPaint(
-                painter: _CornerOrnamentPainter(
+                painter: CornerOrnamentPainter(
                   color: isDark
                       ? const Color(0x55D1BE93)
                       : const Color(0x77B89F70),
@@ -479,8 +490,29 @@ class _DailyMessageScreenState extends State<DailyMessageScreen>
                         ),
                       ),
 
-                      // Right: Balance spacer
-                      const SizedBox(width: 48),
+                      // Right: Quick Copy Icon Button
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: _copyMessageText,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isDark ? const Color(0xFF1B2B20) : const Color(0xFFFAF6EE),
+                              border: Border.all(
+                                color: const Color(0x70D1BE93),
+                                width: 1.1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.copy_rounded,
+                              size: 18,
+                              color: isDark ? AppColors.gold : const Color(0xFF385240),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
 
@@ -705,103 +737,6 @@ class _DailyMessageScreenState extends State<DailyMessageScreen>
     );
   }
 
-  /// Unified 4-Item Luxury Bottom Navigation Bar: الرئيسية • المفضلة • مشاركة • نسخ الرسالة
-  Widget _buildMessageBottomBar(bool isDark) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-      height: 74,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [const Color(0xFF1B2B20), const Color(0xFF121D16)]
-              : [const Color(0xFF2C4334), const Color(0xFF1E3024)],
-        ),
-        borderRadius: BorderRadius.circular(34),
-        border: Border.all(
-          color: const Color(0xFFD6BE88).withOpacity(isDark ? 0.45 : 0.65),
-          width: 1.3,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-          BoxShadow(
-            color: const Color(0xFFD6BE88).withOpacity(0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -1),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(34),
-        child: Directionality(
-          textDirection: TextDirection.rtl,
-          child: Row(
-            children: [
-              // 1. الرئيسية (Home)
-              Expanded(
-                child: _buildBottomBarItem(
-                  icon: Icons.home_outlined,
-                  label: 'الرئيسية',
-                  onTap: () {
-                    if (widget.onTabSelected != null) {
-                      widget.onTabSelected!(0);
-                    } else if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
-                  },
-                ),
-              ),
-
-              // 2. المفضلة (Favorites)
-              Expanded(
-                child: _buildBottomBarItem(
-                  icon: Icons.bookmark_border_rounded,
-                  label: 'المفضلة',
-                  onTap: _openFavorites,
-                ),
-              ),
-
-              // 3. مشاركة (Share)
-              Expanded(
-                child: _buildBottomBarItem(
-                  icon: Icons.share_rounded,
-                  label: 'مشاركة',
-                  onTap: () => _showSharePreviewDialog(isDark),
-                ),
-              ),
-
-              // 4. نسخ الرسالة (Copy Text)
-              Expanded(
-                child: _buildBottomBarItem(
-                  icon: Icons.copy_rounded,
-                  label: 'نسخ الرسالة',
-                  onTap: _copyMessageText,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomBarItem({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return _MessageBottomBarItem(
-      icon: icon,
-      label: label,
-      onTap: onTap,
-    );
-  }
-
   Widget _buildAnimatedCircleButton({
     required IconData icon,
     required VoidCallback onTap,
@@ -813,110 +748,6 @@ class _DailyMessageScreenState extends State<DailyMessageScreen>
       iconColor: iconColor ?? (isDark ? AppColors.primaryTextDark : const Color(0xFF26352C)),
       isDark: isDark,
       onTap: onTap,
-    );
-  }
-}
-
-/// Painter for traditional subtle gold corner brackets inside the card
-class _CornerOrnamentPainter extends CustomPainter {
-  final Color color;
-
-  _CornerOrnamentPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round;
-
-    const double inset = 12.0;
-    const double length = 16.0;
-
-    // Top-Left
-    canvas.drawLine(const Offset(inset, inset + length), const Offset(inset, inset), paint);
-    canvas.drawLine(const Offset(inset, inset), const Offset(inset + length, inset), paint);
-
-    // Top-Right
-    canvas.drawLine(Offset(size.width - inset - length, inset), Offset(size.width - inset, inset), paint);
-    canvas.drawLine(Offset(size.width - inset, inset), Offset(size.width - inset, inset + length), paint);
-
-    // Bottom-Left
-    canvas.drawLine(Offset(inset, size.height - inset - length), Offset(inset, size.height - inset), paint);
-    canvas.drawLine(Offset(inset, size.height - inset), Offset(inset + length, size.height - inset), paint);
-
-    // Bottom-Right
-    canvas.drawLine(Offset(size.width - inset - length, size.height - inset), Offset(size.width - inset, size.height - inset), paint);
-    canvas.drawLine(Offset(size.width - inset, size.height - inset - length), Offset(size.width - inset, size.height - inset), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _CornerOrnamentPainter oldDelegate) =>
-      oldDelegate.color != color;
-}
-
-class _MessageBottomBarItem extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _MessageBottomBarItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  State<_MessageBottomBarItem> createState() => _MessageBottomBarItemState();
-}
-
-class _MessageBottomBarItemState extends State<_MessageBottomBarItem> {
-  bool _isPressed = false;
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
-        onTapUp: (_) {
-          setState(() => _isPressed = false);
-          widget.onTap();
-        },
-        onTapCancel: () => setState(() => _isPressed = false),
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedScale(
-          scale: _isPressed ? 0.92 : (_isHovered ? 1.05 : 1.0),
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOutCubic,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                widget.icon,
-                color: _isHovered ? const Color(0xFFE8D49E) : const Color(0xFFF0E6D2),
-                size: 23,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                widget.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: _isHovered ? const Color(0xFFE8D49E) : const Color(0xFFF0E6D2),
-                  fontFamily: 'Tajawal',
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

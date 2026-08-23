@@ -107,3 +107,50 @@ class IslamicWatermarkPainter extends CustomPainter {
     return oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
   }
 }
+
+/// Painter for traditional subtle gold corner brackets inside parchment cards
+class CornerOrnamentPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double inset;
+  final double length;
+
+  CornerOrnamentPainter({
+    required this.color,
+    this.strokeWidth = 1.2,
+    this.inset = 12.0,
+    this.length = 16.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    // Top-Left
+    canvas.drawLine(Offset(inset, inset + length), Offset(inset, inset), paint);
+    canvas.drawLine(Offset(inset, inset), Offset(inset + length, inset), paint);
+
+    // Top-Right
+    canvas.drawLine(Offset(size.width - inset - length, inset), Offset(size.width - inset, inset), paint);
+    canvas.drawLine(Offset(size.width - inset, inset), Offset(size.width - inset, inset + length), paint);
+
+    // Bottom-Left
+    canvas.drawLine(Offset(inset, size.height - inset - length), Offset(inset, size.height - inset), paint);
+    canvas.drawLine(Offset(inset, size.height - inset), Offset(inset + length, size.height - inset), paint);
+
+    // Bottom-Right
+    canvas.drawLine(Offset(size.width - inset - length, size.height - inset), Offset(size.width - inset, size.height - inset), paint);
+    canvas.drawLine(Offset(size.width - inset, size.height - inset), Offset(size.width - inset, size.height - inset - length), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CornerOrnamentPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.strokeWidth != strokeWidth ||
+      oldDelegate.inset != inset ||
+      oldDelegate.length != length;
+}
