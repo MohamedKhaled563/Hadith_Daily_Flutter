@@ -5,7 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_state_controller.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
-import '../../core/widgets/bottom_navigation.dart';
+import '../../core/widgets/islamic_pattern_painter.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
@@ -32,16 +32,10 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
   bool _isLiked = false;
   int _likesCount = 48;
   bool _isBookmarked = false;
-  bool _reminderSet = false;
 
-  void _handleTabClick(int index) {
-    if (widget.onTabSelected != null) {
-      widget.onTabSelected!(index);
-    } else {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-    }
+  String _toArabicDigits(int number) {
+    const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return number.toString().split('').map((d) => arabicDigits[int.parse(d)]).join();
   }
 
   void _copyMessageText() {
@@ -236,21 +230,15 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
 
               const SizedBox(height: 10),
 
-              // Main Masterpiece Quote Card & Attached Actions
+              // Main Quote Card in Single View
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                   child: Column(
                     children: [
-                      // The Luxury Islamic Identity Card
-                      _buildLuxuryMessageCard(isDark),
-
-                      const SizedBox(height: 16),
-
-                      // Card Actions Toolbar (Like, Share, Copy, Reminder)
-                      _buildCardActionsBar(isDark),
-
+                      // The Luxury Parchment Card with Watermark, Botanicals & Like Counter
+                      _buildParchmentMessageCard(isDark),
                       const SizedBox(height: 14),
                     ],
                   ),
@@ -261,369 +249,448 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
         ),
       ),
 
-      // Unified Global Bottom Navigation Bar (Same as HomeScreen)
-      bottomNavigationBar: BottomNavigation(
-        currentIndex: 0,
-        onTap: _handleTabClick,
-      ),
+      // Unified 3-Item Luxury Bottom Bar (الرئيسية • مشاركة • نسخ الرسالة)
+      bottomNavigationBar: _buildMessageBottomBar(isDark),
     );
   }
 
-  /// Luxury Shareable Spiritual Message Card with Islamic Framing & Brand Identity
-  Widget _buildLuxuryMessageCard(bool isDark) {
+  /// The Luxury Parchment Card modeled after community cards
+  Widget _buildParchmentMessageCard(bool isDark) {
+    // Exact warm parchment tones from reference screenshot & community cards
+    final bgGradientColors = isDark
+        ? [
+            const Color(0xFF23342A),
+            const Color(0xFF1B2A20),
+          ]
+        : [
+            const Color(0xFFEFE8DC),
+            const Color(0xFFECE4D7),
+          ];
+
+    final textColor = isDark ? const Color(0xFFF7F5EE) : const Color(0xFF26352C);
+    final borderColor = isDark ? const Color(0x60D1BE93) : const Color(0x80D1BE93);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [
-                  const Color(0xFF23352A),
-                  const Color(0xFF1B2920),
-                  const Color(0xFF152219),
-                ]
-              : [
-                  const Color(0xFFFFFDFC),
-                  const Color(0xFFFCF8F0),
-                  const Color(0xFFF7EFE1),
-                ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: bgGradientColors,
         ),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFD6BE88),
-          width: 1.4,
+          color: borderColor,
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark ? const Color(0x50000000) : const Color(0x18B9A06A),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            color: isDark ? const Color(0x50000000) : const Color(0x153B5644),
+            blurRadius: 20,
+            offset: const Offset(0, 7),
           ),
           BoxShadow(
-            color: const Color(0xFFD6BE88).withOpacity(0.12),
-            blurRadius: 10,
+            color: const Color(0xFFD6BE88).withOpacity(isDark ? 0.08 : 0.2),
+            blurRadius: 8,
             offset: const Offset(0, -1),
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          // 4-Corner Islamic Decorative Geometric Ornaments
-          Positioned(
-            top: 6,
-            right: 6,
-            child: _IslamicCornerOrnament(color: const Color(0xFFD6BE88), rotation: 0),
-          ),
-          Positioned(
-            top: 6,
-            left: 6,
-            child: _IslamicCornerOrnament(color: const Color(0xFFD6BE88), rotation: math.pi / 2),
-          ),
-          Positioned(
-            bottom: 6,
-            left: 6,
-            child: _IslamicCornerOrnament(color: const Color(0xFFD6BE88), rotation: math.pi),
-          ),
-          Positioned(
-            bottom: 6,
-            right: 6,
-            child: _IslamicCornerOrnament(color: const Color(0xFFD6BE88), rotation: 3 * math.pi / 2),
-          ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            // 1. Subtle & Authentic Islamic geometric watermark in center (Matches screenshot aesthetic!)
+            Positioned.fill(
+              child: CustomPaint(
+                painter: IslamicWatermarkPainter(
+                  color: isDark
+                      ? const Color(0x1CD1BE93)
+                      : const Color(0x2BB89F70),
+                  strokeWidth: 1.15,
+                ),
+              ),
+            ),
 
-          // Inner Content
-          Padding(
-            padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Top Badge: Heart Leaf Emblem with Glow
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDark ? const Color(0xFF1B2B20) : const Color(0xFFFAF5EB),
-                    border: Border.all(
-                      color: const Color(0xFFD6BE88),
-                      width: 1.3,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x10B9A06A),
-                        blurRadius: 10,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Hero(
-                      tag: 'heart_leaf_emblem_hero',
-                      child: AssetHelper.assetOrFallback(
-                        assetPath: 'assets/images/heart_leaf_emblem.png',
-                        width: 34,
-                        height: 34,
-                        fallback: const Icon(
-                          Icons.favorite_rounded,
-                          color: AppColors.primaryGreen,
-                          size: 24,
-                        ),
-                      ),
-                    ),
+            // 2. Botanical Top-Right Watercolor Branch Asset
+            Positioned(
+              top: -6,
+              right: -6,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: isDark ? 0.35 : 0.55,
+                  child: AssetHelper.assetOrFallback(
+                    assetPath: 'assets/images/botanical_top_right.png',
+                    width: 100,
+                    height: 120,
+                    fit: BoxFit.contain,
                   ),
                 ),
+              ),
+            ),
 
-                const SizedBox(height: 12),
-
-                // Category Tag Pill
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4.5),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF2B3F32) : const Color(0xFFFAF6EE),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0x60D1BE93),
-                      width: 1,
-                    ),
+            // 3. Botanical Bottom-Left Watercolor Branch Asset
+            Positioned(
+              bottom: -6,
+              left: -6,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: isDark ? 0.35 : 0.55,
+                  child: AssetHelper.assetOrFallback(
+                    assetPath: 'assets/images/botanical_bottom_left.png',
+                    width: 100,
+                    height: 120,
+                    fit: BoxFit.contain,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                ),
+              ),
+            ),
+
+            // 4. Card Inner Content
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Top Header Row with Like Counter on the Left (in RTL layout)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      AssetHelper.assetOrFallback(
-                        assetPath: 'assets/images/leaf_accent.png',
-                        width: 14,
-                        height: 14,
-                        fallback: const Icon(
-                          Icons.eco_rounded,
-                          size: 13,
-                          color: Color(0xFF385240),
+                      // Left: Interactive Like Heart Counter (Exact matching community card style)
+                      _buildHeartLikeCounter(isDark),
+
+                      // Center: Heart-Leaf Emblem Circular Avatar
+                      Hero(
+                        tag: 'heart_leaf_emblem_hero',
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark ? const Color(0xFF1B2B20) : const Color(0xFFFAF5EB),
+                            border: Border.all(
+                              color: const Color(0xFFD6BE88),
+                              width: 1.2,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x10B9A06A),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: AssetHelper.assetOrFallback(
+                              assetPath: 'assets/images/heart_leaf_emblem.png',
+                              width: 30,
+                              height: 30,
+                              fallback: const Icon(
+                                Icons.favorite_rounded,
+                                color: AppColors.primaryGreen,
+                                size: 22,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 5),
-                      Text(
-                        widget.insight.category,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.gold : const Color(0xFF385240),
-                          fontFamily: 'Tajawal',
-                        ),
-                      ),
+
+                      // Right Placeholder to balance center alignment (width equals like button)
+                      const SizedBox(width: 48),
                     ],
                   ),
-                ),
 
-                const SizedBox(height: 14),
+                  const SizedBox(height: 12),
 
-                // Top Golden Flourish
-                AssetHelper.assetOrFallback(
-                  assetPath: 'assets/images/golden_divider.png',
-                  width: 110,
-                  height: 14,
-                  fallback: Container(
-                    width: 70,
-                    height: 1.5,
-                    color: const Color(0xFFD6BE88),
+                  // Category Tag Pill ("رسالة اليوم 🌿" or Category)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4.5),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF2B3F32) : const Color(0xFFFAF6EE),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0x60D1BE93),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AssetHelper.assetOrFallback(
+                          assetPath: 'assets/images/leaf_accent.png',
+                          width: 13,
+                          height: 13,
+                          fallback: const Icon(
+                            Icons.eco_rounded,
+                            size: 13,
+                            color: Color(0xFF385240),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          widget.insight.category,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.gold : const Color(0xFF385240),
+                            fontFamily: 'Tajawal',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                // The Central Message / Quote with Elegant Arabic Typography
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(
+                  // Top Golden Divider
+                  AssetHelper.assetOrFallback(
+                    assetPath: 'assets/images/golden_divider.png',
+                    width: 110,
+                    height: 14,
+                    fallback: Container(
+                      width: 70,
+                      height: 1.5,
+                      color: const Color(0xFFD6BE88),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // The Central Message / Quote with Refined Typography
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
                       '« ${widget.insight.message} »',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 19.5,
+                        fontSize: 19,
                         height: 1.8,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? const Color(0xFFF7F5EE) : const Color(0xFF1E2E24),
+                        color: textColor,
                         fontFamily: 'Tajawal',
                         letterSpacing: -0.2,
                       ),
                     ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Bottom Golden Flourish
-                AssetHelper.assetOrFallback(
-                  assetPath: 'assets/images/golden_divider.png',
-                  width: 110,
-                  height: 14,
-                  fallback: Container(
-                    width: 70,
-                    height: 1.5,
-                    color: const Color(0xFFD6BE88),
                   ),
-                ),
 
-                // Associated Hadith Link Button (if available)
-                if (widget.hadith != null) ...[
                   const SizedBox(height: 16),
-                  _HadithDetailPillButton(
-                    hadithNumber: widget.hadith!.number,
-                    title: widget.hadith!.title,
-                    isDark: isDark,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        SmoothPageRoute(
-                          child: HadithDetailScreen(
-                            hadith: widget.hadith!,
+
+                  // Bottom Golden Divider
+                  AssetHelper.assetOrFallback(
+                    assetPath: 'assets/images/golden_divider.png',
+                    width: 110,
+                    height: 14,
+                    fallback: Container(
+                      width: 70,
+                      height: 1.5,
+                      color: const Color(0xFFD6BE88),
+                    ),
+                  ),
+
+                  // Associated Hadith Link Button (if available)
+                  if (widget.hadith != null) ...[
+                    const SizedBox(height: 16),
+                    _HadithDetailPillButton(
+                      hadithNumber: widget.hadith!.number,
+                      title: widget.hadith!.title,
+                      isDark: isDark,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          SmoothPageRoute(
+                            child: HadithDetailScreen(
+                              hadith: widget.hadith!,
+                            ),
                           ),
+                        );
+                      },
+                    ),
+                  ],
+
+                  const SizedBox(height: 18),
+
+                  // Authentic App Brand Watermark Signature
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 16,
+                        height: 1,
+                        color: const Color(0x60D1BE93),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '🌿 طيّب قلبك • هدي النبوة',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.gold : const Color(0xFF6E8675),
+                          fontFamily: 'Tajawal',
+                          letterSpacing: 0.2,
                         ),
-                      );
-                    },
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 16,
+                        height: 1,
+                        color: const Color(0x60D1BE93),
+                      ),
+                    ],
                   ),
                 ],
-
-                const SizedBox(height: 18),
-
-                // Authentic App Brand Watermark (Makes the card stunning when screenshotted/shared)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 16,
-                      height: 1,
-                      color: const Color(0x60D1BE93),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '🌿 طيّب قلبك • هدي النبوة',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.gold : const Color(0xFF6E8675),
-                        fontFamily: 'Tajawal',
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 16,
-                      height: 1,
-                      color: const Color(0x60D1BE93),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Interactive Actions Toolbar attached right under the card
-  Widget _buildCardActionsBar(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2D23) : const Color(0xFFFAF6EE),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: const Color(0x66D1BE93),
-          width: 1.2,
+          ],
         ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          // 1. Like with Animated Count
-          _buildActionItem(
-            icon: _isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            label: '$_likesCount',
-            isSelected: _isLiked,
-            selectedColor: const Color(0xFFC73E3E),
-            isDark: isDark,
-            onTap: () {
-              setState(() {
-                _isLiked = !_isLiked;
-                _likesCount += _isLiked ? 1 : -1;
-              });
-            },
-          ),
-          _buildActionDivider(),
+    );
+  }
 
-          // 2. Share Card
-          _buildActionItem(
-            icon: Icons.share_rounded,
-            label: 'مشاركة',
-            isDark: isDark,
-            onTap: () => _showSharePreviewDialog(isDark),
+  /// Interactive Heart Like Counter inside the Card
+  Widget _buildHeartLikeCounter(bool isDark) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _isLiked = !_isLiked;
+            _likesCount += _isLiked ? 1 : -1;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: isDark
+                ? (_isLiked ? const Color(0xFF382323) : const Color(0xFF1B2B20))
+                : (_isLiked ? const Color(0xFFFDE8E8) : const Color(0xFFFAF6EE)),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: _isLiked ? const Color(0xFFC73E3E).withOpacity(0.5) : const Color(0x60D1BE93),
+              width: 1,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-          _buildActionDivider(),
-
-          // 3. Copy Text
-          _buildActionItem(
-            icon: Icons.copy_rounded,
-            label: 'نسخ النص',
-            isDark: isDark,
-            onTap: _copyMessageText,
-          ),
-          _buildActionDivider(),
-
-          // 4. Reminder
-          _buildActionItem(
-            icon: _reminderSet ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
-            label: 'تذكير',
-            isSelected: _reminderSet,
-            selectedColor: const Color(0xFFC59B27),
-            isDark: isDark,
-            onTap: () {
-              setState(() => _reminderSet = !_reminderSet);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    _reminderSet ? 'تم تفعيل التذكير اليومي بهذه الرسالة ✨' : 'تم إلغاء التذكير',
-                    textDirection: TextDirection.rtl,
-                    style: const TextStyle(fontFamily: 'Tajawal'),
-                  ),
-                  backgroundColor: AppColors.primaryGreen,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedScale(
+                scale: _isLiked ? 1.18 : 1.0,
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOutBack,
+                child: Icon(
+                  _isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  size: 19,
+                  color: _isLiked ? const Color(0xFFC73E3E) : const Color(0xFF6B726C),
                 ),
-              );
-            },
+              ),
+              const SizedBox(width: 5),
+              Text(
+                _toArabicDigits(_likesCount),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: _isLiked ? const Color(0xFFC73E3E) : (isDark ? AppColors.primaryTextDark : const Color(0xFF385240)),
+                  fontFamily: 'Tajawal',
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildActionDivider() {
+  /// Unified 3-Item Luxury Bottom Navigation Bar: الرئيسية • مشاركة • نسخ الرسالة
+  Widget _buildMessageBottomBar(bool isDark) {
     return Container(
-      width: 1,
-      height: 24,
-      color: const Color(0x33D1BE93),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+      height: 74,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDark
+              ? [const Color(0xFF1B2B20), const Color(0xFF121D16)]
+              : [const Color(0xFF2C4334), const Color(0xFF1E3024)],
+        ),
+        borderRadius: BorderRadius.circular(34),
+        border: Border.all(
+          color: const Color(0xFFD6BE88).withOpacity(isDark ? 0.45 : 0.65),
+          width: 1.3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: const Color(0xFFD6BE88).withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, -1),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(34),
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Row(
+            children: [
+              // 1. الرئيسية (Home)
+              Expanded(
+                child: _buildBottomBarItem(
+                  icon: Icons.home_outlined,
+                  label: 'الرئيسية',
+                  onTap: () {
+                    if (widget.onTabSelected != null) {
+                      widget.onTabSelected!(0);
+                    } else if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+              ),
+
+              // 2. مشاركة (Share)
+              Expanded(
+                child: _buildBottomBarItem(
+                  icon: Icons.share_rounded,
+                  label: 'مشاركة',
+                  onTap: () => _showSharePreviewDialog(isDark),
+                ),
+              ),
+
+              // 3. نسخ الرسالة (Copy Text)
+              Expanded(
+                child: _buildBottomBarItem(
+                  icon: Icons.copy_rounded,
+                  label: 'نسخ الرسالة',
+                  onTap: _copyMessageText,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildActionItem({
+  Widget _buildBottomBarItem({
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-    required bool isDark,
-    bool isSelected = false,
-    Color selectedColor = const Color(0xFFC59B27),
   }) {
-    return _AnimatedActionItem(
+    return _MessageBottomBarItem(
       icon: icon,
       label: label,
-      isSelected: isSelected,
-      selectedColor: selectedColor,
-      isDark: isDark,
       onTap: onTap,
     );
   }
@@ -643,59 +710,69 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
   }
 }
 
-/// Custom 4-Corner Islamic Corner Ornament Painter
-class _IslamicCornerOrnament extends StatelessWidget {
-  final Color color;
-  final double rotation;
+class _MessageBottomBarItem extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
-  const _IslamicCornerOrnament({required this.color, required this.rotation});
+  const _MessageBottomBarItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  State<_MessageBottomBarItem> createState() => _MessageBottomBarItemState();
+}
+
+class _MessageBottomBarItemState extends State<_MessageBottomBarItem> {
+  bool _isPressed = false;
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: rotation,
-      child: SizedBox(
-        width: 24,
-        height: 24,
-        child: CustomPaint(
-          painter: _CornerPainter(color: color),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedScale(
+          scale: _isPressed ? 0.92 : (_isHovered ? 1.05 : 1.0),
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                widget.icon,
+                color: _isHovered ? const Color(0xFFE8D49E) : const Color(0xFFF0E6D2),
+                size: 23,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                widget.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: _isHovered ? const Color(0xFFE8D49E) : const Color(0xFFF0E6D2),
+                  fontFamily: 'Tajawal',
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
-
-class _CornerPainter extends CustomPainter {
-  final Color color;
-
-  _CornerPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color.withOpacity(0.75)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.3
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    // Top-Right flourish path
-    path.moveTo(0, 2);
-    path.lineTo(size.width - 6, 2);
-    path.quadraticBezierTo(size.width - 2, 2, size.width - 2, 6);
-    path.lineTo(size.width - 2, size.height);
-
-    canvas.drawPath(path, paint);
-
-    // Inner miniature flourish dot
-    final dotPaint = Paint()
-      ..color = color.withOpacity(0.9)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(size.width - 7, 7), 1.8, dotPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _CornerPainter oldDelegate) => oldDelegate.color != color;
 }
 
 class _HadithDetailPillButton extends StatefulWidget {
@@ -782,76 +859,6 @@ class _HadithDetailPillButtonState extends State<_HadithDetailPillButton> {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AnimatedActionItem extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final Color selectedColor;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _AnimatedActionItem({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.selectedColor,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  State<_AnimatedActionItem> createState() => _AnimatedActionItemState();
-}
-
-class _AnimatedActionItemState extends State<_AnimatedActionItem> {
-  bool _isPressed = false;
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final defaultColor = widget.isDark ? AppColors.primaryTextDark : const Color(0xFF385240);
-    final activeColor = widget.isSelected ? widget.selectedColor : (_isHovered ? AppColors.gold : defaultColor);
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
-        onTapUp: (_) {
-          setState(() => _isPressed = false);
-          widget.onTap();
-        },
-        onTapCancel: () => setState(() => _isPressed = false),
-        child: AnimatedScale(
-          scale: _isPressed ? 0.88 : (_isHovered ? 1.06 : 1.0),
-          duration: const Duration(milliseconds: 140),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                widget.icon,
-                color: activeColor,
-                size: 21,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.w600,
-                  color: activeColor,
-                  fontFamily: 'Tajawal',
-                ),
-              ),
-            ],
           ),
         ),
       ),

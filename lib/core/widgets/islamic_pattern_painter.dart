@@ -2,20 +2,20 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 /// Authentic Traditional Islamic Geometric Arabesque Watermark Pattern
-/// Draws an intricate 8-pointed star rosette with interlacing geometric petals and nodes
+/// Draws an intricate 8-pointed star rosette (Shamsah medallion) with interlacing geometric petals and embossed relief
 class IslamicWatermarkPainter extends CustomPainter {
   final Color color;
   final double strokeWidth;
 
   IslamicWatermarkPainter({
-    this.color = const Color(0x35B89F70),
-    this.strokeWidth = 1.2,
+    this.color = const Color(0x30B89F70),
+    this.strokeWidth = 1.15,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = math.min(size.width, size.height) * 0.48;
+    final radius = math.min(size.width, size.height) * 0.44;
 
     if (radius <= 0) return;
 
@@ -24,26 +24,27 @@ class IslamicWatermarkPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
       ..isAntiAlias = true;
 
     final subtleFillPaint = Paint()
-      ..color = color.withOpacity(color.opacity * 0.25)
+      ..color = color.withOpacity(color.opacity * 0.22)
       ..style = PaintingStyle.fill
       ..isAntiAlias = true;
 
-    // 1. Concentric Guide Circles
+    // 1. Outer Concentric Ring
     canvas.drawCircle(center, radius, linePaint);
-    canvas.drawCircle(center, radius * 0.76, linePaint);
-    canvas.drawCircle(center, radius * 0.46, linePaint);
-    canvas.drawCircle(center, radius * 0.18, subtleFillPaint);
-    canvas.drawCircle(center, radius * 0.18, linePaint);
+    canvas.drawCircle(center, radius * 0.78, linePaint);
+    canvas.drawCircle(center, radius * 0.48, linePaint);
+    canvas.drawCircle(center, radius * 0.22, subtleFillPaint);
+    canvas.drawCircle(center, radius * 0.22, linePaint);
 
-    // 2. 8-Pointed Star (Octagram) formed by two overlapping 45-degree squares
-    final double squareSize = radius * 1.42;
+    // 2. 8-Pointed Star (Octagram / 8-pointed Girih star)
+    final double squareSize = radius * 1.38;
     _drawRotatedSquare(canvas, center, squareSize, 0, linePaint);
     _drawRotatedSquare(canvas, center, squareSize, math.pi / 4, linePaint);
 
-    // 3. Intersecting Petal Arcs (Girih floral interlacing)
+    // 3. 8 Curved Interlaced Petals
     const int points = 8;
     for (int i = 0; i < points; i++) {
       final double angle = (i * 2 * math.pi) / points;
@@ -58,14 +59,14 @@ class IslamicWatermarkPainter extends CustomPainter {
 
       // Inner Valley
       final innerValley = Offset(
-        center.dx + (radius * 0.54) * math.cos(midAngle),
-        center.dy + (radius * 0.54) * math.sin(midAngle),
+        center.dx + (radius * 0.52) * math.cos(midAngle),
+        center.dy + (radius * 0.52) * math.sin(midAngle),
       );
 
       // Core Node
       final coreNode = Offset(
-        center.dx + (radius * 0.28) * math.cos(angle),
-        center.dy + (radius * 0.28) * math.sin(angle),
+        center.dx + (radius * 0.26) * math.cos(angle),
+        center.dy + (radius * 0.26) * math.sin(angle),
       );
 
       // Draw Diamond rosette facet
@@ -75,8 +76,19 @@ class IslamicWatermarkPainter extends CustomPainter {
         ..lineTo(coreNode.dx, coreNode.dy);
       canvas.drawPath(path, linePaint);
 
+      // Intersecting petal arc
+      final petalArc = Path()
+        ..moveTo(tip.dx, tip.dy)
+        ..quadraticBezierTo(
+          center.dx + (radius * 0.7) * math.cos(midAngle),
+          center.dy + (radius * 0.7) * math.sin(midAngle),
+          center.dx + (radius * 0.32) * math.cos(nextAngle),
+          center.dy + (radius * 0.32) * math.sin(nextAngle),
+        );
+      canvas.drawPath(petalArc, linePaint);
+
       // Decorative mini node at each star tip
-      canvas.drawCircle(tip, 1.8, linePaint);
+      canvas.drawCircle(tip, 1.6, linePaint);
     }
   }
 
