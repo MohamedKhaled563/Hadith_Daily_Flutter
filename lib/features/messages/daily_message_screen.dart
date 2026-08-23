@@ -9,6 +9,8 @@ import '../../core/widgets/islamic_pattern_painter.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
+import '../../data/repositories/hadith_repository.dart';
+import '../favorites/favorites_screen.dart';
 import '../hadith/hadith_detail_screen.dart';
 
 class DailyMessageScreen extends StatefulWidget {
@@ -27,11 +29,35 @@ class DailyMessageScreen extends StatefulWidget {
   State<DailyMessageScreen> createState() => _DailyMessageScreenState();
 }
 
-class _DailyMessageScreenState extends State<DailyMessageScreen> {
+class _DailyMessageScreenState extends State<DailyMessageScreen>
+    with SingleTickerProviderStateMixin {
   final AppStateController _state = AppStateController();
+  final HadithRepository _repo = HadithRepository();
   bool _isLiked = false;
   int _likesCount = 48;
-  bool _isBookmarked = false;
+  late bool _isBookmarked;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _isBookmarked = _repo.isInsightFavorite(widget.insight.message);
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+    _pulseAnimation = CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   String _toArabicDigits(int number) {
     const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -54,6 +80,37 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
         backgroundColor: AppColors.primaryGreen,
       ),
     );
+  }
+
+  void _toggleBookmark() {
+    setState(() {
+      _isBookmarked = !_isBookmarked;
+      _repo.toggleFavoriteInsight(widget.insight.message);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isBookmarked ? 'تم حفظ الرسالة في المفضلة 🌿' : 'تمت الإزالة من المفضلة',
+          textDirection: TextDirection.rtl,
+          style: const TextStyle(fontFamily: 'Tajawal'),
+        ),
+        duration: const Duration(seconds: 2),
+        backgroundColor: AppColors.primaryGreen,
+      ),
+    );
+  }
+
+  void _openFavorites() {
+    if (widget.onTabSelected != null) {
+      widget.onTabSelected!(1);
+    } else {
+      Navigator.push(
+        context,
+        SmoothPageRoute(
+          child: const FavoritesScreen(),
+        ),
+      );
+    }
   }
 
   void _showSharePreviewDialog(bool isDark) {
@@ -168,7 +225,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Right Back Button
+                    // Right Back Button (in RTL)
                     _buildAnimatedCircleButton(
                       icon: Icons.chevron_right_rounded,
                       isDark: isDark,
@@ -204,44 +261,41 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                       ],
                     ),
 
-                    // Left Bookmark Button
+                    // Left Bookmark Button (in RTL)
                     _buildAnimatedCircleButton(
                       icon: _isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
                       iconColor: _isBookmarked ? const Color(0xFFC59B27) : (isDark ? AppColors.primaryTextDark : const Color(0xFF26352C)),
                       isDark: isDark,
-                      onTap: () {
-                        setState(() => _isBookmarked = !_isBookmarked);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              _isBookmarked ? 'تم حفظ الرسالة في المفضلة 🌿' : 'تمت الإزالة من المفضلة',
-                              textDirection: TextDirection.rtl,
-                              style: const TextStyle(fontFamily: 'Tajawal'),
-                            ),
-                            duration: const Duration(seconds: 2),
-                            backgroundColor: AppColors.primaryGreen,
-                          ),
-                        );
-                      },
+                      onTap: _toggleBookmark,
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
 
-              // Main Quote Card in Single View
+              // Main Quote Card - Vertically Centered in Screen
               Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                  child: Column(
-                    children: [
-                      // The Luxury Parchment Card with Watermark, Botanicals & Like Counter
-                      _buildParchmentMessageCard(isDark),
-                      const SizedBox(height: 14),
-                    ],
-                  ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight - 16,
+                        ),
+                        child: Center(
+                          child: AnimatedBuilder(
+                            animation: _pulseAnimation,
+                            builder: (context, child) {
+                              return _buildParchmentMessageCard(isDark);
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -249,26 +303,32 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
         ),
       ),
 
-      // Unified 3-Item Luxury Bottom Bar (الرئيسية • مشاركة • نسخ الرسالة)
+      // Unified 4-Item Luxury Bottom Bar (الرئيسية • المفضلة • مشاركة • نسخ الرسالة)
       bottomNavigationBar: _buildMessageBottomBar(isDark),
     );
   }
 
-  /// The Luxury Parchment Card modeled after community cards
+  /// The Luxury Parchment Card with multi-layer depth, golden glow and rich botanical accents
   Widget _buildParchmentMessageCard(bool isDark) {
-    // Exact warm parchment tones from reference screenshot & community cards
+    final pulse = _pulseAnimation.value;
+
+    // Exact warm parchment tones with subtle luxury gradient
     final bgGradientColors = isDark
         ? [
-            const Color(0xFF23342A),
+            const Color(0xFF24362B),
             const Color(0xFF1B2A20),
+            const Color(0xFF152219),
           ]
         : [
-            const Color(0xFFEFE8DC),
-            const Color(0xFFECE4D7),
+            const Color(0xFFF2ECE0),
+            const Color(0xFFEBE3D4),
+            const Color(0xFFE5DCcb),
           ];
 
-    final textColor = isDark ? const Color(0xFFF7F5EE) : const Color(0xFF26352C);
-    final borderColor = isDark ? const Color(0x60D1BE93) : const Color(0x80D1BE93);
+    final textColor = isDark ? const Color(0xFFF7F5EE) : const Color(0xFF243329);
+    final borderColor = isDark
+        ? Color.lerp(const Color(0x70D1BE93), const Color(0xA0D1BE93), pulse)!
+        : Color.lerp(const Color(0x90D1BE93), const Color(0xD0D1BE93), pulse)!;
 
     return Container(
       width: double.infinity,
@@ -278,77 +338,100 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
           end: Alignment.bottomRight,
           colors: bgGradientColors,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
         border: Border.all(
           color: borderColor,
-          width: 1.2,
+          width: 1.4,
         ),
         boxShadow: [
+          // 1. Ambient deep ground shadow (rich umber/forest tint)
           BoxShadow(
-            color: isDark ? const Color(0x50000000) : const Color(0x153B5644),
-            blurRadius: 20,
-            offset: const Offset(0, 7),
+            color: isDark
+                ? Colors.black.withOpacity(0.55)
+                : const Color(0xFF1B3322).withOpacity(0.16 + (0.04 * pulse)),
+            blurRadius: 26 + (6 * pulse),
+            offset: const Offset(0, 10),
+            spreadRadius: -2,
           ),
+          // 2. Crisp tactile directional drop shadow
           BoxShadow(
-            color: const Color(0xFFD6BE88).withOpacity(isDark ? 0.08 : 0.2),
-            blurRadius: 8,
+            color: isDark ? const Color(0x40000000) : const Color(0x10000000),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+          // 3. Specular Gold Rim Light (Breathes gently)
+          BoxShadow(
+            color: const Color(0xFFD6BE88).withOpacity(isDark ? 0.12 + (0.08 * pulse) : 0.25 + (0.12 * pulse)),
+            blurRadius: 12 + (4 * pulse),
             offset: const Offset(0, -1),
+            spreadRadius: 0.5,
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
         child: Stack(
           children: [
-            // 1. Subtle & Authentic Islamic geometric watermark in center (Matches screenshot aesthetic!)
+            // 1. Subtle & Authentic Islamic geometric watermark in center
             Positioned.fill(
               child: CustomPaint(
                 painter: IslamicWatermarkPainter(
                   color: isDark
                       ? const Color(0x1CD1BE93)
-                      : const Color(0x2BB89F70),
+                      : const Color(0x28B89F70),
                   strokeWidth: 1.15,
                 ),
               ),
             ),
 
-            // 2. Botanical Top-Right Watercolor Branch Asset
+            // 2. Corner Ornament Painter for crisp luxury gold brackets
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _CornerOrnamentPainter(
+                  color: isDark
+                      ? const Color(0x55D1BE93)
+                      : const Color(0x77B89F70),
+                ),
+              ),
+            ),
+
+            // 3. Botanical Top-Right Watercolor Branch Asset
             Positioned(
               top: -6,
               right: -6,
               child: IgnorePointer(
                 child: Opacity(
-                  opacity: isDark ? 0.35 : 0.55,
+                  opacity: isDark ? 0.40 : 0.65,
                   child: AssetHelper.assetOrFallback(
                     assetPath: 'assets/images/botanical_top_right.png',
-                    width: 100,
-                    height: 120,
+                    width: 105,
+                    height: 125,
                     fit: BoxFit.contain,
                   ),
                 ),
               ),
             ),
 
-            // 3. Botanical Bottom-Left Watercolor Branch Asset
+            // 4. Botanical Bottom-Left Watercolor Branch Asset
             Positioned(
               bottom: -6,
               left: -6,
               child: IgnorePointer(
                 child: Opacity(
-                  opacity: isDark ? 0.35 : 0.55,
+                  opacity: isDark ? 0.40 : 0.65,
                   child: AssetHelper.assetOrFallback(
                     assetPath: 'assets/images/botanical_bottom_left.png',
-                    width: 100,
-                    height: 120,
+                    width: 105,
+                    height: 125,
                     fit: BoxFit.contain,
                   ),
                 ),
               ),
             ),
 
-            // 4. Card Inner Content
+            // 5. Card Inner Content
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -357,81 +440,88 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Left: Interactive Like Heart Counter (Exact matching community card style)
+                      // Left: Interactive Like Heart Counter
                       _buildHeartLikeCounter(isDark),
 
-                      // Center: Heart-Leaf Emblem Circular Avatar
+                      // Center: Heart-Leaf Emblem Circular Avatar with Gold Rim
                       Hero(
                         tag: 'heart_leaf_emblem_hero',
                         child: Container(
-                          width: 48,
-                          height: 48,
+                          width: 50,
+                          height: 50,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isDark ? const Color(0xFF1B2B20) : const Color(0xFFFAF5EB),
                             border: Border.all(
                               color: const Color(0xFFD6BE88),
-                              width: 1.2,
+                              width: 1.4,
                             ),
-                            boxShadow: const [
+                            boxShadow: [
                               BoxShadow(
-                                color: Color(0x10B9A06A),
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
+                                color: const Color(0xFFD6BE88).withOpacity(0.25 + (0.15 * pulse)),
+                                blurRadius: 10 + (4 * pulse),
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: Center(
                             child: AssetHelper.assetOrFallback(
                               assetPath: 'assets/images/heart_leaf_emblem.png',
-                              width: 30,
-                              height: 30,
+                              width: 32,
+                              height: 32,
                               fallback: const Icon(
                                 Icons.favorite_rounded,
                                 color: AppColors.primaryGreen,
-                                size: 22,
+                                size: 24,
                               ),
                             ),
                           ),
                         ),
                       ),
 
-                      // Right Placeholder to balance center alignment (width equals like button)
+                      // Right: Balance spacer
                       const SizedBox(width: 48),
                     ],
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
 
                   // Category Tag Pill ("رسالة اليوم 🌿" or Category)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4.5),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF2B3F32) : const Color(0xFFFAF6EE),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: const Color(0x60D1BE93),
-                        width: 1,
+                        color: const Color(0x70D1BE93),
+                        width: 1.1,
                       ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x08000000),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         AssetHelper.assetOrFallback(
                           assetPath: 'assets/images/leaf_accent.png',
-                          width: 13,
-                          height: 13,
+                          width: 14,
+                          height: 14,
                           fallback: const Icon(
                             Icons.eco_rounded,
-                            size: 13,
+                            size: 14,
                             color: Color(0xFF385240),
                           ),
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: 6),
                         Text(
                           widget.insight.category,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 12.5,
                             fontWeight: FontWeight.bold,
                             color: isDark ? AppColors.gold : const Color(0xFF385240),
                             fontFamily: 'Tajawal',
@@ -441,48 +531,56 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
 
                   // Top Golden Divider
                   AssetHelper.assetOrFallback(
                     assetPath: 'assets/images/golden_divider.png',
-                    width: 110,
-                    height: 14,
+                    width: 120,
+                    height: 15,
                     fallback: Container(
-                      width: 70,
+                      width: 80,
                       height: 1.5,
                       color: const Color(0xFFD6BE88),
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
                   // The Central Message / Quote with Refined Typography
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: Text(
                       '« ${widget.insight.message} »',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 19,
-                        height: 1.8,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        height: 1.85,
+                        fontWeight: FontWeight.w800,
                         color: textColor,
                         fontFamily: 'Tajawal',
                         letterSpacing: -0.2,
+                        shadows: [
+                          if (!isDark)
+                            const Shadow(
+                              color: Color(0x15000000),
+                              blurRadius: 1,
+                              offset: Offset(0, 1),
+                            ),
+                        ],
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
                   // Bottom Golden Divider
                   AssetHelper.assetOrFallback(
                     assetPath: 'assets/images/golden_divider.png',
-                    width: 110,
-                    height: 14,
+                    width: 120,
+                    height: 15,
                     fallback: Container(
-                      width: 70,
+                      width: 80,
                       height: 1.5,
                       color: const Color(0xFFD6BE88),
                     ),
@@ -515,26 +613,26 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 16,
+                        width: 20,
                         height: 1,
-                        color: const Color(0x60D1BE93),
+                        color: const Color(0x70D1BE93),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         '🌿 طيّب قلبك • هدي النبوة',
                         style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? AppColors.gold : const Color(0xFF6E8675),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.gold : const Color(0xFF5A7562),
                           fontFamily: 'Tajawal',
                           letterSpacing: 0.2,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        width: 16,
+                        width: 20,
                         height: 1,
-                        color: const Color(0x60D1BE93),
+                        color: const Color(0x70D1BE93),
                       ),
                     ],
                   ),
@@ -559,15 +657,15 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
           });
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5.5),
           decoration: BoxDecoration(
             color: isDark
                 ? (_isLiked ? const Color(0xFF382323) : const Color(0xFF1B2B20))
                 : (_isLiked ? const Color(0xFFFDE8E8) : const Color(0xFFFAF6EE)),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: _isLiked ? const Color(0xFFC73E3E).withOpacity(0.5) : const Color(0x60D1BE93),
-              width: 1,
+              color: _isLiked ? const Color(0xFFC73E3E).withOpacity(0.6) : const Color(0x70D1BE93),
+              width: 1.1,
             ),
             boxShadow: const [
               BoxShadow(
@@ -581,7 +679,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               AnimatedScale(
-                scale: _isLiked ? 1.18 : 1.0,
+                scale: _isLiked ? 1.2 : 1.0,
                 duration: const Duration(milliseconds: 160),
                 curve: Curves.easeOutBack,
                 child: Icon(
@@ -607,7 +705,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
     );
   }
 
-  /// Unified 3-Item Luxury Bottom Navigation Bar: الرئيسية • مشاركة • نسخ الرسالة
+  /// Unified 4-Item Luxury Bottom Navigation Bar: الرئيسية • المفضلة • مشاركة • نسخ الرسالة
   Widget _buildMessageBottomBar(bool isDark) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 14),
@@ -659,7 +757,16 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                 ),
               ),
 
-              // 2. مشاركة (Share)
+              // 2. المفضلة (Favorites)
+              Expanded(
+                child: _buildBottomBarItem(
+                  icon: Icons.bookmark_border_rounded,
+                  label: 'المفضلة',
+                  onTap: _openFavorites,
+                ),
+              ),
+
+              // 3. مشاركة (Share)
               Expanded(
                 child: _buildBottomBarItem(
                   icon: Icons.share_rounded,
@@ -668,7 +775,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                 ),
               ),
 
-              // 3. نسخ الرسالة (Copy Text)
+              // 4. نسخ الرسالة (Copy Text)
               Expanded(
                 child: _buildBottomBarItem(
                   icon: Icons.copy_rounded,
@@ -708,6 +815,45 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
       onTap: onTap,
     );
   }
+}
+
+/// Painter for traditional subtle gold corner brackets inside the card
+class _CornerOrnamentPainter extends CustomPainter {
+  final Color color;
+
+  _CornerOrnamentPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+
+    const double inset = 12.0;
+    const double length = 16.0;
+
+    // Top-Left
+    canvas.drawLine(const Offset(inset, inset + length), const Offset(inset, inset), paint);
+    canvas.drawLine(const Offset(inset, inset), const Offset(inset + length, inset), paint);
+
+    // Top-Right
+    canvas.drawLine(Offset(size.width - inset - length, inset), Offset(size.width - inset, inset), paint);
+    canvas.drawLine(Offset(size.width - inset, inset), Offset(size.width - inset, inset + length), paint);
+
+    // Bottom-Left
+    canvas.drawLine(Offset(inset, size.height - inset - length), Offset(inset, size.height - inset), paint);
+    canvas.drawLine(Offset(inset, size.height - inset), Offset(inset + length, size.height - inset), paint);
+
+    // Bottom-Right
+    canvas.drawLine(Offset(size.width - inset - length, size.height - inset), Offset(size.width - inset, size.height - inset), paint);
+    canvas.drawLine(Offset(size.width - inset, size.height - inset - length), Offset(size.width - inset, size.height - inset), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CornerOrnamentPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class _MessageBottomBarItem extends StatefulWidget {
@@ -761,7 +907,7 @@ class _MessageBottomBarItemState extends State<_MessageBottomBarItem> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12.5,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: _isHovered ? const Color(0xFFE8D49E) : const Color(0xFFF0E6D2),
                   fontFamily: 'Tajawal',

@@ -11,6 +11,7 @@ import '../messages/daily_message_screen.dart';
 import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
 import '../share/add_message_screen.dart';
+import '../favorites/favorites_screen.dart';
 import '../profile/settings_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -44,8 +45,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
             },
-            onOpenCommunity: () {
+            onOpenFavorites: () {
               setState(() => _currentTabIndex = 1);
+            },
+            onOpenCommunity: () {
+              setState(() => _currentTabIndex = 2);
             },
             onHeartClick: () {
               final insight = _repo.getRandomInsight();
@@ -66,23 +70,29 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
 
-          // Tab 1: Community Posts ("المشاركات")
+          // Tab 1: Favorites / Bookmarked messages ("المفضلة")
+          FavoritesScreen(
+            isRootTab: true,
+            onTabSelected: (index) => setState(() => _currentTabIndex = index),
+          ),
+
+          // Tab 2: Community Posts ("المشاركات")
           CommunityScreen(
             onSwitchToShareTab: () {
-              setState(() => _currentTabIndex = 2);
+              setState(() => _currentTabIndex = 3);
             },
           ),
 
-          // Tab 2: Share / Add Message ("اكتب رسالة")
+          // Tab 3: Share / Add Message ("اكتب رسالة")
           AddMessageScreen(
             onPostCreated: () {
-              setState(() => _currentTabIndex = 1); // Switch to community to see the new post
+              setState(() => _currentTabIndex = 2); // Switch to community to see the new post
             },
           ),
         ],
       ),
 
-      // Persistent Unified Bottom Navigation Bar
+      // Persistent Unified Bottom Navigation Bar (4 tabs)
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentTabIndex,
         onTap: (index) => setState(() => _currentTabIndex = index),
@@ -94,12 +104,14 @@ class _HomeScreenState extends State<HomeScreen> {
 class _HomeMainView extends StatelessWidget {
   final VoidCallback onOpenDrawer;
   final VoidCallback onOpenAllHadiths;
+  final VoidCallback onOpenFavorites;
   final VoidCallback onOpenCommunity;
   final VoidCallback onHeartClick;
 
   const _HomeMainView({
     required this.onOpenDrawer,
     required this.onOpenAllHadiths,
+    required this.onOpenFavorites,
     required this.onOpenCommunity,
     required this.onHeartClick,
   });
@@ -122,15 +134,18 @@ class _HomeMainView extends StatelessWidget {
           children: [
             const SizedBox(height: 6),
 
-            // Top Header: Center Pill for All Hadiths + Right Profile Avatar (Removed redundant left icon)
+            // Top Header: Right Menu Button + Center Pill for All Hadiths + Left Favorites Button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Left Spacer to maintain balanced centering
-                  const SizedBox(width: 44),
+                  // Top-Right in RTL: Options Menu Button (with menu icon)
+                  _HeaderMenuButton(
+                    isDark: isDark,
+                    onTap: onOpenDrawer,
+                  ),
 
                   // Center: Browse all Hadiths Pill
                   InkWell(
@@ -171,10 +186,10 @@ class _HomeMainView extends StatelessWidget {
                     ),
                   ),
 
-                  // Right: Profile Avatar (Opens Drawer/Settings)
-                  _HeaderProfileAvatar(
+                  // Top-Left in RTL: Favorites / Bookmarks Button
+                  _HeaderFavoritesButton(
                     isDark: isDark,
-                    onTap: onOpenDrawer,
+                    onTap: onOpenFavorites,
                   ),
                 ],
               ),
@@ -668,20 +683,20 @@ class _OuterPatternedRingPainter extends CustomPainter {
       oldDelegate.color != color;
 }
 
-class _HeaderProfileAvatar extends StatefulWidget {
+class _HeaderMenuButton extends StatefulWidget {
   final bool isDark;
   final VoidCallback onTap;
 
-  const _HeaderProfileAvatar({
+  const _HeaderMenuButton({
     required this.isDark,
     required this.onTap,
   });
 
   @override
-  State<_HeaderProfileAvatar> createState() => _HeaderProfileAvatarState();
+  State<_HeaderMenuButton> createState() => _HeaderMenuButtonState();
 }
 
-class _HeaderProfileAvatarState extends State<_HeaderProfileAvatar> {
+class _HeaderMenuButtonState extends State<_HeaderMenuButton> {
   bool _isPressed = false;
 
   @override
@@ -703,10 +718,10 @@ class _HeaderProfileAvatarState extends State<_HeaderProfileAvatar> {
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: widget.isDark ? AppColors.softCreamDark : const Color(0xFFFBF8F2),
+              color: widget.isDark ? AppColors.cardDark : const Color(0xFFFAF6EE),
               border: Border.all(
                 color: const Color(0xFFD6BE88),
-                width: 1.6,
+                width: 1.4,
               ),
               boxShadow: const [
                 BoxShadow(
@@ -717,9 +732,69 @@ class _HeaderProfileAvatarState extends State<_HeaderProfileAvatar> {
               ],
             ),
             child: Icon(
-              Icons.person_outline_rounded,
+              Icons.menu_rounded,
               color: widget.isDark ? AppColors.gold : const Color(0xFF385240),
-              size: 24,
+              size: 23,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderFavoritesButton extends StatefulWidget {
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _HeaderFavoritesButton({
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  State<_HeaderFavoritesButton> createState() => _HeaderFavoritesButtonState();
+}
+
+class _HeaderFavoritesButtonState extends State<_HeaderFavoritesButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedScale(
+          scale: _isPressed ? 0.90 : 1.0,
+          duration: const Duration(milliseconds: 140),
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: widget.isDark ? AppColors.cardDark : const Color(0xFFFAF6EE),
+              border: Border.all(
+                color: const Color(0x70D1BE93),
+                width: 1.2,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0A000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.bookmark_border_rounded,
+              color: widget.isDark ? AppColors.gold : const Color(0xFF385240),
+              size: 21,
             ),
           ),
         ),

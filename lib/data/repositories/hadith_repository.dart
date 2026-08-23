@@ -120,6 +120,43 @@ class HadithRepository {
     }
   }
 
+  final Set<int> _favoriteHadithNumbers = {1, 2, 12};
+  final Set<String> _favoriteInsightTexts = {
+    'اتساع قلبك لمحبة الخير للناس علامة اكتمال إيمانك ونقاء سريرتك.',
+    'الإحسان أن تعبد الله كأنك تراه؛ استشعار قربه يملأ القلب سكينة وخشوعاً.',
+  };
+
+  Set<int> get favoriteHadithNumbers => _favoriteHadithNumbers;
+  Set<String> get favoriteInsightTexts => _favoriteInsightTexts;
+
+  bool isHadithFavorite(int number) => _favoriteHadithNumbers.contains(number);
+
+  void toggleFavoriteHadith(int number) {
+    if (_favoriteHadithNumbers.contains(number)) {
+      _favoriteHadithNumbers.remove(number);
+    } else {
+      _favoriteHadithNumbers.add(number);
+    }
+  }
+
+  bool isInsightFavorite(String text) => _favoriteInsightTexts.contains(text);
+
+  void toggleFavoriteInsight(String text) {
+    if (_favoriteInsightTexts.contains(text)) {
+      _favoriteInsightTexts.remove(text);
+    } else {
+      _favoriteInsightTexts.add(text);
+    }
+  }
+
+  List<Insight> getFavoriteInsights() {
+    return _insights.where((i) => _favoriteInsightTexts.contains(i.message)).toList();
+  }
+
+  List<Hadith> getFavoriteHadiths() {
+    return _hadiths.where((h) => _favoriteHadithNumbers.contains(h.number)).toList();
+  }
+
   Hadith? getByNumber(int number) {
     try {
       return _hadiths.firstWhere((h) => h.number == number);

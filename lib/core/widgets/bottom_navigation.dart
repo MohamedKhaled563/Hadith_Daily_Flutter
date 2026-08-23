@@ -64,27 +64,39 @@ class BottomNavigation extends StatelessWidget {
                 ),
               ),
 
-              // 2. المشاركات (Community / Posts - Index 1)
+              // 2. المفضلة (Favorites / Bookmarks - Index 1)
               Expanded(
                 child: _buildNavItem(
                   index: 1,
-                  icon: Icons.forum_outlined,
-                  activeIcon: Icons.forum_rounded,
-                  label: 'المشاركات',
+                  icon: Icons.bookmark_border_rounded,
+                  activeIcon: Icons.bookmark_rounded,
+                  label: 'المفضلة',
                   isSelected: currentIndex == 1,
                   onTap: () => onTap(1),
                 ),
               ),
 
-              // 3. اكتب رسالة (Share / Add message - Index 2)
+              // 3. المشاركات (Community / Posts - Index 2)
               Expanded(
                 child: _buildNavItem(
                   index: 2,
+                  icon: Icons.forum_outlined,
+                  activeIcon: Icons.forum_rounded,
+                  label: 'المشاركات',
+                  isSelected: currentIndex == 2,
+                  onTap: () => onTap(2),
+                ),
+              ),
+
+              // 4. اكتب رسالة (Share / Add message - Index 3)
+              Expanded(
+                child: _buildNavItem(
+                  index: 3,
                   icon: Icons.edit_note_rounded,
                   activeIcon: Icons.edit_note_rounded,
                   label: 'اكتب رسالة',
-                  isSelected: currentIndex == 2,
-                  onTap: () => onTap(2),
+                  isSelected: currentIndex == 3,
+                  onTap: () => onTap(3),
                 ),
               ),
             ],
