@@ -7,6 +7,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_empty_state.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
@@ -56,7 +57,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (widget.onOpenDrawer != null)
-                _CircleIconButton(
+                CircleIconButton(
                   icon: Icons.menu_rounded,
                   semanticLabel: 'فتح قائمة الإعدادات',
                   onTap: widget.onOpenDrawer!,
@@ -190,10 +191,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     },
                     semanticLabel: 'إزالة الرسالة من المحفوظات',
                     toggled: true,
-                    child: const Icon(
+                    // Unsaving is reversible and low-stakes — the app's usual
+                    // gold, not the red reserved for destructive actions like
+                    // signing out.
+                    child: Icon(
                       Icons.bookmark_remove_rounded,
                       size: 22,
-                      color: Color(0xFFB3261E),
+                      color: palette.goldText,
                     ),
                   ),
                 ],
@@ -503,35 +507,3 @@ class _CategoryPill extends StatelessWidget {
   }
 }
 
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({
-    required this.icon,
-    required this.semanticLabel,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String semanticLabel;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: palette.surface,
-          border: Border.all(color: palette.cardBorder),
-          boxShadow: AppElevation.card,
-        ),
-        child: Icon(icon, color: palette.bodyText, size: 22),
-      ),
-    );
-  }
-}

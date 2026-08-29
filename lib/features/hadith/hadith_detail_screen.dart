@@ -6,9 +6,8 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
-import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/parchment_card.dart';
-import '../../core/widgets/tap_target.dart';
 import '../../data/models/hadith.dart';
 
 class HadithDetailScreen extends StatelessWidget {
@@ -51,47 +50,54 @@ class HadithDetailScreen extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 8),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                // chevron_right reads as "back" under RTL.
-                _CircleIconButton(
-                  icon: Icons.chevron_right_rounded,
-                  semanticLabel: 'رجوع',
-                  onTap: () => Navigator.maybePop(context),
+                // Centred regardless of how wide the side clusters are —
+                // spaceBetween used to shift this toward whichever side had
+                // fewer/narrower buttons. Stack sizes itself to the tallest
+                // child (the emblem), so the 44dp buttons sit centred inside.
+                const EmblemBadge(),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  // chevron_right reads as "back" under RTL.
+                  child: CircleIconButton(
+                    icon: Icons.chevron_right_rounded,
+                    semanticLabel: 'رجوع',
+                    onTap: () => Navigator.maybePop(context),
+                  ),
                 ),
-                _EmblemBadge(),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _CircleIconButton(
-                      icon: Icons.copy_rounded,
-                      semanticLabel: 'نسخ الحديث وشرحه',
-                      onTap: () => _copyHadith(context),
-                    ),
-                    const SizedBox(width: 6),
-                    _CircleIconButton(
-                      icon: Icons.ios_share_rounded,
-                      semanticLabel: 'مشاركة الحديث كصورة',
-                      onTap: () => showShareSheet(
-                        context: context,
-                        message: hadith.text,
-                        hadithTitle: hadith.title,
-                        hadithNumber: toArabicDigits(hadith.number),
-                        category: hadith.reference,
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircleIconButton(
+                        icon: Icons.copy_rounded,
+                        semanticLabel: 'نسخ النص الكامل مع الشرح والفوائد',
+                        onTap: () => _copyHadith(context),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      CircleIconButton(
+                        icon: Icons.ios_share_rounded,
+                        semanticLabel: 'مشاركة الحديث كصورة',
+                        onTap: () => showShareSheet(
+                          context: context,
+                          message: hadith.text,
+                          hadithTitle: hadith.title,
+                          hadithNumber: toArabicDigits(hadith.number),
+                          category: hadith.reference,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 12),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Semantics(
@@ -116,14 +122,15 @@ class HadithDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 14),
-
           Expanded(
             child: ListView(
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
-                20, 6, 20, 32 + MediaQuery.viewPaddingOf(context).bottom,
+                20,
+                6,
+                20,
+                32 + MediaQuery.viewPaddingOf(context).bottom,
               ),
               children: [
                 ParchmentCard(
@@ -173,7 +180,6 @@ class HadithDetailScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 if (hadith.explanation.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   ParchmentCard(
@@ -199,7 +205,6 @@ class HadithDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ],
-
                 if (hadith.narratorBio.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   ParchmentCard(
@@ -225,7 +230,6 @@ class HadithDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ],
-
                 if (hadith.keyLessons.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   ParchmentCard(
@@ -310,66 +314,6 @@ class _CardHeading extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _EmblemBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: palette.surface,
-        border: Border.all(color: palette.cardBorderStrong, width: 1.5),
-        boxShadow: AppElevation.card,
-      ),
-      child: AssetHelper.assetOrFallback(
-        assetPath: 'assets/images/heart_leaf_emblem.png',
-        width: 36,
-        height: 36,
-        fallback: const Icon(
-          Icons.favorite_rounded,
-          color: AppColors.primaryGreen,
-          size: 24,
-        ),
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({
-    required this.icon,
-    required this.semanticLabel,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String semanticLabel;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: palette.surface,
-          border: Border.all(color: palette.cardBorder),
-          boxShadow: AppElevation.card,
-        ),
-        child: Icon(icon, color: palette.bodyText, size: 22),
-      ),
     );
   }
 }

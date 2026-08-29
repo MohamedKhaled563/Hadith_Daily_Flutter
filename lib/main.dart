@@ -7,7 +7,10 @@ import 'features/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await HadithRepository().load();
+  await Future.wait([
+    HadithRepository().load(),
+    AppStateController().init(),
+  ]);
   runApp(const HadithApp());
 }
 

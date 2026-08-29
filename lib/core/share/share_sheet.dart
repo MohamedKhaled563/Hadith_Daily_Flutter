@@ -108,7 +108,7 @@ Future<void> showShareSheet({
             const SizedBox(height: 12),
 
             Text(
-              'واتساب • رسائل • فيسبوك • الصور وغيرها',
+              'شارك عبر أي تطبيق مثبت لديك',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: kSans,

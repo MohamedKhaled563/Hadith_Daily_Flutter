@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_state_controller.dart';
@@ -131,51 +132,88 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
     showBotanicalSheet<void>(
       context: context,
       title: 'تواصل معنا واقترح 🌿',
-      subtitle: 'يسعدنا سماع رأيك، أو أي فكرة تود إضافتها لتطوير التطبيق',
+      subtitle:
+          'يسعدنا سماع رأيك — اكتب ملاحظتك ثم أرسلها عبر بريدك أو أي تطبيق تختاره',
       child: Builder(
         builder: (sheetContext) {
           final palette = sheetContext.palette;
+          String? error;
 
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: palette.surface,
-                  borderRadius: BorderRadius.circular(AppRadii.listItem),
-                  border: Border.all(color: palette.cardBorder),
-                ),
-                child: TextField(
-                  controller: msgCtrl,
-                  maxLines: 4,
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 13.5,
-                    height: AppLeading.body,
-                    color: palette.bodyText,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'اكتب رسالتك أو اقتراحك هنا...',
-                    hintStyle: TextStyle(
-                      fontFamily: kSans,
-                      fontSize: 12.5,
-                      color: palette.mutedText,
+          return StatefulBuilder(
+            builder: (_, setFieldState) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.listItem),
+                    border: Border.all(
+                      color: error != null
+                          ? const Color(0xFFB3261E)
+                          : palette.cardBorder,
                     ),
-                    border: InputBorder.none,
+                  ),
+                  child: TextField(
+                    controller: msgCtrl,
+                    maxLines: 4,
+                    onChanged: (_) {
+                      if (error != null) setFieldState(() => error = null);
+                    },
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 13.5,
+                      height: AppLeading.body,
+                      color: palette.bodyText,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'اكتب رسالتك أو اقتراحك هنا...',
+                      hintStyle: TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 12.5,
+                        color: palette.mutedText,
+                      ),
+                      border: InputBorder.none,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              AppButton(
-                text: 'إرسال الاقتراح',
-                icon: Icons.send_rounded,
-                onPressed: () {
-                  Navigator.pop(sheetContext);
-                  _toast('شكراً لك! وصلتنا رسالتك وسنعمل بها بإذن الله 🌿');
-                },
-              ),
-            ],
+                if (error != null) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      error!,
+                      style: const TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFB3261E),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                AppButton(
+                  text: 'إرسال الاقتراح',
+                  icon: Icons.send_rounded,
+                  onPressed: () {
+                    final text = msgCtrl.text.trim();
+                    if (text.isEmpty) {
+                      setFieldState(
+                        () => error = 'اكتب ملاحظتك أولاً لتتمكن من إرسالها',
+                      );
+                      return;
+                    }
+                    Navigator.pop(sheetContext);
+                    SharePlus.instance.share(
+                      ShareParams(
+                        text: 'اقتراح على تطبيق «طيّب قلبك»:\n\n$text',
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -207,8 +245,8 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
 
     setState(() {});
     _toast(
-      'تم ضبط وقت ${isMorning ? "تذكير الصباح" : "تذكير المساء"} '
-      'على ${_formatTime(picked)} ✨',
+      'تم حفظ وقتك المفضل لـ ${isMorning ? "تذكير الصباح" : "تذكير المساء"} '
+      '(${_formatTime(picked)}) 🌿',
     );
   }
 
@@ -257,6 +295,24 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                       const SizedBox(height: 14),
 
                       _SectionHeader('مواعيد التنبيهات اليومية'),
+                      // Honest about what this does today: the switches store
+                      // a preferred time, but nothing in the app yet schedules
+                      // an OS-level notification at it.
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          start: 6,
+                          bottom: 8,
+                        ),
+                        child: Text(
+                          'إشعارات التذكير قادمة قريباً — احفظ وقتك المفضل الآن',
+                          style: TextStyle(
+                            fontFamily: kSans,
+                            fontSize: 11.5,
+                            height: AppLeading.body,
+                            color: palette.mutedText,
+                          ),
+                        ),
+                      ),
                       _SettingsCard(
                         children: [
                           _TimeTile(

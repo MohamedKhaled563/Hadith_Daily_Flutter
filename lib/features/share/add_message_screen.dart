@@ -31,11 +31,13 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
   Hadith? _selectedHadith;
   bool _shareWithCommunity = true;
   String? _messageError;
+  String? _hadithError;
 
   @override
   void initState() {
     super.initState();
-    if (_repo.hadiths.isNotEmpty) _selectedHadith = _repo.hadiths.first;
+    // No default selection: publishing under a hadith the reader never
+    // actually chose (previously always hadith #1) mis-attributes their words.
     if (_state.isLoggedIn && _state.userName.isNotEmpty) {
       _authorController.text = _state.userName;
     }
@@ -51,14 +53,45 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
   void _submit() {
     final messageText = _messageController.text.trim();
 
+    var hasError = false;
+
     if (messageText.isEmpty) {
       // Inline, next to the field it concerns — a red SnackBar at the far edge
       // of the screen makes the reader hunt for what went wrong.
-      setState(() => _messageError = 'اكتب نص الرسالة أولاً لتتمكن من إرسالها');
+      _messageError = 'اكتب نص الرسالة أولاً لتتمكن من إرسالها';
+      hasError = true;
+    }
+
+    if (_selectedHadith == null) {
+      _hadithError = 'اختر الحديث المرتبط برسالتك أولاً';
+      hasError = true;
+    }
+
+    if (hasError) {
+      setState(() {});
       return;
     }
 
-    setState(() => _messageError = null);
+    setState(() {
+      _messageError = null;
+      _hadithError = null;
+    });
+
+    // There is nowhere in this app to keep a message that isn't published —
+    // turning the switch off means "don't send it," not "save it privately."
+    // The old copy claimed the message was saved either way, which quietly
+    // discarded it when the switch was off.
+    if (!_shareWithCommunity) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'لن يتم نشر رسالتك بما أن المشاركة العامة معطّلة — '
+            'فعّل الخيار أعلاه لنشرها 🌿',
+          ),
+        ),
+      );
+      return;
+    }
 
     final authorName = _authorController.text.trim().isEmpty
         ? (_state.isLoggedIn && _state.userName.isNotEmpty
@@ -66,31 +99,24 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
               : 'فاعل خير')
         : _authorController.text.trim();
 
-    if (_shareWithCommunity) {
-      _repo.addCommunityPost(
-        CommunityPost(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          hadithNumber: _selectedHadith?.number ?? 1,
-          message: messageText,
-          authorName: authorName,
-          likes: 1,
-          isLiked: true,
-          createdAt: DateTime.now(),
-        ),
-      );
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _shareWithCommunity
-              ? 'تم نشر رسالتك في المجتمع 🌿'
-              : 'تم حفظ رسالتك 🌿',
-        ),
+    _repo.addCommunityPost(
+      CommunityPost(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        hadithNumber: _selectedHadith!.number,
+        message: messageText,
+        authorName: authorName,
+        likes: 1,
+        isLiked: true,
+        createdAt: DateTime.now(),
       ),
     );
 
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم نشر رسالتك في المجتمع 🌿')),
+    );
+
     _messageController.clear();
+    setState(() => _selectedHadith = null);
     if (!_state.isLoggedIn) _authorController.clear();
 
     FocusScope.of(context).unfocus();
@@ -103,8 +129,6 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     final hadithsList = _repo.hadiths;
-    final currentHadith =
-        _selectedHadith ?? (hadithsList.isNotEmpty ? hadithsList.first : null);
 
     return Column(
       children: [
@@ -138,7 +162,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
 
         Semantics(
           header: true,
-          child: Text('أضف رسالتك', style: textTheme.headlineMedium),
+          child: Text('شارك رسالتك', style: textTheme.headlineMedium),
         ),
         const SizedBox(height: 4),
         Text(
@@ -160,10 +184,21 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                 _Label('اختر الحديث المرتبط بالرسالة'),
                 const SizedBox(height: 6),
                 _FieldShell(
+                  borderColor: _hadithError != null
+                      ? const Color(0xFFB3261E)
+                      : null,
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<Hadith>(
                       isExpanded: true,
-                      value: currentHadith,
+                      value: _selectedHadith,
+                      hint: Text(
+                        'اختر حديثاً...',
+                        style: TextStyle(
+                          fontFamily: kSans,
+                          fontSize: 13,
+                          color: palette.mutedText,
+                        ),
+                      ),
                       dropdownColor: palette.surface,
                       borderRadius: BorderRadius.circular(AppRadii.listItem),
                       // 48dp rows keep the list itself tappable.
@@ -185,13 +220,18 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                           ),
                       ],
                       onChanged: (val) {
-                        if (val != null) {
-                          setState(() => _selectedHadith = val);
-                        }
+                        setState(() {
+                          _selectedHadith = val;
+                          if (val != null) _hadithError = null;
+                        });
                       },
                     ),
                   ),
                 ),
+                if (_hadithError != null) ...[
+                  const SizedBox(height: 8),
+                  _InlineError(_hadithError!),
+                ],
 
                 const SizedBox(height: 16),
 
@@ -255,28 +295,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
 
                 if (_messageError != null) ...[
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.error_outline_rounded,
-                        size: 16,
-                        color: Color(0xFFB3261E),
-                      ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          _messageError!,
-                          style: TextStyle(
-                            fontFamily: kSans,
-                            fontSize: 12.5,
-                            height: AppLeading.chrome,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFB3261E),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _InlineError(_messageError!),
                 ],
 
                 const SizedBox(height: 14),
@@ -314,6 +333,38 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
 
                 const SizedBox(height: 24),
               ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(
+          Icons.error_outline_rounded,
+          size: 16,
+          color: Color(0xFFB3261E),
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            message,
+            style: const TextStyle(
+              fontFamily: kSans,
+              fontSize: 12.5,
+              height: AppLeading.chrome,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFB3261E),
             ),
           ),
         ),

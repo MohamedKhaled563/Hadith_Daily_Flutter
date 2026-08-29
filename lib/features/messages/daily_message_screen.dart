@@ -8,6 +8,8 @@ import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/bottom_navigation.dart';
+import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/like_counter.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
@@ -36,8 +38,6 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
   final HadithRepository _repo = HadithRepository();
 
   late bool _isBookmarked;
-  bool _isLiked = false;
-  int _likesCount = 48;
 
   @override
   void initState() {
@@ -45,8 +45,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
     _isBookmarked = _repo.isInsightFavorite(widget.insight.message);
   }
 
-  String get _shareText =>
-      '« ${widget.insight.message} »\n\n'
+  String get _shareText => '« ${widget.insight.message} »\n\n'
       '📌 المرتبط بـ: ${widget.hadith?.title ?? 'حديث نبوي شريف'}\n'
       '🌿 من تطبيق: طيّب قلبك - هدي النبوة';
 
@@ -79,16 +78,14 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
       context: context,
       message: widget.insight.message,
       hadithTitle: widget.hadith?.title,
-      hadithNumber: widget.hadith == null
-          ? null
-          : toArabicDigits(widget.hadith!.number),
+      hadithNumber:
+          widget.hadith == null ? null : toArabicDigits(widget.hadith!.number),
       category: widget.insight.category,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
 
     return AppScreen(
@@ -105,13 +102,12 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
       child: Column(
         children: [
           const SizedBox(height: 6),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _CircleIconButton(
+                CircleIconButton(
                   icon: Icons.chevron_right_rounded,
                   semanticLabel: 'رجوع',
                   onTap: () => Navigator.maybePop(context),
@@ -145,32 +141,14 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                   ),
                 ),
 
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _CircleIconButton(
-                      icon: Icons.share_rounded,
-                      semanticLabel: 'مشاركة الرسالة',
-                      onTap: _showSharePreview,
-                    ),
-                    const SizedBox(width: 4),
-                    _CircleIconButton(
-                      icon: _isBookmarked
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                      semanticLabel: 'حفظ الرسالة في المفضلة',
-                      toggled: _isBookmarked,
-                      iconColor: _isBookmarked ? palette.goldText : null,
-                      onTap: _toggleBookmark,
-                    ),
-                  ],
-                ),
+                // Balances the back button so the title stays centred. The
+                // bookmark action now lives on the card itself, alongside
+                // copy and share.
+                const SizedBox(width: 44),
               ],
             ),
           ),
-
           const SizedBox(height: 6),
-
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -200,166 +178,258 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
   Widget _buildMessageCard() {
     final palette = context.palette;
 
-    return ParchmentCard(
-      elevated: true,
-      showBotanicals: true,
-      padding: const EdgeInsets.all(22),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    // The action toolbar lives below the card as its own floating pill,
+    // rather than squeezed into a header row inside the card — that gives
+    // every action room to breathe. The heart emblem stays inside the card,
+    // at the top, where it reads as the card's own mark rather than a
+    // separate element floating above the message.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ParchmentCard(
+          elevated: true,
+          showBotanicals: true,
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _LikeCounter(
-                likes: _likesCount,
-                isLiked: _isLiked,
-                onTap: () => setState(() {
-                  _isLiked = !_isLiked;
-                  _likesCount += _isLiked ? 1 : -1;
-                }),
-              ),
-
               Hero(
                 tag: 'heart_leaf_emblem_hero',
                 child: Container(
-                  width: 50,
-                  height: 50,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: palette.surface,
                     border: Border.all(
                       color: palette.cardBorderStrong,
-                      width: 1.4,
+                      width: 1.5,
                     ),
                   ),
                   child: Center(
                     child: AssetHelper.assetOrFallback(
                       assetPath: 'assets/images/heart_leaf_emblem.png',
-                      width: 32,
-                      height: 32,
+                      width: 34,
+                      height: 34,
                       fallback: const Icon(
                         Icons.favorite_rounded,
                         color: AppColors.primaryGreen,
-                        size: 24,
+                        size: 26,
                       ),
                     ),
                   ),
                 ),
               ),
-
-              TapTarget(
-                onTap: _copyMessageText,
-                semanticLabel: 'نسخ نص الرسالة',
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: palette.surface,
-                    border: Border.all(color: palette.cardBorder, width: 1.1),
-                  ),
-                  child: Icon(
-                    Icons.copy_rounded,
-                    size: 18,
-                    color: palette.goldText,
-                  ),
+              const SizedBox(height: 14),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                decoration: BoxDecoration(
+                  color: palette.surface,
+                  borderRadius: BorderRadius.circular(AppRadii.pill),
+                  border: Border.all(color: palette.cardBorder, width: 1.1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AssetHelper.assetOrFallback(
+                      assetPath: 'assets/images/leaf_accent.png',
+                      width: 14,
+                      height: 14,
+                      fallback: Icon(
+                        Icons.eco_rounded,
+                        size: 14,
+                        color: palette.goldText,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.insight.category,
+                      style: TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 12.5,
+                        height: AppLeading.chrome,
+                        fontWeight: FontWeight.w700,
+                        color: palette.goldText,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-
-          const SizedBox(height: 14),
-
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: BorderRadius.circular(AppRadii.pill),
-              border: Border.all(color: palette.cardBorder, width: 1.1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AssetHelper.assetOrFallback(
-                  assetPath: 'assets/images/leaf_accent.png',
-                  width: 14,
-                  height: 14,
-                  fallback: Icon(
-                    Icons.eco_rounded,
-                    size: 14,
-                    color: palette.goldText,
+              const _GoldDivider(),
+              Text(
+                '« ${widget.insight.message} »',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: kSans,
+                  fontSize: 20,
+                  height: AppLeading.scripture,
+                  fontWeight: FontWeight.w800,
+                  color: palette.bodyText,
+                ),
+              ),
+              const _GoldDivider(),
+              const SizedBox(height: 2),
+              if (widget.hadith != null) ...[
+                _HadithLinkPill(
+                  hadith: widget.hadith!,
+                  onTap: () => Navigator.push(
+                    context,
+                    SmoothPageRoute(
+                      child: HadithDetailScreen(hadith: widget.hadith!),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  widget.insight.category,
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 12.5,
-                    height: AppLeading.chrome,
-                    fontWeight: FontWeight.w700,
-                    color: palette.goldText,
-                  ),
-                ),
+                const SizedBox(height: 18),
               ],
-            ),
-          ),
-
-          const _GoldDivider(),
-
-          Text(
-            '« ${widget.insight.message} »',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: kSans,
-              fontSize: 20,
-              height: AppLeading.scripture,
-              fontWeight: FontWeight.w800,
-              color: palette.bodyText,
-            ),
-          ),
-
-          const _GoldDivider(),
-
-          _ShareCallToAction(onTap: _showSharePreview),
-
-          const SizedBox(height: 16),
-
-          if (widget.hadith != null) ...[
-            _HadithLinkPill(
-              hadith: widget.hadith!,
-              onTap: () => Navigator.push(
-                context,
-                SmoothPageRoute(
-                  child: HadithDetailScreen(hadith: widget.hadith!),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-          ],
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(width: 20, height: 1, color: palette.cardBorder),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  '🌿 طيّب قلبك • هدي النبوة',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 12,
-                    height: AppLeading.chrome,
-                    fontWeight: FontWeight.w700,
-                    color: palette.goldText,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(width: 20, height: 1, color: palette.cardBorder),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      '🌿 طيّب قلبك • هدي النبوة',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 12,
+                        height: AppLeading.chrome,
+                        fontWeight: FontWeight.w700,
+                        color: palette.goldText,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Container(width: 20, height: 1, color: palette.cardBorder),
+                ],
               ),
-              const SizedBox(width: 8),
-              Container(width: 20, height: 1, color: palette.cardBorder),
             ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _MessageToolbar(
+          isBookmarked: _isBookmarked,
+          likes: _repo.insightLikeCount(widget.insight.message),
+          isLiked: _repo.isInsightLiked(widget.insight.message),
+          onBookmark: _toggleBookmark,
+          onShare: _showSharePreview,
+          onCopy: _copyMessageText,
+          onLike: () => setState(
+            () => _repo.toggleInsightLike(widget.insight.message),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A floating toolbar below the message card: the like counter on the right,
+/// bookmark/share/copy grouped on the left, separated by a hairline divider.
+class _MessageToolbar extends StatelessWidget {
+  const _MessageToolbar({
+    required this.isBookmarked,
+    required this.likes,
+    required this.isLiked,
+    required this.onBookmark,
+    required this.onShare,
+    required this.onCopy,
+    required this.onLike,
+  });
+
+  final bool isBookmarked;
+  final int likes;
+  final bool isLiked;
+  final VoidCallback onBookmark;
+  final VoidCallback onShare;
+  final VoidCallback onCopy;
+  final VoidCallback onLike;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+        border: Border.all(color: palette.cardBorder),
+        boxShadow: AppElevation.card,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // First child sits at the START edge — the right, in RTL — which
+          // is where the like counter belongs.
+          // Backed by the repository, keyed by message text — not a
+          // hardcoded number that used to reset every time this card was
+          // reopened.
+          LikeCounter(likes: likes, isLiked: isLiked, onTap: onLike),
+          const SizedBox(width: 14),
+          Container(width: 1, height: 22, color: palette.cardBorder),
+          const SizedBox(width: 14),
+          _CardActionIcon(
+            icon: isBookmarked
+                ? Icons.bookmark_rounded
+                : Icons.bookmark_border_rounded,
+            semanticLabel: 'حفظ الرسالة في المفضلة',
+            toggled: isBookmarked,
+            onTap: onBookmark,
+          ),
+          const SizedBox(width: 10),
+          _CardActionIcon(
+            icon: Icons.ios_share_rounded,
+            semanticLabel: 'مشاركة البطاقة كصورة',
+            onTap: onShare,
+          ),
+          const SizedBox(width: 10),
+          _CardActionIcon(
+            icon: Icons.copy_rounded,
+            semanticLabel: 'نسخ نص الرسالة',
+            onTap: onCopy,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A small round icon action clustered on the message toolbar — copy, share,
+/// bookmark, all together rather than split between the card and the screen
+/// header.
+class _CardActionIcon extends StatelessWidget {
+  const _CardActionIcon({
+    required this.icon,
+    required this.semanticLabel,
+    required this.onTap,
+    this.toggled = false,
+  });
+
+  final IconData icon;
+  final String semanticLabel;
+  final VoidCallback onTap;
+  final bool toggled;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return TapTarget(
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      toggled: toggled,
+      child: Container(
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: toggled ? palette.surfaceSunken : palette.surface,
+          border: Border.all(
+            color: toggled ? palette.cardBorderStrong : palette.cardBorder,
+            width: 1.1,
+          ),
+        ),
+        child: Icon(icon, size: 17, color: palette.goldText),
       ),
     );
   }
@@ -386,71 +456,6 @@ class _GoldDivider extends StatelessWidget {
   }
 }
 
-class _LikeCounter extends StatelessWidget {
-  const _LikeCounter({
-    required this.likes,
-    required this.isLiked,
-    required this.onTap,
-  });
-
-  final int likes;
-  final bool isLiked;
-  final VoidCallback onTap;
-
-  static const _liked = Color(0xFFC73E3E);
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final isDark = context.isDarkMode;
-
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: 'إعجاب — ${likes} إعجاباً',
-      toggled: isLiked,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-        decoration: BoxDecoration(
-          color: isLiked
-              ? (isDark ? const Color(0xFF382323) : const Color(0xFFFDE8E8))
-              : palette.surface,
-          borderRadius: BorderRadius.circular(AppRadii.pill),
-          border: Border.all(
-            color: isLiked ? _liked.withValues(alpha: 0.6) : palette.cardBorder,
-            width: 1.1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedScale(
-              scale: isLiked ? 1.2 : 1.0,
-              duration: const Duration(milliseconds: 160),
-              curve: Curves.easeOutBack,
-              child: Icon(
-                isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                size: 19,
-                color: isLiked ? _liked : palette.mutedText,
-              ),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              toArabicDigits(likes),
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 13,
-                height: AppLeading.chrome,
-                fontWeight: FontWeight.w700,
-                color: isLiked ? _liked : palette.bodyText,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _HadithLinkPill extends StatelessWidget {
   const _HadithLinkPill({required this.hadith, required this.onTap});
 
@@ -463,7 +468,8 @@ class _HadithLinkPill extends StatelessWidget {
 
     return TapTarget(
       onTap: onTap,
-      semanticLabel: 'افتح الحديث ${toArabicDigits(hadith.number)}: ${hadith.title}',
+      semanticLabel:
+          'افتح الحديث ${toArabicDigits(hadith.number)}: ${hadith.title}',
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
@@ -492,98 +498,6 @@ class _HadithLinkPill extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: palette.goldText,
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({
-    required this.icon,
-    required this.semanticLabel,
-    required this.onTap,
-    this.toggled,
-    this.iconColor,
-  });
-
-  final IconData icon;
-  final String semanticLabel;
-  final VoidCallback onTap;
-  final bool? toggled;
-  final Color? iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      toggled: toggled,
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: palette.surface,
-          border: Border.all(color: palette.cardBorder),
-          boxShadow: AppElevation.card,
-        ),
-        child: Icon(icon, color: iconColor ?? palette.bodyText, size: 22),
-      ),
-    );
-  }
-}
-
-/// The share action on the card face. The icon in the top bar is easy to miss,
-/// and sharing a message onward is the whole point of the daily card.
-class _ShareCallToAction extends StatelessWidget {
-  const _ShareCallToAction({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return PressableSurface(
-      onTap: onTap,
-      semanticLabel: 'مشاركة البطاقة كصورة',
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 50),
-        padding: const EdgeInsets.symmetric(horizontal: 22),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.centerRight,
-            end: Alignment.centerLeft,
-            colors: [Color(0xFF1E3526), Color(0xFF2E4F3B), Color(0xFF1E3526)],
-          ),
-          borderRadius: BorderRadius.circular(AppRadii.pill),
-          border: Border.all(color: const Color(0xFFD6BE88), width: 1.3),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1E3526).withValues(alpha: 0.30),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.ios_share_rounded, size: 19, color: Color(0xFFF0E6D2)),
-            SizedBox(width: 9),
-            Text(
-              'شارك البطاقة',
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 14,
-                height: AppLeading.chrome,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFFFFFDFC),
               ),
             ),
           ],

@@ -6,6 +6,8 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/like_counter.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
@@ -41,7 +43,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _CircleIconButton(
+                CircleIconButton(
                   icon: Icons.chevron_right_rounded,
                   semanticLabel: 'رجوع',
                   onTap: () => Navigator.maybePop(context),
@@ -71,7 +73,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                     ),
                   ),
                 ),
-                _CircleIconButton(
+                CircleIconButton(
                   icon: Icons.ios_share_rounded,
                   semanticLabel: 'مشاركة المشاركة كصورة',
                   onTap: () => showShareSheet(
@@ -247,49 +249,11 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                 const SizedBox(height: 20),
 
                 Center(
-                  child: TapTarget(
+                  child: LikeCounter(
+                    likes: widget.post.likes,
+                    isLiked: widget.post.isLiked,
                     onTap: () => setState(
                       () => _repo.togglePostLike(widget.post.id),
-                    ),
-                    semanticLabel:
-                        'إعجاب — ${widget.post.likes} إعجاباً',
-                    toggled: widget.post.isLiked,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 28,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: palette.surface,
-                        borderRadius: BorderRadius.circular(AppRadii.pill),
-                        border: Border.all(color: palette.cardBorder),
-                        boxShadow: AppElevation.card,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            widget.post.isLiked
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            size: 22,
-                            color: widget.post.isLiked
-                                ? const Color(0xFFC73E3E)
-                                : palette.mutedText,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            '${toArabicDigits(widget.post.likes)} إعجاب',
-                            style: TextStyle(
-                              fontFamily: kSans,
-                              fontSize: 14.5,
-                              height: AppLeading.chrome,
-                              fontWeight: FontWeight.w700,
-                              color: palette.bodyText,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),
@@ -297,39 +261,6 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({
-    required this.icon,
-    required this.semanticLabel,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String semanticLabel;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: palette.surface,
-          border: Border.all(color: palette.cardBorder),
-          boxShadow: AppElevation.card,
-        ),
-        child: Icon(icon, color: palette.bodyText, size: 22),
       ),
     );
   }

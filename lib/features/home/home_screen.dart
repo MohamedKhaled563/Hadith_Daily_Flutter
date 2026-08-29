@@ -6,6 +6,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/repositories/hadith_repository.dart';
@@ -85,7 +86,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     SmoothPageRoute(child: const HadithListScreen()),
                   ),
-                  onOpenFavorites: () => _goToTab(1),
                   onHeartClick: _openDailyMessage,
                 ),
               ),
@@ -111,13 +111,11 @@ class _HomeMainView extends StatelessWidget {
   const _HomeMainView({
     required this.onOpenDrawer,
     required this.onOpenAllHadiths,
-    required this.onOpenFavorites,
     required this.onHeartClick,
   });
 
   final VoidCallback onOpenDrawer;
   final VoidCallback onOpenAllHadiths;
-  final VoidCallback onOpenFavorites;
   final VoidCallback onHeartClick;
 
   @override
@@ -160,7 +158,7 @@ class _HomeMainView extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       // First child sits at the START edge — the right, in RTL.
-                      _CircleIconButton(
+                      CircleIconButton(
                         icon: Icons.menu_rounded,
                         semanticLabel: 'فتح قائمة الإعدادات',
                         onTap: onOpenDrawer,
@@ -172,11 +170,10 @@ class _HomeMainView extends StatelessWidget {
                           titleColor: titleColor,
                         ),
                       ),
-                      _CircleIconButton(
-                        icon: Icons.bookmark_border_rounded,
-                        semanticLabel: 'المفضلة والمحفوظات',
-                        onTap: onOpenFavorites,
-                      ),
+                      // Matches the leading button's width so the pill stays
+                      // centred. Favorites already has its own bottom-nav tab —
+                      // this header used to duplicate it with a second control.
+                      const SizedBox(width: 44),
                     ],
                   ),
                 ),
@@ -314,44 +311,6 @@ class _BrowseAllPill extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({
-    required this.icon,
-    required this.semanticLabel,
-    required this.onTap,
-    this.emphasised = false,
-  });
-
-  final IconData icon;
-  final String semanticLabel;
-  final VoidCallback onTap;
-  final bool emphasised;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: palette.surface,
-          border: Border.all(
-            color: emphasised ? palette.cardBorderStrong : palette.cardBorder,
-            width: emphasised ? 1.4 : 1.2,
-          ),
-          boxShadow: AppElevation.card,
-        ),
-        child: Icon(icon, color: palette.goldText, size: 22),
       ),
     );
   }
@@ -674,7 +633,7 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
               ),
               const SizedBox(height: 8),
               Text(
-                'انقر لتهدأ روحك بنور النبوة 🌿',
+                'لمسة قلبية بانتظارك الآن 🌿',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: kSans,

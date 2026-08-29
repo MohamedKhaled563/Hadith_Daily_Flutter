@@ -1,22 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppStateController extends ChangeNotifier {
   static final AppStateController _instance = AppStateController._internal();
   factory AppStateController() => _instance;
   AppStateController._internal();
 
+  static const _keyDarkMode = 'settings.darkMode';
+  static const _keyFontSizeScale = 'settings.fontSizeScale';
+  static const _keyMorningReminderEnabled = 'settings.morningReminderEnabled';
+  static const _keyMorningReminderHour = 'settings.morningReminderHour';
+  static const _keyMorningReminderMinute = 'settings.morningReminderMinute';
+  static const _keyEveningReminderEnabled = 'settings.eveningReminderEnabled';
+  static const _keyEveningReminderHour = 'settings.eveningReminderHour';
+  static const _keyEveningReminderMinute = 'settings.eveningReminderMinute';
+  static const _keySoundEnabled = 'settings.soundEnabled';
+  static const _keyVibrationEnabled = 'settings.vibrationEnabled';
+
+  SharedPreferences? _prefs;
+
+  /// Loads persisted settings from disk. Must run before the settings are
+  /// first read — call once in main() before runApp.
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _prefs = prefs;
+
+    _themeMode = (prefs.getBool(_keyDarkMode) ?? false)
+        ? ThemeMode.dark
+        : ThemeMode.light;
+    _fontSizeScale = prefs.getDouble(_keyFontSizeScale) ?? _fontSizeScale;
+    _morningReminderEnabled =
+        prefs.getBool(_keyMorningReminderEnabled) ?? _morningReminderEnabled;
+    _eveningReminderEnabled =
+        prefs.getBool(_keyEveningReminderEnabled) ?? _eveningReminderEnabled;
+    _soundEnabled = prefs.getBool(_keySoundEnabled) ?? _soundEnabled;
+    _vibrationEnabled =
+        prefs.getBool(_keyVibrationEnabled) ?? _vibrationEnabled;
+
+    final morningHour = prefs.getInt(_keyMorningReminderHour);
+    final morningMinute = prefs.getInt(_keyMorningReminderMinute);
+    if (morningHour != null && morningMinute != null) {
+      _morningReminderTime =
+          TimeOfDay(hour: morningHour, minute: morningMinute);
+    }
+
+    final eveningHour = prefs.getInt(_keyEveningReminderHour);
+    final eveningMinute = prefs.getInt(_keyEveningReminderMinute);
+    if (eveningHour != null && eveningMinute != null) {
+      _eveningReminderTime =
+          TimeOfDay(hour: eveningHour, minute: eveningMinute);
+    }
+
+    notifyListeners();
+  }
+
   // Theme state
   ThemeMode _themeMode = ThemeMode.light;
   ThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
-  void toggleTheme() {
-    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners();
-  }
+  void toggleTheme() => setThemeMode(
+        _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light,
+      );
 
   void setThemeMode(ThemeMode mode) {
     _themeMode = mode;
+    _prefs?.setBool(_keyDarkMode, mode == ThemeMode.dark);
     notifyListeners();
   }
 
@@ -77,7 +126,8 @@ class AppStateController extends ChangeNotifier {
 
   /// Demo credentials, surfaced so the login screen can show the hint while
   /// this is still a placeholder. Remove alongside [signIn].
-  static String get demoHint => 'اسم المستخدم: $_demoUsername • كلمة المرور: $_demoPassword';
+  static String get demoHint =>
+      'اسم المستخدم: $_demoUsername • كلمة المرور: $_demoPassword';
 
   void updateProfileName(String newName) {
     if (newName.isNotEmpty) {
@@ -107,31 +157,39 @@ class AppStateController extends ChangeNotifier {
 
   void toggleMorningReminder(bool value) {
     _morningReminderEnabled = value;
+    _prefs?.setBool(_keyMorningReminderEnabled, value);
     notifyListeners();
   }
 
   void setMorningReminderTime(TimeOfDay time) {
     _morningReminderTime = time;
+    _prefs?.setInt(_keyMorningReminderHour, time.hour);
+    _prefs?.setInt(_keyMorningReminderMinute, time.minute);
     notifyListeners();
   }
 
   void toggleEveningReminder(bool value) {
     _eveningReminderEnabled = value;
+    _prefs?.setBool(_keyEveningReminderEnabled, value);
     notifyListeners();
   }
 
   void setEveningReminderTime(TimeOfDay time) {
     _eveningReminderTime = time;
+    _prefs?.setInt(_keyEveningReminderHour, time.hour);
+    _prefs?.setInt(_keyEveningReminderMinute, time.minute);
     notifyListeners();
   }
 
   void toggleSound(bool value) {
     _soundEnabled = value;
+    _prefs?.setBool(_keySoundEnabled, value);
     notifyListeners();
   }
 
   void toggleVibration(bool value) {
     _vibrationEnabled = value;
+    _prefs?.setBool(_keyVibrationEnabled, value);
     notifyListeners();
   }
 
@@ -156,6 +214,7 @@ class AppStateController extends ChangeNotifier {
   void setFontSizeScale(double scale) {
     if (_fontSizeScale == scale) return;
     _fontSizeScale = scale;
+    _prefs?.setDouble(_keyFontSizeScale, scale);
     notifyListeners();
   }
 }

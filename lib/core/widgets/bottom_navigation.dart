@@ -40,12 +40,12 @@ class BottomNavigation extends StatelessWidget {
     (
       icon: Icons.forum_outlined,
       activeIcon: Icons.forum_rounded,
-      label: 'المشاركات',
+      label: 'مجتمع الحديث',
     ),
     (
       icon: Icons.edit_note_rounded,
       activeIcon: Icons.edit_note_rounded,
-      label: 'اكتب رسالة',
+      label: 'شارك رسالة',
     ),
   ];
 

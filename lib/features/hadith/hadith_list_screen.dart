@@ -5,7 +5,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_empty_state.dart';
-import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
@@ -69,17 +69,20 @@ class _HadithListScreenState extends State<HadithListScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _CircleIconButton(
+                CircleIconButton(
                   icon: Icons.chevron_right_rounded,
                   semanticLabel: 'رجوع',
                   onTap: () => Navigator.maybePop(context),
                 ),
-                _EmblemBadge(),
-                _CircleIconButton(
-                  icon: _showOnlyFavorites
-                      ? Icons.bookmark_rounded
-                      : Icons.bookmark_border_rounded,
-                  semanticLabel: 'عرض المحفوظات فقط',
+                const EmblemBadge(),
+                // filter_alt rather than the bookmark glyph used per-item
+                // below — the same icon for "filter the list" and "save this
+                // hadith" on one screen read as if this saved the whole list.
+                CircleIconButton(
+                  icon: Icons.filter_alt_rounded,
+                  semanticLabel: _showOnlyFavorites
+                      ? 'عرض جميع الأحاديث'
+                      : 'عرض المحفوظات فقط',
                   toggled: _showOnlyFavorites,
                   iconColor: _showOnlyFavorites ? palette.goldText : null,
                   onTap: () => setState(
@@ -345,67 +348,3 @@ class _HadithListCard extends StatelessWidget {
   }
 }
 
-class _EmblemBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: palette.surface,
-        border: Border.all(color: palette.cardBorderStrong, width: 1.5),
-        boxShadow: AppElevation.card,
-      ),
-      child: AssetHelper.assetOrFallback(
-        assetPath: 'assets/images/heart_leaf_emblem.png',
-        width: 36,
-        height: 36,
-        fallback: const Icon(
-          Icons.favorite_rounded,
-          color: AppColors.primaryGreen,
-          size: 24,
-        ),
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({
-    required this.icon,
-    required this.semanticLabel,
-    required this.onTap,
-    this.toggled,
-    this.iconColor,
-  });
-
-  final IconData icon;
-  final String semanticLabel;
-  final VoidCallback onTap;
-  final bool? toggled;
-  final Color? iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      toggled: toggled,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: palette.surface,
-          border: Border.all(color: palette.cardBorder),
-          boxShadow: AppElevation.card,
-        ),
-        child: Icon(icon, color: iconColor ?? palette.bodyText, size: 22),
-      ),
-    );
-  }
-}

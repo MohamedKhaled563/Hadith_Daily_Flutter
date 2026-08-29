@@ -191,4 +191,25 @@ class HadithRepository {
       post.likes += post.isLiked ? 1 : -1;
     }
   }
+
+  // Insight likes, keyed by message text like the favorites above. Starts at
+  // zero rather than a seeded number — an honest count for this session
+  // beats a number that looks real but isn't.
+  final Set<String> _likedInsightTexts = <String>{};
+  final Map<String, int> _insightLikeCounts = <String, int>{};
+
+  bool isInsightLiked(String text) => _likedInsightTexts.contains(text);
+
+  int insightLikeCount(String text) => _insightLikeCounts[text] ?? 0;
+
+  void toggleInsightLike(String text) {
+    final liked = _likedInsightTexts.contains(text);
+    if (liked) {
+      _likedInsightTexts.remove(text);
+      _insightLikeCounts[text] = (insightLikeCount(text) - 1).clamp(0, 1 << 30);
+    } else {
+      _likedInsightTexts.add(text);
+      _insightLikeCounts[text] = insightLikeCount(text) + 1;
+    }
+  }
 }

@@ -7,6 +7,8 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_empty_state.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/like_counter.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
@@ -59,17 +61,20 @@ class _CommunityScreenState extends State<CommunityScreen> {
             children: [
               // First child sits at the START edge — the right, in RTL.
               if (widget.onOpenDrawer != null)
-                _CircleIconButton(
+                CircleIconButton(
                   icon: Icons.menu_rounded,
                   semanticLabel: 'فتح قائمة الإعدادات',
                   onTap: widget.onOpenDrawer!,
                 )
               else
-                const SizedBox(width: 48),
+                const SizedBox(width: 44),
 
-              _EmblemBadge(),
+              const EmblemBadge(),
 
-              _GoldAddButton(onTap: _openAddMessage),
+              // Balances the menu button so the emblem stays centred. Writing
+              // a post already has a standing entry point — the bottom-nav
+              // "شارك رسالة" tab — so this header does not need its own.
+              const SizedBox(width: 44),
             ],
           ),
         ),
@@ -96,7 +101,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   title: 'لا توجد مشاركات بعد',
                   subtitle:
                       'كن أول من يشارك خاطرة أو تأملاً مربوطاً بحديث نبوي شريف، واجعلها سبباً في نشر الخير.',
-                  actionLabel: 'اكتب أول رسالة',
+                  actionLabel: 'شارك أول رسالة',
                   onAction: _openAddMessage,
                 )
               : ListView.separated(
@@ -121,15 +126,18 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 ),
         ),
 
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            6,
-            20,
-            6 + BottomNavigation.reservedHeight(context),
+        // The empty state above already offers its own "شارك أول رسالة"
+        // action — showing this banner too would stack two identical CTAs.
+        if (posts.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              6,
+              20,
+              6 + BottomNavigation.reservedHeight(context),
+            ),
+            child: _ShareCtaBanner(onTap: _openAddMessage),
           ),
-          child: _ShareCtaBanner(onTap: _openAddMessage),
-        ),
       ],
     );
   }
@@ -171,7 +179,7 @@ class _SortToggle extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Flexible(child: option('أفضل ١٠ مشاركات لهذا الأسبوع', true)),
+        Flexible(child: option('الأكثر إعجاباً', true)),
         Text('•', style: TextStyle(color: palette.mutedText, fontSize: 12)),
         option('الأحدث', false),
       ],
@@ -199,7 +207,6 @@ class _CommunityPostCard extends StatefulWidget {
 class _CommunityPostCardState extends State<_CommunityPostCard> {
   final HadithRepository _repo = HadithRepository();
 
-
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
@@ -213,46 +220,53 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Stack(
+            alignment: Alignment.center,
             children: [
-              _LikeCounter(
-                likes: widget.post.likes,
-                isLiked: widget.post.isLiked,
-                onTap: widget.onLikeToggle,
-              ),
+              // Centred regardless of the side widths — a spaceBetween Row
+              // here used to shift the avatar off-centre whenever the like
+              // counter's variable width didn't match the share icon's.
               _AuthorAvatar(
                 rank: widget.rank,
                 authorName: widget.post.authorName,
               ),
-              TapTarget(
-                onTap: () => showShareSheet(
-                  context: context,
-                  message: widget.post.message,
-                  hadithTitle: hadith?.title,
-                  hadithNumber: toArabicDigits(widget.post.hadithNumber),
-                  attribution: widget.post.authorName,
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: LikeCounter(
+                  likes: widget.post.likes,
+                  isLiked: widget.post.isLiked,
+                  onTap: widget.onLikeToggle,
                 ),
-                semanticLabel: 'مشاركة المشاركة كصورة',
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: palette.surface,
-                    border: Border.all(color: palette.cardBorder, width: 1.1),
+              ),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TapTarget(
+                  onTap: () => showShareSheet(
+                    context: context,
+                    message: widget.post.message,
+                    hadithTitle: hadith?.title,
+                    hadithNumber: toArabicDigits(widget.post.hadithNumber),
+                    attribution: widget.post.authorName,
                   ),
-                  child: Icon(
-                    Icons.ios_share_rounded,
-                    size: 17,
-                    color: palette.goldText,
+                  semanticLabel: 'مشاركة المشاركة كصورة',
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: palette.surface,
+                      border: Border.all(color: palette.cardBorder, width: 1.1),
+                    ),
+                    child: Icon(
+                      Icons.ios_share_rounded,
+                      size: 17,
+                      color: palette.goldText,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
           Text(
             widget.post.authorName,
             textAlign: TextAlign.center,
@@ -276,9 +290,7 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
               color: palette.goldText,
             ),
           ),
-
           const _GoldDivider(),
-
           Text(
             '« ${widget.post.message} »',
             textAlign: TextAlign.center,
@@ -290,83 +302,13 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
               color: palette.bodyText,
             ),
           ),
-
           const _GoldDivider(),
-
           if (hadith != null) ...[
             _HadithLinkPill(hadith: hadith),
             const SizedBox(height: 14),
           ],
-
           const _BrandSignature(label: '🌿 طيّب قلبك • مشاركات المجتمع'),
         ],
-      ),
-    );
-  }
-}
-
-class _LikeCounter extends StatelessWidget {
-  const _LikeCounter({
-    required this.likes,
-    required this.isLiked,
-    required this.onTap,
-  });
-
-  final int likes;
-  final bool isLiked;
-  final VoidCallback onTap;
-
-  static const _liked = Color(0xFFC73E3E);
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final isDark = context.isDarkMode;
-
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: 'إعجاب — ${likes} إعجاباً',
-      toggled: isLiked,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-        decoration: BoxDecoration(
-          color: isLiked
-              ? (isDark ? const Color(0xFF382323) : const Color(0xFFFDE8E8))
-              : palette.surface,
-          borderRadius: BorderRadius.circular(AppRadii.pill),
-          border: Border.all(
-            color: isLiked
-                ? _liked.withValues(alpha: 0.6)
-                : palette.cardBorder,
-            width: 1.1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedScale(
-              scale: isLiked ? 1.2 : 1.0,
-              duration: const Duration(milliseconds: 160),
-              curve: Curves.easeOutBack,
-              child: Icon(
-                isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                size: 18,
-                color: isLiked ? _liked : palette.mutedText,
-              ),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              toArabicDigits(likes),
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 12.5,
-                height: AppLeading.chrome,
-                fontWeight: FontWeight.w700,
-                color: isLiked ? _liked : palette.bodyText,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -543,99 +485,6 @@ class _BrandSignature extends StatelessWidget {
         const SizedBox(width: 6),
         Container(width: 16, height: 1, color: palette.cardBorder),
       ],
-    );
-  }
-}
-
-class _EmblemBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: palette.surface,
-        border: Border.all(color: palette.cardBorderStrong, width: 1.5),
-        boxShadow: AppElevation.card,
-      ),
-      child: AssetHelper.assetOrFallback(
-        assetPath: 'assets/images/heart_leaf_emblem.png',
-        width: 36,
-        height: 36,
-        fallback: const Icon(
-          Icons.favorite_rounded,
-          color: AppColors.primaryGreen,
-          size: 24,
-        ),
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({
-    required this.icon,
-    required this.semanticLabel,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String semanticLabel;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: palette.surface,
-          border: Border.all(color: palette.cardBorder),
-          boxShadow: AppElevation.card,
-        ),
-        child: Icon(icon, color: palette.bodyText, size: 22),
-      ),
-    );
-  }
-}
-
-class _GoldAddButton extends StatelessWidget {
-  const _GoldAddButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: 'أضف رسالة جديدة',
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFEADBBE), Color(0xFFC7A566), Color(0xFF9E7C3E)],
-          ),
-          border: Border.all(color: const Color(0xFFF3E7CE), width: 1.2),
-          boxShadow: AppElevation.card,
-        ),
-        child: const Icon(
-          Icons.add_rounded,
-          color: Color(0xFF26352C),
-          size: 26,
-        ),
-      ),
     );
   }
 }
