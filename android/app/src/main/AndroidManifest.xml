@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.hadith_app">
+    package="com.prodktstudio.tayebqalbak">
     <application
         android:label="طيّب قلبك"
         android:name="${applicationName}"

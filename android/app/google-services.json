@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "305295927502",
+    "project_id": "hadithdaily-5fc06",
+    "storage_bucket": "hadithdaily-5fc06.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:305295927502:android:4fe2d1ce3f3b828ec8089f",
+        "android_client_info": {
+          "package_name": "com.prodktstudio.tayebqalbak"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "305295927502-d6tivhe3770pf1atv66a0c4ssno0v124.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.prodktstudio.tayebqalbak",
+            "certificate_hash": "c8cbed26a1ba38c28429ffe455f86092d37e9a92"
+          }
+        },
+        {
+          "client_id": "305295927502-f9mjfcg8nln4gptfnjk968o8ivikst1n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXAIksb0SkfQgEvbyvsWTEnZyH7WEmrMI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "305295927502-f9mjfcg8nln4gptfnjk968o8ivikst1n.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "305295927502-4bqfmmrh77fbmjk4mqgd1b5fai0q2hnl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.prodktstudio.tayebqalbak"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

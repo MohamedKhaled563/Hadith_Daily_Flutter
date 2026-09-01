@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../auth/auth_service.dart';
 
 class AppStateController extends ChangeNotifier {
   static final AppStateController _instance = AppStateController._internal();
@@ -51,6 +53,9 @@ class AppStateController extends ChangeNotifier {
           TimeOfDay(hour: eveningHour, minute: eveningMinute);
     }
 
+    _applyUser(AuthService.instance.currentUser);
+    AuthService.instance.authStateChanges.listen(_applyUser);
+
     notifyListeners();
   }
 
@@ -70,38 +75,32 @@ class AppStateController extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------- auth ----
-  //
-  // PLACEHOLDER AUTHENTICATION — NOT SECURE, NOT REAL.
-  //
-  // Credentials are hardcoded in the client so the UI can be built and
-  // demonstrated before the backend exists. Anyone can read them by
-  // decompiling the app. Before this ships to real users, `signIn` must call a
-  // real auth service and this constant pair must be deleted.
-  static const _demoUsername = 'admin';
-  static const _demoPassword = 'admin';
-  static const _demoDisplayName = 'محمد';
-  static const _demoEmail = 'admin@tayyibqalbak.app';
 
   bool _isLoggedIn = false;
   bool get isLoggedIn => _isLoggedIn;
 
-  String _userName = _demoDisplayName;
+  String _userName = 'زائر كريم';
   String get userName => _userName;
 
-  String _userEmail = _demoEmail;
+  String _userEmail = '';
   String get userEmail => _userEmail;
 
-  /// Placeholder sign-in. Returns true when the demo credentials match.
-  bool signIn({required String username, required String password}) {
-    if (username.trim() != _demoUsername || password != _demoPassword) {
-      return false;
+  /// Mirrors FirebaseAuth's current user into the local fields the rest of
+  /// the app reads, so screens keep using the same `isLoggedIn`/`userName`/
+  /// `userEmail` surface regardless of how the user actually signed in.
+  void _applyUser(User? user) {
+    if (user == null) {
+      _isLoggedIn = false;
+      _userName = 'زائر كريم';
+      _userEmail = '';
+    } else {
+      _isLoggedIn = true;
+      _userName = user.displayName?.isNotEmpty == true
+          ? user.displayName!
+          : (user.email ?? 'زائر كريم');
+      _userEmail = user.email ?? '';
     }
-
-    _userName = _demoDisplayName;
-    _userEmail = _demoEmail;
-    _isLoggedIn = true;
     notifyListeners();
-    return true;
   }
 
   int _savedHadithsCount = 5;
@@ -110,24 +109,11 @@ class AppStateController extends ChangeNotifier {
   int _myContributionsCount = 2;
   int get myContributionsCount => _myContributionsCount;
 
-  void login(String name, String email) {
-    _userName = name.isNotEmpty ? name : 'عبد الله بن محمد';
-    _userEmail = email.isNotEmpty ? email : 'user@example.com';
-    _isLoggedIn = true;
-    notifyListeners();
-  }
-
   void logout() {
-    _isLoggedIn = false;
-    _userName = 'زائر كريم';
-    _userEmail = '';
-    notifyListeners();
+    // Fire-and-forget: the authStateChanges listener applies the signed-out
+    // state as soon as Firebase confirms it.
+    AuthService.instance.signOut();
   }
-
-  /// Demo credentials, surfaced so the login screen can show the hint while
-  /// this is still a placeholder. Remove alongside [signIn].
-  static String get demoHint =>
-      'اسم المستخدم: $_demoUsername • كلمة المرور: $_demoPassword';
 
   void updateProfileName(String newName) {
     if (newName.isNotEmpty) {

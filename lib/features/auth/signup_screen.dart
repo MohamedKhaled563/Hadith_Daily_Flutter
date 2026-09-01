@@ -1,30 +1,31 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/auth/auth_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
-import '../../core/theme/app_state_controller.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/glass_panel.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../home/home_screen.dart';
+import 'auth_error_messages.dart';
 
 /// How the reader wants to register.
 enum _SignUpMethod { email, mobile }
 
-/// PLACEHOLDER sign-up screen.
+/// Real sign-up screen: email/password creates a Firebase account; Google
+/// signs in via the official `google_sign_in` flow. Phone sign-up is deferred
+/// (SMS verification is the one part of Firebase Auth that isn't free) and
+/// still shows as "coming soon".
 ///
-/// Nothing here creates a real account. Submitting signs the reader in as the
-/// demo user so the rest of the app is reachable, and the Google option is an
-/// affordance only — see the warning on `AppStateController.signIn`.
-///
-/// When the real service lands: replace `_submit` with the registration call,
-/// and use the official `google_sign_in` package together with Google's own
-/// branded button asset. The mark drawn here is a neutral stand-in, because
-/// shipping an approximation of another company's logo is not acceptable.
+/// The Google mark drawn below is a neutral stand-in rather than an
+/// approximation of Google's actual logo, which their brand guidelines
+/// reserve for their own supplied assets.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -34,8 +35,6 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen>
     with SingleTickerProviderStateMixin {
-  final AppStateController _state = AppStateController();
-
   final _nameController = TextEditingController();
   final _contactController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -43,6 +42,7 @@ class _SignUpScreenState extends State<SignUpScreen>
   _SignUpMethod _method = _SignUpMethod.email;
   bool _obscurePassword = true;
   bool _submitting = false;
+  String _loadingMessage = 'جارٍ إنشاء الحساب…';
   bool _acceptedTerms = false;
   String? _error;
 
@@ -107,6 +107,11 @@ class _SignUpScreenState extends State<SignUpScreen>
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
+    if (!_isEmail) {
+      _comingSoon('رقم الجوال');
+      return;
+    }
+
     final problem = _validate();
     if (problem != null) {
       setState(() => _error = problem);
@@ -115,17 +120,65 @@ class _SignUpScreenState extends State<SignUpScreen>
 
     setState(() {
       _submitting = true;
+      _loadingMessage = 'جارٍ إنشاء الحساب…';
       _error = null;
     });
 
-    // Stands in for the network round-trip the real service will make.
-    await Future<void>.delayed(const Duration(milliseconds: 700));
+    try {
+      await AuthService.instance.signUpWithEmail(
+        email: _contactController.text.trim(),
+        password: _passwordController.text,
+        displayName: _nameController.text.trim(),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = authErrorMessage(e);
+      });
+      return;
+    }
     if (!mounted) return;
 
-    // Placeholder: no account is created. The reader is signed in as the demo
-    // user so the rest of the app is reachable while the backend is pending.
-    _state.signIn(username: 'admin', password: 'admin');
-    _state.updateProfileName(_nameController.text.trim());
+    Navigator.pushAndRemoveUntil(
+      context,
+      SmoothPageRoute(child: const HomeScreen()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _submitGoogle() async {
+    setState(() {
+      _submitting = true;
+      _loadingMessage = 'جارٍ الدخول عبر Google…';
+      _error = null;
+    });
+
+    final UserCredential? credential;
+    try {
+      credential = await AuthService.instance.signInWithGoogle();
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = authErrorMessage(e);
+      });
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = 'تعذّر إتمام تسجيل الدخول عبر Google';
+      });
+      return;
+    }
+
+    if (!mounted) return;
+    if (credential == null) {
+      // Reader dismissed the account picker — not an error.
+      setState(() => _submitting = false);
+      return;
+    }
 
     Navigator.pushAndRemoveUntil(
       context,
@@ -151,223 +204,230 @@ class _SignUpScreenState extends State<SignUpScreen>
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
 
-    return AppScreen(
-      showBottomLandscape: true,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              20,
-              8,
-              20,
-              24 + MediaQuery.viewInsetsOf(context).bottom,
-            ),
-            child: ConstrainedBox(
-              constraints:
-                  BoxConstraints(minHeight: constraints.maxHeight - 32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const _Brand(),
-                  const SizedBox(height: 18),
-                  FadeTransition(
-                    opacity: _fade,
-                    child: SlideTransition(
-                      position: _rise,
-                      child: GlassPanel(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Semantics(
-                              header: true,
-                              child: Text(
-                                'إنشاء حساب جديد',
+    return AppLoadingOverlay(
+      visible: _submitting,
+      message: _loadingMessage,
+      child: AppScreen(
+        showBottomLandscape: true,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                8,
+                20,
+                24 + MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: ConstrainedBox(
+                constraints:
+                    BoxConstraints(minHeight: constraints.maxHeight - 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const _Brand(),
+                    const SizedBox(height: 18),
+                    FadeTransition(
+                      opacity: _fade,
+                      child: SlideTransition(
+                        position: _rise,
+                        child: GlassPanel(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Semantics(
+                                header: true,
+                                child: Text(
+                                  'إنشاء حساب جديد',
+                                  textAlign: TextAlign.center,
+                                  style: textTheme.headlineMedium,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'انضم لمجتمع طيّب قلبك واحفظ تأملاتك',
                                 textAlign: TextAlign.center,
-                                style: textTheme.headlineMedium,
+                                style: textTheme.bodySmall,
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'انضم لمجتمع طيّب قلبك واحفظ تأملاتك',
-                              textAlign: TextAlign.center,
-                              style: textTheme.bodySmall,
-                            ),
-                            const SizedBox(height: 20),
-                            _ProviderButton(
-                              label: 'المتابعة باستخدام Google',
-                              icon: const _GoogleMark(),
-                              onTap: () => _comingSoon('Google'),
-                            ),
-                            const SizedBox(height: 18),
-                            const _OrDivider(),
-                            const SizedBox(height: 18),
-                            _MethodToggle(
-                              method: _method,
-                              onChanged: (m) => setState(() {
-                                _method = m;
-                                _contactController.clear();
-                                _error = null;
-                              }),
-                            ),
-                            const SizedBox(height: 18),
-                            _Label('الاسم أو اللقب'),
-                            const SizedBox(height: 6),
-                            GlassField(
-                              leading: Icon(
-                                Icons.person_outline_rounded,
-                                size: 20,
-                                color: palette.goldText,
+                              const SizedBox(height: 20),
+                              ProviderButton(
+                                label: 'المتابعة باستخدام Google',
+                                icon: const GoogleMark(),
+                                onTap: _submitting ? () {} : _submitGoogle,
                               ),
-                              child: TextField(
-                                controller: _nameController,
-                                enabled: !_submitting,
-                                textInputAction: TextInputAction.next,
-                                onChanged: _clearError,
-                                style: TextStyle(
-                                  fontFamily: kSans,
-                                  fontSize: 14,
-                                  color: palette.bodyText,
-                                ),
-                                decoration: _inputDecoration(
-                                  'مثال: محمد',
-                                  palette.mutedText,
-                                ),
+                              const SizedBox(height: 18),
+                              const OrDivider(),
+                              const SizedBox(height: 18),
+                              _MethodToggle(
+                                method: _method,
+                                onChanged: (m) => setState(() {
+                                  _method = m;
+                                  _contactController.clear();
+                                  _error = null;
+                                }),
                               ),
-                            ),
-                            const SizedBox(height: 14),
-                            _Label(
-                                _isEmail ? 'البريد الإلكتروني' : 'رقم الجوال'),
-                            const SizedBox(height: 6),
-                            GlassField(
-                              leading: Icon(
-                                _isEmail
-                                    ? Icons.mail_outline_rounded
-                                    : Icons.phone_iphone_rounded,
-                                size: 20,
-                                color: palette.goldText,
-                              ),
-                              child: TextField(
-                                controller: _contactController,
-                                enabled: !_submitting,
-                                textInputAction: TextInputAction.next,
-                                onChanged: _clearError,
-                                keyboardType: _isEmail
-                                    ? TextInputType.emailAddress
-                                    : TextInputType.phone,
-                                // Both are Latin/numeric, so they read LTR
-                                // inside the otherwise RTL layout.
-                                textDirection: TextDirection.ltr,
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                  fontFamily: kSans,
-                                  fontSize: 14,
-                                  color: palette.bodyText,
-                                ),
-                                decoration: _inputDecoration(
-                                  _isEmail ? 'name@example.com' : '05xxxxxxxx',
-                                  palette.mutedText,
-                                  ltrHint: true,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            _Label('كلمة المرور'),
-                            const SizedBox(height: 6),
-                            GlassField(
-                              leading: Icon(
-                                Icons.lock_outline_rounded,
-                                size: 20,
-                                color: palette.goldText,
-                              ),
-                              trailing: TapTarget(
-                                onTap: () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
-                                semanticLabel: _obscurePassword
-                                    ? 'إظهار كلمة المرور'
-                                    : 'إخفاء كلمة المرور',
-                                toggled: !_obscurePassword,
-                                minSize: 44,
-                                child: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
+                              const SizedBox(height: 18),
+                              _Label('الاسم أو اللقب'),
+                              const SizedBox(height: 6),
+                              GlassField(
+                                leading: Icon(
+                                  Icons.person_outline_rounded,
                                   size: 20,
-                                  color: palette.mutedText,
+                                  color: palette.goldText,
+                                ),
+                                child: TextField(
+                                  controller: _nameController,
+                                  enabled: !_submitting,
+                                  textInputAction: TextInputAction.next,
+                                  onChanged: _clearError,
+                                  style: TextStyle(
+                                    fontFamily: kSans,
+                                    fontSize: 14,
+                                    color: palette.bodyText,
+                                  ),
+                                  decoration: _inputDecoration(
+                                    'مثال: محمد',
+                                    palette.mutedText,
+                                  ),
                                 ),
                               ),
-                              child: TextField(
-                                controller: _passwordController,
-                                enabled: !_submitting,
-                                obscureText: _obscurePassword,
-                                textInputAction: TextInputAction.done,
-                                onChanged: _clearError,
-                                onSubmitted: (_) => _submit(),
-                                textDirection: TextDirection.ltr,
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                  fontFamily: kSans,
-                                  fontSize: 14,
-                                  color: palette.bodyText,
-                                ),
-                                decoration: _inputDecoration(
-                                  '٦ أحرف على الأقل',
-                                  palette.mutedText,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            _TermsCheck(
-                              value: _acceptedTerms,
-                              onChanged: (v) => setState(() {
-                                _acceptedTerms = v;
-                                if (v) _error = null;
-                              }),
-                            ),
-                            if (_error != null) ...[
                               const SizedBox(height: 14),
-                              _ErrorNote(message: _error!),
-                            ],
-                            const SizedBox(height: 20),
-                            AppButton(
-                              text: _submitting
-                                  ? 'جارٍ الإنشاء…'
-                                  : 'إنشاء الحساب',
-                              icon: _submitting
-                                  ? null
-                                  : Icons.person_add_alt_rounded,
-                              onPressed: _submitting ? () {} : _submit,
-                            ),
-                            const SizedBox(height: 10),
-                            TextButton(
-                              onPressed: _submitting
-                                  ? null
-                                  : () => Navigator.maybePop(context),
-                              style: TextButton.styleFrom(
-                                minimumSize: const Size(0, 48),
-                                foregroundColor: palette.goldText,
-                              ),
-                              child: const Text(
-                                'لديك حساب بالفعل؟ تسجيل الدخول',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontFamily: kSans,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
+                              _Label(_isEmail
+                                  ? 'البريد الإلكتروني'
+                                  : 'رقم الجوال'),
+                              const SizedBox(height: 6),
+                              GlassField(
+                                leading: Icon(
+                                  _isEmail
+                                      ? Icons.mail_outline_rounded
+                                      : Icons.phone_iphone_rounded,
+                                  size: 20,
+                                  color: palette.goldText,
+                                ),
+                                child: TextField(
+                                  controller: _contactController,
+                                  enabled: !_submitting,
+                                  textInputAction: TextInputAction.next,
+                                  onChanged: _clearError,
+                                  keyboardType: _isEmail
+                                      ? TextInputType.emailAddress
+                                      : TextInputType.phone,
+                                  // Both are Latin/numeric, so they read LTR
+                                  // inside the otherwise RTL layout.
+                                  textDirection: TextDirection.ltr,
+                                  textAlign: TextAlign.left,
+                                  style: TextStyle(
+                                    fontFamily: kSans,
+                                    fontSize: 14,
+                                    color: palette.bodyText,
+                                  ),
+                                  decoration: _inputDecoration(
+                                    _isEmail
+                                        ? 'name@example.com'
+                                        : '05xxxxxxxx',
+                                    palette.mutedText,
+                                    ltrHint: true,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 14),
+                              _Label('كلمة المرور'),
+                              const SizedBox(height: 6),
+                              GlassField(
+                                leading: Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: 20,
+                                  color: palette.goldText,
+                                ),
+                                trailing: TapTarget(
+                                  onTap: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                  semanticLabel: _obscurePassword
+                                      ? 'إظهار كلمة المرور'
+                                      : 'إخفاء كلمة المرور',
+                                  toggled: !_obscurePassword,
+                                  minSize: 44,
+                                  child: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                    size: 20,
+                                    color: palette.mutedText,
+                                  ),
+                                ),
+                                child: TextField(
+                                  controller: _passwordController,
+                                  enabled: !_submitting,
+                                  obscureText: _obscurePassword,
+                                  textInputAction: TextInputAction.done,
+                                  onChanged: _clearError,
+                                  onSubmitted: (_) => _submit(),
+                                  textDirection: TextDirection.ltr,
+                                  textAlign: TextAlign.left,
+                                  style: TextStyle(
+                                    fontFamily: kSans,
+                                    fontSize: 14,
+                                    color: palette.bodyText,
+                                  ),
+                                  decoration: _inputDecoration(
+                                    '٦ أحرف على الأقل',
+                                    palette.mutedText,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              _TermsCheck(
+                                value: _acceptedTerms,
+                                onChanged: (v) => setState(() {
+                                  _acceptedTerms = v;
+                                  if (v) _error = null;
+                                }),
+                              ),
+                              if (_error != null) ...[
+                                const SizedBox(height: 14),
+                                _ErrorNote(message: _error!),
+                              ],
+                              const SizedBox(height: 20),
+                              AppButton(
+                                text: _submitting
+                                    ? 'جارٍ الإنشاء…'
+                                    : 'إنشاء الحساب',
+                                icon: _submitting
+                                    ? null
+                                    : Icons.person_add_alt_rounded,
+                                onPressed: _submitting ? () {} : _submit,
+                              ),
+                              const SizedBox(height: 10),
+                              TextButton(
+                                onPressed: _submitting
+                                    ? null
+                                    : () => Navigator.maybePop(context),
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(0, 48),
+                                  foregroundColor: palette.goldText,
+                                ),
+                                child: const Text(
+                                  'لديك حساب بالفعل؟ تسجيل الدخول',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: kSans,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -477,8 +537,8 @@ class _MethodToggle extends StatelessWidget {
   }
 }
 
-class _ProviderButton extends StatelessWidget {
-  const _ProviderButton({
+class ProviderButton extends StatelessWidget {
+  const ProviderButton({
     required this.label,
     required this.icon,
     required this.onTap,
@@ -543,8 +603,8 @@ class _ProviderButton extends StatelessWidget {
 /// drawing an approximation of another company's logo is not something to
 /// ship. This is a placeholder to be replaced when `google_sign_in` is wired
 /// up with the official asset.
-class _GoogleMark extends StatelessWidget {
-  const _GoogleMark();
+class GoogleMark extends StatelessWidget {
+  const GoogleMark();
 
   @override
   Widget build(BuildContext context) {
@@ -569,8 +629,8 @@ class _GoogleMark extends StatelessWidget {
   }
 }
 
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
+class OrDivider extends StatelessWidget {
+  const OrDivider();
 
   @override
   Widget build(BuildContext context) {

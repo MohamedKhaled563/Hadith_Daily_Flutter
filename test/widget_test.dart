@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:hadith_app/core/theme/app_state_controller.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/auth/login_screen.dart';
 import 'package:hadith_app/features/home/home_screen.dart';
@@ -16,10 +15,6 @@ void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     await HadithRepository().load();
-  });
-
-  setUp(() {
-    AppStateController().logout();
   });
 
   testWidgets('boots to the splash screen', (tester) async {
@@ -42,53 +37,7 @@ void main() {
     expect(find.byType(HomeScreen), findsNothing);
   });
 
-  testWidgets('a signed-in reader goes straight to home', (tester) async {
-    AppStateController().signIn(username: 'admin', password: 'admin');
-
-    await tester.pumpWidget(const HadithApp());
-    await tester.pump(_pastSplash);
-    await tester.pump(_pastSplash);
-
-    expect(find.byType(HomeScreen), findsOneWidget);
-    expect(find.byType(LoginScreen), findsNothing);
-  });
-
-  group('placeholder sign-in', () {
-    test('accepts the demo credentials and names the reader', () {
-      final state = AppStateController()..logout();
-
-      expect(state.signIn(username: 'admin', password: 'admin'), isTrue);
-      expect(state.isLoggedIn, isTrue);
-      expect(state.userName, 'محمد');
-    });
-
-    test('tolerates surrounding whitespace in the username', () {
-      final state = AppStateController()..logout();
-
-      expect(state.signIn(username: '  admin ', password: 'admin'), isTrue);
-    });
-
-    test('rejects anything else and stays signed out', () {
-      final state = AppStateController()..logout();
-
-      for (final (username, password) in const [
-        ('admin', 'wrong'),
-        ('wrong', 'admin'),
-        ('', ''),
-        ('Admin', 'admin'), // username is case-sensitive
-        ('admin', 'Admin'), // password is case-sensitive
-      ]) {
-        expect(
-          state.signIn(username: username, password: password),
-          isFalse,
-          reason: 'should reject "$username" / "$password"',
-        );
-        expect(state.isLoggedIn, isFalse);
-      }
-    });
-  });
-
-  testWidgets('wrong credentials show an error and do not navigate',
+  testWidgets('empty credentials show a validation error and do not navigate',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -97,16 +46,10 @@ void main() {
       ),
     );
 
-    await tester.enterText(find.byType(TextField).first, 'admin');
-    await tester.enterText(find.byType(TextField).last, 'nope');
+    await tester.tap(find.text('دخول'));
     await tester.pump();
 
-    await tester.tap(find.text('دخول'));
-    await tester.pump(); // submitting
-    await tester.pump(const Duration(seconds: 1)); // past the fake round-trip
-
-    expect(find.text('اسم المستخدم أو كلمة المرور غير صحيحة'), findsOneWidget);
+    expect(find.text('أدخل البريد الإلكتروني وكلمة المرور'), findsOneWidget);
     expect(find.byType(HomeScreen), findsNothing);
-    expect(AppStateController().isLoggedIn, isFalse);
   });
 }

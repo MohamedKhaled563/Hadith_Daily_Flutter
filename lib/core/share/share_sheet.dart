@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_button.dart';
+import '../widgets/app_loading_overlay.dart';
 import '../widgets/botanical_sheet.dart';
 import 'share_card.dart';
 import 'share_service.dart';
@@ -68,14 +69,19 @@ Future<void> showShareSheet({
               icon: Icons.ios_share_rounded,
               onPressed: () async {
                 Navigator.pop(sheetContext);
-                await ShareService.shareMessage(
-                  context: context,
-                  message: message,
-                  hadithTitle: hadithTitle,
-                  hadithNumber: hadithNumber,
-                  attribution: attribution,
-                  category: category,
-                );
+                showAppLoadingOverlay(context, message: 'جارٍ تجهيز البطاقة…');
+                try {
+                  await ShareService.shareMessage(
+                    context: context,
+                    message: message,
+                    hadithTitle: hadithTitle,
+                    hadithNumber: hadithNumber,
+                    attribution: attribution,
+                    category: category,
+                  );
+                } finally {
+                  hideAppLoadingOverlay();
+                }
               },
             ),
 

@@ -1,4 +1,4 @@
-package com.example.hadith_app
+package com.prodktstudio.tayebqalbak
 
 import io.flutter.embedding.android.FlutterActivity
 
