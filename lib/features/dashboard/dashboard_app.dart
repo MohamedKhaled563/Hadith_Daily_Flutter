@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -5,6 +6,7 @@ import '../../core/auth/auth_service.dart';
 import 'bulk_add_page.dart';
 import 'pending_queue_page.dart';
 import 'rotation_order_page.dart';
+import 'users_page.dart';
 
 class DashboardApp extends StatelessWidget {
   const DashboardApp({super.key});
@@ -28,10 +30,13 @@ class DashboardApp extends StatelessWidget {
 
 /// Three states: signed out → sign-in form; signed in but not a
 /// moderator/admin → access-denied notice; signed in with the role →
-/// the dashboard itself. The role check force-refreshes the ID token
-/// (`getIdTokenResult(true)`) every time this rebuilds for a signed-in
-/// user, since a role granted moments ago (tool/set_role.py) wouldn't
-/// otherwise show up until some unrelated token refresh happened to occur.
+/// the dashboard itself.
+///
+/// Phase 11: the role check reads `users/{uid}.role` from Firestore
+/// directly instead of a custom claim on the ID token — a `snapshots()`
+/// listener rather than a one-shot `getIdTokenResult`, so a role an admin
+/// just granted from the Users tab shows up here live, with no sign-out/
+/// sign-in round trip needed.
 class _AuthGate extends StatefulWidget {
   const _AuthGate();
 
@@ -48,18 +53,20 @@ class _AuthGateState extends State<_AuthGate> {
         final user = snapshot.data;
         if (user == null) return const _SignInScreen();
 
-        return FutureBuilder<IdTokenResult>(
-          // forceRefresh: true — see the class doc above.
-          future: user.getIdTokenResult(true),
-          builder: (context, tokenSnapshot) {
-            if (!tokenSnapshot.hasData) {
+        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .snapshots(),
+          builder: (context, roleSnapshot) {
+            if (!roleSnapshot.hasData) {
               return const _LoadingScreen();
             }
-            final role = tokenSnapshot.data!.claims?['role'] as String?;
+            final role = roleSnapshot.data!.data()?['role'] as String?;
             if (role != 'moderator' && role != 'admin') {
               return const _AccessDeniedScreen();
             }
-            return const _DashboardHome();
+            return _DashboardHome(isAdmin: role == 'admin');
           },
         );
       },
@@ -206,7 +213,9 @@ class _SignInScreenState extends State<_SignInScreen> {
 }
 
 class _DashboardHome extends StatefulWidget {
-  const _DashboardHome();
+  const _DashboardHome({required this.isAdmin});
+
+  final bool isAdmin;
 
   @override
   State<_DashboardHome> createState() => _DashboardHomeState();
@@ -218,9 +227,10 @@ class _DashboardHomeState extends State<_DashboardHome> {
   @override
   Widget build(BuildContext context) {
     final email = AuthService.instance.currentUser?.email ?? '';
+    final tabCount = widget.isAdmin ? 4 : 3;
 
     return DefaultTabController(
-      length: 3,
+      length: tabCount,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('لوحة الإشراف — طيّب قلبك'),
@@ -236,23 +246,29 @@ class _DashboardHomeState extends State<_DashboardHome> {
             ),
           ],
           bottom: TabBar(
-            tabs: const [
-              Tab(
+            tabs: [
+              const Tab(
                 text: 'قائمة المراجعة',
                 icon: Icon(Icons.pending_actions_rounded),
               ),
-              Tab(text: 'الترتيب والتوزيع', icon: Icon(Icons.shuffle_rounded)),
-              Tab(text: 'إضافة بالجملة', icon: Icon(Icons.playlist_add_rounded)),
+              const Tab(text: 'الترتيب والتوزيع', icon: Icon(Icons.shuffle_rounded)),
+              const Tab(text: 'إضافة بالجملة', icon: Icon(Icons.playlist_add_rounded)),
+              // Role management touches who can act as a moderator/admin at
+              // all, so it stays admin-only — a moderator never sees this
+              // tab, matching what tool/set_role.py has always required.
+              if (widget.isAdmin)
+                const Tab(text: 'المستخدمون', icon: Icon(Icons.admin_panel_settings_rounded)),
             ],
             onTap: (i) => setState(() => _tab = i),
           ),
         ),
         body: IndexedStack(
           index: _tab,
-          children: const [
-            PendingQueuePage(),
-            RotationOrderPage(),
-            BulkAddPage(),
+          children: [
+            const PendingQueuePage(),
+            const RotationOrderPage(),
+            const BulkAddPage(),
+            if (widget.isAdmin) const UsersPage(),
           ],
         ),
       ),

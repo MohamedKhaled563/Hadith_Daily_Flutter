@@ -97,7 +97,8 @@ class AuthService {
   /// Mirrors the signed-in user into `users/{uid}` — see firestore.rules
   /// (phase 4): created once with displayName/email/createdAt, refreshed on
   /// every later sign-in in case displayName changed. `role` is never
-  /// touched here; only `tool/set_role.py`, via the Admin SDK, ever sets it.
+  /// touched here; only an existing admin (from the dashboard's Users tab)
+  /// or `tool/set_role.py` for bootstrapping ever sets it — see phase 11.
   Future<void> _ensureUserDoc(User user) async {
     final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
     final snapshot = await ref.get();

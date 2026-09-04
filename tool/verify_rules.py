@@ -31,10 +31,11 @@ API_KEY = "AIzaSyA1jc9xLvrPYS-Svye4q8zXAhAAUhPZbj0"  # web app key, public by de
 
 import firebase_admin
 import requests
-from firebase_admin import auth, credentials
+from firebase_admin import auth, credentials, firestore
 
 cred = credentials.Certificate(str(SERVICE_ACCOUNT_KEY))
 app = firebase_admin.initialize_app(cred)
+db = firestore.client(app)
 
 FIRESTORE_URL = (
     f"https://firestore.googleapis.com/v1/projects/{PROJECT}"
@@ -94,10 +95,71 @@ def _encode_fields(fields: dict) -> dict:
 def main() -> int:
     uid_a = f"rules-test-a-{uuid.uuid4().hex[:8]}"
     uid_b = f"rules-test-b-{uuid.uuid4().hex[:8]}"
+    uid_admin = f"rules-test-admin-{uuid.uuid4().hex[:8]}"
+
+    # roleOf() in firestore.rules (phase 11) does get(users/{uid}) for the
+    # caller's own role — in the real app every signed-in user always has
+    # that doc (AuthService._ensureUserDoc creates it at sign-in), so these
+    # throwaway test accounts need the same bootstrap or every isModerator()/
+    # isAdmin() check below would hit a missing document instead of a real
+    # allow/deny decision.
+    db.collection("users").document(uid_a).set({"email": "a@test", "role": "user"})
+    db.collection("users").document(uid_b).set({"email": "b@test", "role": "user"})
+    db.collection("users").document(uid_admin).set({"email": "admin@test", "role": "admin"})
+
     token_a = id_token_for(uid_a)
     token_b = id_token_for(uid_b)
+    token_admin = id_token_for(uid_admin)
 
-    print("== communityMessages create ==")
+    print("== users/{uid} role management (phase 11) ==")
+
+    # An admin promoting someone else to moderator — allowed.
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/users/{uid_b}?updateMask.fieldPaths=role",
+        json={"fields": _encode_fields({"role": "moderator"})},
+        headers=rest_headers(token_admin),
+    )
+    check("admin promotes another user to moderator", resp.status_code == 200, True)
+    # Put it back so later checks start from a known 'user' state.
+    db.collection("users").document(uid_b).update({"role": "user"})
+
+    # A plain (non-admin) user trying to promote someone else — denied.
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/users/{uid_b}?updateMask.fieldPaths=role",
+        json={"fields": _encode_fields({"role": "admin"})},
+        headers=rest_headers(token_a),
+    )
+    check("non-admin tries to promote another user", resp.status_code == 200, False)
+
+    # A moderator (not admin) trying to promote someone else — denied;
+    # only isAdmin() may change role, isModerator() isn't enough.
+    db.collection("users").document(uid_a).update({"role": "moderator"})
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/users/{uid_b}?updateMask.fieldPaths=role",
+        json={"fields": _encode_fields({"role": "admin"})},
+        headers=rest_headers(token_a),
+    )
+    check("moderator (non-admin) tries to promote another user", resp.status_code == 200, False)
+    db.collection("users").document(uid_a).update({"role": "user"})
+
+    # An admin trying to change their OWN role — denied (self-demotion
+    # lockout guard: uid != request.auth.uid in the rule).
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/users/{uid_admin}?updateMask.fieldPaths=role",
+        json={"fields": _encode_fields({"role": "user"})},
+        headers=rest_headers(token_admin),
+    )
+    check("admin tries to change their own role", resp.status_code == 200, False)
+
+    # A user renaming themselves — still allowed (unrelated to role).
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/users/{uid_a}?updateMask.fieldPaths=displayName",
+        json={"fields": _encode_fields({"displayName": "Renamed"})},
+        headers=rest_headers(token_a),
+    )
+    check("user renames themselves", resp.status_code == 200, True)
+
+    print("\n== communityMessages create ==")
 
     # Valid pending submission by its own author — should be allowed.
     resp = create_doc(
@@ -229,6 +291,13 @@ def main() -> int:
             f"{FIRESTORE_URL}/communityMessages/{doc_id}", headers=rest_headers(token_a)
         )
         check("author deletes own pending submission", resp.status_code == 200, True)
+
+    for uid in (uid_a, uid_b, uid_admin):
+        db.collection("users").document(uid).delete()
+        try:
+            auth.delete_user(uid)
+        except auth.UserNotFoundError:
+            pass
 
     print(f"\n{_passed} passed, {_failed} failed")
     return 1 if _failed else 0

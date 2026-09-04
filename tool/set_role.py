@@ -1,26 +1,23 @@
 """Grant or revoke a moderator/admin role for a user.
 
-Run from the project root, by an existing admin, using the Admin SDK
-service account key:
+Run from the project root, using the Admin SDK service account key:
 
     python tool/set_role.py someone@example.com moderator
     python tool/set_role.py someone@example.com admin
     python tool/set_role.py someone@example.com user      # revoke back to plain user
 
-This is the "trusted environment" custom claims require (see the roadmap
-doc, Phase 4/§5) — a local script rather than a callable Cloud Function, so
-granting a role never requires the Blaze plan. It does two separate,
-privileged things, both via the Admin SDK, both bypassing firestore.rules
-entirely:
+Since phase 11, this script exists only to bootstrap the very first admin
+(and as a terminal fallback) — day to day, an existing admin can grant
+moderator/admin from the dashboard's "المستخدمون" tab instead, because
+firestore.rules now reads `users/{uid}.role` directly rather than a custom
+claim: it's an ordinary Firestore write an admin can make with the regular
+client SDK, no Admin SDK or Cloud Function needed. That's also why this
+takes effect immediately rather than waiting for the user's next sign-in —
+every rule evaluation reads the live Firestore doc, not a cached token.
 
-  1. Sets a custom claim on the user's Auth token — this is the one
-     firestore.rules actually checks (`request.auth.token.role`).
-  2. Mirrors the same role onto users/{uid} in Firestore, purely so the
-     app's own UI can read a role cheaply without decoding a token.
-
-The custom claim only takes effect on that user's NEXT sign-in, or after
-their app calls `user.getIdTokenResult(forceRefresh: true)` — an
-already-open session keeps using its old token until then.
+Still sets the legacy custom claim alongside the Firestore field (harmless,
+and free in case anything ever wants to read it), but nothing in this
+project's rules checks that claim anymore.
 
 Requires: pip install firebase-admin
 """
@@ -84,7 +81,7 @@ def main() -> int:
     )
 
     print(f"{email} ({user.uid}) is now: {role}")
-    print("Takes effect on their next sign-in, or after their app force-refreshes its ID token.")
+    print("Takes effect immediately — firestore.rules reads this live from Firestore.")
     return 0
 
 

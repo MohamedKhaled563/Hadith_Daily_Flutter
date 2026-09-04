@@ -23,8 +23,29 @@ rules_version = '2';
 // Phase 10 adds size/range validation on communityMessages and users
 // writes — see tool/verify_rules.py for a repeatable check of the allow/
 // deny behaviour documented in each match block below.
+//
+// Phase 11: role checks below used to read request.auth.token.role — a
+// custom claim only the Admin SDK can set, which meant every role change
+// needed a terminal script even though users/{uid}.role already sits
+// right there in Firestore. roleOf()/isModerator()/isAdmin() below read
+// that field instead (one extra get() per check, well within Spark's free
+// read quota for an app this size), so granting a role becomes an ordinary
+// Firestore write an admin can make from the dashboard — see the
+// users/{uid} update rule and lib/features/dashboard/users_page.dart.
+// tool/set_role.py still exists for bootstrapping the very first admin,
+// since someone has to be able to promote before anyone can use the UI.
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function roleOf(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.get('role', 'user');
+    }
+    function isModerator() {
+      return request.auth != null && roleOf(request.auth.uid) in ['moderator', 'admin'];
+    }
+    function isAdmin() {
+      return request.auth != null && roleOf(request.auth.uid) == 'admin';
+    }
 
     match /hadiths/{hadithId} {
       allow read: if true;
@@ -39,14 +60,14 @@ service cloud.firestore {
     //      stamping `lastShownAt` — phase 5's delivery engine.
     match /dailyMessages/{messageId} {
       allow read: if true;
-      allow create: if request.auth.token.role in ['moderator', 'admin'];
-      allow update: if request.auth.token.role in ['moderator', 'admin']
+      allow create: if isModerator();
+      allow update: if isModerator()
                   || (request.auth != null
                       && request.resource.data.diff(resource.data)
                            .affectedKeys().hasOnly(['timesShown', 'lastShownAt'])
                       && request.resource.data.timesShown
                            == resource.data.get('timesShown', 0) + 1);
-      allow delete: if request.auth.token.role in ['moderator', 'admin'];
+      allow delete: if isModerator();
     }
 
     // Public read; a moderator/admin (the dashboard's mode toggle) is the
@@ -54,17 +75,15 @@ service cloud.firestore {
     // via the Admin SDK for anyone without dashboard access handy.
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if request.auth.token.role in ['moderator', 'admin'];
+      allow write: if isModerator();
     }
 
-    // Phase 4: one doc per signed-in user, id = their uid. `role` is never
-    // set by the client — only tool/set_role.py, via the Admin SDK, ever
-    // writes it, which is why the create/update rules below never even
-    // mention that field: a client literally cannot include it in a write
-    // this rule accepts.
+    // Phase 4: one doc per signed-in user, id = their uid. Phase 11 lets an
+    // admin change `role` here too — see the update rule below — which is
+    // what makes it the actual source of truth roleOf() reads, not just a
+    // display mirror anymore.
     match /users/{uid} {
-      allow read: if request.auth.uid == uid
-                  || request.auth.token.role in ['moderator', 'admin'];
+      allow read: if request.auth.uid == uid || isModerator();
 
       allow create: if request.auth.uid == uid
                   && request.resource.data.keys().hasOnly(
@@ -72,11 +91,23 @@ service cloud.firestore {
                   && request.resource.data.displayName is string
                   && request.resource.data.displayName.size() <= 100;
 
-      allow update: if request.auth.uid == uid
-                  && request.resource.data.diff(resource.data)
-                       .affectedKeys().hasOnly(['displayName'])
-                  && request.resource.data.displayName is string
-                  && request.resource.data.displayName.size() <= 100;
+      // Two unrelated things, so an OR:
+      //   1. the account owner, renaming themselves — never touches role.
+      //   2. an existing admin, changing someone ELSE's role to one of the
+      //      three valid values. Never their own — uid != request.auth.uid
+      //      stops an admin from fat-fingering themselves out of the role
+      //      with nobody else around to undo it; another admin (or the
+      //      bootstrap script) can always fix a mistaken grant instead.
+      allow update: if (request.auth.uid == uid
+                        && request.resource.data.diff(resource.data)
+                             .affectedKeys().hasOnly(['displayName'])
+                        && request.resource.data.displayName is string
+                        && request.resource.data.displayName.size() <= 100)
+                  || (isAdmin()
+                      && uid != request.auth.uid
+                      && request.resource.data.diff(resource.data)
+                           .affectedKeys().hasOnly(['role'])
+                      && request.resource.data.role in ['user', 'moderator', 'admin']);
     }
 
     match /communityMessages/{messageId} {
@@ -85,7 +116,7 @@ service cloud.firestore {
       // everything, which is what makes the pending queue possible.
       allow read: if resource.data.status == 'approved'
                   || request.auth.uid == resource.data.authorUid
-                  || request.auth.token.role in ['moderator', 'admin'];
+                  || isModerator();
 
       // Must be signed in (this app has no anonymous path at all), must
       // claim authorship truthfully, and can only ever be created pending —
@@ -132,7 +163,7 @@ service cloud.firestore {
                         && request.resource.data.message is string
                         && request.resource.data.message.size() > 0
                         && request.resource.data.message.size() <= 2000)
-                  || (request.auth.token.role in ['moderator', 'admin'])
+                  || isModerator()
                   || (request.auth != null
                       && request.resource.data.diff(resource.data)
                            .affectedKeys().hasOnly(['likeCount'])
@@ -148,7 +179,7 @@ service cloud.firestore {
 
       allow delete: if (request.auth.uid == resource.data.authorUid
                         && resource.data.status == 'pending')
-                  || request.auth.token.role in ['moderator', 'admin'];
+                  || isModerator();
 
       // Phase 7: one doc per user who has liked this message, id = their
       // uid — its mere existence *is* "have I liked this", checked by uid
