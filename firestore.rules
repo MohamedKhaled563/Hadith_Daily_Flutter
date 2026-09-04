@@ -10,8 +10,12 @@ rules_version = '2';
 // communityMessages. Phase 5 adds settings/ (the delivery-mode toggle) and
 // a narrow timesShown/lastShownAt update on dailyMessages' and
 // communityMessages' pool entries — see the daily delivery engine
-// (DailyTipService). A real per-user likes subcollection still arrives in
-// phase 7 — the interim likeCount mechanism from phase 3 is unchanged.
+// (DailyTipService). Phase 6 lets a moderator/admin — from the dashboard,
+// using the ordinary client SDK — edit dailyMessages (e.g. `order`) and
+// flip settings/deliveryMode; both were client SDK-write:false before,
+// since nothing needed to write them yet. A real per-user likes
+// subcollection still arrives in phase 7 — the interim likeCount
+// mechanism from phase 3 is unchanged.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -20,26 +24,28 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Phase 5: any signed-in device that just picked this message as its
-    // own daily tip may move `timesShown` up by exactly one and stamp
-    // `lastShownAt` — nothing else. `.get('timesShown', 0)` handles the
-    // very first increment, where the field doesn't exist yet.
+    // Two different writers are allowed here, so this is an OR:
+    //   1. a moderator/admin (the dashboard), changing anything
+    //   2. ANY signed-in device that just picked this as its own daily
+    //      tip, but only ever moving `timesShown` up by exactly one and
+    //      stamping `lastShownAt` — phase 5's delivery engine.
     match /dailyMessages/{messageId} {
       allow read: if true;
-      allow update: if request.auth != null
-                  && request.resource.data.diff(resource.data)
-                       .affectedKeys().hasOnly(['timesShown', 'lastShownAt'])
-                  && request.resource.data.timesShown
-                       == resource.data.get('timesShown', 0) + 1;
+      allow update: if request.auth.token.role in ['moderator', 'admin']
+                  || (request.auth != null
+                      && request.resource.data.diff(resource.data)
+                           .affectedKeys().hasOnly(['timesShown', 'lastShownAt'])
+                      && request.resource.data.timesShown
+                           == resource.data.get('timesShown', 0) + 1);
       allow create, delete: if false;
     }
 
-    // Phase 5: the one global switch the admin flips (manual/random) —
-    // public read, no client write at all; tool/set_delivery_mode.py, via
-    // the Admin SDK, is the only thing that ever changes it.
+    // Public read; a moderator/admin (the dashboard's mode toggle) is the
+    // only client allowed to write it, alongside tool/set_delivery_mode.py
+    // via the Admin SDK for anyone without dashboard access handy.
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if request.auth.token.role in ['moderator', 'admin'];
     }
 
     // Phase 4: one doc per signed-in user, id = their uid. `role` is never

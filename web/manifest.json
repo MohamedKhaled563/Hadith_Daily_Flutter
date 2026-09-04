@@ -1,0 +1,35 @@
+{
+    "name": "لوحة الإشراف — طيّب قلبك",
+    "short_name": "لوحة الإشراف",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#3C5940",
+    "theme_color": "#3C5940",
+    "description": "لوحة الإشراف للمشرفين والمديرين — مراجعة مشاركات المجتمع وضبط رسالة اليوم.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

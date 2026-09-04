@@ -10,12 +10,12 @@ import 'package:flutter/foundation.dart'
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
-    if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'this app only targets Android and iOS.',
-      );
-    }
+    // Web is the moderator dashboard (lib/main_dashboard.dart) — the phone
+    // app itself never runs as web. Its own Firebase Web app, registered
+    // for exactly this, since Android/iOS options don't carry the
+    // authDomain a browser-based Auth flow needs.
+    if (kIsWeb) return web;
+
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
@@ -27,6 +27,15 @@ class DefaultFirebaseOptions {
         );
     }
   }
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyA1jc9xLvrPYS-Svye4q8zXAhAAUhPZbj0',
+    appId: '1:305295927502:web:2452f24d43584e82c8089f',
+    messagingSenderId: '305295927502',
+    projectId: 'hadithdaily-5fc06',
+    authDomain: 'hadithdaily-5fc06.firebaseapp.com',
+    storageBucket: 'hadithdaily-5fc06.firebasestorage.app',
+  );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAXAIksb0SkfQgEvbyvsWTEnZyH7WEmrMI',
