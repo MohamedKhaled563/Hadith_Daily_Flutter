@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/auth/auth_service.dart';
+import 'bulk_add_page.dart';
 import 'pending_queue_page.dart';
 import 'rotation_order_page.dart';
 
@@ -219,7 +220,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
     final email = AuthService.instance.currentUser?.email ?? '';
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('لوحة الإشراف — طيّب قلبك'),
@@ -241,13 +242,18 @@ class _DashboardHomeState extends State<_DashboardHome> {
                 icon: Icon(Icons.pending_actions_rounded),
               ),
               Tab(text: 'الترتيب والتوزيع', icon: Icon(Icons.shuffle_rounded)),
+              Tab(text: 'إضافة بالجملة', icon: Icon(Icons.playlist_add_rounded)),
             ],
             onTap: (i) => setState(() => _tab = i),
           ),
         ),
         body: IndexedStack(
           index: _tab,
-          children: const [PendingQueuePage(), RotationOrderPage()],
+          children: const [
+            PendingQueuePage(),
+            RotationOrderPage(),
+            BulkAddPage(),
+          ],
         ),
       ),
     );

@@ -121,45 +121,32 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 );
               }
 
-              return Column(
-                children: [
-                  Expanded(
-                    child: ListView.separated(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                      itemCount: posts.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 18),
-                      itemBuilder: (context, index) {
-                        final post = posts[index];
-                        return _CommunityPostCard(
-                          post: post,
-                          rank: index + 1,
-                          onLikeToggle: () =>
-                              CommunityService().toggleLike(post.id),
-                          onTap: () => Navigator.push(
-                            context,
-                            SmoothPageRoute(
-                              child: CommunityPostScreen(post: post),
-                            ),
-                          ),
-                        );
-                      },
+              // Sharing already has a standing entry point — the bottom-nav
+              // "شارك رسالة" tab — so this list doesn't need its own second
+              // call to action; it used to show a floating banner below the
+              // list repeating the same thing the nav tab already offers.
+              return ListView.separated(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  4,
+                  20,
+                  12 + BottomNavigation.reservedHeight(context),
+                ),
+                itemCount: posts.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 18),
+                itemBuilder: (context, index) {
+                  final post = posts[index];
+                  return _CommunityPostCard(
+                    post: post,
+                    rank: index + 1,
+                    onLikeToggle: () => CommunityService().toggleLike(post.id),
+                    onTap: () => Navigator.push(
+                      context,
+                      SmoothPageRoute(child: CommunityPostScreen(post: post)),
                     ),
-                  ),
-
-                  // The empty state above already offers its own
-                  // "شارك أول رسالة" action — this only shows once there's
-                  // at least one approved post to scroll past.
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      20,
-                      6,
-                      20,
-                      6 + BottomNavigation.reservedHeight(context),
-                    ),
-                    child: _ShareCtaBanner(onTap: _openAddMessage),
-                  ),
-                ],
+                  );
+                },
               );
             },
           ),
@@ -515,65 +502,3 @@ class _BrandSignature extends StatelessWidget {
   }
 }
 
-class _ShareCtaBanner extends StatelessWidget {
-  const _ShareCtaBanner({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return PressableSurface(
-      onTap: onTap,
-      semanticLabel: 'شارك رسالتك في مجتمع الحديث',
-      child: Container(
-        width: double.infinity,
-        constraints: const BoxConstraints(minHeight: 52),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.centerRight,
-            end: Alignment.centerLeft,
-            colors: [
-              Color(0xFF1E3526),
-              Color(0xFF2E4F3B),
-              Color(0xFF1E3526),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(AppRadii.pill),
-          border: Border.all(color: const Color(0xFFD6BE88), width: 1.4),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1E3526).withValues(alpha: 0.35),
-              blurRadius: 14,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.edit_note_rounded,
-              color: Color(0xFFF0E6D2),
-              size: 22,
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                'شارك رسالتك وكن سبباً في نشر الخير 🌿',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: kSans,
-                  fontSize: 14.5,
-                  height: AppLeading.chrome,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFFFFFDFC),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -13,9 +13,13 @@ rules_version = '2';
 // (DailyTipService). Phase 6 lets a moderator/admin — from the dashboard,
 // using the ordinary client SDK — edit dailyMessages (e.g. `order`) and
 // flip settings/deliveryMode; both were client SDK-write:false before,
-// since nothing needed to write them yet. A real per-user likes
-// subcollection still arrives in phase 7 — the interim likeCount
-// mechanism from phase 3 is unchanged.
+// since nothing needed to write them yet. Phase 6's bulk-add page lets a
+// moderator/admin also *create* dailyMessages docs, replacing the
+// Google-Sheets-bridge idea from the original roadmap. Phase 7 adds a real
+// per-user likes/ subcollection, replacing the interim likeCount mechanism
+// from phase 3 (that narrow ±1 rule stays as a secondary safety net —
+// harmless on its own, and simpler than trying to cross-validate it
+// against the subcollection write within the same rules evaluation).
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -24,20 +28,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Two different writers are allowed here, so this is an OR:
-    //   1. a moderator/admin (the dashboard), changing anything
+    // Three things are allowed here, so this is an OR:
+    //   1. a moderator/admin (the dashboard), changing anything — covers
+    //      both editing (order, text, ...) and phase 6's bulk-add create
     //   2. ANY signed-in device that just picked this as its own daily
     //      tip, but only ever moving `timesShown` up by exactly one and
     //      stamping `lastShownAt` — phase 5's delivery engine.
     match /dailyMessages/{messageId} {
       allow read: if true;
+      allow create: if request.auth.token.role in ['moderator', 'admin'];
       allow update: if request.auth.token.role in ['moderator', 'admin']
                   || (request.auth != null
                       && request.resource.data.diff(resource.data)
                            .affectedKeys().hasOnly(['timesShown', 'lastShownAt'])
                       && request.resource.data.timesShown
                            == resource.data.get('timesShown', 0) + 1);
-      allow create, delete: if false;
+      allow delete: if request.auth.token.role in ['moderator', 'admin'];
     }
 
     // Public read; a moderator/admin (the dashboard's mode toggle) is the
@@ -89,8 +95,13 @@ service cloud.firestore {
       //      reject/edit action; no field restriction, since a moderator is
       //      trusted the way the app's own client code isn't
       //   3. ANY signed-in reader, but only ever moving `likeCount` by
-      //      exactly one in either direction — the interim like counter
-      //      from phase 3, unchanged; phase 7 replaces it properly.
+      //      exactly one in either direction — this used to be the *only*
+      //      mechanism (phase 3); phase 7 below adds the real per-user
+      //      likes/ subcollection as the actual source of truth for "have
+      //      I liked this", and CommunityService now moves this counter
+      //      only from inside the same transaction that writes the
+      //      subcollection doc. This clause stays as a narrow safety net —
+      //      it still can't move the counter by anything but exactly ±1.
       //   4. ANY signed-in device, but only ever moving `timesShown` up by
       //      exactly one and stamping `lastShownAt` — phase 5's delivery
       //      engine, only ever applies to an approved message since that's
@@ -114,6 +125,20 @@ service cloud.firestore {
       allow delete: if (request.auth.uid == resource.data.authorUid
                         && resource.data.status == 'pending')
                   || request.auth.token.role in ['moderator', 'admin'];
+
+      // Phase 7: one doc per user who has liked this message, id = their
+      // uid — its mere existence *is* "have I liked this", checked by uid
+      // rather than a per-device local cache, which is what fixes the
+      // "same device, cleared storage, likes twice" gap the interim
+      // mechanism above couldn't close. Only its own owner may create or
+      // delete it (like / unlike); nobody updates a like, there's nothing
+      // in it to change.
+      match /likes/{uid} {
+        allow read: if request.auth != null;
+        allow create, delete: if request.auth != null
+                    && request.auth.uid == uid;
+        allow update: if false;
+      }
     }
 
     // Everything else stays fully locked until a later phase explicitly
