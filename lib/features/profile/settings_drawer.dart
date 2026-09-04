@@ -13,6 +13,7 @@ import '../../core/widgets/tap_target.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
 import '../auth/login_screen.dart';
+import '../community/my_submissions_screen.dart';
 
 class SettingsDrawer extends StatefulWidget {
   const SettingsDrawer({super.key});
@@ -525,6 +526,10 @@ class _ProfileHeader extends StatelessWidget {
                       icon: Icons.edit_note_rounded,
                       value: snapshot.data ?? 0,
                       label: 'مشاركاتي',
+                      onTap: () => Navigator.push(
+                        context,
+                        SmoothPageRoute(child: const MySubmissionsScreen()),
+                      ),
                     ),
                   ),
                 ),
@@ -542,17 +547,19 @@ class _Stat extends StatelessWidget {
     required this.icon,
     required this.value,
     required this.label,
+    this.onTap,
   });
 
   final IconData icon;
   final int value;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return Column(
+    final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
@@ -584,6 +591,15 @@ class _Stat extends StatelessWidget {
           ),
         ),
       ],
+    );
+
+    if (onTap == null) return content;
+
+    return TapTarget(
+      onTap: onTap!,
+      semanticLabel: label,
+      minSize: 44,
+      child: content,
     );
   }
 }
