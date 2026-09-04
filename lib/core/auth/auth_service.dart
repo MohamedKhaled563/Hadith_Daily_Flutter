@@ -64,8 +64,13 @@ class AuthService {
     );
     if (displayName.isNotEmpty) {
       await credential.user?.updateDisplayName(displayName);
+      // updateDisplayName() writes the new name to the Auth server, but the
+      // in-memory User object we're already holding doesn't pick it up on
+      // its own — without this reload, _ensureUserDoc below reads the
+      // stale (empty) displayName and mirrors that into Firestore instead.
+      await credential.user?.reload();
     }
-    await _ensureUserDoc(credential.user!);
+    await _ensureUserDoc(_auth.currentUser ?? credential.user!);
     return credential;
   }
 
