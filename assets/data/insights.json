@@ -1,1954 +1,986 @@
 [
   {
     "hadithNumber": 1,
-    "arabic": "أصلح الباطن… يستقم الظاهر.",
-    "english": "Repair the inside… the outside follows.",
-    "category": "لمسة قصيرة",
-    "themes": "Heart, Worship",
-    "keywords": "القلب، العبادة"
+    "arabic": "قبل ما تبدأ يومك، اسأل نفسك: ليه بعمل اللي هعمله ده؟ الإجابة بتغيّر كل حاجة."
   },
   {
     "hadithNumber": 1,
-    "arabic": "اجعل أعمالك اليومية عبادة بالنية.",
-    "english": "Turn daily routines into worship through intention.",
-    "category": "إرشاد عملي",
-    "themes": "Worship, Habits",
-    "keywords": "العبادة، نية"
+    "arabic": "مش كل تعب بيتحسب أجر. النية هي اللي بتحول التعب العادي لعبادة، وبتحول العبادة الفارغة لمجرد حركة."
   },
   {
     "hadithNumber": 1,
-    "arabic": "الإخلاص روح العمل.",
-    "english": "Sincerity is the soul of action.",
-    "category": "تذكير إيماني",
-    "themes": "Sincerity, Worship",
-    "keywords": "إخلاص، العمل"
+    "arabic": "لو حسيت إن شغلك أو مذاكرتك بقت روتين تقيل من غير معنى، جرّب تجدد نيتك فيه. نفس المجهود، بس بمعنى مختلف تماماً."
   },
   {
     "hadithNumber": 1,
-    "arabic": "الرياء قد يسرق جمال العمل.",
-    "english": "Showing off can steal the beauty of a deed.",
-    "category": "تنبيه لطيف",
-    "themes": "Riyā’, Acceptance",
-    "keywords": "الرياء، القبول"
+    "arabic": "أحياناً بنقارن نفسنا بحد بيعمل نفس اللي إحنا بنعمله، وبنحس إننا أقل. بس إنت مش شايف نيته، وهو مش شايف نيتك. الله وحده اللي عارف الفرق."
   },
   {
     "hadithNumber": 1,
-    "arabic": "القلب يقود… والجوارح تتبع.",
-    "english": "The heart leads… the limbs follow.",
-    "category": "تذكير إيماني",
-    "themes": "Heart, Inner State",
-    "keywords": "القلب، العمل"
+    "arabic": "الهجرة مش بس إنك تسيب مكان لمكان. أي قرار كبير بتاخده في حياتك - شغل جديد، علاقة، بداية من جديد - اسأل نفسك: هل باخده عشان يرضي ربنا ويحسّن حياتي، ولا باخده عشان حد تاني يشوفني كده؟"
   },
   {
     "hadithNumber": 1,
-    "arabic": "الله يعلم ما وراء الكلمات والأفعال.",
-    "english": "Allah knows what lies behind words and deeds.",
-    "category": "تذكير إيماني",
-    "themes": "Divine Awareness, Intention",
-    "keywords": "النية، العمل"
+    "arabic": "في لحظات التعب اللي بنحس فيها إن محدش شايف تعبنا ولا مجهودنا، فيه راحة غريبة في إننا نفتكر إن ربنا شايف النية، حتى لو محدش من البشر لاحظ حاجة."
   },
   {
     "hadithNumber": 1,
-    "arabic": "النيات خفية… وآثارها ظاهرة.",
-    "english": "Intentions are hidden… their آثار are visible.",
-    "category": "تأمّل",
-    "themes": "Heart, Actions",
-    "keywords": "القلب، العمل"
+    "arabic": "أحياناً بنعمل حاجة صح لكن لسبب غلط - بنساعد عشان الناس تمدحنا، بنشتغل زيادة عشان نثبت حاجة لحد معيّن. الفعل نفسه سليم، لكن لو راجعنا القلب هنلاقي إنه محتاج تنظيف مش بس تعديل في السلوك."
   },
   {
     "hadithNumber": 1,
-    "arabic": "النية الصادقة تصنع فرقًا كبيرًا.",
-    "english": "A sincere intention changes everything.",
-    "category": "لمسة قصيرة",
-    "themes": "Sincerity, Inner State",
-    "keywords": "إخلاص، القلب"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "النية الصافية تملأ العمل نورًا.",
-    "english": "A pure intention fills actions with light.",
-    "category": "تذكير إيماني",
-    "themes": "Sincerity, Heart",
-    "keywords": "إخلاص، القلب"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "النية الفاسدة تُفسد العمل الجميل.",
-    "english": "A corrupted intention can ruin a beautiful deed.",
-    "category": "تنبيه لطيف",
-    "themes": "Intention, Acceptance",
-    "keywords": "النية، القبول"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "انتبه لما يختبئ خلف دوافعك.",
-    "english": "Pay attention to what hides behind your motives.",
-    "category": "تنبيه لطيف",
-    "themes": "Inner State, Reflection",
-    "keywords": "القلب، الدافع"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "بعض الهجرات تبدأ بتغيير النية.",
-    "english": "Some migrations begin with a changed intention.",
-    "category": "تأمّل",
-    "themes": "Migration, Inner State",
-    "keywords": "الهجرة، النية"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "جدّد نيتك قبل أن تبدأ.",
-    "english": "Renew your intention before you begin.",
-    "category": "لمسة قصيرة",
-    "themes": "Intention, Sincerity",
-    "keywords": "نية، إخلاص"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "حتى العادات يمكن أن تصبح عبادة.",
-    "english": "Even habits can become worship.",
-    "category": "إرشاد عملي",
-    "themes": "Habits, Worship",
-    "keywords": "العبادة، النية"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "حين تضعف همتك… جدّد نيتك.",
-    "english": "When motivation weakens… renew your intention.",
-    "category": "إرشاد عملي",
-    "themes": "Intention, Inner State",
-    "keywords": "نية، القلب"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "درّب قلبك أن يطلب رضا الله قبل مدح الناس.",
-    "english": "Train your heart to seek Allah before praise.",
-    "category": "إرشاد عملي",
-    "themes": "Sincerity, Heart",
-    "keywords": "إخلاص، القلب"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "راقب لماذا تفعل… لا ماذا تفعل فقط.",
-    "english": "Watch your “why”… not only your “what.”",
-    "category": "لمسة قصيرة",
-    "themes": "Motivation, Intention",
-    "keywords": "المقصد، نية"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "ربما تبلغ بنيتك ما عجز عنه عملك.",
-    "english": "A sincere intention may reach what action could not.",
-    "category": "تأمّل",
-    "themes": "Reward, Intention",
-    "keywords": "الثواب، النية"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "قبل الدراسة أو العمل… انوِ وجه الله.",
-    "english": "Before study or work… intend Allah’s pleasure.",
-    "category": "إرشاد عملي",
-    "themes": "Worship, Motivation",
-    "keywords": "العمل، الإخلاص"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "قد تبدو الهجرة واحدة… والفرق في النية.",
-    "english": "Two journeys may look alike… intention makes the difference.",
-    "category": "تنبيه لطيف",
-    "themes": "Migration, Intention",
-    "keywords": "الهجرة، النية"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "قد يسبق قلبك جسدك إلى الطاعة.",
-    "english": "Your heart may reach obedience before your body.",
-    "category": "تأمّل",
-    "themes": "Heart, Worship",
-    "keywords": "القلب، العبادة"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "قيمة العمل تبدأ من القلب.",
-    "english": "The value of an action begins in the heart.",
-    "category": "لمسة قصيرة",
-    "themes": "Heart, Acceptance",
-    "keywords": "القلب، القبول"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "لا تتزيّن للناس وتنسى قلبك.",
-    "english": "Do not decorate the outside and neglect your heart.",
-    "category": "تنبيه لطيف",
-    "themes": "Heart, Sincerity",
-    "keywords": "القلب، إخلاص"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "لا تجعل مدح الناس وقودك.",
-    "english": "Do not let people’s praise become your fuel.",
-    "category": "تنبيه لطيف",
-    "themes": "Sincerity, Motivation",
-    "keywords": "إخلاص، المقصد"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "لا تحسّن الأداء فقط… حسّن الدافع أيضًا.",
-    "english": "Improve not only performance… but purpose too.",
-    "category": "إرشاد عملي",
-    "themes": "Motivation, Sincerity",
-    "keywords": "المقصد، إخلاص"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "لمن تفعل هذا العمل حقًا؟",
-    "english": "Who are you truly doing this for?",
-    "category": "تأمّل",
-    "themes": "Motivation, Reflection",
-    "keywords": "المقصد، نية"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "ليس كل عملٍ ناجح… مقبولًا عند الله.",
-    "english": "Not every successful deed is accepted by Allah.",
-    "category": "لمسة قصيرة",
-    "themes": "Acceptance, Sincerity",
-    "keywords": "القبول، إخلاص"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "ما الذي يقود يومك… النية أم العادة؟",
-    "english": "What drives your day… intention or habit?",
-    "category": "تأمّل",
-    "themes": "Habits, Motivation",
-    "keywords": "النية، المقصد"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "ما كان لله… يبقى ويثمر.",
-    "english": "What is for Allah… lasts and bears fruit.",
-    "category": "تذكير إيماني",
-    "themes": "Sincerity, Acceptance",
-    "keywords": "إخلاص، القبول"
-  },
-  {
-    "hadithNumber": 1,
-    "arabic": "هاجر بقلبك إلى الله قبل جسدك.",
-    "english": "Let your heart migrate to Allah before your body.",
-    "category": "تذكير إيماني",
-    "themes": "Migration, Heart",
-    "keywords": "الهجرة، القلب"
+    "arabic": "النية مش حاجة بتتقال مرة واحدة وخلاص، هي حوار مستمر مع نفسك في كل موقف بتاخد فيه قرار."
   },
   {
     "hadithNumber": 2,
-    "arabic": "اجعل الإحسان معيارًا لعملك اليومي.",
-    "english": "Let excellence guide your daily actions.",
-    "category": "إرشاد عملي",
-    "themes": "Ihsan, Practice",
-    "keywords": "الإحسان، العمل"
+    "arabic": "الإحسان مش إنك تعمل أكتر، الإحسان إنك تحس بربنا وانت بتعمل اللي إنت بتعمله أصلاً."
   },
   {
     "hadithNumber": 2,
-    "arabic": "افهم زمانك… دون أن تفقد ثوابتك.",
-    "english": "Understand your time… without losing your principles.",
-    "category": "إرشاد عملي",
-    "themes": "Awareness, Guidance",
-    "keywords": "الساعة، المنهج"
+    "arabic": "لو حسيت إن حد شايفك دايماً بتحسّن من نفسك تلقائي. تخيل لو عشت بنفس الإحساس مع ربنا."
   },
   {
     "hadithNumber": 2,
-    "arabic": "الإحسان أن تعبد الله بقلب حاضر.",
-    "english": "Ihsan is worshipping Allah with a present heart.",
-    "category": "لمسة قصيرة",
-    "themes": "Ihsan, Worship",
-    "keywords": "الإحسان، القلب"
+    "arabic": "الدين مش بس أفعال بنعملها، ولا بس إيمان جوانا مخفي. هو الاتنين مع بعض: قلب مصدّق، وسلوك بيترجم اللي جوه القلب."
   },
   {
     "hadithNumber": 2,
-    "arabic": "الإيمان الحقيقي يظهر في طريقة عيشك.",
-    "english": "Real faith appears in how you live.",
-    "category": "تأمّل",
-    "themes": "Faith, Practice",
-    "keywords": "الإيمان، العمل"
+    "arabic": "أوقات بنسأل أسئلة كتير عن ربنا وعن الدين، وبنستحي نسأل. جبريل نفسه سأل النبي أسئلة أساسية قدام الصحابة عشان يعلمهم. مفيش سؤال غلط لو نيتك تتعلم."
   },
   {
     "hadithNumber": 2,
-    "arabic": "الدين ليس طقوسًا فقط… بل منهج حياة.",
-    "english": "Religion is not rituals alone… but a way of life.",
-    "category": "تأمّل",
-    "themes": "Religion, Guidance",
-    "keywords": "الدين، المنهج"
+    "arabic": "في اللحظات اللي حاسس فيها إنك لوحدك ومحدش شايفك ولا هيعرف اللي انت عامله، فاكر إن ده بالظبط تعريف الإحسان: تتصرف صح حتى لو مفيش عين بشرية شايفاك."
   },
   {
     "hadithNumber": 2,
-    "arabic": "العلم الصحيح يقود إلى عبادة صحيحة.",
-    "english": "Sound knowledge leads to sound worship.",
-    "category": "لمسة قصيرة",
-    "themes": "Knowledge, Worship",
-    "keywords": "العلم، العبادة"
+    "arabic": "أحياناً بنفصل بين اللي إحنا مؤمنين بيه واللي إحنا بنعمله فعلاً، وكأنهم شيئين منفصلين. الحديث ده بيفكرنا إن الإيمان الحقيقي لازم يظهر أثره في أفعالنا اليومية، مش يفضل حبيس في القلب."
   },
   {
     "hadithNumber": 2,
-    "arabic": "بعض الأسئلة تفتح أبواب الفهم.",
-    "english": "Some questions open doors to understanding.",
-    "category": "تأمّل",
-    "themes": "Learning, Knowledge",
-    "keywords": "العلم، الفهم"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "تعلّم دينك بسؤالٍ صادقٍ وأدبٍ جميل.",
-    "english": "Learn your religion with sincere questions and good manners.",
-    "category": "إرشاد عملي",
-    "themes": "Knowledge, Learning",
-    "keywords": "العلم، الأدب"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "تعلّم دينك كاملًا… لا جزءًا منه فقط.",
-    "english": "Learn your religion as a whole… not in fragments.",
-    "category": "لمسة قصيرة",
-    "themes": "Whole Religion, Knowledge",
-    "keywords": "الدين، العلم"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "راقب صلاتك… فهي تبني علاقتك بالله.",
-    "english": "Watch over your prayer… it builds your bond with Allah.",
-    "category": "إرشاد عملي",
-    "themes": "Islam, Worship",
-    "keywords": "الصلاة، العبادة"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "غذِّ يقينك كما تغذّي جسدك.",
-    "english": "Nourish your faith as you nourish your body.",
-    "category": "إرشاد عملي",
-    "themes": "Faith, Inner State",
-    "keywords": "الإيمان، القلب"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "لا تجعل العبادة عادةً بلا حضور قلب.",
-    "english": "Do not let worship become routine without presence.",
-    "category": "إرشاد عملي",
-    "themes": "Worship, Heart",
-    "keywords": "العبادة، القلب"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "لا تُهمِل بناء قلبك.",
-    "english": "Do not neglect building your heart.",
-    "category": "لمسة قصيرة",
-    "themes": "Heart, Faith",
-    "keywords": "القلب، الإيمان"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "لكل مرتبة من الدين أثرها في حياتك.",
-    "english": "Every level of religion shapes your life.",
-    "category": "لمسة قصيرة",
-    "themes": "Religion, Practice",
-    "keywords": "الدين، العبادة"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "للإسلام ظاهر… وللإيمان عمق.",
-    "english": "Islam has an outer form… faith has depth.",
-    "category": "لمسة قصيرة",
-    "themes": "Islam, Iman",
-    "keywords": "الإسلام، الإيمان"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "ماذا لو عبدت الله وكأنك تراه؟",
-    "english": "What would change if you worshipped Allah as though you see Him?",
-    "category": "تأمّل",
-    "themes": "Ihsan, Worship",
-    "keywords": "الإحسان، العبادة"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "هل تبني ظاهرك وباطنك معًا؟",
-    "english": "Are you building your outer and inner self together?",
-    "category": "تأمّل",
-    "themes": "Islam, Ihsan",
-    "keywords": "الإسلام، الإحسان"
-  },
-  {
-    "hadithNumber": 2,
-    "arabic": "هل يعيش الإيمان في معلوماتك… أم في قلبك؟",
-    "english": "Does faith live in your knowledge… or in your heart?",
-    "category": "تأمّل",
-    "themes": "Iman, Reflection",
-    "keywords": "الإيمان، القلب"
+    "arabic": "مراقبة الله مش معناها خوف دايم ولا قلق، هي أقرب لإحساس إنك مش لوحدك أبداً، حتى في أضعف وأصعب لحظاتك، وده إحساس بيدي أمان مش رعب."
   },
   {
     "hadithNumber": 3,
-    "arabic": "أركان الإسلام ليست تفاصيل… بل أساس الطريق.",
-    "english": "The pillars of Islam are not details… they are the foundation of the path.",
-    "category": "لمسة قصيرة",
-    "themes": "Islam, Foundations",
-    "keywords": "الإسلام، الأركان"
+    "arabic": "الدين بناء، مش قطعة واحدة. لو حسيت إنك مقصر في ركن، ده مش معناه إنك تسيب الباقي، كمّل واشتغل على اللي ناقصك."
   },
   {
     "hadithNumber": 3,
-    "arabic": "البناء الجميل لا يصمد بلا أساس.",
-    "english": "A beautiful structure cannot stand without a foundation.",
-    "category": "تنبيه لطيف",
-    "themes": "Foundations, Warning",
-    "keywords": "البناء، الثبات"
+    "arabic": "خمس أركان بسيطة، لكنها كافية لو تمسكنا بيها بجد، إنها تبني حياة متزنة روحياً وعملياً."
   },
   {
     "hadithNumber": 3,
-    "arabic": "البناء القوي يبدأ بأصول ثابتة.",
-    "english": "Strong structures begin with firm foundations.",
-    "category": "لمسة قصيرة",
-    "themes": "Foundations, Religion",
-    "keywords": "البناء، الدين"
+    "arabic": "الزكاة مش بس فريضة مالية، هي تدريب على إنك تفتح إيدك للناس بدل ما تقفلها. وده بيأثر على شخصيتك مش بس على حسابك البنكي."
   },
   {
     "hadithNumber": 3,
-    "arabic": "الدين يُبنى… ولا يُرتجل.",
-    "english": "Religion is built… not improvised.",
-    "category": "تذكير إيماني",
-    "themes": "Structure, Religion",
-    "keywords": "الدين، البناء"
+    "arabic": "الصلاة خمس مرات في اليوم مش عبء، هي فرصة تتوقف فيها وسط زحمة يومك وتفتكر إنك مش وحيد ومش لوحدك بتواجه كل حاجة."
   },
   {
     "hadithNumber": 3,
-    "arabic": "الصلاة والصيام والزكاة… ليست أعمالًا متفرقة بل منظومة قرب.",
-    "english": "Prayer, fasting, and zakah are not isolated acts… but a system of nearness to Allah.",
-    "category": "تذكير إيماني",
-    "themes": "Worship, Spirituality",
-    "keywords": "الصلاة، الزكاة، الصيام"
+    "arabic": "أحياناً بنفكر إن الالتزام الديني معناه الكمال من أول يوم. الحقيقة إن الأركان دي أساس تتبني عليه بالتدريج، وكل خطوة صغيرة فيها لها قيمتها حتى لو مكنتش مثالية."
   },
   {
     "hadithNumber": 3,
-    "arabic": "بعض الضعف يبدأ من إهمال الأساسيات.",
-    "english": "Some weakness begins with neglecting the basics.",
-    "category": "تأمّل",
-    "themes": "Foundations, Practice",
-    "keywords": "الأركان، العبادة"
-  },
-  {
-    "hadithNumber": 3,
-    "arabic": "راقب أركانك… فهي تبني دينك يومًا بعد يوم.",
-    "english": "Watch over your pillars… they build your religion day by day.",
-    "category": "إرشاد عملي",
-    "themes": "Practice, Worship",
-    "keywords": "العبادة، الثبات"
-  },
-  {
-    "hadithNumber": 3,
-    "arabic": "كيف يبدو بناء دينك اليوم؟",
-    "english": "What does the structure of your faith look like today?",
-    "category": "تأمّل",
-    "themes": "Reflection, Identity",
-    "keywords": "الدين، البناء"
-  },
-  {
-    "hadithNumber": 3,
-    "arabic": "لا تؤجل إصلاح الأساس.",
-    "english": "Do not delay strengthening your foundation.",
-    "category": "إرشاد عملي",
-    "themes": "Commitment, Growth",
-    "keywords": "البناء، الثبات"
-  },
-  {
-    "hadithNumber": 3,
-    "arabic": "لا تنشغل بالفروع وتنسى الأعمدة.",
-    "english": "Do not become busy with branches while forgetting the pillars.",
-    "category": "تنبيه لطيف",
-    "themes": "Priorities, Foundations",
-    "keywords": "الأركان، الدين"
+    "arabic": "الصوم مش بس جوع وعطش، هو تمرين يومي على إنك تقدر تقول 'لأ' لنفسك، ومهارة إنك تتحكم في رغباتك بتفيدك في حاجات كتير غير الأكل والشرب."
   },
   {
     "hadithNumber": 4,
-    "arabic": "اسأل الله حسن الخاتمة كثيرًا.",
-    "english": "Frequently ask Allah for a good ending.",
-    "category": "إرشاد عملي",
-    "themes": "Endings, Worship",
-    "keywords": "الخاتمة، الدعاء"
+    "arabic": "رزقك وأجلك مكتوبين، لكن اجتهادك ونيتك هما اللي في إيدك. ركز على اللي تقدر تتحكم فيه."
   },
   {
     "hadithNumber": 4,
-    "arabic": "اعمل الصالحات… ولا تغترّ بعملك.",
-    "english": "Do good deeds… but do not become arrogant about them.",
-    "category": "إرشاد عملي",
-    "themes": "Deeds, Humility",
-    "keywords": "العمل، الخاتمة"
+    "arabic": "الإيمان بالقدر مش تبرير للكسل، هو راحة نفسية إنك تبذل الجهد وتسيب النتيجة لربنا."
   },
   {
     "hadithNumber": 4,
-    "arabic": "الانشغال بالمكتوب لا يعفيك من المسؤولية.",
-    "english": "What is written does not remove responsibility.",
-    "category": "تنبيه لطيف",
-    "themes": "Accountability, Deeds",
-    "keywords": "القضاء، العمل"
+    "arabic": "أوقات بنحس إننا قربنا نوصل لحاجة وفجأة كل حاجة اتغيرت. مش شرط ده عقاب، ممكن يكون ربنا بيحفظك من حاجة إنت مش شايفها."
   },
   {
     "hadithNumber": 4,
-    "arabic": "الخوف من القدر لا يغيّر القدر.",
-    "english": "Fear of destiny does not change destiny.",
-    "category": "تنبيه لطيف",
-    "themes": "Destiny, Trust",
-    "keywords": "القدر، التوكل"
+    "arabic": "لو قلقان من مستقبلك أو من رزقك، افتكر إن الآية بتقول 'فسنيسره لليسرى'. ربنا مش بس كاتب القدر، هو كمان اللي بييسره لك."
   },
   {
     "hadithNumber": 4,
-    "arabic": "القلوب المؤمنة تعمل… ثم تسلّم لله.",
-    "english": "Believing hearts strive… then surrender to Allah.",
-    "category": "تذكير إيماني",
-    "themes": "Faith, Trust",
-    "keywords": "الإيمان، التوكل"
+    "arabic": "الخواتيم أهم من البدايات. متحكمش على حد من أول انطباع، ولا حتى على نفسك من غلطة قديمة، خليك دايماً شغال على النهاية."
   },
   {
     "hadithNumber": 4,
-    "arabic": "الله يدبّر ما لا تراه.",
-    "english": "Allah manages what you cannot see.",
-    "category": "تذكير إيماني",
-    "themes": "Divine Care, Faith",
-    "keywords": "القدر، الإيمان"
+    "arabic": "فيه فرق كبير بين إنك تسلّم أمرك لله بعد ما تبذل الجهد، وبين إنك تستسلم من الأول وتسيب كل حاجة بحجة القدر. الأول إيمان، والتاني هروب."
   },
   {
     "hadithNumber": 4,
-    "arabic": "الله يعلم قصتك قبل أن تبدأ.",
-    "english": "Allah knows your story before it begins.",
-    "category": "لمسة قصيرة",
-    "themes": "Divine Knowledge, Destiny",
-    "keywords": "القدر، العلم"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "بين التقدير والعمل… يتشكل طريقك.",
-    "english": "Between decree and effort… your path unfolds.",
-    "category": "تأمّل",
-    "themes": "Destiny, Action",
-    "keywords": "القدر، العمل"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "حسن الخاتمة نعمة تُطلب… لا تُفترض.",
-    "english": "A good ending is a blessing to seek… not assume.",
-    "category": "تذكير إيماني",
-    "themes": "Endings, Spirituality",
-    "keywords": "الخاتمة، الدعاء"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "حياتك ليست صدفة.",
-    "english": "Your life is not random.",
-    "category": "لمسة قصيرة",
-    "themes": "Decree, Creation",
-    "keywords": "القدر، الخلق"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "خذ بالأسباب… وثق بتقدير الله.",
-    "english": "Take the means… and trust Allah’s decree.",
-    "category": "إرشاد عملي",
-    "themes": "Trust, Destiny",
-    "keywords": "التوكل، القدر"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "رزقك يعرف طريقه إليك.",
-    "english": "Your provision knows its way to you.",
-    "category": "تذكير إيماني",
-    "themes": "Rizq, Trust",
-    "keywords": "الرزق، التوكل"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "كم مرة خططت… ثم جاء تدبير الله ألطف؟",
-    "english": "How often did you plan… and Allah’s decree prove gentler?",
-    "category": "تأمّل",
-    "themes": "Trust, Divine Wisdom",
-    "keywords": "القدر، الحكمة"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "لا تؤمّن نفسك من سوء الخاتمة.",
-    "english": "Never feel completely safe from a bad ending.",
-    "category": "تنبيه لطيف",
-    "themes": "Endings, Humility",
-    "keywords": "الخاتمة، القلب"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "لا تجعل الغيب سببًا لترك العمل.",
-    "english": "Do not use the unseen as an excuse to stop striving.",
-    "category": "تنبيه لطيف",
-    "themes": "Action, Responsibility",
-    "keywords": "العمل، القدر"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "لا تجعل القلق على الرزق يسرق قلبك.",
-    "english": "Do not let رزق-anxiety steal your heart.",
-    "category": "إرشاد عملي",
-    "themes": "Rizq, Trust",
-    "keywords": "الرزق، التوكل"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "لا تعتمد على ماضيك وتنسى مستقبلك مع الله.",
-    "english": "Do not rely on your past deeds and forget your future with Allah.",
-    "category": "تنبيه لطيف",
-    "themes": "Endings, Accountability",
-    "keywords": "العمل، الخاتمة"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "لا تنسَ أن للخواتيم وزنًا عظيمًا.",
-    "english": "Never forget the weight of endings.",
-    "category": "لمسة قصيرة",
-    "themes": "Endings, Accountability",
-    "keywords": "الخاتمة، العمل"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "ليست البداية وحدها المهمة… بل النهاية أيضًا.",
-    "english": "The beginning is not all that matters… the ending matters too.",
-    "category": "تأمّل",
-    "themes": "Endings, Reflection",
-    "keywords": "الخاتمة، المصير"
-  },
-  {
-    "hadithNumber": 4,
-    "arabic": "ماذا لو عشت يومك بوعي أن أجلك مكتوب؟",
-    "english": "What would change if you lived knowing your lifespan is written?",
-    "category": "تأمّل",
-    "themes": "Lifespan, Reflection",
-    "keywords": "الأجل، القدر"
+    "arabic": "أربعين يوم نطفة، أربعين علقة، أربعين مضغة، ثم تُنفخ الروح. أنت من قبل ما تتولد كنت فعلاً محل عناية دقيقة ومتابعة، فما بالك دلوقتي وإنت عايش؟"
   },
   {
     "hadithNumber": 5,
-    "arabic": "العمل غير المقبول قد يبدو صالحًا من الخارج.",
-    "english": "An unaccepted deed may still look good on the outside.",
-    "category": "تنبيه لطيف",
-    "themes": "Acceptance, Inner Meaning",
-    "keywords": "القبول، العمل"
+    "arabic": "مش كل حاجة حماسية في الدين معناها إنها صح. النية الطيبة لوحدها مش كفاية لو الطريقة غلط."
   },
   {
     "hadithNumber": 5,
-    "arabic": "القبول يحتاج إخلاصًا… واتباعًا.",
-    "english": "Acceptance requires sincerity… and adherence.",
-    "category": "لمسة قصيرة",
-    "themes": "Acceptance, Sunnah",
-    "keywords": "القبول، الاتباع"
+    "arabic": "الدين له حدود واضحة، ومحبتنا ليه مش معناها إننا نضيف عليه من عندنا."
   },
   {
     "hadithNumber": 5,
-    "arabic": "النية الصالحة وحدها لا تكفي دون اتباع.",
-    "english": "Good intentions alone are not enough without adherence.",
-    "category": "تأمّل",
-    "themes": "Acceptance, Worship",
-    "keywords": "النية، القبول"
+    "arabic": "أحياناً بنتحمس لفكرة جديدة في العبادة بنيّة طيبة، بس النية الطيبة مش دايماً كفاية، لازم نتأكد إن الأصل موجود قبل ما نبني عليه."
   },
   {
     "hadithNumber": 5,
-    "arabic": "تعلّم قبل أن تتعبد.",
-    "english": "Learn before you practice worship.",
-    "category": "إرشاد عملي",
-    "themes": "Knowledge, Worship",
-    "keywords": "العلم، العبادة"
+    "arabic": "الالتزام بالأصل مش جمود، هو حماية. زي ما القانون بيحمي المجتمع من الفوضى، الحدود الشرعية بتحمي الدين من إنه يتحول لحاجة كل واحد بيفهمها زي ما هو عايز."
   },
   {
     "hadithNumber": 5,
-    "arabic": "جمال العبادة في موافقتها لهدي النبي ﷺ.",
-    "english": "Worship is beautiful when aligned with the Prophet’s guidance ﷺ.",
-    "category": "تذكير إيماني",
-    "themes": "Sunnah, Worship",
-    "keywords": "السنة، العبادة"
+    "arabic": "أحياناً في حياتنا الشخصية بنضيف قواعد وشروط قاسية على نفسنا باسم الدين، وهي مش من الدين أصلاً. راجع نفسك: هل ده أمر ربنا، ولا أنا حملت نفسي حاجة زيادة؟"
   },
   {
     "hadithNumber": 5,
-    "arabic": "دين الله محفوظٌ بحدوده.",
-    "english": "Allah’s religion is preserved through its boundaries.",
-    "category": "تذكير إيماني",
-    "themes": "Religion, Boundaries",
-    "keywords": "الدين، الشرع"
-  },
-  {
-    "hadithNumber": 5,
-    "arabic": "زن أعمالك بميزان السنة.",
-    "english": "Weigh your deeds against the Sunnah.",
-    "category": "إرشاد عملي",
-    "themes": "Sunnah, Guidance",
-    "keywords": "السنة، المنهج"
-  },
-  {
-    "hadithNumber": 5,
-    "arabic": "لا تزيّن الخطأ باسم المحبة أو الحماس.",
-    "english": "Do not beautify error with the name of love or zeal.",
-    "category": "تنبيه لطيف",
-    "themes": "Innovation, Warning",
-    "keywords": "البدعة، المنهج"
-  },
-  {
-    "hadithNumber": 5,
-    "arabic": "ليس كل جديدٍ في الدين صحيحًا.",
-    "english": "Not everything new in religion is sound.",
-    "category": "لمسة قصيرة",
-    "themes": "Innovation, Religion",
-    "keywords": "البدعة، الدين"
-  },
-  {
-    "hadithNumber": 5,
-    "arabic": "هل تبحث عن رضا الله… أم عن طريقٍ يعجبك؟",
-    "english": "Are you seeking Allah’s pleasure… or simply a path you prefer?",
-    "category": "تأمّل",
-    "themes": "Sincerity, Reflection",
-    "keywords": "الإخلاص، الاتباع"
+    "arabic": "الحديث ده مش بس عن العبادات، هو درس عام: أي نظام أو قاعدة تحطها لنفسك أو لناس تانية، لازم يكون ليها أساس منطقي وصحيح، مش بس لأنها بقت عادة أو موضة."
   },
   {
     "hadithNumber": 6,
-    "arabic": "أحيانًا… البعد خطوة حكيمة لا خسارة.",
-    "english": "Sometimes stepping back is wisdom, not loss.",
-    "category": "تأمّل",
-    "themes": "Boundaries, Wisdom",
-    "keywords": "الورع، الحدود"
+    "arabic": "الابتعاد عن الشبهات مش تشدد، هو حماية لقلبك من غير ما تحس."
   },
   {
     "hadithNumber": 6,
-    "arabic": "إذا أقلقتك الشبهة… توقّف وتأمّل.",
-    "english": "If something feels doubtful… pause and reflect.",
-    "category": "إرشاد عملي",
-    "themes": "Doubtful Matters, Taqwa",
-    "keywords": "الشبهات، التقوى"
+    "arabic": "قلبك هو اللي بيحدد اتجاه حياتك كلها، اهتم بيه قبل أي حاجة تانية."
   },
   {
     "hadithNumber": 6,
-    "arabic": "التقوى لا تحرس الأفعال فقط… بل القلب أيضًا.",
-    "english": "Taqwa protects not only actions… but the heart too.",
-    "category": "تذكير إيماني",
-    "themes": "Taqwa, Heart",
-    "keywords": "التقوى، القلب"
+    "arabic": "أحياناً بنقول 'دي مش حرام واضحة' ونمشي فيها على أساس إنها مسموحة، بس فيه منطقة رمادي محتاجة حذر أكتر من الثقة."
   },
   {
     "hadithNumber": 6,
-    "arabic": "القلب السليم يحب الوضوح في طريقه إلى الله.",
-    "english": "A sound heart loves clarity on its path to Allah.",
-    "category": "تذكير إيماني",
-    "themes": "Heart, Guidance",
-    "keywords": "القلب، الدين"
+    "arabic": "كل ما اقتربت من حافة الخطأ، بتقرب أكتر من الوقوع فيه من غير ما تاخد بالك. المسافة الآمنة أحسن من المجازفة."
   },
   {
     "hadithNumber": 6,
-    "arabic": "الوضوح نعمة… فلا تبحث عن المناطق الرمادية دائمًا.",
-    "english": "Clarity is a blessing… do not always chase grey areas.",
-    "category": "لمسة قصيرة",
-    "themes": "Clarity, Halal",
-    "keywords": "الحلال، الحرام"
+    "arabic": "صحة قلبك مش موضوع روحاني بعيد عن حياتك اليومية، هي اللي بتحدد جودة قراراتك في الشغل والعلاقات والمال."
   },
   {
     "hadithNumber": 6,
-    "arabic": "حماية القلب تبدأ أحيانًا بترك المشتبهات.",
-    "english": "Protecting the heart sometimes begins by leaving doubtful matters.",
-    "category": "لمسة قصيرة",
-    "themes": "Doubtful Matters, Heart",
-    "keywords": "الشبهات، القلب"
+    "arabic": "الراعي اللي بيرعى غنمه جنب أرض ممنوعة، غنمه هتعدي الحدود عاجلاً أو آجلاً. إحنا كمان لما نفضل نلعب على الحدود، هنعدي يوم من الأيام."
   },
   {
     "hadithNumber": 6,
-    "arabic": "كثرة الاقتراب من الحدود قد تُضعف البصيرة.",
-    "english": "Constantly approaching the limits can weaken spiritual vision.",
-    "category": "تنبيه لطيف",
-    "themes": "Boundaries, Warning",
-    "keywords": "الحدود، التقوى"
-  },
-  {
-    "hadithNumber": 6,
-    "arabic": "كم من سلامةٍ جاءت من ترك شيءٍ مشتبه؟",
-    "english": "How much peace came from leaving something doubtful?",
-    "category": "تأمّل",
-    "themes": "Doubtful Matters, Reflection",
-    "keywords": "الشبهات، السلامة"
-  },
-  {
-    "hadithNumber": 6,
-    "arabic": "لا تجعل السؤال الوحيد: «هل يجوز؟»",
-    "english": "Do not let “Is it allowed?” be your only question.",
-    "category": "إرشاد عملي",
-    "themes": "Taqwa, Reflection",
-    "keywords": "التقوى، الورع"
-  },
-  {
-    "hadithNumber": 6,
-    "arabic": "لا تُعوّد قلبك على التهاون بالشبهات.",
-    "english": "Do not train your heart to become comfortable with doubtful matters.",
-    "category": "تنبيه لطيف",
-    "themes": "Doubtful Matters, Heart",
-    "keywords": "الشبهات، القلب"
+    "arabic": "مش كل حاجة محتاجة فتوى واضحة عشان تسيبها. أحياناً إحساسك الداخلي إن الحاجة دي 'مش مريحة' كفاية إنك تبعد عنها."
   },
   {
     "hadithNumber": 7,
-    "arabic": "اختر الوقت والأسلوب قبل النصيحة.",
-    "english": "Choose the right time and manner before giving advice.",
-    "category": "إرشاد عملي",
-    "themes": "Wisdom, Responsibility",
-    "keywords": "النصيحة، الحكمة"
+    "arabic": "النصيحة الحقيقية مش نقد، هي حب صادق عايز الخير للطرف التاني."
   },
   {
     "hadithNumber": 7,
-    "arabic": "الإخلاص يظهر في طريقة النصيحة.",
-    "english": "Sincerity appears in how advice is given.",
-    "category": "تأمّل",
-    "themes": "Sincerity, Behavior",
-    "keywords": "الإخلاص، النصيحة"
+    "arabic": "قبل ما تنصح حد، اسأل نفسك: أنا بعمل ده عشان يتحسن ولا عشان أثبت إني صح؟"
   },
   {
     "hadithNumber": 7,
-    "arabic": "الدين يبني أفرادًا يرحمون ويصلحون.",
-    "english": "Religion builds people who care and reform.",
-    "category": "تذكير إيماني",
-    "themes": "Community, Mercy",
-    "keywords": "الدين، الرحمة"
+    "arabic": "أقرب صديق ليك هو اللي بيقولك الحقيقة بحب، مش اللي بيمدحك في كل حاجة عشان يرضيك."
   },
   {
     "hadithNumber": 7,
-    "arabic": "القسوة قد تُفسد أجمل النصائح.",
-    "english": "Harshness can ruin the finest advice.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Compassion",
-    "keywords": "الرحمة، النصيحة"
+    "arabic": "النصيحة لنفسك أهم حاجة قبل ما تنصح غيرك. راجع نفسك بصدق قبل ما توجه كلامك لحد تاني."
   },
   {
     "hadithNumber": 7,
-    "arabic": "النصيحة الصادقة عبادةٌ للقلب واللسان.",
-    "english": "Sincere counsel is worship of the heart and tongue.",
-    "category": "تذكير إيماني",
-    "themes": "Worship, Sincerity",
-    "keywords": "النصيحة، القلب"
+    "arabic": "مجتمع بيحب بعضه هو اللي أفراده بيهتموا ببعض بصدق، مش بس بيتفرجوا على أخطاء بعض من بعيد."
   },
   {
     "hadithNumber": 7,
-    "arabic": "النصيحة روحٌ… لا مجرّد كلمات.",
-    "english": "Sincere counsel is a spirit… not merely words.",
-    "category": "لمسة قصيرة",
-    "themes": "Counsel, Sincerity",
-    "keywords": "النصيحة، الإخلاص"
+    "arabic": "النصيحة مش دايماً كلام، ممكن تكون فعل: إنك تساعد حد يقف تاني، أو تسكت عن غلطته قدام الناس وتكلمه لوحدك."
   },
   {
     "hadithNumber": 7,
-    "arabic": "انصح برحمة… لا بتعالٍ.",
-    "english": "Advise with mercy… not superiority.",
-    "category": "إرشاد عملي",
-    "themes": "Compassion, Counsel",
-    "keywords": "الرحمة، النصيحة"
-  },
-  {
-    "hadithNumber": 7,
-    "arabic": "حبّ الخير للناس من علامات سلامة القلب.",
-    "english": "Wanting good for others reflects a sound heart.",
-    "category": "لمسة قصيرة",
-    "themes": "Brotherhood, Heart",
-    "keywords": "الأخوة، القلب"
-  },
-  {
-    "hadithNumber": 7,
-    "arabic": "لا تجعل النصيحة طريقًا للوم أو الشهرة.",
-    "english": "Do not turn advice into a path to blame or attention.",
-    "category": "تنبيه لطيف",
-    "themes": "Integrity, Sincerity",
-    "keywords": "الإخلاص، النصيحة"
-  },
-  {
-    "hadithNumber": 7,
-    "arabic": "هل نصيحتك تُصلح… أم تُثبت أنك على حق؟",
-    "english": "Does your advice heal… or merely prove you right?",
-    "category": "تأمّل",
-    "themes": "Reflection, Integrity",
-    "keywords": "النصيحة، الصدق"
+    "arabic": "أحياناً أصعب نصيحة نقدمها هي لنفسنا. بنعرف اللي غلط فينا لكن بنأجل التغيير، وده أول باب للنصيحة الحقيقية."
   },
   {
     "hadithNumber": 8,
-    "arabic": "إهمال الفرائض يُضعف بناء الدين في القلب والحياة.",
-    "english": "Neglecting obligations weakens religion in the heart and life.",
-    "category": "تنبيه لطيف",
-    "themes": "Worship, Warning",
-    "keywords": "الصلاة، الدين"
+    "arabic": "كلمة 'لا إله إلا الله' مش مجرد نطق، هي التزام بيغير طريقة تفكيرك وتصرفك كله."
   },
   {
     "hadithNumber": 8,
-    "arabic": "اجعل التزامك بالدين ظاهرًا في أفعالك.",
-    "english": "Let your commitment to faith appear in your actions.",
-    "category": "إرشاد عملي",
-    "themes": "Practice, Islam",
-    "keywords": "الإسلام، العمل"
+    "arabic": "حسابك عند ربنا، مش عند الناس. ده بيريحك من ضغط إثبات نفسك للكل."
   },
   {
     "hadithNumber": 8,
-    "arabic": "الإسلام يحفظ الحقوق والدماء.",
-    "english": "Islam safeguards rights and lives.",
-    "category": "تذكير إيماني",
-    "themes": "Justice, Sanctity",
-    "keywords": "الدماء، الحقوق"
+    "arabic": "الدين مبني على أشياء واضحة قابلة للتطبيق: شهادة، صلاة، زكاة. مش على تعقيد فلسفي بعيد عن الواقع."
   },
   {
     "hadithNumber": 8,
-    "arabic": "الإيمان ليس فكرة مجردة… بل التزامٌ يُرى.",
-    "english": "Faith is not an abstract idea… but a visible commitment.",
-    "category": "تأمّل",
-    "themes": "Faith, Commitment",
-    "keywords": "الإيمان، الالتزام"
+    "arabic": "أبو بكر الصديق وقف موقف صعب وهو مؤمن بحقه، حتى لو خالفه غيره في البداية. الثبات على الحق بيحتاج شجاعة أحياناً."
   },
   {
     "hadithNumber": 8,
-    "arabic": "العبادة ليست شعارًا… بل عهدٌ ومسؤولية.",
-    "english": "Worship is not a slogan… but a covenant and responsibility.",
-    "category": "لمسة قصيرة",
-    "themes": "Worship, Accountability",
-    "keywords": "العبادة، المسؤولية"
+    "arabic": "مسؤوليتنا كبشر هي الظاهر، والباطن أمره لله. متحملش نفسك حكم على نوايا الناس."
   },
   {
     "hadithNumber": 8,
-    "arabic": "بين العبد وربه عبادات… وبين العباد حقوق.",
-    "english": "Between the servant and Allah are acts of worship… and between الناس are rights.",
-    "category": "تذكير إيماني",
-    "themes": "Worship, Justice",
-    "keywords": "العبادة، الحقوق"
-  },
-  {
-    "hadithNumber": 8,
-    "arabic": "حافظ على صلاتك… فهي من أعظم معالم الدين.",
-    "english": "Guard your prayer… it is among the greatest signs of religion.",
-    "category": "إرشاد عملي",
-    "themes": "Prayer, Worship",
-    "keywords": "الصلاة، العبادة"
-  },
-  {
-    "hadithNumber": 8,
-    "arabic": "لا تختزل الدين في كلماتٍ بلا التزام.",
-    "english": "Do not reduce religion to words without commitment.",
-    "category": "تنبيه لطيف",
-    "themes": "Commitment, Warning",
-    "keywords": "الدين، الالتزام"
-  },
-  {
-    "hadithNumber": 8,
-    "arabic": "للتوحيد أثرٌ في الحياة… لا في اللسان فقط.",
-    "english": "Tawhid shapes life… not only speech.",
-    "category": "لمسة قصيرة",
-    "themes": "Tawhid, Commitment",
-    "keywords": "التوحيد، الالتزام"
-  },
-  {
-    "hadithNumber": 8,
-    "arabic": "ماذا يعني أن يعيش التوحيد داخل قراراتك اليومية؟",
-    "english": "What does it mean for tawhid to live inside your daily decisions?",
-    "category": "تأمّل",
-    "themes": "Tawhid, Reflection",
-    "keywords": "التوحيد، القلب"
+    "arabic": "فيه فرق بين إنك تحكم على تصرفات الناس الظاهرة وبين إنك تحكم على قلوبهم. الأول حقك، والتاني مش شغلك."
   },
   {
     "hadithNumber": 9,
-    "arabic": "أحيانًا… النجاة في الامتناع لا في الإضافة.",
-    "english": "Sometimes safety lies in restraint, not in adding more.",
-    "category": "تأمّل",
-    "themes": "Limits, Wisdom",
-    "keywords": "النهي، الحكمة"
+    "arabic": "ابعد عن الممنوع تماماً، لكن اعمل من المأمور قد ما تقدر - مش لازم الكمال من أول مرة."
   },
   {
     "hadithNumber": 9,
-    "arabic": "ابنِ علاقتك بالدين على الثبات لا المبالغة.",
-    "english": "Build your religious life on consistency, not excess.",
-    "category": "إرشاد عملي",
-    "themes": "Moderation, Discipline",
-    "keywords": "الاعتدال، الالتزام"
+    "arabic": "كتر السؤال أحياناً بيعقد حاجة كانت سهلة، خد بالبسيط وابدأ."
   },
   {
     "hadithNumber": 9,
-    "arabic": "افعل الخير بقدر استطاعتك… لكن لا تتساهل مع الحرام.",
-    "english": "Do good according to your ability… but do not take prohibitions lightly.",
-    "category": "إرشاد عملي",
-    "themes": "Capacity, Discipline",
-    "keywords": "الاستطاعة، النهي"
+    "arabic": "لو حاسس إنك مش قادر تعمل كل حاجة صح من مرة واحدة، ابدأ باللي تقدر عليه وكمل بالتدريج، ربنا مش طالب منك الكمال."
   },
   {
     "hadithNumber": 9,
-    "arabic": "الدين لا يكلّفك بما لا تطيق.",
-    "english": "Religion does not burden you beyond your capacity.",
-    "category": "لمسة قصيرة",
-    "themes": "Ease, Capacity",
-    "keywords": "الاستطاعة، التيسير"
+    "arabic": "في الحياة برضه، السؤال الكتير من غير فعل بيعطل. أحياناً لازم تاخد قرار وتمشي فيه بدل ما تفضل تسأل وتأجل."
   },
   {
     "hadithNumber": 9,
-    "arabic": "الطاعة ليست سباق مشقة… بل طريق قربٍ متزن.",
-    "english": "Obedience is not a contest of hardship… but a balanced path to nearness.",
-    "category": "تذكير إيماني",
-    "themes": "Obedience, Balance",
-    "keywords": "الطاعة، الاعتدال"
+    "arabic": "الرفق بنفسك مش ضعف. لو مش قادر تعمل كل حاجة الشرع طلبها بكمالها، اعمل اللي تقدر عليه وربنا يعينك على الباقي."
   },
   {
     "hadithNumber": 9,
-    "arabic": "الغلو قد يُتعب الجسد والقلب معًا.",
-    "english": "Excessiveness can exhaust both body and heart.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Moderation",
-    "keywords": "الغلو، القلب"
-  },
-  {
-    "hadithNumber": 9,
-    "arabic": "ترك المحرمات بداية الطريق الآمن.",
-    "english": "Leaving prohibitions is the beginning of a safer path.",
-    "category": "لمسة قصيرة",
-    "themes": "Limits, Obedience",
-    "keywords": "النهي، الطاعة"
-  },
-  {
-    "hadithNumber": 9,
-    "arabic": "لا تجعل الحماس سببًا لتجاوز حدود الشرع.",
-    "english": "Do not let enthusiasm push you beyond sacred boundaries.",
-    "category": "تنبيه لطيف",
-    "themes": "Boundaries, Discipline",
-    "keywords": "الشرع، الالتزام"
-  },
-  {
-    "hadithNumber": 9,
-    "arabic": "من رحمة الله أن ربط التكليف بالاستطاعة.",
-    "english": "From Allah’s mercy is that obligation is tied to ability.",
-    "category": "تذكير إيماني",
-    "themes": "Mercy, Capacity",
-    "keywords": "الرحمة، الاستطاعة"
-  },
-  {
-    "hadithNumber": 9,
-    "arabic": "هل تُرهق نفسك بما لم يُطلب منك؟",
-    "english": "Are you exhausting yourself with what was never required?",
-    "category": "تأمّل",
-    "themes": "Reflection, Moderation",
-    "keywords": "التكليف، الاعتدال"
+    "arabic": "بني إسرائيل اتعبوا نفسهم بكتر الأسئلة في حاجة كانت بسيطة. أحياناً إحنا كمان بنعقّد قرارات كانت ممكن تبقى سهلة لو مشينا فيها من الأول."
   },
   {
     "hadithNumber": 10,
-    "arabic": "أحيانًا لا يكفي رفع اليدين… بل يحتاج الطريق كله مراجعة.",
-    "english": "Sometimes raised hands are not enough… the whole path needs review.",
-    "category": "تأمّل",
-    "themes": "Duʿāʾ, Accountability",
-    "keywords": "الدعاء، القبول"
+    "arabic": "مصدر رزقك بيأثر على قبول دعائك، مش بس على حسابك البنكي."
   },
   {
     "hadithNumber": 10,
-    "arabic": "اطلب الحلال… ولو كان الطريق أطول.",
-    "english": "Seek halal… even if the road is longer.",
-    "category": "إرشاد عملي",
-    "themes": "Halal, Commitment",
-    "keywords": "الحلال، الالتزام"
+    "arabic": "الحلال مش رفاهية، هو أساس لازم نحافظ عليه في أكلنا وشغلنا وكل حاجة."
   },
   {
     "hadithNumber": 10,
-    "arabic": "الحرام قد يُظلم القلب قبل أن يُظلم الطريق.",
-    "english": "The unlawful can darken the heart before it darkens the path.",
-    "category": "تنبيه لطيف",
-    "themes": "Haram, Heart",
-    "keywords": "الحرام، القلب"
+    "arabic": "لما تدعي ربنا وتحس إن دعوتك مش بتتستجاب، افحص مصدر رزقك ومطعمك قبل ما تفحص أي حاجة تانية."
   },
   {
     "hadithNumber": 10,
-    "arabic": "الحلال يترك أثره في الروح.",
-    "english": "Halal provision leaves its mark on the soul.",
-    "category": "لمسة قصيرة",
-    "themes": "Halal, Inner State",
-    "keywords": "الحلال، الرزق"
+    "arabic": "مد الإيدين للسما في لحظة ضعف صورة مؤثرة، بس الحديث بيقولنا إن الاستجابة مرتبطة كمان بنقاء الطريق اللي وصلنا بيه لرزقنا."
   },
   {
     "hadithNumber": 10,
-    "arabic": "الطعام الحلال عبادةٌ خفية.",
-    "english": "Halal nourishment is a hidden act of worship.",
-    "category": "تذكير إيماني",
-    "themes": "Halal, Worship",
-    "keywords": "الحلال، العبادة"
+    "arabic": "أحياناً بنسافر ونتعب ونحج ونعتمر، وننسى إن أساس القبول هو نظافة مصدر رزقنا من الأول."
   },
   {
     "hadithNumber": 10,
-    "arabic": "القبول يرتبط بطيب الظاهر والباطن.",
-    "english": "Acceptance is tied to purity inside and out.",
-    "category": "تذكير إيماني",
-    "themes": "Acceptance, Purity",
-    "keywords": "القبول، الطيب"
-  },
-  {
-    "hadithNumber": 10,
-    "arabic": "الله يحب الطيب… في العمل والقلب والكسب.",
-    "english": "Allah loves purity… in deeds, hearts, and earnings.",
-    "category": "لمسة قصيرة",
-    "themes": "Purity, Worship",
-    "keywords": "الطيب، القلب"
-  },
-  {
-    "hadithNumber": 10,
-    "arabic": "راجع مصدر رزقك كما تراجع عبادتك.",
-    "english": "Review your earnings as carefully as your worship.",
-    "category": "إرشاد عملي",
-    "themes": "Halal, Accountability",
-    "keywords": "الرزق، العبادة"
-  },
-  {
-    "hadithNumber": 10,
-    "arabic": "لا تطلب أثر الدعاء وتغفل عن أثر الكسب.",
-    "english": "Do not seek the fruits of duʿāʾ while ignoring your earnings.",
-    "category": "تنبيه لطيف",
-    "themes": "Duʿāʾ, Warning",
-    "keywords": "الدعاء، الرزق"
-  },
-  {
-    "hadithNumber": 10,
-    "arabic": "ماذا يدخل قلبك… كما ماذا يدخل جيبك؟",
-    "english": "What enters your heart… as well as your pocket?",
-    "category": "تأمّل",
-    "themes": "Reflection, Purity",
-    "keywords": "القلب، الكسب"
+    "arabic": "الرجل في الحديث تعب كتير وسافر ودعا بإلحاح، ومع ذلك ما استُجيب دعاءه لحرمة مطعمه. ده درس إن التعب وحده مش ضمان للقبول، لازم يكون الأساس نظيف من البداية."
   },
   {
     "hadithNumber": 11,
-    "arabic": "أحيانًا… النجاة في ترك السؤال المشبوه أصلًا.",
-    "english": "Sometimes safety lies in leaving the doubtful matter itself.",
-    "category": "تأمّل",
-    "themes": "Doubtful Matters, Reflection",
-    "keywords": "الشبهة، السلامة"
+    "arabic": "لما تحس إن حاجة قلقانك أو مش مرتاح ليها، صدق إحساسك وابعد عنها."
   },
   {
     "hadithNumber": 11,
-    "arabic": "اختر الواضح… حين يكثر الالتباس.",
-    "english": "Choose clarity when confusion grows.",
-    "category": "إرشاد عملي",
-    "themes": "Clarity, Wisdom",
-    "keywords": "اليقين، الشبهة"
+    "arabic": "اليقين مريح، والشك متعب. اختار الطريق اللي مفيهوش شك من الأول."
   },
   {
     "hadithNumber": 11,
-    "arabic": "التقوى لا تبحث عن الحافة… بل عن السلامة.",
-    "english": "Taqwa does not seek the edge… it seeks safety.",
-    "category": "تذكير إيماني",
-    "themes": "Taqwa, Protection",
-    "keywords": "التقوى، الورع"
+    "arabic": "مش شرط تستنى دليل قاطع إن الحاجة غلط، كفاية إنها بتحس بعدم راحة عشان تسيبها لبديل مريح أكتر."
   },
   {
     "hadithNumber": 11,
-    "arabic": "الطمأنينة دليلٌ لا يُستهان به.",
-    "english": "Inner peace is a sign not to ignore.",
-    "category": "لمسة قصيرة",
-    "themes": "Inner Peace, Clarity",
-    "keywords": "الطمأنينة، اليقين"
+    "arabic": "في القرارات الكبيرة، لو فيه خيارين واحد فيه شك وواحد مطمن، اختار المطمن حتى لو التاني شكله أحسن."
   },
   {
     "hadithNumber": 11,
-    "arabic": "اليقين يخفّف ضجيج التردد.",
-    "english": "Certainty quiets the noise of hesitation.",
-    "category": "تذكير إيماني",
-    "themes": "Certainty, Heart",
-    "keywords": "اليقين، القلب"
+    "arabic": "القلق المستمر من قرار معين علامة إنك محتاج تراجعه، مش إنك تكابر وتكمل فيه."
   },
   {
     "hadithNumber": 11,
-    "arabic": "كثرة التبرير قد تُخفي شبهةً واضحة.",
-    "english": "Too much justification can hide an obvious doubt.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Doubt",
-    "keywords": "الشبهة، الشك"
-  },
-  {
-    "hadithNumber": 11,
-    "arabic": "كم من راحةٍ جاءت من ترك أمرٍ مُقلق؟",
-    "english": "How much peace came from leaving what felt troubling?",
-    "category": "تأمّل",
-    "themes": "Reflection, Peace",
-    "keywords": "السلامة، القلب"
-  },
-  {
-    "hadithNumber": 11,
-    "arabic": "لا تعتد تجاهل إشارات قلبك الصادق.",
-    "english": "Do not grow used to ignoring the signals of a truthful heart.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Heart",
-    "keywords": "القلب، الصدق"
-  },
-  {
-    "hadithNumber": 11,
-    "arabic": "لا تُجبر قلبك على ما لا يطمئن له.",
-    "english": "Do not force your heart into what it cannot trust.",
-    "category": "إرشاد عملي",
-    "themes": "Inner Peace, Taqwa",
-    "keywords": "القلب، الطمأنينة"
-  },
-  {
-    "hadithNumber": 11,
-    "arabic": "ما يربك القلب… يستحق التوقف عنده.",
-    "english": "What unsettles the heart deserves a pause.",
-    "category": "لمسة قصيرة",
-    "themes": "Heart, Doubt",
-    "keywords": "القلب، الشك"
+    "arabic": "أحياناً بنفضل في علاقة أو شغل رغم إحساس داخلي إنه مش صح، بس مقتنعين إننا هنعتاد. الحديث بيقولنا: اسمع لصوت الشك ده، وابحث عن البديل المطمن."
   },
   {
     "hadithNumber": 12,
-    "arabic": "احمِ وقتك من الفضول الزائد.",
-    "english": "Protect your time from unnecessary curiosity.",
-    "category": "إرشاد عملي",
-    "themes": "Time, Focus",
-    "keywords": "الوقت، الانشغال"
+    "arabic": "مش كل خبر أو دراما لازم تعرفها. وقتك وطاقتك أغلى من كده."
   },
   {
     "hadithNumber": 12,
-    "arabic": "الترك الحكيم مهارةٌ إيمانية.",
-    "english": "Wise restraint is a spiritual skill.",
-    "category": "لمسة قصيرة",
-    "themes": "Wisdom, Discipline",
-    "keywords": "الترك، الحكمة"
+    "arabic": "الاهتمام بكل حاجة بيخليك متعب من غير فايدة حقيقية."
   },
   {
     "hadithNumber": 12,
-    "arabic": "الفضول غير المنضبط قد يسرق عمرك.",
-    "english": "Undisciplined curiosity can steal your life.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Time",
-    "keywords": "الفضول، الوقت"
+    "arabic": "من علامات نضجك إنك تعرف تسيب الحاجات اللي مالهاش لازمة في حياتك وتركز على اللي بيفرق فعلاً."
   },
   {
     "hadithNumber": 12,
-    "arabic": "حسن الإسلام يظهر في حسن الاختيار.",
-    "english": "Good Islam appears in good choices.",
-    "category": "تذكير إيماني",
-    "themes": "Religion, Discipline",
-    "keywords": "الإسلام، الحكمة"
+    "arabic": "السوشيال ميديا بتخلينا نحس إن كل حاجة تخصنا، بس مش كل حاجة لازم رأيك فيها أو متابعتك ليها."
   },
   {
     "hadithNumber": 12,
-    "arabic": "صفاء القلب يحتاج تقليل الضوضاء.",
-    "english": "A clear heart needs less noise.",
-    "category": "تذكير إيماني",
-    "themes": "Heart, Inner Cleanliness",
-    "keywords": "القلب، الصفاء"
+    "arabic": "كل ما قللت فضولك في حاجات مالهاش داعي، هتلاقي نفسك عندك مساحة وطاقة أكبر للي فعلاً مهم."
   },
   {
     "hadithNumber": 12,
-    "arabic": "كم من تعبٍ سببه الانشغال بما لا ينفع؟",
-    "english": "How much exhaustion comes from chasing what does not benefit?",
-    "category": "تأمّل",
-    "themes": "Reflection, Priorities",
-    "keywords": "الانشغال، الحكمة"
-  },
-  {
-    "hadithNumber": 12,
-    "arabic": "لا تجعل التفاصيل الثانوية تستهلك قلبك.",
-    "english": "Do not let secondary matters consume your heart.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Focus",
-    "keywords": "القلب، الأولويات"
-  },
-  {
-    "hadithNumber": 12,
-    "arabic": "ليس كل ما تعرفه… يعنيك.",
-    "english": "Not everything you know… concerns you.",
-    "category": "لمسة قصيرة",
-    "themes": "Focus, Priorities",
-    "keywords": "الأولويات، الحكمة"
-  },
-  {
-    "hadithNumber": 12,
-    "arabic": "ماذا سيبقى لو تركت كل ما لا يعنيك؟",
-    "english": "What would remain if you left what does not concern you?",
-    "category": "تأمّل",
-    "themes": "Meaningful Living, Reflection",
-    "keywords": "التركيز، الأولويات"
-  },
-  {
-    "hadithNumber": 12,
-    "arabic": "وجّه طاقتك لما يُصلح قلبك وحياتك.",
-    "english": "Direct your energy toward what benefits your heart and life.",
-    "category": "إرشاد عملي",
-    "themes": "Purpose, Heart",
-    "keywords": "القلب، الصلاح"
+    "arabic": "فيه فرق بين إنك تكون مهتم بالناس بمحبة، وبين إنك تكون فضولي في تفاصيل مالهاش دعوة بيك. الأول رحمة والتاني إرهاق."
   },
   {
     "hadithNumber": 13,
-    "arabic": "ادعُ لغيرك بما تتمناه لنفسك.",
-    "english": "Pray for others with what you wish for yourself.",
-    "category": "إرشاد عملي",
-    "themes": "Love, Practice",
-    "keywords": "المحبة، الخير"
+    "arabic": "افرح لنجاح غيرك زي ما تفرح لنجاحك، ده مقياس حقيقي لصفاء قلبك."
   },
   {
     "hadithNumber": 13,
-    "arabic": "اكتمال الإيمان يظهر في اتساع القلب.",
-    "english": "The fullness of faith appears in the wideness of the heart.",
-    "category": "لمسة قصيرة",
-    "themes": "Faith, Heart",
-    "keywords": "الإيمان، القلب"
+    "arabic": "الإيمان الكامل مش بس في العبادة، هو كمان في إنك تتمنى لغيرك الخير الصادق."
   },
   {
     "hadithNumber": 13,
-    "arabic": "الأنانية تُضيّق القلب ولو اتّسعت الدنيا.",
-    "english": "Selfishness narrows the heart even if the world expands.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Selflessness",
-    "keywords": "النفس، القلب"
+    "arabic": "الحسد بيتسلل بهدوء لما نشوف حد بيوصل لحاجة إحنا كمان بنتمناها. جرب تستبدله بفرحة صادقة وشوف الفرق في راحتك النفسية."
   },
   {
     "hadithNumber": 13,
-    "arabic": "الإيمان يبني قلوبًا تتمنى الخير للناس.",
-    "english": "Faith builds hearts that wish الخير for others.",
-    "category": "تذكير إيماني",
-    "themes": "Faith, Brotherhood",
-    "keywords": "الإيمان، الأخوة"
+    "arabic": "صعب تحب لغيرك زي ما بتحب لنفسك، بس مش مستحيل. ابدأ بخطوة صغيرة: افرح جوه قلبك مرة قبل ما تحكم على حد بالحسد."
   },
   {
     "hadithNumber": 13,
-    "arabic": "الخير الحقيقي لا يحتكره صاحبه.",
-    "english": "True goodness is not hoarded.",
-    "category": "لمسة قصيرة",
-    "themes": "Brotherhood, Selflessness",
-    "keywords": "الخير، الأخوة"
+    "arabic": "العلاقات اللي بتبنيها على أساس إنك عايز الخير لصاحبك بجد، بتفضل قوية حتى في أصعب الظروف."
   },
   {
     "hadithNumber": 13,
-    "arabic": "الرحمة تبدأ حين ترى الناس بعين الإنسانية لا المنافسة.",
-    "english": "Mercy begins when you see people through humanity, not rivalry.",
-    "category": "تذكير إيماني",
-    "themes": "Mercy, Community",
-    "keywords": "الرحمة، الأخلاق"
-  },
-  {
-    "hadithNumber": 13,
-    "arabic": "شارك الخير… ولا تجعل النجاح منافسةً باردة.",
-    "english": "Share goodness… do not turn success into a cold competition.",
-    "category": "إرشاد عملي",
-    "themes": "Community, Character",
-    "keywords": "الإيثار، الأخلاق"
-  },
-  {
-    "hadithNumber": 13,
-    "arabic": "لا تجعل المقارنة تُفسد محبتك للخير.",
-    "english": "Do not let comparison corrupt your love of goodness.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Character",
-    "keywords": "المحبة، الأخلاق"
-  },
-  {
-    "hadithNumber": 13,
-    "arabic": "ماذا يكشف حسدك… أو فرحك… عن قلبك؟",
-    "english": "What do your envy… or your joy… reveal about your heart?",
-    "category": "تأمّل",
-    "themes": "Reflection, Inner State",
-    "keywords": "القلب، النفس"
-  },
-  {
-    "hadithNumber": 13,
-    "arabic": "هل يفرح قلبك لنعمة غيرك؟",
-    "english": "Does your heart rejoice in another person’s blessing?",
-    "category": "تأمّل",
-    "themes": "Reflection, Heart",
-    "keywords": "القلب، المحبة"
+    "arabic": "المؤمنون زي الجسد الواحد، لو عضو اتوجع الباقي حس بيه. لو فعلاً حسينا بألم بعض وفرحة بعض، كانت المجتمعات هتبقى مكان تاني خالص."
   },
   {
     "hadithNumber": 14,
-    "arabic": "إقامة الحقوق من صور تعظيم أمر الله.",
-    "english": "Upholding rights is part of honoring Allah’s command.",
-    "category": "تذكير إيماني",
-    "themes": "Rights, Faith",
-    "keywords": "الحقوق، الإيمان"
+    "arabic": "حرمة الدم في الإسلام مش كلام نظري، هي قاعدة محسومة ليها استثناءات محددة بس."
   },
   {
     "hadithNumber": 14,
-    "arabic": "اجعل العدل مبدأً… حتى مع من تختلف معه.",
-    "english": "Let justice remain a principle… even with those you disagree with.",
-    "category": "إرشاد عملي",
-    "themes": "Justice, Character",
-    "keywords": "العدالة، الأخلاق"
+    "arabic": "العدالة في الإسلام دقيقة ومحكومة بضوابط واضحة، مش تُترك للأهواء."
   },
   {
     "hadithNumber": 14,
-    "arabic": "الاستهانة بالدماء تُفسد القلوب والمجتمعات.",
-    "english": "Taking bloodshed lightly corrupts hearts and societies.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Society",
-    "keywords": "الدم، المجتمع"
+    "arabic": "الحياة الإنسانية قيمتها عالية جداً في الشرع، ومحدش له حق ياخدها إلا بضوابط قانونية واضحة، مش بمزاج شخصي أو انتقام."
   },
   {
     "hadithNumber": 14,
-    "arabic": "الدين لا يحفظ العبادة فقط… بل يحفظ الحياة أيضًا.",
-    "english": "Religion safeguards not only worship… but life itself.",
-    "category": "تذكير إيماني",
-    "themes": "Religion, Life",
-    "keywords": "الدين، الحياة"
+    "arabic": "النظام القضائي والحدود الشرعية موجودة عشان تحمي المجتمع من الفوضى، مش عشان تكون أداة قمع أو انتقام فردي."
   },
   {
     "hadithNumber": 14,
-    "arabic": "تعلّم أن تحترم حدود الله وحقوق الناس.",
-    "english": "Learn to honor Allah’s limits and people’s rights.",
-    "category": "إرشاد عملي",
-    "themes": "Boundaries, Rights",
-    "keywords": "الحدود، الحقوق"
-  },
-  {
-    "hadithNumber": 14,
-    "arabic": "حماية المجتمع تبدأ بحماية الحقوق.",
-    "english": "Protecting society begins with protecting rights.",
-    "category": "لمسة قصيرة",
-    "themes": "Rights, Community",
-    "keywords": "الحقوق، المجتمع"
-  },
-  {
-    "hadithNumber": 14,
-    "arabic": "لا تجعل الغضب يطمس ميزان العدل.",
-    "english": "Do not let anger erase the balance of justice.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Justice",
-    "keywords": "العدالة، النفس"
-  },
-  {
-    "hadithNumber": 14,
-    "arabic": "للإنسان حرمةٌ عظيمة في الإسلام.",
-    "english": "Human life carries immense sanctity in Islam.",
-    "category": "لمسة قصيرة",
-    "themes": "Sanctity, Justice",
-    "keywords": "الحرمة، العدالة"
-  },
-  {
-    "hadithNumber": 14,
-    "arabic": "ما الذي يحدث حين تُستهان حرمة الإنسان؟",
-    "english": "What happens when human sanctity is taken lightly?",
-    "category": "تأمّل",
-    "themes": "Reflection, Sanctity",
-    "keywords": "الدم، الحرمة"
-  },
-  {
-    "hadithNumber": 14,
-    "arabic": "هل تدرك قيمة الأمن الذي تعيشه كل يوم؟",
-    "english": "Do you realize the value of the safety you live in every day?",
-    "category": "تأمّل",
-    "themes": "Reflection, Society",
-    "keywords": "المجتمع، الحرمة"
+    "arabic": "أحياناً بنستسهل الحكم على حياة أو كرامة حد تاني بسبب غضب لحظي. القاعدة الشرعية بتفكرنا إن في حدود محكومة مايصحش نتجاوزها."
   },
   {
     "hadithNumber": 15,
-    "arabic": "أكرم ضيفك… وأحسن إلى جارك.",
-    "english": "Honor your guest… and be good to your neighbor.",
-    "category": "إرشاد عملي",
-    "themes": "Hospitality, Relationships",
-    "keywords": "الضيف، الجار"
+    "arabic": "لو مش هتقول حاجة كويسة، السكوت أحياناً أبلغ رد."
   },
   {
     "hadithNumber": 15,
-    "arabic": "الإيمان يظهر في طريقة الكلام والمعاملة.",
-    "english": "Faith appears in speech and conduct.",
-    "category": "تذكير إيماني",
-    "themes": "Faith, Character",
-    "keywords": "الإيمان، الأخلاق"
+    "arabic": "إكرام الجار والضيف مش رفاهية، هي جزء من كمال الإيمان."
   },
   {
     "hadithNumber": 15,
-    "arabic": "الصمت الحكيم عبادةٌ خفية.",
-    "english": "Wise silence is a hidden act of worship.",
-    "category": "لمسة قصيرة",
-    "themes": "Silence, Character",
-    "keywords": "الصمت، الأخلاق"
+    "arabic": "قبل ما تتكلم، اسأل نفسك: الكلام ده هيفيد ولا هيجرح؟ لو مش متأكد، السكوت أأمن."
   },
   {
     "hadithNumber": 15,
-    "arabic": "الكلمة الطيبة بابٌ من أبواب الإحسان.",
-    "english": "A good word is a doorway to excellence.",
-    "category": "تذكير إيماني",
-    "themes": "Goodness, Ihsan",
-    "keywords": "الخير، الإحسان"
+    "arabic": "علاقتك بجيرانك مقياس حقيقي لأخلاقك، مش بس علاقتك بأصحابك اللي اخترتهم بنفسك."
   },
   {
     "hadithNumber": 15,
-    "arabic": "زن كلماتك قبل أن تخرج.",
-    "english": "Weigh your words before they leave you.",
-    "category": "إرشاد عملي",
-    "themes": "Speech, Discipline",
-    "keywords": "اللسان، الأدب"
+    "arabic": "الضيافة مش بس أكل وشرب، هي إحساس إنك بتخلي حد يحس إنه مرحب بيه ومقدّر في بيتك."
   },
   {
     "hadithNumber": 15,
-    "arabic": "كم من مشكلةٍ بدأت بكلمةٍ غير محسوبة؟",
-    "english": "How many problems began with an unmeasured word?",
-    "category": "تأمّل",
-    "themes": "Reflection, Speech",
-    "keywords": "الكلام، اللسان"
+    "arabic": "كتير من مشاكلنا مع الناس بتبدأ بكلمة كان ممكن تتقال بشكل تاني أو متتقلش خالص. لسانك أمانة كبيرة قد ما هو بسيط في الاستخدام."
   },
   {
     "hadithNumber": 15,
-    "arabic": "لا تجعل سرعة الرد تُضعف جمال خلقك.",
-    "english": "Do not let quick reactions weaken your character.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Character",
-    "keywords": "الأخلاق، الكلام"
-  },
-  {
-    "hadithNumber": 15,
-    "arabic": "ليس كل ما يُقال… يستحق أن يُقال.",
-    "english": "Not everything that can be said… should be said.",
-    "category": "لمسة قصيرة",
-    "themes": "Speech, Wisdom",
-    "keywords": "الكلام، الأدب"
-  },
-  {
-    "hadithNumber": 15,
-    "arabic": "هل يترك كلامك أثرًا من خير؟",
-    "english": "Do your words leave traces of goodness?",
-    "category": "تأمّل",
-    "themes": "Reflection, Goodness",
-    "keywords": "الخير، الكلام"
+    "arabic": "في زمن السوشيال ميديا، كل واحد بقى عنده منصة يتكلم فيها في أي وقت. الحديث ده بيفكرنا إن حرية الكلام ليها مسؤولية أكبر دلوقتي مش أقل."
   },
   {
     "hadithNumber": 16,
-    "arabic": "الحِلم عبادةٌ تظهر وقت الاستفزاز.",
-    "english": "Forbearance is worship revealed in moments of provocation.",
-    "category": "تذكير إيماني",
-    "themes": "Patience, Character",
-    "keywords": "الحلم، الأخلاق"
+    "arabic": "مرة واحدة من كتم الغضب ممكن تحميك من ندم عمر."
   },
   {
     "hadithNumber": 16,
-    "arabic": "الغضب غير المنضبط قد يهدم ما بنته سنوات.",
-    "english": "Uncontrolled anger can destroy what years built.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Emotions",
-    "keywords": "الغضب، الأخلاق"
+    "arabic": "الغضب بيسرقك من نفسك للحظات، وبيخليك تقول وتعمل حاجات مش إنت."
   },
   {
     "hadithNumber": 16,
-    "arabic": "القلوب القوية لا تقودها الانفعالات وحدها.",
-    "english": "Strong hearts are not ruled by emotions alone.",
-    "category": "تذكير إيماني",
-    "themes": "Strength, Heart",
-    "keywords": "القوة، القلب"
+    "arabic": "قبل ما ترد في لحظة غضب، خد نفس عميق وسيب نفسك ثواني. الرد اللي بيتقال في الهدوء غالباً أحسن بكتير."
   },
   {
     "hadithNumber": 16,
-    "arabic": "القوة ليست في الانفجار… بل في التحكم.",
-    "english": "Strength is not in exploding… but in restraint.",
-    "category": "لمسة قصيرة",
-    "themes": "Strength, Self-Control",
-    "keywords": "القوة، التحكم"
+    "arabic": "مش عيب إنك تتغاظ، العيب إنك تسيب الغضب يقود قراراتك وكلامك."
   },
   {
     "hadithNumber": 16,
-    "arabic": "امنح نفسك لحظة قبل الرد.",
-    "english": "Give yourself a moment before responding.",
-    "category": "إرشاد عملي",
-    "themes": "Discipline, Emotions",
-    "keywords": "التحكم، النفس"
+    "arabic": "الاستعاذة بالله من الشيطان مش مجرد كلمة، جرب تقولها فعلياً وقت ما تحس إن الغضب بيتصاعد جواك، وشوف الفرق."
   },
   {
     "hadithNumber": 16,
-    "arabic": "تعلّم تهدئة قلبك قبل تبرير غضبك.",
-    "english": "Learn to calm your heart before defending your anger.",
-    "category": "إرشاد عملي",
-    "themes": "Heart, Self-Control",
-    "keywords": "القلب، الغضب"
-  },
-  {
-    "hadithNumber": 16,
-    "arabic": "كم من ندمٍ بدأ بلحظة غضب؟",
-    "english": "How much regret began with a moment of anger?",
-    "category": "تأمّل",
-    "themes": "Reflection, Anger",
-    "keywords": "الغضب، النفس"
-  },
-  {
-    "hadithNumber": 16,
-    "arabic": "لا تجعل الانفعال يتكلم بدل حكمتك.",
-    "english": "Do not let emotion speak instead of wisdom.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Wisdom",
-    "keywords": "الغضب، الحكمة"
-  },
-  {
-    "hadithNumber": 16,
-    "arabic": "لحظة هدوء قد تنقذ أشياء كثيرة.",
-    "english": "One calm moment can save many things.",
-    "category": "لمسة قصيرة",
-    "themes": "Anger, Wisdom",
-    "keywords": "الغضب، الحكمة"
-  },
-  {
-    "hadithNumber": 16,
-    "arabic": "ماذا يكشف غضبك عن قلبك؟",
-    "english": "What does your anger reveal about your heart?",
-    "category": "تأمّل",
-    "themes": "Reflection, Heart",
-    "keywords": "القلب، الغضب"
+    "arabic": "أقوى الناس مش اللي بيغلب في الشجار، هو اللي بيقدر يتحكم في نفسه وقت الغضب. القوة الحقيقية جوانية."
   },
   {
     "hadithNumber": 17,
-    "arabic": "أتقن ما بين يديك… ولو كان صغيرًا.",
-    "english": "Do with excellence what is in your hands… even if small.",
-    "category": "إرشاد عملي",
-    "themes": "Excellence, Discipline",
-    "keywords": "الإتقان، العمل"
+    "arabic": "الرفق مطلوب حتى في أصعب المواقف، فما بالك في تعاملاتك اليومية العادية؟"
   },
   {
     "hadithNumber": 17,
-    "arabic": "اجعل الرحمة جزءًا من طريقتك لا مجرد شعور.",
-    "english": "Let mercy become your method, not merely a feeling.",
-    "category": "إرشاد عملي",
-    "themes": "Mercy, Character",
-    "keywords": "الرحمة، الأخلاق"
+    "arabic": "لو الدين بيطلب رحمة حتى مع الحيوان وقت الذبح، فأولى بينا نرحم بعض إحنا البشر."
   },
   {
     "hadithNumber": 17,
-    "arabic": "الإحسان ليس استثناءً… بل أسلوب حياة.",
-    "english": "Ihsan is not an exception… it is a way of life.",
-    "category": "لمسة قصيرة",
-    "themes": "Ihsan, Excellence",
-    "keywords": "الإحسان، الإتقان"
+    "arabic": "الإحسان مش رفاهية بنضيفها لما نكون في مزاج كويس، هو مطلوب حتى في أصعب وأقسى المواقف."
   },
   {
     "hadithNumber": 17,
-    "arabic": "الرحمة والإتقان يلتقيان في قلب المؤمن.",
-    "english": "Mercy and excellence meet in the believer’s heart.",
-    "category": "تذكير إيماني",
-    "themes": "Mercy, Heart",
-    "keywords": "الرحمة، القلب"
+    "arabic": "طريقة تعاملك مع أضعف مخلوق بتقولك حاجة كتير عن شخصيتك الحقيقية."
   },
   {
     "hadithNumber": 17,
-    "arabic": "القسوة ليست علامة قوة.",
-    "english": "Harshness is not a sign of strength.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Mercy",
-    "keywords": "القسوة، الرحمة"
+    "arabic": "لو قدرنا نكون رحيمين في المواقف الصعبة والقاسية، هيبقى سهل علينا نكون رحيمين في تفاصيل يومنا العادية."
   },
   {
     "hadithNumber": 17,
-    "arabic": "الله يحب الإحسان حتى في أدق التفاصيل.",
-    "english": "Allah loves excellence even in the smallest details.",
-    "category": "تذكير إيماني",
-    "themes": "Ihsan, Divine Awareness",
-    "keywords": "الإحسان، العبادة"
-  },
-  {
-    "hadithNumber": 17,
-    "arabic": "كيف يبدو الإحسان في تفاصيل يومك؟",
-    "english": "What does ihsan look like in your daily details?",
-    "category": "تأمّل",
-    "themes": "Reflection, Ihsan",
-    "keywords": "الإحسان، الحياة"
-  },
-  {
-    "hadithNumber": 17,
-    "arabic": "لا تجعل العجلة تُضعف جودة عملك أو رحمتك.",
-    "english": "Do not let haste weaken your excellence or your mercy.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Excellence",
-    "keywords": "الإتقان، الرحمة"
-  },
-  {
-    "hadithNumber": 17,
-    "arabic": "هل تؤدي الأعمال… أم تحسن أداءها؟",
-    "english": "Do you merely perform tasks… or perform them beautifully?",
-    "category": "تأمّل",
-    "themes": "Reflection, Excellence",
-    "keywords": "الإتقان، العمل"
+    "arabic": "الإسلام ما يتوقفش عند تحريم الظلم، هو بيطلب إحسان حتى في المواقف اللي فيها ضرورة أو قسوة ظاهرة."
   },
   {
     "hadithNumber": 18,
-    "arabic": "التقوى في القلب… وتظهر في المعاملة.",
-    "english": "Taqwa lives in the heart… and appears in conduct.",
-    "category": "تذكير إيماني",
-    "themes": "Taqwa, Character",
-    "keywords": "التقوى، الأخلاق"
+    "arabic": "خطأ عملته؟ اتبعه بحسنة تمحيه، متفضلش تلوم نفسك من غير ما تتحرك."
   },
   {
     "hadithNumber": 18,
-    "arabic": "باب الإصلاح يبقى مفتوحًا ما دمت تعود إلى الله.",
-    "english": "The door of renewal remains open as long as you return to Allah.",
-    "category": "تذكير إيماني",
-    "themes": "Mercy, Repentance",
-    "keywords": "الرحمة، التوبة"
+    "arabic": "تقوى الله مش بس في المسجد، هي في كل مكان حتى لو محدش شايفك."
   },
   {
     "hadithNumber": 18,
-    "arabic": "سوء الخلق قد يهدم أثر عباداتٍ كثيرة.",
-    "english": "Poor character can weaken the impact of many acts of worship.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Character",
-    "keywords": "الأخلاق، العبادة"
+    "arabic": "أحلى وصف ليك يوم القيامة إنك من أحسن الناس خلقاً، مش أكترهم عبادة ظاهرية بس."
   },
   {
     "hadithNumber": 18,
-    "arabic": "قابل الناس بخُلُقٍ يليق بإيمانك.",
-    "english": "Meet people with a character worthy of your faith.",
-    "category": "إرشاد عملي",
-    "themes": "Relationships, Character",
-    "keywords": "الأخلاق، الإيمان"
+    "arabic": "لو غلطت النهاردة، بكرة اعمل حسنة تعوّض بيها. الله بيمحي السيئات بالحسنات، مش بيطلب الكمال."
   },
   {
     "hadithNumber": 18,
-    "arabic": "لا تجعل الذنب سببًا للابتعاد عن الله.",
-    "english": "Do not let sin become a reason to drift from Allah.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Repentance",
-    "keywords": "الذنب، التوبة"
+    "arabic": "حسن الخلق مش رفاهية اجتماعية، هو من صفات الأنبياء وعلامة كمال الإيمان الحقيقي."
   },
   {
     "hadithNumber": 18,
-    "arabic": "ماذا يتغيّر لو صاحبتك التقوى في كل موقف؟",
-    "english": "What would change if taqwa accompanied you everywhere?",
-    "category": "تأمّل",
-    "themes": "Reflection, Taqwa",
-    "keywords": "التقوى، الحياة"
-  },
-  {
-    "hadithNumber": 18,
-    "arabic": "هل تسمح لأخطائك أن تُعرّفك… أم تُصلحك؟",
-    "english": "Do you let your mistakes define you… or refine you?",
-    "category": "تأمّل",
-    "themes": "Reflection, Growth",
-    "keywords": "التوبة، الإصلاح"
+    "arabic": "التقوى الحقيقية بتتوضح لما محدش شايفك: في قرارك وإنت لوحدك، في تعاملك مع اللي مالهمش قيمة عندك، في اللحظات اللي مافيش فيها رقيب بشري."
   },
   {
     "hadithNumber": 19,
-    "arabic": "إلى من يلجأ قلبك وقت الضعف؟",
-    "english": "Where does your heart turn in moments of weakness?",
-    "category": "تأمّل",
-    "themes": "Reflection, Trust",
-    "keywords": "القلب، التوكل"
+    "arabic": "احفظ حدود ربنا يحفظك في كل حاجة تانية في حياتك."
   },
   {
     "hadithNumber": 19,
-    "arabic": "تعلّم أن تطلب حاجتك من الله أولًا.",
-    "english": "Learn to seek your needs from Allah first.",
-    "category": "إرشاد عملي",
-    "themes": "Reliance, Worship",
-    "keywords": "التوكل، الدعاء"
+    "arabic": "اللي مكتوبلك محدش هياخده منك، واللي مكتوب عليك محدش هيصرفه عنك."
   },
   {
     "hadithNumber": 19,
-    "arabic": "حافظ على حدود الله… تجد أثرها في حياتك.",
-    "english": "Guard Allah’s boundaries… and you will see their أثر in your life.",
-    "category": "إرشاد عملي",
-    "themes": "Obedience, Protection",
-    "keywords": "الحفظ، العبودية"
+    "arabic": "النصر مع الصبر مش بعده، والفرج مع الكرب مش بعد ما يخلص. يعني ربنا موجود معاك من وسط الأزمة مش بس بعد ما تعدي."
   },
   {
     "hadithNumber": 19,
-    "arabic": "ضعف اليقين قد يُضخّم خوفك من الناس أو الظروف.",
-    "english": "Weak certainty can magnify fear of people or circumstances.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Certainty",
-    "keywords": "اليقين، النفس"
+    "arabic": "التعلق بربنا وحده بيريحك من ضغط إرضاء كل الناس أو الخوف من غضبهم."
   },
   {
     "hadithNumber": 19,
-    "arabic": "في معرفة الله… سكينة لا تمنحها الدنيا.",
-    "english": "In knowing Allah lies a peace the world cannot give.",
-    "category": "تذكير إيماني",
-    "themes": "Faith, Inner Peace",
-    "keywords": "الله، القلب"
+    "arabic": "تعرّف على الله وقت الرخاء، عشان يكون قريب منك وقت الشدة. العلاقة دي بتتبنى قبل الأزمة مش وقتها."
   },
   {
     "hadithNumber": 19,
-    "arabic": "قربك من الله… أعظم حماية.",
-    "english": "Nearness to Allah is the greatest protection.",
-    "category": "لمسة قصيرة",
-    "themes": "Divine Protection, Faith",
-    "keywords": "الله، الحفظ"
-  },
-  {
-    "hadithNumber": 19,
-    "arabic": "لا تجعل قلبك أسيرًا للأسباب وحدها.",
-    "english": "Do not let your heart become captive to means alone.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Reliance",
-    "keywords": "التوكل، القلب"
-  },
-  {
-    "hadithNumber": 19,
-    "arabic": "ما أصابك لم يكن ليخطئك.",
-    "english": "What reached you was never meant to miss you.",
-    "category": "تذكير إيماني",
-    "themes": "Destiny, Trust",
-    "keywords": "القدر، اليقين"
-  },
-  {
-    "hadithNumber": 19,
-    "arabic": "من عرف الله… لم يشعر أنه وحده.",
-    "english": "One who knows Allah never feels truly alone.",
-    "category": "لمسة قصيرة",
-    "themes": "Trust, Awareness",
-    "keywords": "الله، القلب"
+    "arabic": "أحياناً بنحس إن الكون كله ضدنا وكل حد بيحاول يضرنا، والحديث بيفكرنا إن محدش هيقدر يوصلك أذى إلا بإذن ربنا، وده بيديك أمان غريب وسط أي أزمة."
   },
   {
     "hadithNumber": 20,
-    "arabic": "اسأل قلبك: هل أرضى أن يراه الله؟",
-    "english": "Ask your heart: Would I be content for Allah to see this?",
-    "category": "إرشاد عملي",
-    "themes": "Awareness, Integrity",
-    "keywords": "المراقبة، القلب"
+    "arabic": "الحياء مش خجل ضعيف، هو رادع أخلاقي بيحميك من نفسك."
   },
   {
     "hadithNumber": 20,
-    "arabic": "الإيمان الحيّ يترك أثره في السلوك.",
-    "english": "Living faith leaves its mark on behavior.",
-    "category": "تذكير إيماني",
-    "themes": "Faith, Character",
-    "keywords": "الإيمان، السلوك"
+    "arabic": "لما تحس إنك ممكن تعمل حاجة لو محدش شافك، ده مقياس حقيقي لأخلاقك."
   },
   {
     "hadithNumber": 20,
-    "arabic": "الحياء زينةٌ للقلب والسلوك.",
-    "english": "Modesty beautifies both heart and behavior.",
-    "category": "لمسة قصيرة",
-    "themes": "Modesty, Character",
-    "keywords": "الحياء، الأخلاق"
+    "arabic": "الحياء مش يعني السكوت عن حقك، هو حس داخلي بيمنعك من الفواحش ويدفعك للخير."
   },
   {
     "hadithNumber": 20,
-    "arabic": "الحياء من الله يوقظ أجمل ما في القلب.",
-    "english": "Modesty before Allah awakens the best within the heart.",
-    "category": "تذكير إيماني",
-    "themes": "Faith, Heart",
-    "keywords": "الحياء، القلب"
+    "arabic": "في زمن كل حاجة بقت مكشوفة وعادية، الحياء بقى قيمة نادرة لازم نحافظ عليها في كلامنا وتصرفاتنا."
   },
   {
     "hadithNumber": 20,
-    "arabic": "بعض الحدود يحرسها الحياء قبل القوانين.",
-    "english": "Some boundaries are guarded by modesty before laws.",
-    "category": "لمسة قصيرة",
-    "themes": "Integrity, Morality",
-    "keywords": "الحياء، السلوك"
-  },
-  {
-    "hadithNumber": 20,
-    "arabic": "تبلّد الحياء قد يفتح أبوابًا كثيرة للخطأ.",
-    "english": "The loss of modesty can open many doors to error.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Morality",
-    "keywords": "الحياء، المعصية"
-  },
-  {
-    "hadithNumber": 20,
-    "arabic": "حافظ على حيائك… فهو يحمي اختياراتك.",
-    "english": "Protect your modesty… it protects your choices.",
-    "category": "إرشاد عملي",
-    "themes": "Character, Discipline",
-    "keywords": "الحياء، الاستقامة"
-  },
-  {
-    "hadithNumber": 20,
-    "arabic": "ماذا يمنعك من الخطأ حين يغيب الناس؟",
-    "english": "What keeps you from wrongdoing when no one is around?",
-    "category": "تأمّل",
-    "themes": "Reflection, Conscience",
-    "keywords": "الضمير، المراقبة"
-  },
-  {
-    "hadithNumber": 20,
-    "arabic": "هل يقودك الحياء… أم ضغط الناس فقط؟",
-    "english": "Are you guided by modesty… or only by public pressure?",
-    "category": "تأمّل",
-    "themes": "Reflection, Inner Morality",
-    "keywords": "الحياء، النفس"
+    "arabic": "تربية الأولاد على الحياء مش معناها إسكاتهم، هي غرس ضمير داخلي بيوجههم صح حتى لو محدش بيراقبهم."
   },
   {
     "hadithNumber": 21,
-    "arabic": "اجعل خطواتك اليومية تخدم استقامتك.",
-    "english": "Let your daily steps support your steadfastness.",
-    "category": "إرشاد عملي",
-    "themes": "Practice, Stability",
-    "keywords": "الاستقامة، الطاعة"
+    "arabic": "الإيمان سهل تقوله، لكن الاستقامة عليه يومياً هي الاختبار الحقيقي."
   },
   {
     "hadithNumber": 21,
-    "arabic": "الإيمان ليس لحظة… بل طريق مستمر.",
-    "english": "Faith is not a moment… but a continuous path.",
-    "category": "لمسة قصيرة",
-    "themes": "Faith, Consistency",
-    "keywords": "الإيمان، الاستمرار"
+    "arabic": "مش مهم تبدأ قوي، المهم تكمل ثابت."
   },
   {
     "hadithNumber": 21,
-    "arabic": "الاستقامة هدوءُ قلبٍ يعرف وجهته.",
-    "english": "Steadfastness is the calm of a heart that knows its direction.",
-    "category": "تذكير إيماني",
-    "themes": "Heart, Stability",
-    "keywords": "القلب، الاستقامة"
+    "arabic": "كل يوم بتقرر فيه تكمل على المبادئ اللي مؤمن بيها حتى لو الظروف صعبة، ده استقامة حقيقية."
   },
   {
     "hadithNumber": 21,
-    "arabic": "الله يحب العمل المستمر ولو كان قليلًا.",
-    "english": "Allah loves steady deeds even when small.",
-    "category": "تذكير إيماني",
-    "themes": "Consistency, Worship",
-    "keywords": "الاستمرار، الطاعة"
+    "arabic": "الاستقامة مش الكمال، هي إنك ترجع للطريق الصح كل ما انحرفت عنه، مش إنك متنحرفش خالص."
   },
   {
     "hadithNumber": 21,
-    "arabic": "ركّز على الثبات… لا على الحماس المؤقت.",
-    "english": "Focus on consistency… not temporary enthusiasm.",
-    "category": "إرشاد عملي",
-    "themes": "Consistency, Discipline",
-    "keywords": "الثبات، الالتزام"
+    "arabic": "سؤال بسيط ليك النهاردة: هل أنا نفس الشخص في السر والعلن؟ ده جوهر الاستقامة."
   },
   {
     "hadithNumber": 21,
-    "arabic": "لا تجعل قوة البداية تخدعك عن أهمية الثبات.",
-    "english": "Do not let a strong beginning distract you from the importance of consistency.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Consistency",
-    "keywords": "الثبات، الالتزام"
+    "arabic": "النبي قال إن سورة هود وأخواتها شيّبته من صعوبة الاستقامة اللي طُلبت فيها. لو الاستقامة كانت صعبة على النبي، فمن الطبيعي إنها تكون تحدي حقيقي لينا كمان."
   },
   {
     "hadithNumber": 22,
-    "arabic": "اجعل علاقتك بالحلال والحرام واضحة وحازمة.",
-    "english": "Keep your relationship with halal and haram clear and firm.",
-    "category": "إرشاد عملي",
-    "themes": "Halal & Haram, Discipline",
-    "keywords": "الحلال، الحرام"
+    "arabic": "أدِّ فرائضك وابعد عن الحرام، وده كفاية تدخل بيه الجنة. الباقي زيادة خير."
   },
   {
     "hadithNumber": 22,
-    "arabic": "اعتنِ بالفرائض قبل البحث عن الزيادات.",
-    "english": "Care for the obligations before chasing additions.",
-    "category": "إرشاد عملي",
-    "themes": "Priorities, Practice",
-    "keywords": "الفرائض، الطاعة"
+    "arabic": "مش لازم تكون مثالي 100% عشان تكون مقبول عند ربنا، أدِّ الأساسيات بصدق."
   },
   {
     "hadithNumber": 22,
-    "arabic": "الثبات على الأساسيات عبادة عظيمة.",
-    "english": "Consistency in the essentials is a great act of worship.",
-    "category": "لمسة قصيرة",
-    "themes": "Foundations, Worship",
-    "keywords": "الفرائض، العبادة"
+    "arabic": "أحياناً بنحس إحباط لأننا مش بنعمل نوافل كتير، وننسى إن الالتزام بالفرائض الأساسية كفاية لتكون من أهل الجنة."
   },
   {
     "hadithNumber": 22,
-    "arabic": "الدين ليس تعقيدًا… بل صدقٌ وثبات.",
-    "english": "Religion is not complication… but sincerity and steadfastness.",
-    "category": "تذكير إيماني",
-    "themes": "Simplicity, Faith",
-    "keywords": "الدين، الاستقامة"
+    "arabic": "الدين مش سباق مقارنة مع التانيين على مين بيعمل أكتر، هو علاقة شخصية بينك وبين ربنا بمقدار طاقتك."
   },
   {
     "hadithNumber": 22,
-    "arabic": "الطريق إلى الجنة أوضح مما نظن أحيانًا.",
-    "english": "The path to Paradise is sometimes clearer than we imagine.",
-    "category": "لمسة قصيرة",
-    "themes": "Paradise, Simplicity",
-    "keywords": "الجنة، النجاة"
+    "arabic": "النبي ما ضغطش على الرجل ده بمزيد من الطلبات رغم إنه كان ممكن، لأنه عرف إن قلبه لسه محتاج وقت. أحياناً الرحمة في إننا ماناخدش المعايير القصوى على كل حد بنفس الوتيرة."
   },
   {
-    "hadithNumber": 22,
-    "arabic": "رحمة الله جعلت أبواب الجنة قريبة لمن صدق والتزم.",
-    "english": "Allah’s mercy made the gates of Paradise near for those who are sincere and committed.",
-    "category": "تذكير إيماني",
-    "themes": "Mercy, Paradise",
-    "keywords": "الجنة، الطاعة"
+    "hadithNumber": 23,
+    "arabic": "أبسط حاجة زي الوضوء ممكن تكون نص طريقك للإيمان الكامل."
   },
   {
-    "hadithNumber": 22,
-    "arabic": "لا تُهمل الفرائض وتبحث عن شعورٍ روحاني سريع.",
-    "english": "Do not neglect obligations while chasing quick spiritual feelings.",
-    "category": "تنبيه لطيف",
-    "themes": "Warning, Worship",
-    "keywords": "الفرائض، العبادة"
+    "hadithNumber": 23,
+    "arabic": "كل تسبيحة وتكبيرة بتملأ الميزان، حتى لو حسيتها كلمة بسيطة."
+  },
+  {
+    "hadithNumber": 23,
+    "arabic": "القرآن إما حجة ليك أو عليك، بحسب إنت هتتعامل معاه إزاي: هتقراه وتعمل بيه، ولا هتسيبه على الرف؟"
+  },
+  {
+    "hadithNumber": 23,
+    "arabic": "الصبر مش استسلام، هو ضياء بينور طريقك في أحلك اللحظات لو صبرت فيها لله."
+  },
+  {
+    "hadithNumber": 23,
+    "arabic": "كل إنسان بيبيع نفسه كل يوم، إما لطاعته فيعتقها، أو لهواه فيهلكها. إنت بتبيع نفسك لمين النهاردة؟"
+  },
+  {
+    "hadithNumber": 23,
+    "arabic": "الصدقة برهان على صدق إيمانك، لأن المنافق بيتردد فيها. لو حسيت إنك مبسوط وانت بتدي، ده مؤشر كويس على قلبك."
+  },
+  {
+    "hadithNumber": 24,
+    "arabic": "ربنا حرّم الظلم على نفسه، فما بالك بيه بينا وبين بعض؟"
+  },
+  {
+    "hadithNumber": 24,
+    "arabic": "طاعتك ما نفعتش ربنا، ومعصيتك ما ضرتوش. طاعتك رحمة لنفسك إنت."
+  },
+  {
+    "hadithNumber": 24,
+    "arabic": "'استهدوني أهدكم، استطعموني أطعمكم، استغفروني أغفر لكم' - كل حاجة محتاجها موجودة عند ربنا، بس محتاجة إنك تطلبها."
+  },
+  {
+    "hadithNumber": 24,
+    "arabic": "لو كل البشر والجن كانوا على أتقى قلب رجل واحد، ما زاد ده في ملك ربنا حاجة. تقواك مش بتنفع ربنا، هي بتنفعك إنت."
+  },
+  {
+    "hadithNumber": 24,
+    "arabic": "مهما كانت ذنوبك كتير، ربنا بيقول 'وأنا أغفر الذنوب جميعاً'. القنوط من رحمة الله أخطر من الذنب نفسه."
+  },
+  {
+    "hadithNumber": 24,
+    "arabic": "تخيل حد بيقولك 'اطلب مني أي حاجة عايزها وهديها لك من غير ما ينقص عندي حاجة'. ده بالظبط اللي ربنا بيعرضه علينا كل يوم، وإحنا كتير بنتجاهله."
+  },
+  {
+    "hadithNumber": 24,
+    "arabic": "خطايانا بالليل والنهار محدش شايفها إلا ربنا، ومع ذلك بيفتح باب المغفرة قبل ما نطلبها حتى. ده كرم مش بنقدره كفاية."
+  },
+  {
+    "hadithNumber": 25,
+    "arabic": "مش لازم تكون غني عشان تكسب أجر كبير، التسبيحة والتكبيرة صدقة برضه."
+  },
+  {
+    "hadithNumber": 25,
+    "arabic": "الأمر بالمعروف والنهي عن المنكر صدقة زي ما الفلوس صدقة بالظبط."
+  },
+  {
+    "hadithNumber": 25,
+    "arabic": "لو حسيت إنك مش قادر تتصدق بفلوس، افتكر إن كل كلمة خير بتقولها أو ابتسامة بتديها ممكن تكون صدقة عند ربنا."
+  },
+  {
+    "hadithNumber": 25,
+    "arabic": "حتى العلاقة الزوجية الحلال فيها أجر عند ربنا. الإسلام بيكرم كل تفاصيل حياتنا العادية لما نحطها في مكانها الصح."
+  },
+  {
+    "hadithNumber": 25,
+    "arabic": "صحابة اتقلقوا إن الأغنياء سبقوهم في الأجر، فالنبي فتحلهم أبواب تانية للأجر مالهاش علاقة بالمال خالص. مفيش حد محروم من الفرصة."
+  },
+  {
+    "hadithNumber": 25,
+    "arabic": "نفس الفعل ممكن يكون سبب أجر أو سبب وزر بحسب مكانه: الشهوة في الحلال أجر، وفي الحرام وزر. القاعدة دي بتنطبق على حاجات كتير في حياتنا."
+  },
+  {
+    "hadithNumber": 26,
+    "arabic": "مش لازم تدور على فرصة صدقة كبيرة، إزالة حاجة مؤذية من الطريق صدقة بسيطة وسهلة."
+  },
+  {
+    "hadithNumber": 26,
+    "arabic": "كلمة طيبة بتقولها لحد محتاجها صدقة عند ربنا، جربها النهاردة."
+  },
+  {
+    "hadithNumber": 26,
+    "arabic": "العدل بين اثنين في خلاف بسيط - حتى لو ولادك بيتخانقوا - صدقة عند ربنا. مش محتاج مناسبة كبيرة."
+  },
+  {
+    "hadithNumber": 26,
+    "arabic": "كل خطوة بتمشيها للصلاة صدقة. يعني حتى المشوار البسيط للمسجد له أجر بيتحسب."
+  },
+  {
+    "hadithNumber": 26,
+    "arabic": "مساعدتك لحد يحمل حاجة تقيلة أو يوصل لمكانه صدقة، حتى لو ما حسبتهاش كده."
+  },
+  {
+    "hadithNumber": 26,
+    "arabic": "يوم بيبدأ بالشمس بتطلع، وعلى كل مفصل فيك صدقة مطلوبة منك. فكرة جميلة إنك تبدأ يومك وانت فاكر إن جسمك كله عليه فرصة خير."
+  },
+  {
+    "hadithNumber": 27,
+    "arabic": "حسن الخلق مش تفصيلة، هو تعريف البر كله في كلمة واحدة."
+  },
+  {
+    "hadithNumber": 27,
+    "arabic": "قلبك بيعرف الصح من الغلط قبل ما حد يفتيك، اسمع له."
+  },
+  {
+    "hadithNumber": 27,
+    "arabic": "لو حاسس بعدم راحة تجاه قرار معين حتى لو الكل بيقولك إنه صح، ده إشارة إنك محتاج تفكر تاني."
+  },
+  {
+    "hadithNumber": 27,
+    "arabic": "مش شرط تكون شخص مثالي عشان تكون صاحب خلق حسن، كفاية إنك منصف مع الناس ورفيق في تعاملك."
+  },
+  {
+    "hadithNumber": 27,
+    "arabic": "أعرابي جذب رداء النبي بقسوة وطلب منه بجفاء، والنبي رد عليه بابتسامة وعطاء. ده مثال حي لحسن الخلق وقت الاستفزاز."
+  },
+  {
+    "hadithNumber": 27,
+    "arabic": "الإثم مش بس اللي القانون بيحرمه، هو كمان اللي بيسيب في قلبك إحساس مش مرتاح، حتى لو محدش قالك إنه غلط."
+  },
+  {
+    "hadithNumber": 28,
+    "arabic": "التمسك بالسنة وقت الاختلاف الكتير هو البوصلة اللي بتفضل تدلك على الصح."
+  },
+  {
+    "hadithNumber": 28,
+    "arabic": "البدعة في الدين خطر، لكن كل جديد مفيد ومالوش أصل مخالف مش بدعة مذمومة."
+  },
+  {
+    "hadithNumber": 28,
+    "arabic": "النبي حذرنا من الاختلاف اللي هنشوفه بعده، وده بيفكرنا إن الثبات على الأصول وقت الفتن قيمة كبيرة."
+  },
+  {
+    "hadithNumber": 28,
+    "arabic": "طاعة ولاة الأمر بالمعروف جزء من استقرار المجتمع، حتى لو مكنش القائد مثالي في كل حاجة."
+  },
+  {
+    "hadithNumber": 28,
+    "arabic": "صحابة بكوا لما سمعوا الموعظة دي لأنها حسّوها كأنها وداع. أحياناً أقوى الكلام هو اللي بيتقال بصدق في لحظة حاسم فيها المتكلم إنه مهم."
+  },
+  {
+    "hadithNumber": 29,
+    "arabic": "ملاك كل خير: التحكم في لسانك. جرب تراقب كلامك يوم كامل وشوف الفرق."
+  },
+  {
+    "hadithNumber": 29,
+    "arabic": "الصلاة عمود الدين، لو وقع العمود وقع البناء كله."
+  },
+  {
+    "hadithNumber": 29,
+    "arabic": "أبواب الخير كتير: الصوم، الصدقة، قيام الليل. مش لازم تفتحهم كلهم مرة واحدة، ابدأ بواحد وكمل."
+  },
+  {
+    "hadithNumber": 29,
+    "arabic": "معاذ اتفاجئ إن اللسان سبب أساسي لدخول النار، وده بيفكرنا إن أكتر أخطاءنا بتيجي من كلام مش من أفعال."
+  },
+  {
+    "hadithNumber": 29,
+    "arabic": "النبي جمع كل حاجة في جملة صغيرة: أصل، وعمود، وقمة. حياتك كمان محتاجة نفس الترتيب: إيمان أساسي، التزام يومي ثابت، وهدف تسعى ليه."
+  },
+  {
+    "hadithNumber": 29,
+    "arabic": "'وهل يكب الناس في النار على وجوههم إلا حصائد ألسنتهم؟' جملة قوية بتخلينا نراجع كل كلمة بنقولها قبل ما نندم عليها."
+  },
+  {
+    "hadithNumber": 30,
+    "arabic": "مش كل حاجة سكت عنها الدين لازم تدور على حكم ليها، أحياناً السكوت رحمة مش نسيان."
+  },
+  {
+    "hadithNumber": 30,
+    "arabic": "الحدود موجودة عشان تحميك مش عشان تضايقك، احترمها ومتتجاوزهاش."
+  },
+  {
+    "hadithNumber": 30,
+    "arabic": "لو حسيت إن الدين بيضيق عليك في كل تفصيلة، افتكر إن فيه مساحة واسعة سكت عنها الشرع عمداً رحمة بينا."
+  },
+  {
+    "hadithNumber": 30,
+    "arabic": "الفرائض أساس ثابت مايتفاوضش فيه، لكن باقي حياتك فيها مساحة حرية كبيرة اتركها لنفسك من غير تعقيد."
+  },
+  {
+    "hadithNumber": 30,
+    "arabic": "أحياناً بنحمّل نفسنا تشدد في حاجات الدين نفسه ماطلبهاش، وده عكس الرحمة اللي قصدها الشرع من سكوته عن أشياء كتير."
+  },
+  {
+    "hadithNumber": 31,
+    "arabic": "قلة تعلقك بالدنيا بتخليك أخف وأسعد، جرب وشوف."
+  },
+  {
+    "hadithNumber": 31,
+    "arabic": "اللي في إيد الناس مش لازم يكون هدفك، ركز على اللي في إيدك إنت."
+  },
+  {
+    "hadithNumber": 31,
+    "arabic": "الزهد مش يعني تسيب شغلك أو طموحك، هو يعني إنك متخليش قلبك معلق بالدنيا لدرجة إنها تحكمك."
+  },
+  {
+    "hadithNumber": 31,
+    "arabic": "الشخص اللي مش متعلق بمظاهر الناس ومقتنياتهم بيبقى محبوب أكتر، لأنه بعيد عن الحسد والمقارنة."
+  },
+  {
+    "hadithNumber": 31,
+    "arabic": "من كانت الآخرة همه جمع الله شمله وجعل غناه في قلبه، ومن كانت الدنيا همه شتت الله عليه أمره. اختر أي هم يشغل قلبك بحكمة."
+  },
+  {
+    "hadithNumber": 32,
+    "arabic": "متضرش حد من الأول، ومترد الضرر بضرر تاني."
+  },
+  {
+    "hadithNumber": 32,
+    "arabic": "حريتك تقف عند حدود ضرر التاني، في البيت والشغل وكل مكان."
+  },
+  {
+    "hadithNumber": 32,
+    "arabic": "قاعدة بسيطة بس عميقة: أي قرار بتاخده لازم تفكر هل هيضر حد من حواليك ولا لأ."
+  },
+  {
+    "hadithNumber": 32,
+    "arabic": "العلاقات القوية مبنية على إن الطرفين مايستخدموش بعض كأداة، ولا حد فيهم يضر التاني عشان يكسب هو."
+  },
+  {
+    "hadithNumber": 32,
+    "arabic": "أحياناً بنفكر إن حقنا في الانتصار لنفسنا بيبرر أي رد فعل، والحديث بيفكرنا إن حتى الانتقام له حدود مايصحش نتجاوزها."
+  },
+  {
+    "hadithNumber": 33,
+    "arabic": "الكلام لوحده مش دليل، لازم إثبات لأي ادعاء بتقوله."
+  },
+  {
+    "hadithNumber": 33,
+    "arabic": "العدالة بتحتاج دليل، مش مجرد تصديق أول كلام بيتقال."
+  },
+  {
+    "hadithNumber": 33,
+    "arabic": "لو كل واحد قدر ياخد حقه بمجرد ما يدّعيه، كانت الدنيا هتبقى فوضى. الدليل هو اللي بيحمي حقوق الجميع."
+  },
+  {
+    "hadithNumber": 33,
+    "arabic": "قبل ما تصدق كلام حد على حد تاني، اسأل: فين الدليل؟ مش كل اتهام بيبقى صح لمجرد إنه اتقال بثقة."
+  },
+  {
+    "hadithNumber": 33,
+    "arabic": "في زمن الشائعات السريعة، قاعدة 'البينة على من ادعى' أهم من أي وقت، لأن الاتهام بلا دليل بقى سهل جداً ينتشر."
+  },
+  {
+    "hadithNumber": 34,
+    "arabic": "مش قادر تغير الموقف؟ على الأقل ارفضه بقلبك، وده أضعف درجات الإيمان مش انعدامه."
+  },
+  {
+    "hadithNumber": 34,
+    "arabic": "التغيير له درجات: باليد، باللسان، بالقلب. ابدأ بأقصى ما تقدر عليه."
+  },
+  {
+    "hadithNumber": 34,
+    "arabic": "النصح بيوصل أحسن لما يكون سراً بين اتنين، مش فضيحة قدام الناس. النبي علمنا إن الأسلوب مهم قد المضمون."
+  },
+  {
+    "hadithNumber": 34,
+    "arabic": "مش لازم تكون كامل عشان تنصح غيرك، المهم إنك تنصح نفسك كمان في نفس الوقت."
+  },
+  {
+    "hadithNumber": 34,
+    "arabic": "الشيخ محيي الدين قال إن باب الأمر بالمعروف بقى مهمل في زمانه، فما بالنا دلوقتي؟ لو كل واحد اهتم بدايرته الصغيرة، كان المجتمع اتغير كتير."
+  },
+  {
+    "hadithNumber": 35,
+    "arabic": "التقوى في القلب مش في المظهر، ربنا شايف جواك مش شكلك بس."
+  },
+  {
+    "hadithNumber": 35,
+    "arabic": "احتقار أي إنسان خطأ كبير، لأن ربنا كرّمه وخلقه وسخّر له الكون."
+  },
+  {
+    "hadithNumber": 35,
+    "arabic": "الحسد بياكل حسناتك زي ما النار بتاكل الحطب. لو حسيت إنه بيتسلل جواك، استعيذ بالله وذكّر نفسك بنعمك."
+  },
+  {
+    "hadithNumber": 35,
+    "arabic": "كل مسلم أخوك: ماتظلموش، ماتخدلوش، ماتكذبوش، ماتحقروش. لو طبقنا الأربعة دول بس، كانت علاقاتنا اتغيرت كتير."
+  },
+  {
+    "hadithNumber": 35,
+    "arabic": "بيع بعضكم على بيع بعض ممنوع - يعني منافسة غير أخلاقية في الشغل والتجارة ممنوعة برضه، مش بس في العبادات."
+  },
+  {
+    "hadithNumber": 35,
+    "arabic": "'بحسب امرئ من الشر أن يحقر أخاه المسلم' - جملة قوية بتفكرنا إن الاستهانة بحد تانى، حتى لو بسيطة في نظرنا، ممكن تكون ذنب كبير عند ربنا."
+  },
+  {
+    "hadithNumber": 36,
+    "arabic": "ساعدت حد يخرج من أزمته؟ ربنا هييسر عليك أزماتك أضعاف اللي عملته."
+  },
+  {
+    "hadithNumber": 36,
+    "arabic": "ستر عيوب الناس مش تستيرها، هي بتحمي كرامتهم زي ما إنت عايز حد يحمي كرامتك."
+  },
+  {
+    "hadithNumber": 36,
+    "arabic": "العلم اللي بتتعلمه مش بس لنفسك، هو طريق بيسهّله ربنا لك للجنة. كل خطوة في التعلم لها قيمة أكبر مما تتخيل."
+  },
+  {
+    "hadithNumber": 36,
+    "arabic": "ربنا في عون العبد ما دام العبد في عون أخيه. يعني كل ما ساعدت حد، ربنا بيبقى معاك أكتر في حياتك."
+  },
+  {
+    "hadithNumber": 36,
+    "arabic": "نسبك ومكانتك الاجتماعية مش هيقدّموك يوم القيامة لو عملك ضعيف. العمل هو اللي بيرفعك، مش اسم عيلتك."
+  },
+  {
+    "hadithNumber": 36,
+    "arabic": "جلسة بسيطة تقرا فيها القرآن مع ناس تانية بتنزل عليها السكينة وتحفها الملائكة. أحياناً أبسط اللحظات هي أقربنا لربنا."
+  },
+  {
+    "hadithNumber": 37,
+    "arabic": "مجرد نيتك تعمل خير بتتكتب لك حسنة، حتى لو مقدرتش تنفذها."
+  },
+  {
+    "hadithNumber": 37,
+    "arabic": "ربنا بيضاعف حسناتك ومش بيضاعف سيئاتك. كرم مش بنقدره كفاية."
+  },
+  {
+    "hadithNumber": 37,
+    "arabic": "فكرت تعمل خير ومقدرتش؟ متزعلش، النية وحدها كافية تتكتب حسنة كاملة عند ربنا."
+  },
+  {
+    "hadithNumber": 37,
+    "arabic": "لو فكرت تعمل غلط وابتعدت عنه لله، ده كمان بيتكتب حسنة ليك. ترك الشر لله له أجر زي فعل الخير بالظبط."
+  },
+  {
+    "hadithNumber": 37,
+    "arabic": "عشرة أضعاف على الأقل لكل حسنة، وسيئة واحدة بس لكل سيئة. الميزان مايل لصالحك من الأساس، فليه نيأس من رحمة ربنا؟"
+  },
+  {
+    "hadithNumber": 38,
+    "arabic": "أدِّ فرائضك الأول، وبعدين زوّد بالنوافل. الفريضة أساس مايتفاوضش عليه."
+  },
+  {
+    "hadithNumber": 38,
+    "arabic": "القرب من ربنا بيبدأ بالواجب وبيكمل بالتطوع الزيادة."
+  },
+  {
+    "hadithNumber": 38,
+    "arabic": "لما تحب حد بجد، بتحس إنك عايز تزوده بحاجات مش لازمة عليك. علاقتك بربنا نفس الفكرة: افعل المفروض وزوّد بالتطوع من حبك."
+  },
+  {
+    "hadithNumber": 38,
+    "arabic": "قرب العبد من ربنا مش هدف بعيد المنال، هو تراكم يومي بسيط: صلاة زيادة، صدقة زيادة، ذكر زيادة."
+  },
+  {
+    "hadithNumber": 38,
+    "arabic": "'ولئن سألني لأعطينه' - ربنا بيوعدك إنه هيستجيب لو طلبت منه، فليه بنتردد نطلب؟"
+  },
+  {
+    "hadithNumber": 39,
+    "arabic": "غلطت من غير قصد؟ ربنا متجاوز عنها، متعذبش نفسك."
+  },
+  {
+    "hadithNumber": 39,
+    "arabic": "النسيان مش ذنب، والإكراه مش اختيارك. ربنا عادل وبيفرق بين قصدك واللي بره إرادتك."
+  },
+  {
+    "hadithNumber": 39,
+    "arabic": "كتير مننا بيلوم نفسه على أخطاء عملها من غير قصد. الحديث بيريحنا: ربنا بيحاسب على النية مش على الزلة العابرة."
+  },
+  {
+    "hadithNumber": 39,
+    "arabic": "الصحابة قلقوا من آية بتحاسب على خواطر القلب، فربنا خفف عنهم ونسخ الحكم. ده بيوريك إن رحمة ربنا بتتجدد وبتراعي طاقتنا البشرية."
+  },
+  {
+    "hadithNumber": 40,
+    "arabic": "عيش يومك وكأنه الأخير، مش خوفاً بس تقديراً للوقت."
+  },
+  {
+    "hadithNumber": 40,
+    "arabic": "خد من صحتك لمرضك، ومن وقتك لشغلك المهم قبل ما يفوت الأوان."
+  },
+  {
+    "hadithNumber": 40,
+    "arabic": "الغريب مش بيبني بيت دايم في بلد مش بلده، هو بس بيعدي. عيش الدنيا بنفس الإحساس: استخدمها ماتتعلقش بيها."
+  },
+  {
+    "hadithNumber": 40,
+    "arabic": "'إذا أمسيت فلا تنتظر الصباح' - نصيحة عملية إنك تخلص شغلك ومهامك النهاردة، مش تأجلها على أمل بكرة."
+  },
+  {
+    "hadithNumber": 40,
+    "arabic": "ابن عمر كان بيعيش كل لحظة وكأنها ممكن تكون الأخيرة، مش بقلق، لكن بوعي واستثمار حقيقي للوقت. فكرة تستاهل نتبناها."
+  },
+  {
+    "hadithNumber": 41,
+    "arabic": "لما تحس إن رغبتك الشخصية بتتعارض مع أمر واضح من الدين، خليك عارف إيه اللي المفروض يحكم إيه."
+  },
+  {
+    "hadithNumber": 41,
+    "arabic": "الإيمان الكامل مش إنك توافق الشرع لما يعجبك، هو إنك تسلّم له حتى لو خالف هواك."
+  },
+  {
+    "hadithNumber": 41,
+    "arabic": "قصة الزبير مع الأنصاري في الماء مثال حي: النبي حكم بحكم فيه مصلحة، والرضا الكامل بيه حتى قبل ما يتضح السبب هو جوهر الإيمان."
+  },
+  {
+    "hadithNumber": 41,
+    "arabic": "كل واحد فينا عنده أهواء ورغبات، والاختبار الحقيقي إننا نخلي القيم اللي مؤمنين بيها هي اللي بتوجه قراراتنا مش رغباتنا اللحظية."
+  },
+  {
+    "hadithNumber": 41,
+    "arabic": "'حتى يكون هواه تبعاً لما جئت به' - جملة بسيطة بس بتلخص صراع داخلي كل إنسان بيمر بيه: مين اللي بيحكم قراراتك، عقلك ومبادئك، ولا مزاجك ورغباتك؟"
+  },
+  {
+    "hadithNumber": 42,
+    "arabic": "مهما كانت ذنوبك، لو دعوت ورجوت ربنا هيغفرلك. متيأسش أبداً."
+  },
+  {
+    "hadithNumber": 42,
+    "arabic": "باب التوبة مفتوح دايماً، مهما طال بعدك عن ربنا."
+  },
+  {
+    "hadithNumber": 42,
+    "arabic": "'لو بلغت ذنوبك عنان السماء ثم استغفرتني غفرت لك' - جملة بتكسر أي حاجز نفسي بيمنعك من التوبة بسبب حجم ذنوبك."
+  },
+  {
+    "hadithNumber": 42,
+    "arabic": "التوبة مش مجرد ندم، هي إقلاع عن الذنب، ندم صادق، وعزم إنك ما ترجعش ليه. لو فيها حق لحد تاني، لازم ترجعه."
+  },
+  {
+    "hadithNumber": 42,
+    "arabic": "حسن الظن بالله من حسن العبادة. لو دايماً متوقع رحمته وغفرانه، هتلاقي نفسك أقرب ليه من إنك تعيش في خوف دايم."
+  },
+  {
+    "hadithNumber": 42,
+    "arabic": "الشرط الوحيد المذكور صراحة في الحديث للمغفرة الكاملة هو عدم الشرك بالله. باقي الذنوب - مهما كانت كبيرة - في رحمة ربنا الواسعة لو تبت واستغفرت بصدق."
+  },
+  {
+    "hadithNumber": 42,
+    "arabic": "ختام جميل للأربعين حديثاً: بعد كل الأحكام والقواعد والآداب، يذكرنا آخر حديث برحمة الله الواسعة التي تسع كل تقصيرنا، فالدين كله في النهاية طريق رجوع إلى رب رحيم غفور."
   }
 ]

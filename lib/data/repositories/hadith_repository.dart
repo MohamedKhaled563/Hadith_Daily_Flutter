@@ -57,8 +57,9 @@ class HadithRepository {
   List<CommunityPost> get communityPosts => _communityPosts;
 
   /// Loads the bundled content. Both files are generated from
-  /// `assets/data/Hadith App DB.xlsx` by `tool/import_hadith_db.py` — re-run
-  /// that script rather than editing the JSON by hand.
+  /// `assets/data/الأربعون_النووية_رسائل_يومية.xlsx` by
+  /// `tool/import_hadiths_v2.py` and `tool/import_daily_messages_v2.py` —
+  /// re-run those scripts rather than editing the JSON by hand.
   Future<void> load() async {
     await Future.wait([loadHadiths(), _loadInsights()]);
   }
