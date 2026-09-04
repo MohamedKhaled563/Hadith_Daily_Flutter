@@ -1,13 +1,14 @@
 rules_version = '2';
 
 // Phase 1: deny-by-default, plus read-only access to the two collections
-// that phase 2 (content migration) will populate. Nothing here lets a
-// client write anything yet — hadiths/dailyMessages are written only by
-// the admin import script, which uses the Admin SDK and therefore never
-// goes through these rules at all.
+// that phase 2 (content migration) populated. Nothing here lets a client
+// write anything to them — hadiths/dailyMessages are written only by the
+// admin import scripts, which use the Admin SDK and therefore never go
+// through these rules at all.
 //
-// communityMessages, users, likes, and the role-aware rules for them
-// arrive in phase 3-5 alongside the features that need them.
+// Phase 4 adds users/ below and moderator/admin clauses on
+// communityMessages. A real per-user likes subcollection still arrives in
+// phase 7 — the interim likeCount mechanism from phase 3 is unchanged.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -19,6 +20,65 @@ service cloud.firestore {
     match /dailyMessages/{messageId} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // Phase 4: one doc per signed-in user, id = their uid. `role` is never
+    // set by the client — only tool/set_role.py, via the Admin SDK, ever
+    // writes it, which is why the create/update rules below never even
+    // mention that field: a client literally cannot include it in a write
+    // this rule accepts.
+    match /users/{uid} {
+      allow read: if request.auth.uid == uid
+                  || request.auth.token.role in ['moderator', 'admin'];
+
+      allow create: if request.auth.uid == uid
+                  && request.resource.data.keys().hasOnly(
+                       ['displayName', 'email', 'createdAt']);
+
+      allow update: if request.auth.uid == uid
+                  && request.resource.data.diff(resource.data)
+                       .affectedKeys().hasOnly(['displayName']);
+    }
+
+    match /communityMessages/{messageId} {
+      // Public once approved; the author can always see their own
+      // (including while still pending); moderators/admins can see
+      // everything, which is what makes the pending queue possible.
+      allow read: if resource.data.status == 'approved'
+                  || request.auth.uid == resource.data.authorUid
+                  || request.auth.token.role in ['moderator', 'admin'];
+
+      // Must be signed in (this app has no anonymous path at all), must
+      // claim authorship truthfully, and can only ever be created pending —
+      // a client cannot create a message that's already approved.
+      allow create: if request.auth != null
+                  && request.resource.data.authorUid == request.auth.uid
+                  && request.resource.data.status == 'pending'
+                  && request.resource.data.likeCount == 0;
+
+      // Three unrelated things are allowed to update a message, so this is
+      // an OR of three independent conditions:
+      //   1. the author, editing their own still-pending submission
+      //   2. a moderator/admin, changing anything — this is the approve/
+      //      reject/edit action; no field restriction, since a moderator is
+      //      trusted the way the app's own client code isn't
+      //   3. ANY signed-in reader, but only ever moving `likeCount` by
+      //      exactly one in either direction — the interim like counter
+      //      from phase 3, unchanged; phase 7 replaces it properly.
+      allow update: if (request.auth.uid == resource.data.authorUid
+                        && resource.data.status == 'pending')
+                  || (request.auth.token.role in ['moderator', 'admin'])
+                  || (request.auth != null
+                      && request.resource.data.diff(resource.data)
+                           .affectedKeys().hasOnly(['likeCount'])
+                      && (request.resource.data.likeCount
+                            == resource.data.likeCount + 1
+                          || request.resource.data.likeCount
+                            == resource.data.likeCount - 1));
+
+      allow delete: if (request.auth.uid == resource.data.authorUid
+                        && resource.data.status == 'pending')
+                  || request.auth.token.role in ['moderator', 'admin'];
     }
 
     // Everything else stays fully locked until a later phase explicitly

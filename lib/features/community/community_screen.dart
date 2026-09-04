@@ -15,6 +15,7 @@ import '../../core/widgets/tap_target.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/community_service.dart';
 import 'community_post_screen.dart';
 
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold,
@@ -34,7 +35,6 @@ class CommunityScreen extends StatefulWidget {
 }
 
 class _CommunityScreenState extends State<CommunityScreen> {
-  final HadithRepository _repo = HadithRepository();
   bool _sortByLikes = true;
 
   void _openAddMessage() => widget.onSwitchToShareTab?.call();
@@ -42,13 +42,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-
-    final posts = List<CommunityPost>.from(_repo.communityPosts)
-      ..sort(
-        _sortByLikes
-            ? (a, b) => b.likes.compareTo(a.likes)
-            : (a, b) => b.createdAt.compareTo(a.createdAt),
-      );
 
     return Column(
       children: [
@@ -95,49 +88,82 @@ class _CommunityScreenState extends State<CommunityScreen> {
         const SizedBox(height: 12),
 
         Expanded(
-          child: posts.isEmpty
-              ? AppEmptyState(
+          child: StreamBuilder<List<CommunityPost>>(
+            stream: CommunityService().approvedMessages(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return AppEmptyState(
+                  icon: Icons.wifi_off_rounded,
+                  title: 'تعذّر تحميل المشاركات',
+                  subtitle: 'تحقق من الاتصال بالإنترنت وحاول مرة أخرى.',
+                );
+              }
+
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final posts = List<CommunityPost>.from(snapshot.data!)
+                ..sort(
+                  _sortByLikes
+                      ? (a, b) => b.likes.compareTo(a.likes)
+                      : (a, b) => b.createdAt.compareTo(a.createdAt),
+                );
+
+              if (posts.isEmpty) {
+                return AppEmptyState(
                   icon: Icons.forum_outlined,
                   title: 'لا توجد مشاركات بعد',
                   subtitle:
                       'كن أول من يشارك خاطرة أو تأملاً مربوطاً بحديث نبوي شريف، واجعلها سبباً في نشر الخير.',
                   actionLabel: 'شارك أول رسالة',
                   onAction: _openAddMessage,
-                )
-              : ListView.separated(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                  itemCount: posts.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 18),
-                  itemBuilder: (context, index) {
-                    final post = posts[index];
-                    return _CommunityPostCard(
-                      post: post,
-                      rank: index + 1,
-                      onLikeToggle: () => setState(
-                        () => _repo.togglePostLike(post.id),
-                      ),
-                      onTap: () => Navigator.push(
-                        context,
-                        SmoothPageRoute(child: CommunityPostScreen(post: post)),
-                      ).then((_) => setState(() {})),
-                    );
-                  },
-                ),
-        ),
+                );
+              }
 
-        // The empty state above already offers its own "شارك أول رسالة"
-        // action — showing this banner too would stack two identical CTAs.
-        if (posts.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              6,
-              20,
-              6 + BottomNavigation.reservedHeight(context),
-            ),
-            child: _ShareCtaBanner(onTap: _openAddMessage),
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                      itemCount: posts.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 18),
+                      itemBuilder: (context, index) {
+                        final post = posts[index];
+                        return _CommunityPostCard(
+                          post: post,
+                          rank: index + 1,
+                          onLikeToggle: () =>
+                              CommunityService().toggleLike(post.id),
+                          onTap: () => Navigator.push(
+                            context,
+                            SmoothPageRoute(
+                              child: CommunityPostScreen(post: post),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // The empty state above already offers its own
+                  // "شارك أول رسالة" action — this only shows once there's
+                  // at least one approved post to scroll past.
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      6,
+                      20,
+                      6 + BottomNavigation.reservedHeight(context),
+                    ),
+                    child: _ShareCtaBanner(onTap: _openAddMessage),
+                  ),
+                ],
+              );
+            },
           ),
+        ),
       ],
     );
   }

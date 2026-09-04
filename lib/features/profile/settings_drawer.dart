@@ -11,6 +11,7 @@ import '../../core/widgets/botanical_sheet.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/community_service.dart';
 import '../auth/login_screen.dart';
 
 class SettingsDrawer extends StatefulWidget {
@@ -433,9 +434,6 @@ class _ProfileHeader extends StatelessWidget {
     // state controller.
     final saved =
         repo.favoriteHadithNumbers.length + repo.favoriteInsightTexts.length;
-    final contributions = repo.communityPosts
-        .where((post) => post.authorName == state.userName)
-        .length;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -521,10 +519,13 @@ class _ProfileHeader extends StatelessWidget {
                   color: palette.cardBorder,
                 ),
                 Expanded(
-                  child: _Stat(
-                    icon: Icons.edit_note_rounded,
-                    value: contributions,
-                    label: 'مشاركاتي',
+                  child: StreamBuilder<int>(
+                    stream: CommunityService().myContributionsCount(),
+                    builder: (context, snapshot) => _Stat(
+                      icon: Icons.edit_note_rounded,
+                      value: snapshot.data ?? 0,
+                      label: 'مشاركاتي',
+                    ),
                   ),
                 ),
               ],

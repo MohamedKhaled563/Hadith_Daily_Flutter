@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -43,8 +44,13 @@ class AuthService {
   Future<UserCredential> signInWithEmail({
     required String email,
     required String password,
-  }) {
-    return _auth.signInWithEmailAndPassword(email: email, password: password);
+  }) async {
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    await _ensureUserDoc(credential.user!);
+    return credential;
   }
 
   Future<UserCredential> signUpWithEmail({
@@ -59,6 +65,7 @@ class AuthService {
     if (displayName.isNotEmpty) {
       await credential.user?.updateDisplayName(displayName);
     }
+    await _ensureUserDoc(credential.user!);
     return credential;
   }
 
@@ -77,7 +84,28 @@ class AuthService {
 
     final idToken = account.authentication.idToken;
     final credential = GoogleAuthProvider.credential(idToken: idToken);
-    return _auth.signInWithCredential(credential);
+    final userCredential = await _auth.signInWithCredential(credential);
+    await _ensureUserDoc(userCredential.user!);
+    return userCredential;
+  }
+
+  /// Mirrors the signed-in user into `users/{uid}` — see firestore.rules
+  /// (phase 4): created once with displayName/email/createdAt, refreshed on
+  /// every later sign-in in case displayName changed. `role` is never
+  /// touched here; only `tool/set_role.py`, via the Admin SDK, ever sets it.
+  Future<void> _ensureUserDoc(User user) async {
+    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final snapshot = await ref.get();
+
+    if (!snapshot.exists) {
+      await ref.set({
+        'displayName': user.displayName ?? '',
+        'email': user.email ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } else if (snapshot.data()?['displayName'] != user.displayName) {
+      await ref.update({'displayName': user.displayName ?? ''});
+    }
   }
 
   Future<void> signOut() async {

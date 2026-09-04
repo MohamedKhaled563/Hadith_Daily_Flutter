@@ -13,6 +13,7 @@ import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/community_service.dart';
 import '../hadith/hadith_detail_screen.dart';
 
 class CommunityPostScreen extends StatefulWidget {
@@ -26,6 +27,21 @@ class CommunityPostScreen extends StatefulWidget {
 
 class _CommunityPostScreenState extends State<CommunityPostScreen> {
   final HadithRepository _repo = HadithRepository();
+
+  // Optimistic: this screen gets a static [CommunityPost] snapshot from
+  // whoever navigated here, not a live query, so a tap needs its own local
+  // state to feel instant rather than waiting on the round trip. The list
+  // screen's own StreamBuilder picks up the real value independently.
+  late bool _isLiked = CommunityService().isLiked(widget.post.id);
+  late int _likeCount = widget.post.likes;
+
+  void _toggleLike() {
+    setState(() {
+      _isLiked = !_isLiked;
+      _likeCount += _isLiked ? 1 : -1;
+    });
+    CommunityService().toggleLike(widget.post.id);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -250,11 +266,9 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
 
                 Center(
                   child: LikeCounter(
-                    likes: widget.post.likes,
-                    isLiked: widget.post.isLiked,
-                    onTap: () => setState(
-                      () => _repo.togglePostLike(widget.post.id),
-                    ),
+                    likes: _likeCount,
+                    isLiked: _isLiked,
+                    onTap: _toggleLike,
                   ),
                 ),
               ],

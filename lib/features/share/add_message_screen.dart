@@ -6,10 +6,11 @@ import '../../core/theme/app_state_controller.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../data/models/hadith.dart';
-import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/community_service.dart';
 
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold
 /// and the background.
@@ -32,6 +33,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
   bool _shareWithCommunity = true;
   String? _messageError;
   String? _hadithError;
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -50,7 +52,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final messageText = _messageController.text.trim();
 
     var hasError = false;
@@ -99,20 +101,32 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
               : 'فاعل خير')
         : _authorController.text.trim();
 
-    _repo.addCommunityPost(
-      CommunityPost(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+    setState(() => _submitting = true);
+
+    try {
+      await CommunityService().submit(
         hadithNumber: _selectedHadith!.number,
         message: messageText,
         authorName: authorName,
-        likes: 1,
-        isLiked: true,
-        createdAt: DateTime.now(),
-      ),
-    );
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تعذّر إرسال رسالتك، حاول مرة أخرى 🌿'),
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() => _submitting = false);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نشر رسالتك في المجتمع 🌿')),
+      const SnackBar(
+        content: Text('تم إرسال رسالتك للمراجعة، وستظهر بعد موافقة المشرفين 🌿'),
+      ),
     );
 
     _messageController.clear();
@@ -130,7 +144,10 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
 
     final hadithsList = _repo.hadiths;
 
-    return Column(
+    return AppLoadingOverlay(
+      visible: _submitting,
+      message: 'جارٍ إرسال رسالتك…',
+      child: Column(
       children: [
         const SizedBox(height: 8),
 
@@ -326,9 +343,9 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                 const SizedBox(height: 20),
 
                 AppButton(
-                  text: 'إرسال الرسالة 🌿',
-                  icon: Icons.send_rounded,
-                  onPressed: _submit,
+                  text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة 🌿',
+                  icon: _submitting ? null : Icons.send_rounded,
+                  onPressed: _submitting ? () {} : () => _submit(),
                 ),
 
                 const SizedBox(height: 24),
@@ -337,6 +354,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
           ),
         ),
       ],
+      ),
     );
   }
 }
