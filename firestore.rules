@@ -7,7 +7,10 @@ rules_version = '2';
 // through these rules at all.
 //
 // Phase 4 adds users/ below and moderator/admin clauses on
-// communityMessages. A real per-user likes subcollection still arrives in
+// communityMessages. Phase 5 adds settings/ (the delivery-mode toggle) and
+// a narrow timesShown/lastShownAt update on dailyMessages' and
+// communityMessages' pool entries — see the daily delivery engine
+// (DailyTipService). A real per-user likes subcollection still arrives in
 // phase 7 — the interim likeCount mechanism from phase 3 is unchanged.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -17,7 +20,24 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Phase 5: any signed-in device that just picked this message as its
+    // own daily tip may move `timesShown` up by exactly one and stamp
+    // `lastShownAt` — nothing else. `.get('timesShown', 0)` handles the
+    // very first increment, where the field doesn't exist yet.
     match /dailyMessages/{messageId} {
+      allow read: if true;
+      allow update: if request.auth != null
+                  && request.resource.data.diff(resource.data)
+                       .affectedKeys().hasOnly(['timesShown', 'lastShownAt'])
+                  && request.resource.data.timesShown
+                       == resource.data.get('timesShown', 0) + 1;
+      allow create, delete: if false;
+    }
+
+    // Phase 5: the one global switch the admin flips (manual/random) —
+    // public read, no client write at all; tool/set_delivery_mode.py, via
+    // the Admin SDK, is the only thing that ever changes it.
+    match /settings/{settingId} {
       allow read: if true;
       allow write: if false;
     }
@@ -56,8 +76,8 @@ service cloud.firestore {
                   && request.resource.data.status == 'pending'
                   && request.resource.data.likeCount == 0;
 
-      // Three unrelated things are allowed to update a message, so this is
-      // an OR of three independent conditions:
+      // Four unrelated things are allowed to update a message, so this is
+      // an OR of four independent conditions:
       //   1. the author, editing their own still-pending submission
       //   2. a moderator/admin, changing anything — this is the approve/
       //      reject/edit action; no field restriction, since a moderator is
@@ -65,6 +85,10 @@ service cloud.firestore {
       //   3. ANY signed-in reader, but only ever moving `likeCount` by
       //      exactly one in either direction — the interim like counter
       //      from phase 3, unchanged; phase 7 replaces it properly.
+      //   4. ANY signed-in device, but only ever moving `timesShown` up by
+      //      exactly one and stamping `lastShownAt` — phase 5's delivery
+      //      engine, only ever applies to an approved message since that's
+      //      the only status the pool draws from.
       allow update: if (request.auth.uid == resource.data.authorUid
                         && resource.data.status == 'pending')
                   || (request.auth.token.role in ['moderator', 'admin'])
@@ -74,7 +98,12 @@ service cloud.firestore {
                       && (request.resource.data.likeCount
                             == resource.data.likeCount + 1
                           || request.resource.data.likeCount
-                            == resource.data.likeCount - 1));
+                            == resource.data.likeCount - 1))
+                  || (request.auth != null
+                      && request.resource.data.diff(resource.data)
+                           .affectedKeys().hasOnly(['timesShown', 'lastShownAt'])
+                      && request.resource.data.timesShown
+                           == resource.data.get('timesShown', 0) + 1);
 
       allow delete: if (request.auth.uid == resource.data.authorUid
                         && resource.data.status == 'pending')

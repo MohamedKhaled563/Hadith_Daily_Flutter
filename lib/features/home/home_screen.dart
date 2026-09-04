@@ -7,9 +7,11 @@ import '../../core/widgets/app_background.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/daily_tip_service.dart';
 import '../messages/daily_message_screen.dart';
 import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
@@ -28,20 +30,26 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentTabIndex = 0;
   final HadithRepository _repo = HadithRepository();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _loadingDailyTip = false;
 
   void _openDrawer() => _scaffoldKey.currentState?.openDrawer();
 
   void _goToTab(int index) => setState(() => _currentTabIndex = index);
 
-  void _openDailyMessage() {
-    final insight = _repo.getRandomInsight();
-    if (insight == null) {
+  Future<void> _openDailyMessage() async {
+    setState(() => _loadingDailyTip = true);
+    final tip = await DailyTipService().getTodayTip();
+    if (!mounted) return;
+    setState(() => _loadingDailyTip = false);
+
+    if (tip == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('لم يتم تحميل الرسائل بعد، حاول مجدداً')),
       );
       return;
     }
 
+    final insight = tip.toInsight();
     final hadith = _repo.getByNumber(insight.hadithNumber);
     Navigator.push(
       context,
@@ -63,45 +71,49 @@ class _HomeScreenState extends State<HomeScreen> {
     // One Scaffold and one background for the whole tab shell. Each tab used to
     // build its own AppBackground, which kept four full-screen images decoded
     // at once because IndexedStack keeps every child mounted.
-    return Scaffold(
-      key: _scaffoldKey,
-      drawer: const SettingsDrawer(),
-      backgroundColor: Colors.transparent,
-      // Body runs behind the floating nav bar so the scene fills the screen.
-      extendBody: true,
-      body: AppBackground(
-        showBottomLandscape: true,
-        child: SafeArea(
-          bottom: false,
-          child: IndexedStack(
-            index: _currentTabIndex,
-            children: [
-              // TickerMode pauses the home screen's ambient animations while
-              // another tab is showing — IndexedStack does not do this for us.
-              TickerMode(
-                enabled: _currentTabIndex == 0,
-                child: _HomeMainView(
-                  onOpenDrawer: _openDrawer,
-                  onOpenAllHadiths: () => Navigator.push(
-                    context,
-                    SmoothPageRoute(child: const HadithListScreen()),
+    return AppLoadingOverlay(
+      visible: _loadingDailyTip,
+      message: 'جارٍ تحضير رسالة اليوم…',
+      child: Scaffold(
+        key: _scaffoldKey,
+        drawer: const SettingsDrawer(),
+        backgroundColor: Colors.transparent,
+        // Body runs behind the floating nav bar so the scene fills the screen.
+        extendBody: true,
+        body: AppBackground(
+          showBottomLandscape: true,
+          child: SafeArea(
+            bottom: false,
+            child: IndexedStack(
+              index: _currentTabIndex,
+              children: [
+                // TickerMode pauses the home screen's ambient animations while
+                // another tab is showing — IndexedStack does not do this for us.
+                TickerMode(
+                  enabled: _currentTabIndex == 0,
+                  child: _HomeMainView(
+                    onOpenDrawer: _openDrawer,
+                    onOpenAllHadiths: () => Navigator.push(
+                      context,
+                      SmoothPageRoute(child: const HadithListScreen()),
+                    ),
+                    onHeartClick: _openDailyMessage,
                   ),
-                  onHeartClick: _openDailyMessage,
                 ),
-              ),
-              FavoritesScreen(onOpenDrawer: _openDrawer),
-              CommunityScreen(
-                onOpenDrawer: _openDrawer,
-                onSwitchToShareTab: () => _goToTab(3),
-              ),
-              AddMessageScreen(onPostCreated: () => _goToTab(2)),
-            ],
+                FavoritesScreen(onOpenDrawer: _openDrawer),
+                CommunityScreen(
+                  onOpenDrawer: _openDrawer,
+                  onSwitchToShareTab: () => _goToTab(3),
+                ),
+                AddMessageScreen(onPostCreated: () => _goToTab(2)),
+              ],
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: BottomNavigation(
-        currentIndex: _currentTabIndex,
-        onTap: _goToTab,
+        bottomNavigationBar: BottomNavigation(
+          currentIndex: _currentTabIndex,
+          onTap: _goToTab,
+        ),
       ),
     );
   }
