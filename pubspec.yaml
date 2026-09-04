@@ -18,6 +18,7 @@ dependencies:
   shared_preferences: ^2.3.3
   firebase_core: ^4.14.0
   firebase_auth: ^6.6.1
+  cloud_firestore: ^6.0.0
   google_sign_in: ^7.2.0
 
 dev_dependencies:
@@ -32,8 +33,9 @@ flutter:
     - assets/
     - assets/images/
     - assets/icons/
-    # hadiths.json / insights.json are generated from "Hadith App DB.xlsx"
-    # by tool/import_hadith_db.py — do not hand-edit them.
+    # hadiths.json / insights.json are generated from
+    # "الأربعون_النووية_رسائل_يومية.xlsx" by tool/import_hadiths_v2.py and
+    # tool/import_daily_messages_v2.py — do not hand-edit them.
     - assets/data/
 
   # Bundled so the app renders correctly offline and on first launch.

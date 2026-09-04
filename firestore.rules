@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Phase 1: deny-by-default, plus read-only access to the two collections
+// that phase 2 (content migration) will populate. Nothing here lets a
+// client write anything yet — hadiths/dailyMessages are written only by
+// the admin import script, which uses the Admin SDK and therefore never
+// goes through these rules at all.
+//
+// communityMessages, users, likes, and the role-aware rules for them
+// arrive in phase 3-5 alongside the features that need them.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /hadiths/{hadithId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /dailyMessages/{messageId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Everything else stays fully locked until a later phase explicitly
+    // opens it up.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

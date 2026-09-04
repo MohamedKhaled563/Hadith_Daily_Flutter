@@ -52,3 +52,7 @@ android/.gradle/
 
 # Build output artifacts
 /dist/
+
+# Firebase Admin SDK service account keys — never commit these.
+# tool/ scripts that need one read it from here.
+/secrets/
