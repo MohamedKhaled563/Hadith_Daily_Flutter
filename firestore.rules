@@ -20,6 +20,9 @@ rules_version = '2';
 // from phase 3 (that narrow ±1 rule stays as a secondary safety net —
 // harmless on its own, and simpler than trying to cross-validate it
 // against the subcollection write within the same rules evaluation).
+// Phase 10 adds size/range validation on communityMessages and users
+// writes — see tool/verify_rules.py for a repeatable check of the allow/
+// deny behaviour documented in each match block below.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -65,11 +68,15 @@ service cloud.firestore {
 
       allow create: if request.auth.uid == uid
                   && request.resource.data.keys().hasOnly(
-                       ['displayName', 'email', 'createdAt']);
+                       ['displayName', 'email', 'createdAt'])
+                  && request.resource.data.displayName is string
+                  && request.resource.data.displayName.size() <= 100;
 
       allow update: if request.auth.uid == uid
                   && request.resource.data.diff(resource.data)
-                       .affectedKeys().hasOnly(['displayName']);
+                       .affectedKeys().hasOnly(['displayName'])
+                  && request.resource.data.displayName is string
+                  && request.resource.data.displayName.size() <= 100;
     }
 
     match /communityMessages/{messageId} {
@@ -82,11 +89,25 @@ service cloud.firestore {
 
       // Must be signed in (this app has no anonymous path at all), must
       // claim authorship truthfully, and can only ever be created pending —
-      // a client cannot create a message that's already approved.
+      // a client cannot create a message that's already approved. Phase 10
+      // adds the size/range checks: nothing here stops one account from
+      // spamming the pending queue with many submissions (that needs a
+      // counting read rules can't cheaply do, or a Cloud Function this
+      // project deliberately doesn't have), but it does stop any single
+      // submission from being pathologically large or aimed at a hadith
+      // number that doesn't exist.
       allow create: if request.auth != null
                   && request.resource.data.authorUid == request.auth.uid
                   && request.resource.data.status == 'pending'
-                  && request.resource.data.likeCount == 0;
+                  && request.resource.data.likeCount == 0
+                  && request.resource.data.message is string
+                  && request.resource.data.message.size() > 0
+                  && request.resource.data.message.size() <= 2000
+                  && request.resource.data.authorName is string
+                  && request.resource.data.authorName.size() <= 100
+                  && request.resource.data.hadithNumber is int
+                  && request.resource.data.hadithNumber >= 1
+                  && request.resource.data.hadithNumber <= 42;
 
       // Four unrelated things are allowed to update a message, so this is
       // an OR of four independent conditions:
@@ -107,7 +128,10 @@ service cloud.firestore {
       //      engine, only ever applies to an approved message since that's
       //      the only status the pool draws from.
       allow update: if (request.auth.uid == resource.data.authorUid
-                        && resource.data.status == 'pending')
+                        && resource.data.status == 'pending'
+                        && request.resource.data.message is string
+                        && request.resource.data.message.size() > 0
+                        && request.resource.data.message.size() <= 2000)
                   || (request.auth.token.role in ['moderator', 'admin'])
                   || (request.auth != null
                       && request.resource.data.diff(resource.data)
