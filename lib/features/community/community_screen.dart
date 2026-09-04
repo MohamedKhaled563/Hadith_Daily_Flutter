@@ -245,10 +245,15 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
               ),
               Align(
                 alignment: AlignmentDirectional.centerStart,
-                child: LikeCounter(
-                  likes: widget.post.likes,
-                  isLiked: widget.post.isLiked,
-                  onTap: widget.onLikeToggle,
+                child: StreamBuilder<bool>(
+                  stream: CommunityService().likeStatus(widget.post.id),
+                  builder: (context, snapshot) {
+                    return LikeCounter(
+                      likes: widget.post.likes,
+                      isLiked: snapshot.data ?? false,
+                      onTap: widget.onLikeToggle,
+                    );
+                  },
                 ),
               ),
               Align(

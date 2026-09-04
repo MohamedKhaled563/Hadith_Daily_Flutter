@@ -41,7 +41,6 @@ class CommunityPost {
   final String message;
   final int hadithNumber;
   int likes;
-  bool isLiked;
   final DateTime createdAt;
 
   String get arabic => message;
@@ -52,7 +51,6 @@ class CommunityPost {
     required this.message,
     required this.hadithNumber,
     this.likes = 0,
-    this.isLiked = false,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 }

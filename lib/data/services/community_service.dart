@@ -1,41 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/insight.dart';
 
 /// Firestore-backed community messages — submissions land as `pending` and
 /// only become visible to everyone once a moderator approves them (phase 4;
 /// until then, approval is done by hand in the Firebase console).
 ///
-/// Likes here are an interim, honest-enough mechanism: a plain `likeCount`
-/// field any signed-in reader may move by exactly one, with "have I already
-/// liked this" tracked per-device in SharedPreferences. It can't stop the
-/// same device liking twice after clearing local storage — phase 7 replaces
-/// this with a real per-user `likes` subcollection that closes that gap.
+/// Likes are tracked per-user in a `likes` subcollection (one doc per uid,
+/// keyed by uid so a second like from the same account is just overwriting
+/// its own doc rather than double-counting) alongside a denormalised
+/// `likeCount` on the message for cheap sorting/display.
 class CommunityService {
   CommunityService._internal();
   static final CommunityService instance = CommunityService._internal();
   factory CommunityService() => instance;
 
   static const _collection = 'communityMessages';
-  static const _likedIdsKey = 'community.likedMessageIds';
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-
-  Set<String> _likedIds = {};
-  bool _likedIdsLoaded = false;
-
-  Future<void> _ensureLikedIdsLoaded() async {
-    if (_likedIdsLoaded) return;
-    final prefs = await SharedPreferences.getInstance();
-    _likedIds = (prefs.getStringList(_likedIdsKey) ?? const []).toSet();
-    _likedIdsLoaded = true;
-  }
-
-  /// Synchronous best-effort check — returns false until the local liked-ids
-  /// set has loaded once, which in practice has always happened by the time
-  /// a post is on screen to be liked.
-  bool isLiked(String messageId) => _likedIds.contains(messageId);
 
   CommunityPost _fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
@@ -46,7 +28,6 @@ class CommunityService {
       message: data['message'] as String? ?? '',
       hadithNumber: data['hadithNumber'] as int? ?? 0,
       likes: data['likeCount'] as int? ?? 0,
-      isLiked: isLiked(doc.id),
       createdAt: createdAt is Timestamp ? createdAt.toDate() : DateTime.now(),
     );
   }
@@ -59,10 +40,7 @@ class CommunityService {
         .where('status', isEqualTo: 'approved')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .asyncMap((snapshot) async {
-      await _ensureLikedIdsLoaded();
-      return snapshot.docs.map(_fromDoc).toList();
-    });
+        .map((snapshot) => snapshot.docs.map(_fromDoc).toList());
   }
 
   /// Throws if nobody is signed in — every screen that calls this already
@@ -102,20 +80,40 @@ class CommunityService {
         .map((snapshot) => snapshot.docs.length);
   }
 
-  Future<void> toggleLike(String messageId) async {
-    await _ensureLikedIdsLoaded();
-    final ref = _db.collection(_collection).doc(messageId);
-    final wasLiked = _likedIds.contains(messageId);
+  /// Live "have I liked this" status for the signed-in user, sourced
+  /// straight from their own `likes/{uid}` doc rather than a local cache —
+  /// stays correct across devices and survives clearing local storage.
+  Stream<bool> likeStatus(String messageId) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return Stream.value(false);
 
-    if (wasLiked) {
-      _likedIds.remove(messageId);
-      await ref.update({'likeCount': FieldValue.increment(-1)});
-    } else {
-      _likedIds.add(messageId);
-      await ref.update({'likeCount': FieldValue.increment(1)});
+    return _db
+        .collection(_collection)
+        .doc(messageId)
+        .collection('likes')
+        .doc(user.uid)
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
+
+  Future<void> toggleLike(String messageId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError('Must be signed in to like a message.');
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_likedIdsKey, _likedIds.toList());
+    final postRef = _db.collection(_collection).doc(messageId);
+    final likeRef = postRef.collection('likes').doc(user.uid);
+
+    await _db.runTransaction((tx) async {
+      final likeSnap = await tx.get(likeRef);
+      if (likeSnap.exists) {
+        tx.delete(likeRef);
+        tx.update(postRef, {'likeCount': FieldValue.increment(-1)});
+      } else {
+        tx.set(likeRef, {'createdAt': FieldValue.serverTimestamp()});
+        tx.update(postRef, {'likeCount': FieldValue.increment(1)});
+      }
+    });
   }
 }

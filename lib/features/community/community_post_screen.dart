@@ -29,16 +29,15 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
   final HadithRepository _repo = HadithRepository();
 
   // Optimistic: this screen gets a static [CommunityPost] snapshot from
-  // whoever navigated here, not a live query, so a tap needs its own local
-  // state to feel instant rather than waiting on the round trip. The list
-  // screen's own StreamBuilder picks up the real value independently.
-  late bool _isLiked = CommunityService().isLiked(widget.post.id);
+  // whoever navigated here, not a live query, so the count needs its own
+  // local state to feel instant rather than waiting on the round trip.
+  // "Have I liked this" itself comes from a live per-user stream so it's
+  // always the real answer, even across devices.
   late int _likeCount = widget.post.likes;
 
-  void _toggleLike() {
+  void _toggleLike(bool currentlyLiked) {
     setState(() {
-      _isLiked = !_isLiked;
-      _likeCount += _isLiked ? 1 : -1;
+      _likeCount += currentlyLiked ? -1 : 1;
     });
     CommunityService().toggleLike(widget.post.id);
   }
@@ -265,10 +264,16 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                 const SizedBox(height: 20),
 
                 Center(
-                  child: LikeCounter(
-                    likes: _likeCount,
-                    isLiked: _isLiked,
-                    onTap: _toggleLike,
+                  child: StreamBuilder<bool>(
+                    stream: CommunityService().likeStatus(widget.post.id),
+                    builder: (context, snapshot) {
+                      final isLiked = snapshot.data ?? false;
+                      return LikeCounter(
+                        likes: _likeCount,
+                        isLiked: isLiked,
+                        onTap: () => _toggleLike(isLiked),
+                      );
+                    },
                   ),
                 ),
               ],
