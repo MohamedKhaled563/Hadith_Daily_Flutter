@@ -6,8 +6,22 @@ import 'package:flutter/material.dart';
 /// role with an ordinary Firestore write — see firestore.rules phase 11.
 /// No Cloud Function, no Admin SDK from here; the write itself is what's
 /// allowed or denied by the users/{uid} update rule.
-class UsersPage extends StatelessWidget {
+class UsersPage extends StatefulWidget {
   const UsersPage({super.key});
+
+  @override
+  State<UsersPage> createState() => _UsersPageState();
+}
+
+class _UsersPageState extends State<UsersPage> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,27 +31,67 @@ class UsersPage extends StatelessWidget {
         .orderBy('email')
         .snapshots();
 
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: stream,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('تعذّر تحميل المستخدمين: ${snapshot.error}'));
-        }
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final docs = snapshot.data!.docs;
-        if (docs.isEmpty) {
-          return const Center(child: Text('لا يوجد مستخدمون بعد'));
-        }
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _query = value.trim().toLowerCase()),
+            decoration: InputDecoration(
+              hintText: 'ابحث بالاسم أو البريد الإلكتروني',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => setState(() {
+                        _searchController.clear();
+                        _query = '';
+                      }),
+                    ),
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: stream,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text('تعذّر تحميل المستخدمين: ${snapshot.error}'));
+              }
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              var docs = snapshot.data!.docs;
+              if (_query.isNotEmpty) {
+                docs = docs.where((doc) {
+                  final data = doc.data();
+                  final email = (data['email'] as String? ?? '').toLowerCase();
+                  final name = (data['displayName'] as String? ?? '').toLowerCase();
+                  return email.contains(_query) || name.contains(_query);
+                }).toList();
+              }
+              if (docs.isEmpty) {
+                return Center(
+                  child: Text(
+                    _query.isEmpty ? 'لا يوجد مستخدمون بعد' : 'لا نتائج مطابقة للبحث',
+                  ),
+                );
+              }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: docs.length,
-          itemBuilder: (context, index) =>
-              _UserCard(doc: docs[index], isSelf: docs[index].id == myUid),
-        );
-      },
+              return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                itemCount: docs.length,
+                itemBuilder: (context, index) =>
+                    _UserCard(doc: docs[index], isSelf: docs[index].id == myUid),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

@@ -12,6 +12,7 @@ import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
+import '../../data/services/notification_scheduler.dart';
 import '../auth/login_screen.dart';
 import '../community/my_submissions_screen.dart';
 
@@ -250,6 +251,33 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
       'تم حفظ وقتك المفضل لـ ${isMorning ? "تذكير الصباح" : "تذكير المساء"} '
       '(${_formatTime(picked)}) 🌿',
     );
+    _syncNotifications();
+  }
+
+  /// Re-lays the on-device notification schedule from the current reminder
+  /// settings — cheap to call after every toggle/time change since
+  /// NotificationScheduler.reschedule() always starts by cancelling
+  /// whatever it previously queued.
+  Future<void> _toggleReminder(bool isMorning, bool value) async {
+    if (value) {
+      final granted = await NotificationScheduler.instance.requestPermission();
+      if (!granted && mounted) {
+        _toast('يحتاج التذكير إلى إذن الإشعارات من إعدادات الجهاز');
+      }
+    }
+    isMorning
+        ? _state.toggleMorningReminder(value)
+        : _state.toggleEveningReminder(value);
+    _syncNotifications();
+  }
+
+  void _syncNotifications() {
+    NotificationScheduler.instance.reschedule(
+      morningEnabled: _state.morningReminderEnabled,
+      morningTime: _state.morningReminderTime,
+      eveningEnabled: _state.eveningReminderEnabled,
+      eveningTime: _state.eveningReminderTime,
+    );
   }
 
   // ---------------------------------------------------------------- build ----
@@ -297,16 +325,13 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                       const SizedBox(height: 14),
 
                       _SectionHeader('مواعيد التنبيهات اليومية'),
-                      // Honest about what this does today: the switches store
-                      // a preferred time, but nothing in the app yet schedules
-                      // an OS-level notification at it.
                       Padding(
                         padding: const EdgeInsetsDirectional.only(
                           start: 6,
                           bottom: 8,
                         ),
                         child: Text(
-                          'إشعارات التذكير قادمة قريباً — احفظ وقتك المفضل الآن',
+                          'رسالة تذكير قصيرة تصلك على جهازك في الوقت الذي تختاره',
                           style: TextStyle(
                             fontFamily: kSans,
                             fontSize: 11.5,
@@ -322,7 +347,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                             title: 'تذكير رسالة الصباح',
                             time: _formatTime(_state.morningReminderTime),
                             isEnabled: _state.morningReminderEnabled,
-                            onToggle: _state.toggleMorningReminder,
+                            onToggle: (value) => _toggleReminder(true, value),
                             onTapTime: () => _pickTime(true),
                           ),
                           _Divider(),
@@ -331,7 +356,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                             title: 'تذكير تأمل المساء',
                             time: _formatTime(_state.eveningReminderTime),
                             isEnabled: _state.eveningReminderEnabled,
-                            onToggle: _state.toggleEveningReminder,
+                            onToggle: (value) => _toggleReminder(false, value),
                             onTapTime: () => _pickTime(false),
                           ),
                         ],

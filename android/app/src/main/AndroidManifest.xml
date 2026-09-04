@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.prodktstudio.tayebqalbak">
+    <!-- Android 13+ requires this at runtime before any notification can
+         show — NotificationScheduler requests it the first time a reminder
+         is switched on (lib/data/services/notification_scheduler.dart). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="طيّب قلبك"
         android:name="${applicationName}"

@@ -159,6 +159,53 @@ def main() -> int:
     )
     check("user renames themselves", resp.status_code == 200, True)
 
+    print("\n== notificationMessages (phase 12) ==")
+
+    # A moderator/admin creating a valid notification message — allowed.
+    resp = create_doc(
+        "notificationMessages",
+        {"text": "رسالة تنبيه قصيرة", "order": 0, "active": True},
+        token_admin,
+    )
+    check("moderator/admin creates a notification message", resp.status_code == 200, True)
+    notif_doc_name = resp.json().get("name") if resp.status_code == 200 else None
+
+    # A plain user creating one — denied.
+    resp = create_doc(
+        "notificationMessages",
+        {"text": "محاولة غير مصرح بها", "order": 1, "active": True},
+        token_a,
+    )
+    check("plain user creates a notification message", resp.status_code == 200, False)
+
+    # Oversized text (phase 12 hardening) — denied.
+    resp = create_doc(
+        "notificationMessages",
+        {"text": "x" * 301, "order": 2, "active": True},
+        token_admin,
+    )
+    check("notification message text over 300 chars", resp.status_code == 200, False)
+
+    # Any signed-in user can read the pool — every device needs it to
+    # schedule its own notifications.
+    if notif_doc_name:
+        notif_doc_id = notif_doc_name.rsplit("/", 1)[-1]
+        resp = requests.get(
+            f"{FIRESTORE_URL}/notificationMessages/{notif_doc_id}",
+            headers=rest_headers(token_a),
+        )
+        check("signed-in user reads a notification message", resp.status_code == 200, True)
+
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/notificationMessages/{notif_doc_id}",
+            headers=rest_headers(token_admin),
+        )
+        check("moderator/admin deletes a notification message", resp.status_code == 200, True)
+
+    # Signed-out read — denied.
+    resp = requests.get(f"{FIRESTORE_URL}/notificationMessages", headers=rest_headers(None))
+    check("signed-out user lists notification messages", resp.status_code == 200, False)
+
     print("\n== communityMessages create ==")
 
     # Valid pending submission by its own author — should be allowed.

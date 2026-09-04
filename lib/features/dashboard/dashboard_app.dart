@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/auth_service.dart';
 import 'bulk_add_page.dart';
+import 'notification_messages_page.dart';
 import 'pending_queue_page.dart';
 import 'rotation_order_page.dart';
 import 'users_page.dart';
@@ -227,7 +228,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
   @override
   Widget build(BuildContext context) {
     final email = AuthService.instance.currentUser?.email ?? '';
-    final tabCount = widget.isAdmin ? 4 : 3;
+    final tabCount = widget.isAdmin ? 5 : 4;
 
     return DefaultTabController(
       length: tabCount,
@@ -253,6 +254,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
               ),
               const Tab(text: 'الترتيب والتوزيع', icon: Icon(Icons.shuffle_rounded)),
               const Tab(text: 'إضافة بالجملة', icon: Icon(Icons.playlist_add_rounded)),
+              const Tab(text: 'رسائل التنبيه', icon: Icon(Icons.notifications_active_outlined)),
               // Role management touches who can act as a moderator/admin at
               // all, so it stays admin-only — a moderator never sees this
               // tab, matching what tool/set_role.py has always required.
@@ -268,6 +270,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
             const PendingQueuePage(),
             const RotationOrderPage(),
             const BulkAddPage(),
+            const NotificationMessagesPage(),
             if (widget.isAdmin) const UsersPage(),
           ],
         ),

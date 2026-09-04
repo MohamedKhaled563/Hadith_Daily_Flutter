@@ -10,8 +10,10 @@ import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
+import '../../core/theme/app_state_controller.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/daily_tip_service.dart';
+import '../../data/services/notification_scheduler.dart';
 import '../messages/daily_message_screen.dart';
 import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
@@ -365,6 +367,20 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
   @override
   void initState() {
     super.initState();
+
+    // Fire-and-forget: refreshes the rolling notification window on every
+    // app start (also re-run whenever a reminder setting changes, from the
+    // settings drawer) — never blocks the home screen on a Firestore round
+    // trip or a permission dialog.
+    final state = AppStateController();
+    if (state.morningReminderEnabled || state.eveningReminderEnabled) {
+      NotificationScheduler.instance.reschedule(
+        morningEnabled: state.morningReminderEnabled,
+        morningTime: state.morningReminderTime,
+        eveningEnabled: state.eveningReminderEnabled,
+        eveningTime: state.eveningReminderTime,
+      );
+    }
 
     _heartbeat = AnimationController(
       vsync: this,

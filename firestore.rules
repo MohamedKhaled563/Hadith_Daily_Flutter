@@ -34,6 +34,9 @@ rules_version = '2';
 // users/{uid} update rule and lib/features/dashboard/users_page.dart.
 // tool/set_role.py still exists for bootstrapping the very first admin,
 // since someone has to be able to promote before anyone can use the UI.
+// Phase 12 adds notificationMessages/ — a small moderator/admin-curated
+// pool for scheduled local notifications (NotificationScheduler picks
+// per-device, no server push involved).
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -67,6 +70,23 @@ service cloud.firestore {
                            .affectedKeys().hasOnly(['timesShown', 'lastShownAt'])
                       && request.resource.data.timesShown
                            == resource.data.get('timesShown', 0) + 1);
+      allow delete: if isModerator();
+    }
+
+    // Phase 12: a small curated pool a moderator/admin manages from the
+    // dashboard's "رسائل التنبيه" tab. NotificationScheduler picks from the
+    // `active` ones — public read since any signed-in device needs it to
+    // schedule its own local notifications; only a moderator/admin writes.
+    match /notificationMessages/{messageId} {
+      allow read: if request.auth != null;
+      allow create: if isModerator()
+                  && request.resource.data.text is string
+                  && request.resource.data.text.size() > 0
+                  && request.resource.data.text.size() <= 300;
+      allow update: if isModerator()
+                  && request.resource.data.text is string
+                  && request.resource.data.text.size() > 0
+                  && request.resource.data.text.size() <= 300;
       allow delete: if isModerator();
     }
 
