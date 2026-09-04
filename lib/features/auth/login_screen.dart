@@ -8,6 +8,7 @@ import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/botanical_sheet.dart';
 import '../../core/widgets/glass_panel.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
@@ -243,11 +244,34 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                 ),
                               ),
+                              Align(
+                                alignment: AlignmentDirectional.centerEnd,
+                                child: TextButton(
+                                  onPressed: _submitting
+                                      ? null
+                                      : _showForgotPasswordSheet,
+                                  style: TextButton.styleFrom(
+                                    minimumSize: const Size(0, 36),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                    ),
+                                    foregroundColor: palette.goldText,
+                                  ),
+                                  child: const Text(
+                                    'نسيت كلمة المرور؟',
+                                    style: TextStyle(
+                                      fontFamily: kSans,
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
                               if (_error != null) ...[
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 6),
                                 _ErrorNote(message: _error!),
                               ],
-                              const SizedBox(height: 22),
+                              const SizedBox(height: 10),
                               AppButton(
                                 text: _submitting ? 'جارٍ الدخول…' : 'دخول',
                                 icon: _submitting ? null : Icons.login_rounded,
@@ -305,6 +329,140 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _clearError(String _) {
     if (_error != null) setState(() => _error = null);
+  }
+
+  void _showForgotPasswordSheet() {
+    final emailCtrl = TextEditingController(text: _usernameController.text.trim());
+
+    showBotanicalSheet<void>(
+      context: context,
+      title: 'نسيت كلمة المرور؟ 🌿',
+      subtitle: 'أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور',
+      child: Builder(
+        builder: (sheetContext) {
+          final palette = sheetContext.palette;
+          String? error;
+          String? success;
+          bool sending = false;
+
+          return StatefulBuilder(
+            builder: (_, setSheetState) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.listItem),
+                    border: Border.all(
+                      color: error != null
+                          ? const Color(0xFFB3261E)
+                          : palette.cardBorder,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: emailCtrl,
+                    enabled: !sending && success == null,
+                    keyboardType: TextInputType.emailAddress,
+                    textDirection: TextDirection.ltr,
+                    textAlign: TextAlign.left,
+                    onChanged: (_) {
+                      if (error != null) setSheetState(() => error = null);
+                    },
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 13.5,
+                      color: palette.bodyText,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'name@example.com',
+                      hintTextDirection: TextDirection.ltr,
+                      hintStyle: TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 12.5,
+                        color: palette.mutedText,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      error!,
+                      style: const TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFB3261E),
+                      ),
+                    ),
+                  ),
+                ],
+                if (success != null) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      success!,
+                      style: TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: palette.goldText,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                AppButton(
+                  text: sending
+                      ? 'جارٍ الإرسال…'
+                      : (success != null ? 'تم' : 'إرسال رابط إعادة التعيين'),
+                  icon: sending
+                      ? null
+                      : (success != null
+                          ? Icons.check_rounded
+                          : Icons.send_rounded),
+                  onPressed: sending
+                      ? () {}
+                      : success != null
+                          ? () => Navigator.pop(sheetContext)
+                          : () async {
+                              final email = emailCtrl.text.trim();
+                              if (email.isEmpty) {
+                                setSheetState(
+                                  () => error = 'أدخل بريدك الإلكتروني أولاً',
+                                );
+                                return;
+                              }
+                              setSheetState(() => sending = true);
+                              try {
+                                await AuthService.instance
+                                    .sendPasswordResetEmail(email);
+                                setSheetState(() {
+                                  sending = false;
+                                  success =
+                                      'تم إرسال الرابط — تحقق من بريدك الإلكتروني 🌿';
+                                });
+                              } on FirebaseAuthException catch (e) {
+                                setSheetState(() {
+                                  sending = false;
+                                  error = authErrorMessage(e);
+                                });
+                              }
+                            },
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 

@@ -151,6 +151,98 @@ class _SignInScreenState extends State<_SignInScreen> {
     }
   }
 
+  Future<void> _showForgotPasswordDialog() async {
+    final emailCtrl = TextEditingController(text: _emailController.text.trim());
+    String? dialogError;
+    String? dialogSuccess;
+    bool sending = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('نسيت كلمة المرور؟'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailCtrl,
+                enabled: !sending && dialogSuccess == null,
+                autofocus: true,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'البريد الإلكتروني',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              if (dialogError != null) ...[
+                const SizedBox(height: 10),
+                Text(dialogError!, style: const TextStyle(color: Colors.red)),
+              ],
+              if (dialogSuccess != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  dialogSuccess!,
+                  style: const TextStyle(color: Colors.green),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(dialogSuccess != null ? 'إغلاق' : 'إلغاء'),
+            ),
+            if (dialogSuccess == null)
+              FilledButton(
+                onPressed: sending
+                    ? null
+                    : () async {
+                        final email = emailCtrl.text.trim();
+                        if (email.isEmpty) {
+                          setDialogState(
+                            () => dialogError = 'أدخل بريدك الإلكتروني أولاً',
+                          );
+                          return;
+                        }
+                        setDialogState(() {
+                          sending = true;
+                          dialogError = null;
+                        });
+                        try {
+                          await AuthService.instance
+                              .sendPasswordResetEmail(email);
+                          setDialogState(() {
+                            sending = false;
+                            dialogSuccess = 'تم إرسال الرابط — تحقق من بريدك';
+                          });
+                        } on FirebaseAuthException catch (e) {
+                          setDialogState(() {
+                            sending = false;
+                            dialogError = e.message ?? 'تعذّر إرسال الرابط';
+                          });
+                        }
+                      },
+                child: sending
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('إرسال'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -189,11 +281,18 @@ class _SignInScreenState extends State<_SignInScreen> {
                   obscureText: true,
                   onSubmitted: (_) => _submit(),
                 ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: _submitting ? null : _showForgotPasswordDialog,
+                    child: const Text('نسيت كلمة المرور؟'),
+                  ),
+                ),
                 if (_error != null) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 4),
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                 ],
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
                 FilledButton(
                   onPressed: _submitting ? null : _submit,
                   child: _submitting
