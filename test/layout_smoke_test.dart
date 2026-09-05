@@ -138,7 +138,7 @@ void main() {
     final repo = HadithRepository();
 
     expect(repo.getAll(), hasLength(42));
-    expect(repo.insights, hasLength(244));
+    expect(repo.insights, hasLength(246));
 
     // Numbering is complete and unique.
     expect(
@@ -155,9 +155,10 @@ void main() {
           reason: '#${hadith.number} explanation');
     }
 
-    // Daily messages currently cover hadiths 1-22 only.
+    // Daily messages cover every hadith since the workbook migration
+    // (7fc5798) replaced the old 22-hadith source with one covering all 42.
     final covered = repo.insights.map((i) => i.hadithNumber).toSet();
-    expect(covered, List.generate(22, (i) => i + 1).toSet());
+    expect(covered, List.generate(42, (i) => i + 1).toSet());
   });
 
   testWidgets('Theme toggle repaints pushed screens (F-04)', (tester) async {
