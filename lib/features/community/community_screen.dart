@@ -383,7 +383,15 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Stack(
+          SizedBox(
+            // Full card width so centerStart/centerEnd resolve against the
+            // whole row rather than against the bounding box of whichever
+            // child (often the like counter, at a large text scale or a
+            // large like count) happens to be widest — otherwise the avatar
+            // and the like counter can visually collide instead of sitting
+            // side by side.
+            width: double.infinity,
+            child: Stack(
             alignment: Alignment.center,
             children: [
               // Centred regardless of the side widths — a spaceBetween Row
@@ -433,6 +441,7 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
                 ),
               ),
             ],
+            ),
           ),
           const SizedBox(height: 12),
           Text(

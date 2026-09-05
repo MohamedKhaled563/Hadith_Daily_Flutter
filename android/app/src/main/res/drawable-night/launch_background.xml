@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Matches AppColors.backgroundDark (lib/core/theme/app_colors.dart) so a
+     dark-mode reader doesn't see a white flash before Flutter's first frame. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="#FF131A15" />
+</layer-list>

@@ -262,17 +262,33 @@ class _MessageRowState extends State<_MessageRow> {
             ),
             const SizedBox(width: 8),
             Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Switch(value: active, onChanged: _toggleActive),
-                Text(active ? 'مفعّلة' : 'معطّلة', style: Theme.of(context).textTheme.bodySmall),
+                // Clamped: a supplementary status label next to the switch,
+                // not primary content — left unscaled so a large accessibility
+                // text-size setting can't widen this trailing cluster enough
+                // to squeeze the message field into overflow.
+                MediaQuery(
+                  data: MediaQuery.of(context)
+                      .copyWith(textScaler: TextScaler.noScaling),
+                  child: Text(
+                    active ? 'مفعّلة' : 'معطّلة',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
             IconButton(
+              visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.save_rounded, size: 18),
               tooltip: 'حفظ',
               onPressed: _save,
             ),
             IconButton(
+              visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
               tooltip: 'حذف',
               onPressed: _delete,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -33,11 +34,15 @@ class ShareService {
     String? category,
     String? fallbackText,
   }) async {
-    // Where the sheet anchors on iPad; harmless elsewhere.
+    // Where the sheet anchors on iPad; harmless elsewhere. iPadOS's popover
+    // presentation needs a non-null source rect or it can crash outright, so
+    // fall back to a screen-centred point rather than passing null when the
+    // calling context's render object isn't laid out yet (e.g. share
+    // triggered mid-transition).
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null && box.hasSize
         ? box.localToGlobal(Offset.zero) & box.size
-        : null;
+        : _fallbackOrigin(context);
 
     final caption = fallbackText ?? _caption(message, hadithTitle, hadithNumber);
 
@@ -66,6 +71,9 @@ class ShareService {
           sharePositionOrigin: origin,
         ),
       );
+      // Best-effort: the temp directory is reclaimed by the OS eventually,
+      // but not deleting these left one PNG behind per share, unbounded.
+      unawaited(file.delete().catchError((_) => file));
     } catch (error, stackTrace) {
       // Rendering can fail on a device with an exhausted GPU context. Falling
       // back to plain text still gets the message shared, which is the point.
@@ -79,6 +87,15 @@ class ShareService {
         ShareParams(text: caption, sharePositionOrigin: origin),
       );
     }
+  }
+
+  static Rect _fallbackOrigin(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    return Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: 1,
+      height: 1,
+    );
   }
 
   static String _caption(String message, String? title, String? number) {

@@ -247,12 +247,13 @@ class _SignInScreenState extends State<_SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.shield_moon_outlined, size: 48),
@@ -305,6 +306,7 @@ class _SignInScreenState extends State<_SignInScreen> {
                       : const Text('دخول'),
                 ),
               ],
+              ),
             ),
           ),
         ),
@@ -336,9 +338,16 @@ class _DashboardHomeState extends State<_DashboardHome> {
         appBar: AppBar(
           title: const Text('لوحة الإشراف — طيّب قلبك'),
           actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Center(child: Text(email)),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.logout_rounded),
@@ -347,6 +356,8 @@ class _DashboardHomeState extends State<_DashboardHome> {
             ),
           ],
           bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
               const Tab(
                 text: 'قائمة المراجعة',

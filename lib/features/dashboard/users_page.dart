@@ -160,9 +160,13 @@ class _UserCardState extends State<_UserCard> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        displayName.isNotEmpty ? displayName : email,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      Flexible(
+                        child: Text(
+                          displayName.isNotEmpty ? displayName : email,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       if (widget.isSelf) ...[
                         const SizedBox(width: 6),
@@ -174,7 +178,12 @@ class _UserCardState extends State<_UserCard> {
                       ],
                     ],
                   ),
-                  Text(email, style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    email,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),

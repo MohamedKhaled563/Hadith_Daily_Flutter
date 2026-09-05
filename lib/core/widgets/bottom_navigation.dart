@@ -139,7 +139,14 @@ class _NavItem extends StatelessWidget {
       semanticLabel: label,
       selected: isSelected,
       minSize: 56,
-      child: SizedBox(
+      // Nav labels are compact chrome, not reading content, and this pill's
+      // height is fixed — left unscaled so a large accessibility text-size
+      // setting can't push the label/active-dot past the 72dp box (Stack
+      // clips silently there instead of overflowing, i.e. the label would
+      // just go missing rather than error).
+      child: MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+        child: SizedBox(
         height: 72,
         child: Stack(
           alignment: Alignment.center,
@@ -181,6 +188,7 @@ class _NavItem extends StatelessWidget {
               ],
             ),
           ],
+        ),
         ),
       ),
     );
