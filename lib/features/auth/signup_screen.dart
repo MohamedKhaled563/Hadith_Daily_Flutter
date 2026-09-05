@@ -95,7 +95,16 @@ class _SignUpScreenState extends State<SignUpScreen>
     if (name.isEmpty) return;
 
     _nameCheckDebounce = Timer(const Duration(milliseconds: 500), () async {
-      final taken = await AuthService.instance.isDisplayNameTaken(name);
+      bool taken;
+      try {
+        taken = await AuthService.instance.isDisplayNameTaken(name);
+      } catch (_) {
+        // This is UX feedback only (see doc comment) — a network hiccup
+        // here shouldn't surface an error while the reader is mid-typing;
+        // _submit's own authoritative check (and, ultimately, the security
+        // rules) still catch a real collision at submit time.
+        return;
+      }
       if (!mounted) return;
       if (name != _nameController.text.trim()) return;
       if (taken) {
@@ -157,15 +166,22 @@ class _SignUpScreenState extends State<SignUpScreen>
     // Authoritative re-check right before creating the account — the live
     // check above is debounced and may be stale (e.g. submitted before it
     // ever fired). signUpWithEmail still re-checks via the security rules
-    // themselves in case of a race after this point.
-    final taken = await AuthService.instance.isDisplayNameTaken(name);
-    if (!mounted) return;
-    if (taken) {
-      setState(() {
-        _submitting = false;
-        _nameError = 'هذا الاسم مستخدم بالفعل، جرّب اسماً آخر';
-      });
-      return;
+    // themselves in case of a race after this point. If the check itself
+    // can't complete (offline/flaky connection), don't get the reader
+    // stuck here — proceed to signUpWithEmail, whose own rules-enforced
+    // check is what actually has to catch a real collision anyway.
+    try {
+      final taken = await AuthService.instance.isDisplayNameTaken(name);
+      if (!mounted) return;
+      if (taken) {
+        setState(() {
+          _submitting = false;
+          _nameError = 'هذا الاسم مستخدم بالفعل، جرّب اسماً آخر';
+        });
+        return;
+      }
+    } catch (_) {
+      if (!mounted) return;
     }
 
     setState(() => _loadingMessage = 'جارٍ إنشاء الحساب…');
@@ -188,6 +204,16 @@ class _SignUpScreenState extends State<SignUpScreen>
       setState(() {
         _submitting = false;
         _error = authErrorMessage(e);
+      });
+      return;
+    } catch (_) {
+      // Anything else — a Firestore hiccup from _ensureUserDoc/the username
+      // claim, e.g. — must still reset _submitting, or the reader is stuck
+      // on the loading overlay with no way forward but to kill the app.
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = 'تعذّر إنشاء الحساب، تحقق من اتصالك بالإنترنت وحاول مرة أخرى';
       });
       return;
     }

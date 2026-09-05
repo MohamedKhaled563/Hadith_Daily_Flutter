@@ -45,7 +45,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
     final query = _searchQuery.trim().toLowerCase();
 
     return _repo.getAll().where((h) {
-      if (_showOnlyFavorites && !h.isFavorite) return false;
+      if (_showOnlyFavorites && !_repo.isHadithFavorite(h.number)) return false;
       if (query.isEmpty) return true;
       return h.title.toLowerCase().contains(query) ||
           h.text.toLowerCase().contains(query) ||
@@ -196,6 +196,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
                       final hadith = displayed[index];
                       return _HadithListCard(
                         hadith: hadith,
+                        isFavorite: _repo.isHadithFavorite(hadith.number),
                         onToggleFavorite: () => setState(
                           () => _repo.toggleFavoriteHadith(hadith.number),
                         ),
@@ -221,11 +222,13 @@ class _HadithListScreenState extends State<HadithListScreen> {
 class _HadithListCard extends StatelessWidget {
   const _HadithListCard({
     required this.hadith,
+    required this.isFavorite,
     required this.onTap,
     required this.onToggleFavorite,
   });
 
   final Hadith hadith;
+  final bool isFavorite;
   final VoidCallback onTap;
   final VoidCallback onToggleFavorite;
 
@@ -288,13 +291,13 @@ class _HadithListCard extends StatelessWidget {
               TapTarget(
                 onTap: onToggleFavorite,
                 semanticLabel: 'حفظ الحديث في المفضلة',
-                toggled: hadith.isFavorite,
+                toggled: isFavorite,
                 child: Icon(
-                  hadith.isFavorite
+                  isFavorite
                       ? Icons.bookmark_rounded
                       : Icons.bookmark_border_rounded,
                   size: 22,
-                  color: hadith.isFavorite
+                  color: isFavorite
                       ? palette.goldText
                       : palette.mutedText,
                 ),

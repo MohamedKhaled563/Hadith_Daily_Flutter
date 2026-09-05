@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -79,6 +80,7 @@ class NotificationScheduler {
 
   static const _daysAhead = 14;
   static const _randomSeedKey = 'notificationScheduler.randomSeed';
+  static const _cachedPoolKey = 'notificationScheduler.cachedPool';
 
   final FlutterLocalNotificationsPlugin _plugin;
   final NotificationDataSource _dataSource;
@@ -314,9 +316,41 @@ class NotificationScheduler {
     return true;
   }
 
+  /// The reader thinks of reminders as a fully on-device feature (see the
+  /// class doc) — a scheduled alarm does live entirely on the phone — but
+  /// the message *content* is admin-curated in Firestore, so refreshing it
+  /// still needs a network round trip every time this runs (app start,
+  /// every reminder-setting change). Rather than let a momentary offline
+  /// blip fail the whole reschedule with a "check your internet" error,
+  /// this falls back to the last successfully fetched pool — cached
+  /// locally — so a flaky connection degrades to "today's messages might
+  /// be a little stale" instead of "reminders stopped working."
   Future<List<PoolMessage>> _loadPool() async {
-    final docs = await _dataSource.loadActiveMessages();
-    return buildPool(docs);
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final docs = await _dataSource.loadActiveMessages();
+      final pool = buildPool(docs);
+      if (pool.isNotEmpty) {
+        await prefs.setString(
+          _cachedPoolKey,
+          jsonEncode(pool
+              .map((m) => {'id': m.id, 'text': m.text, 'order': m.order})
+              .toList()),
+        );
+      }
+      return pool;
+    } catch (_) {
+      final cached = prefs.getString(_cachedPoolKey);
+      if (cached == null) rethrow;
+      final decoded = jsonDecode(cached) as List;
+      return decoded
+          .map((e) => PoolMessage(
+                id: (e as Map)['id'] as String? ?? '',
+                text: e['text'] as String? ?? '',
+                order: (e['order'] as num?)?.toInt() ?? 0,
+              ))
+          .toList();
+    }
   }
 
   /// How many notifications are currently queued — used to confirm

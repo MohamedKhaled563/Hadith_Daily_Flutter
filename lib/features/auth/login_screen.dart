@@ -98,6 +98,16 @@ class _LoginScreenState extends State<LoginScreen>
         _error = authErrorMessage(e);
       });
       return;
+    } catch (_) {
+      // signInWithEmail also touches Firestore (_ensureUserDoc) — a plain
+      // FirebaseException from a flaky connection there must still reset
+      // _submitting, or the reader is stuck on the loading overlay.
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = 'تعذّر تسجيل الدخول، تحقق من اتصالك بالإنترنت وحاول مرة أخرى';
+      });
+      return;
     }
     if (!mounted) return;
 
