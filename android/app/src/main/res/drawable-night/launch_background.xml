@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Matches AppColors.backgroundDark (lib/core/theme/app_colors.dart) so a
-     dark-mode reader doesn't see a white flash before Flutter's first frame. -->
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="#FF131A15" />
-</layer-list>
+     dark-mode reader doesn't see a white flash before Flutter's first frame.
+     A <shape> is used (rather than a layer-list item) because AAPT accepts
+     an inline color literal for android:color, but rejects one for a
+     layer-list item's android:drawable — that attribute needs an actual
+     drawable resource reference. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#FF131A15" />
+</shape>
