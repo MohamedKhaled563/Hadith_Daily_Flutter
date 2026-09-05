@@ -82,36 +82,52 @@ class AuthService {
       password: password,
     );
 
-    // Claim the normalized name right after the account exists (the write
-    // needs request.auth to be this new user — see firestore.rules). If
-    // someone else grabbed the same name in the moment between the sign-up
-    // screen's own pre-check and here, the rules deny this as an update
-    // against an already-existing doc; roll back the account rather than
-    // leave an orphaned one behind.
-    if (displayName.isNotEmpty) {
-      final nameKey = normalizeDisplayName(displayName);
-      try {
-        await _firestore
-            .collection('usernames')
-            .doc(nameKey)
-            .set({'uid': credential.user!.uid});
-      } on FirebaseException catch (e) {
-        if (e.code == 'permission-denied') {
-          await credential.user?.delete();
-          throw DisplayNameTakenException();
+    // Everything from here on runs against an already-created account: if
+    // any of it fails — the username claim, updateDisplayName/reload, or
+    // _ensureUserDoc's own write — roll the account back rather than leave
+    // it stranded half set-up (created, but with no matching users/{uid}
+    // doc and, in the username-claim case, a name it can never actually use
+    // since firestore.rules forbids editing/deleting a claimed
+    // usernames/{key} doc). The one exception is a name collision, which
+    // already has its own specific rollback+error below.
+    try {
+      // Claim the normalized name right after the account exists (the write
+      // needs request.auth to be this new user — see firestore.rules). If
+      // someone else grabbed the same name in the moment between the
+      // sign-up screen's own pre-check and here, the rules deny this as an
+      // update against an already-existing doc.
+      if (displayName.isNotEmpty) {
+        final nameKey = normalizeDisplayName(displayName);
+        try {
+          await _firestore
+              .collection('usernames')
+              .doc(nameKey)
+              .set({'uid': credential.user!.uid});
+        } on FirebaseException catch (e) {
+          if (e.code == 'permission-denied') {
+            await credential.user?.delete();
+            throw DisplayNameTakenException();
+          }
+          rethrow;
         }
-        rethrow;
+
+        await credential.user?.updateDisplayName(displayName);
+        // updateDisplayName() writes the new name to the Auth server, but
+        // the in-memory User object we're already holding doesn't pick it
+        // up on its own — without this reload, _ensureUserDoc below reads
+        // the stale (empty) displayName and mirrors that into Firestore
+        // instead.
+        await credential.user?.reload();
       }
 
-      await credential.user?.updateDisplayName(displayName);
-      // updateDisplayName() writes the new name to the Auth server, but the
-      // in-memory User object we're already holding doesn't pick it up on
-      // its own — without this reload, _ensureUserDoc below reads the
-      // stale (empty) displayName and mirrors that into Firestore instead.
-      await credential.user?.reload();
+      await _ensureUserDoc(_auth.currentUser ?? credential.user!);
+    } on DisplayNameTakenException {
+      rethrow;
+    } catch (_) {
+      await credential.user?.delete();
+      rethrow;
     }
 
-    await _ensureUserDoc(_auth.currentUser ?? credential.user!);
     return credential;
   }
 
