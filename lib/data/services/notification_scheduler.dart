@@ -81,11 +81,21 @@ class NotificationScheduler {
 
   final FlutterLocalNotificationsPlugin _plugin;
   final NotificationDataSource _dataSource;
-  bool _tzReady = false;
+  Future<void>? _initFuture;
 
-  Future<void> _ensureInitialized() async {
-    if (_tzReady) return;
+  // requestPermission() and reschedule() can both fire in close succession
+  // (e.g. toggling a reminder switch right after app start) — without
+  // memoising the in-flight Future, each call would race to invoke
+  // _plugin.initialize() a second time on the same platform channel. If
+  // init fails, drop the cached Future so the next call retries instead of
+  // replaying the same failure forever.
+  Future<void> _ensureInitialized() {
+    final future = _initFuture ??= _doInitialize();
+    future.catchError((_) => _initFuture = null);
+    return future;
+  }
 
+  Future<void> _doInitialize() async {
     tz_data.initializeTimeZones();
     try {
       final name = await FlutterTimezone.getLocalTimezone();
@@ -101,8 +111,6 @@ class NotificationScheduler {
     await _plugin.initialize(
       const InitializationSettings(android: androidInit, iOS: iosInit),
     );
-
-    _tzReady = true;
   }
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>
