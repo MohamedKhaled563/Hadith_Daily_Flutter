@@ -180,7 +180,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   TapTarget(
                     onTap: () {
                       setState(
-                        () => _repo.toggleFavoriteInsight(insight.message),
+                        () => _repo.toggleFavoriteInsight(insight),
                       );
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(

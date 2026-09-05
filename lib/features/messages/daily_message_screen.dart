@@ -42,7 +42,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
   @override
   void initState() {
     super.initState();
-    _isBookmarked = _repo.isInsightFavorite(widget.insight.message);
+    _isBookmarked = _repo.isInsightFavorite(widget.insight);
   }
 
   String get _shareText => '« ${widget.insight.message} »\n\n'
@@ -59,7 +59,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
   void _toggleBookmark() {
     setState(() {
       _isBookmarked = !_isBookmarked;
-      _repo.toggleFavoriteInsight(widget.insight.message);
+      _repo.toggleFavoriteInsight(widget.insight);
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -313,13 +313,13 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
         const SizedBox(height: 16),
         _MessageToolbar(
           isBookmarked: _isBookmarked,
-          likes: _repo.insightLikeCount(widget.insight.message),
-          isLiked: _repo.isInsightLiked(widget.insight.message),
+          likes: _repo.insightLikeCount(widget.insight),
+          isLiked: _repo.isInsightLiked(widget.insight),
           onBookmark: _toggleBookmark,
           onShare: _showSharePreview,
           onCopy: _copyMessageText,
           onLike: () => setState(
-            () => _repo.toggleInsightLike(widget.insight.message),
+            () => _repo.toggleInsightLike(widget.insight),
           ),
         ),
       ],

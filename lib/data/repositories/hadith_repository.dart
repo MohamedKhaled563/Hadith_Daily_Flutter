@@ -103,18 +103,28 @@ class HadithRepository {
     }
   }
 
-  bool isInsightFavorite(String text) => _favoriteInsightTexts.contains(text);
+  // Keyed by hadithNumber+text rather than text alone: the source workbook
+  // has no per-insight id, and two distinct entries under different hadiths
+  // sharing identical text (a plausible generic reminder) would otherwise
+  // collide — favoriting/liking one would silently favorite/like both.
+  String _insightKey(Insight insight) => '${insight.hadithNumber}::${insight.message}';
 
-  void toggleFavoriteInsight(String text) {
-    if (_favoriteInsightTexts.contains(text)) {
-      _favoriteInsightTexts.remove(text);
+  bool isInsightFavorite(Insight insight) =>
+      _favoriteInsightTexts.contains(_insightKey(insight));
+
+  void toggleFavoriteInsight(Insight insight) {
+    final key = _insightKey(insight);
+    if (_favoriteInsightTexts.contains(key)) {
+      _favoriteInsightTexts.remove(key);
     } else {
-      _favoriteInsightTexts.add(text);
+      _favoriteInsightTexts.add(key);
     }
   }
 
   List<Insight> getFavoriteInsights() {
-    return _insights.where((i) => _favoriteInsightTexts.contains(i.message)).toList();
+    return _insights
+        .where((i) => _favoriteInsightTexts.contains(_insightKey(i)))
+        .toList();
   }
 
   List<Hadith> getFavoriteHadiths() {
@@ -146,18 +156,21 @@ class HadithRepository {
   final Set<String> _likedInsightTexts = <String>{};
   final Map<String, int> _insightLikeCounts = <String, int>{};
 
-  bool isInsightLiked(String text) => _likedInsightTexts.contains(text);
+  bool isInsightLiked(Insight insight) =>
+      _likedInsightTexts.contains(_insightKey(insight));
 
-  int insightLikeCount(String text) => _insightLikeCounts[text] ?? 0;
+  int insightLikeCount(Insight insight) =>
+      _insightLikeCounts[_insightKey(insight)] ?? 0;
 
-  void toggleInsightLike(String text) {
-    final liked = _likedInsightTexts.contains(text);
+  void toggleInsightLike(Insight insight) {
+    final key = _insightKey(insight);
+    final liked = _likedInsightTexts.contains(key);
     if (liked) {
-      _likedInsightTexts.remove(text);
-      _insightLikeCounts[text] = (insightLikeCount(text) - 1).clamp(0, 1 << 30);
+      _likedInsightTexts.remove(key);
+      _insightLikeCounts[key] = ((_insightLikeCounts[key] ?? 0) - 1).clamp(0, 1 << 30);
     } else {
-      _likedInsightTexts.add(text);
-      _insightLikeCounts[text] = insightLikeCount(text) + 1;
+      _likedInsightTexts.add(key);
+      _insightLikeCounts[key] = (_insightLikeCounts[key] ?? 0) + 1;
     }
   }
 }
