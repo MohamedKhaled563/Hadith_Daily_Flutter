@@ -207,7 +207,10 @@ class _PoolList extends StatelessWidget {
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
           itemCount: entries.length,
-          itemBuilder: (context, index) => _PoolRow(entry: entries[index]),
+          itemBuilder: (context, index) => _PoolRow(
+            key: ValueKey(entries[index].ref.path),
+            entry: entries[index],
+          ),
         );
       },
     );
@@ -215,7 +218,7 @@ class _PoolList extends StatelessWidget {
 }
 
 class _PoolRow extends StatefulWidget {
-  const _PoolRow({required this.entry});
+  const _PoolRow({super.key, required this.entry});
 
   final _PoolEntry entry;
 

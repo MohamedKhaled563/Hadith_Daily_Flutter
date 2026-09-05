@@ -87,7 +87,10 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
                   return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
                     itemCount: docs.length,
-                    itemBuilder: (context, index) => _MessageRow(doc: docs[index]),
+                    itemBuilder: (context, index) => _MessageRow(
+                      key: ValueKey(docs[index].id),
+                      doc: docs[index],
+                    ),
                   );
                 },
               ),
@@ -168,7 +171,7 @@ class _ModeToggle extends StatelessWidget {
 }
 
 class _MessageRow extends StatefulWidget {
-  const _MessageRow({required this.doc});
+  const _MessageRow({super.key, required this.doc});
 
   final QueryDocumentSnapshot<Map<String, dynamic>> doc;
 

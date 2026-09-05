@@ -34,6 +34,14 @@ class _FakeDataSource implements NotificationDataSource {
 
   @override
   Future<String> loadMode() async => mode;
+
+  @override
+  Future<Map<String, dynamic>?> loadMessageById(String id) async {
+    return messages.cast<Map<String, dynamic>?>().firstWhere(
+          (m) => m?['id'] == id,
+          orElse: () => null,
+        );
+  }
 }
 
 void main() {
@@ -137,9 +145,9 @@ void main() {
 
     test('manual mode picks by daysSinceEpoch, not insertion order', () {
       final daysSinceEpoch = day.millisecondsSinceEpoch ~/ 86400000;
-      final expected = pool[daysSinceEpoch % pool.length].text;
+      final expected = pool[daysSinceEpoch % pool.length];
 
-      expect(pickMessageForDay(pool, day, 'manual', 0), expected);
+      expect(pickMessageForDay(pool, day, 'manual', 0), same(expected));
     });
 
     test('random mode is stable for the same device seed and day', () {

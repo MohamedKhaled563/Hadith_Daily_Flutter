@@ -35,8 +35,10 @@ class PendingQueuePage extends StatelessWidget {
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: docs.length,
-          itemBuilder: (context, index) =>
-              _PendingCard(doc: docs[index]),
+          itemBuilder: (context, index) => _PendingCard(
+            key: ValueKey(docs[index].id),
+            doc: docs[index],
+          ),
         );
       },
     );
@@ -44,7 +46,7 @@ class PendingQueuePage extends StatelessWidget {
 }
 
 class _PendingCard extends StatefulWidget {
-  const _PendingCard({required this.doc});
+  const _PendingCard({super.key, required this.doc});
 
   final QueryDocumentSnapshot<Map<String, dynamic>> doc;
 

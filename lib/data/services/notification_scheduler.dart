@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../models/insight.dart';
 import 'notification_data_source.dart';
 
 /// Outcome of a [NotificationScheduler.reschedule] call — lets callers (and
@@ -126,9 +127,23 @@ class NotificationScheduler {
     );
   }
 
+  /// Resolves a tapped notification's payload (a `notificationMessages` doc
+  /// id — see [_scheduleOne]) back to the message it actually showed, or
+  /// null if [id] is empty or the doc is missing/unreadable (e.g. deleted
+  /// since the reminder was scheduled). `notificationMessages` docs have no
+  /// hadith association, so this always comes back with `hadithNumber: 0`;
+  /// callers pass `hadith: null` to whatever screen displays it.
+  Future<Insight?> resolveTappedMessage(String? id) async {
+    if (id == null || id.isEmpty) return null;
+    final data = await _dataSource.loadMessageById(id);
+    final text = (data?['text'] as String?)?.trim();
+    if (text == null || text.isEmpty) return null;
+    return Insight(hadithNumber: 0, arabic: text, english: '', category: 'رسالة تذكير');
+  }
+
   /// Whether the app was launched by tapping a reminder while fully
-  /// terminated — returns that notification's payload (its message text) if
-  /// so, checked once at startup since a cold start never fires
+  /// terminated — returns that notification's payload (a notificationMessages
+  /// doc id) if so, checked once at startup since a cold start never fires
   /// [_onNotificationResponse]. Safe to call before [_ensureInitialized]:
   /// this reads native launch state directly, no plugin init required.
   Future<String?> consumeLaunchPayload() async {
@@ -221,7 +236,8 @@ class NotificationScheduler {
             day: day,
             time: morningTime,
             title: 'رسالة الصباح 🌅',
-            body: message,
+            body: message.text,
+            payload: message.id,
             now: now,
             scheduleMode: scheduleMode,
           );
@@ -233,7 +249,8 @@ class NotificationScheduler {
             day: day,
             time: eveningTime,
             title: 'تأمل المساء 🌙',
-            body: message,
+            body: message.text,
+            payload: message.id,
             now: now,
             scheduleMode: scheduleMode,
           );
@@ -260,6 +277,7 @@ class NotificationScheduler {
     required TimeOfDay time,
     required String title,
     required String body,
+    required String payload,
     required tz.TZDateTime now,
     required AndroidScheduleMode scheduleMode,
   }) async {
@@ -286,10 +304,12 @@ class NotificationScheduler {
       androidScheduleMode: scheduleMode,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      // The message text itself — tapping the reminder resolves this back
-      // to its Insight (see SplashScreen/main.dart) so the reader lands on
-      // that exact daily message instead of just the home screen.
-      payload: body,
+      // The notificationMessages doc id — tapping the reminder resolves this
+      // back to that exact doc (see SplashScreen/main.dart) so the reader
+      // lands on the message that was actually shown, instead of just the
+      // home screen. Not the text itself: several distinct docs can share
+      // identical text, and text isn't a stable/lookup-able key anyway.
+      payload: payload,
     );
     return true;
   }
@@ -320,7 +340,8 @@ class NotificationScheduler {
 
 @immutable
 class PoolMessage {
-  const PoolMessage({required this.text, required this.order});
+  const PoolMessage({required this.id, required this.text, required this.order});
+  final String id;
   final String text;
   final int order;
 }
@@ -330,6 +351,7 @@ class PoolMessage {
 List<PoolMessage> buildPool(List<Map<String, dynamic>> docs) {
   final pool = docs
       .map((data) => PoolMessage(
+            id: data['id'] as String? ?? '',
             text: (data['text'] as String?)?.trim() ?? '',
             order: (data['order'] as num?)?.toInt() ?? 0,
           ))
@@ -363,7 +385,7 @@ bool isInPast(tz.TZDateTime scheduled, tz.TZDateTime now) =>
 /// Which pool message a given calendar day resolves to under 'manual' or
 /// 'random' mode — pulled out of the class so it can be unit tested without
 /// any platform/Firestore dependency.
-String pickMessageForDay(
+PoolMessage pickMessageForDay(
   List<PoolMessage> pool,
   tz.TZDateTime day,
   String mode,
@@ -371,8 +393,8 @@ String pickMessageForDay(
 ) {
   final daysSinceEpoch = day.millisecondsSinceEpoch ~/ (1000 * 60 * 60 * 24);
   if (mode == 'manual') {
-    return pool[daysSinceEpoch % pool.length].text;
+    return pool[daysSinceEpoch % pool.length];
   }
   final random = Random(deviceSeed ^ daysSinceEpoch);
-  return pool[random.nextInt(pool.length)].text;
+  return pool[random.nextInt(pool.length)];
 }

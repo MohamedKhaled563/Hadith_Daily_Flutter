@@ -7,7 +7,6 @@ import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/theme/app_state_controller.dart';
 import '../../data/models/insight.dart';
-import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/notification_scheduler.dart';
 import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
@@ -37,7 +36,7 @@ class _SplashScreenState extends State<SplashScreen>
   // start from tapping a reminder notification never fires
   // NotificationScheduler.tappedMessage (that's only for a live tap while
   // the app is already running), so this is checked separately, once.
-  String? _pendingNotificationPayload;
+  Insight? _pendingNotificationInsight;
 
   final List<String> _inspirationalQuotes = [
     'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ 🌿',
@@ -50,8 +49,11 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    NotificationScheduler.instance.consumeLaunchPayload().then((payload) {
-      _pendingNotificationPayload = payload;
+    NotificationScheduler.instance
+        .consumeLaunchPayload()
+        .then((id) => NotificationScheduler.instance.resolveTappedMessage(id))
+        .then((insight) {
+      _pendingNotificationInsight = insight;
     }).catchError((_) {
       // Best-effort: a platform-channel hiccup here should never block
       // showing the splash screen, just skip the notification deep link.
@@ -143,26 +145,14 @@ class _SplashScreenState extends State<SplashScreen>
     // back button behaves normally, then stack the tapped message on top of
     // it — same two calls as the live-tap listener in main.dart, just
     // sequenced instead of racing a Navigator that doesn't exist yet.
-    if (state.isLoggedIn && _pendingNotificationPayload != null) {
-      final repo = HadithRepository();
-      Insight? insight;
-      try {
-        insight = repo.insights
-            .firstWhere((i) => i.message == _pendingNotificationPayload);
-      } catch (_) {
-        insight = null;
-      }
-      if (insight != null) {
-        Navigator.push(
-          context,
-          SeamlessMessagePageRoute(
-            child: DailyMessageScreen(
-              insight: insight,
-              hadith: repo.getByNumber(insight.hadithNumber),
-            ),
-          ),
-        );
-      }
+    final insight = _pendingNotificationInsight;
+    if (state.isLoggedIn && insight != null) {
+      Navigator.push(
+        context,
+        SeamlessMessagePageRoute(
+          child: DailyMessageScreen(insight: insight, hadith: null),
+        ),
+      );
     }
   }
 

@@ -85,8 +85,11 @@ class _UsersPageState extends State<UsersPage> {
               return ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 itemCount: docs.length,
-                itemBuilder: (context, index) =>
-                    _UserCard(doc: docs[index], isSelf: docs[index].id == myUid),
+                itemBuilder: (context, index) => _UserCard(
+                  key: ValueKey(docs[index].id),
+                  doc: docs[index],
+                  isSelf: docs[index].id == myUid,
+                ),
               );
             },
           ),
@@ -100,7 +103,7 @@ const _roles = ['user', 'moderator', 'admin'];
 const _roleLabels = {'user': 'مستخدم', 'moderator': 'مشرف', 'admin': 'مدير'};
 
 class _UserCard extends StatefulWidget {
-  const _UserCard({required this.doc, required this.isSelf});
+  const _UserCard({super.key, required this.doc, required this.isSelf});
 
   final QueryDocumentSnapshot<Map<String, dynamic>> doc;
   final bool isSelf;

@@ -10,6 +10,11 @@ abstract class NotificationDataSource {
   /// `settings/notificationMode` — always resolves to 'manual' or 'random',
   /// defaulting to 'random' when the doc is missing or unreadable.
   Future<String> loadMode();
+
+  /// A single `notificationMessages` doc by id, or null if it's missing or
+  /// unreadable (e.g. deleted since the reminder carrying this id was
+  /// scheduled) — used to resolve a tapped notification back to its message.
+  Future<Map<String, dynamic>?> loadMessageById(String id);
 }
 
 class FirestoreNotificationDataSource implements NotificationDataSource {
@@ -31,7 +36,9 @@ class FirestoreNotificationDataSource implements NotificationDataSource {
         .collection('notificationMessages')
         .where('active', isEqualTo: true)
         .get();
-    return snapshot.docs.map((doc) => doc.data()).toList();
+    // The doc id rides along as 'id' so a tapped notification's payload can
+    // resolve back to this exact doc — the id isn't part of doc.data().
+    return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
   }
 
   @override
@@ -42,6 +49,16 @@ class FirestoreNotificationDataSource implements NotificationDataSource {
       return doc.data()?['mode'] == 'manual' ? 'manual' : 'random';
     } catch (_) {
       return 'random';
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> loadMessageById(String id) async {
+    try {
+      final doc = await _db.collection('notificationMessages').doc(id).get();
+      return doc.data();
+    } catch (_) {
+      return null;
     }
   }
 }
