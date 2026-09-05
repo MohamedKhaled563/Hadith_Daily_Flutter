@@ -149,17 +149,17 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
             ),
           ),
           const SizedBox(height: 6),
+          // The card scrolls/centers on its own — a short message centers
+          // vertically in the remaining space, a long one scrolls — but the
+          // toolbar below is a fixed sibling outside that area (see the
+          // Padding right after this Expanded), so its position never shifts
+          // with how tall any given message happens to be.
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    8,
-                    20,
-                    8 + BottomNavigation.reservedHeight(context),
-                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: (constraints.maxHeight - 16).clamp(
@@ -167,10 +167,29 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                         double.infinity,
                       ),
                     ),
-                    child: Center(child: _buildMessageCard()),
+                    child: Center(child: _buildCard()),
                   ),
                 );
               },
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              8 + BottomNavigation.reservedHeight(context),
+            ),
+            child: _MessageToolbar(
+              isBookmarked: _isBookmarked,
+              likes: _repo.insightLikeCount(widget.insight),
+              isLiked: _repo.isInsightLiked(widget.insight),
+              onBookmark: _toggleBookmark,
+              onShare: _showSharePreview,
+              onCopy: _copyMessageText,
+              onLike: () => setState(
+                () => _repo.toggleInsightLike(widget.insight),
+              ),
             ),
           ),
         ],
@@ -178,151 +197,128 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
     );
   }
 
-  Widget _buildMessageCard() {
+  Widget _buildCard() {
     final palette = context.palette;
 
-    // The action toolbar lives below the card as its own floating pill,
-    // rather than squeezed into a header row inside the card — that gives
-    // every action room to breathe. The heart emblem stays inside the card,
-    // at the top, where it reads as the card's own mark rather than a
-    // separate element floating above the message.
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ParchmentCard(
-          elevated: true,
-          showBotanicals: true,
-          padding: const EdgeInsets.all(22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Hero(
-                tag: 'heart_leaf_emblem_hero',
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: palette.surface,
-                    border: Border.all(
-                      color: palette.cardBorderStrong,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Center(
-                    child: AssetHelper.assetOrFallback(
-                      assetPath: 'assets/images/heart_leaf_emblem.png',
-                      width: 34,
-                      height: 34,
-                      fallback: const Icon(
-                        Icons.favorite_rounded,
-                        color: AppColors.primaryGreen,
-                        size: 26,
-                      ),
-                    ),
+    return ParchmentCard(
+      elevated: true,
+      showBotanicals: true,
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Hero(
+            tag: 'heart_leaf_emblem_hero',
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: palette.surface,
+                border: Border.all(
+                  color: palette.cardBorderStrong,
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: AssetHelper.assetOrFallback(
+                  assetPath: 'assets/images/heart_leaf_emblem.png',
+                  width: 34,
+                  height: 34,
+                  fallback: const Icon(
+                    Icons.favorite_rounded,
+                    color: AppColors.primaryGreen,
+                    size: 26,
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: palette.surface,
-                  borderRadius: BorderRadius.circular(AppRadii.pill),
-                  border: Border.all(color: palette.cardBorder, width: 1.1),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AssetHelper.assetOrFallback(
-                      assetPath: 'assets/images/leaf_accent.png',
-                      width: 14,
-                      height: 14,
-                      fallback: Icon(
-                        Icons.eco_rounded,
-                        size: 14,
-                        color: palette.goldText,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      widget.insight.category,
-                      style: TextStyle(
-                        fontFamily: kSans,
-                        fontSize: 12.5,
-                        height: AppLeading.chrome,
-                        fontWeight: FontWeight.w700,
-                        color: palette.goldText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const _GoldDivider(),
-              Text(
-                '« ${widget.insight.message} »',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: kSans,
-                  fontSize: 20,
-                  height: AppLeading.scripture,
-                  fontWeight: FontWeight.w800,
-                  color: palette.bodyText,
-                ),
-              ),
-              const _GoldDivider(),
-              const SizedBox(height: 2),
-              if (widget.hadith != null) ...[
-                _HadithLinkPill(
-                  hadith: widget.hadith!,
-                  onTap: () => Navigator.push(
-                    context,
-                    SmoothPageRoute(
-                      child: HadithDetailScreen(hadith: widget.hadith!),
-                    ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              border: Border.all(color: palette.cardBorder, width: 1.1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AssetHelper.assetOrFallback(
+                  assetPath: 'assets/images/leaf_accent.png',
+                  width: 14,
+                  height: 14,
+                  fallback: Icon(
+                    Icons.eco_rounded,
+                    size: 14,
+                    color: palette.goldText,
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(width: 6),
+                Text(
+                  widget.insight.category,
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 12.5,
+                    height: AppLeading.chrome,
+                    fontWeight: FontWeight.w700,
+                    color: palette.goldText,
+                  ),
+                ),
               ],
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(width: 20, height: 1, color: palette.cardBorder),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      '🌿 طيّب قلبك • هدي النبوة',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: kSans,
-                        fontSize: 12,
-                        height: AppLeading.chrome,
-                        fontWeight: FontWeight.w700,
-                        color: palette.goldText,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(width: 20, height: 1, color: palette.cardBorder),
-                ],
+            ),
+          ),
+          const _GoldDivider(),
+          Text(
+            '« ${widget.insight.message} »',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 20,
+              height: AppLeading.scripture,
+              fontWeight: FontWeight.w800,
+              color: palette.bodyText,
+            ),
+          ),
+          const _GoldDivider(),
+          const SizedBox(height: 2),
+          if (widget.hadith != null) ...[
+            _HadithLinkPill(
+              hadith: widget.hadith!,
+              onTap: () => Navigator.push(
+                context,
+                SmoothPageRoute(
+                  child: HadithDetailScreen(hadith: widget.hadith!),
+                ),
               ),
+            ),
+            const SizedBox(height: 18),
+          ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(width: 20, height: 1, color: palette.cardBorder),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  '🌿 طيّب قلبك • هدي النبوة',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 12,
+                    height: AppLeading.chrome,
+                    fontWeight: FontWeight.w700,
+                    color: palette.goldText,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(width: 20, height: 1, color: palette.cardBorder),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-        _MessageToolbar(
-          isBookmarked: _isBookmarked,
-          likes: _repo.insightLikeCount(widget.insight),
-          isLiked: _repo.isInsightLiked(widget.insight),
-          onBookmark: _toggleBookmark,
-          onShare: _showSharePreview,
-          onCopy: _copyMessageText,
-          onLike: () => setState(
-            () => _repo.toggleInsightLike(widget.insight),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
