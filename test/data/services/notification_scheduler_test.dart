@@ -249,8 +249,12 @@ void main() {
     });
 
     test(
-        'reports failure instead of throwing when the data source errors '
-        '(no more silent "nothing got scheduled")', () async {
+        'falls back to the bundled pool instead of failing when the data '
+        'source errors and nothing is cached yet (a first-ever launch with '
+        'no connectivity at all) — reminders are meant to feel fully '
+        'on-device, so this schedules something generic rather than '
+        'reporting "check your internet" for a feature that was never '
+        'supposed to depend on the network', () async {
       final scheduler = NotificationScheduler.test(
         plugin: plugin,
         dataSource: _FakeDataSource(
@@ -260,14 +264,14 @@ void main() {
 
       final result = await scheduler.reschedule(
         morningEnabled: true,
-        morningTime: const TimeOfDay(hour: 8, minute: 0),
+        morningTime: const TimeOfDay(hour: 23, minute: 59),
         eveningEnabled: false,
         eveningTime: const TimeOfDay(hour: 20, minute: 0),
       );
 
-      expect(result.succeeded, isFalse);
-      expect(result.error, isNotNull);
-      expect(result.scheduledCount, 0);
+      expect(result.succeeded, isTrue);
+      expect(result.error, isNull);
+      expect(result.scheduledCount, greaterThan(0));
     });
 
     test(

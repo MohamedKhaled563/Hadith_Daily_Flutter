@@ -82,6 +82,30 @@ class NotificationScheduler {
   static const _randomSeedKey = 'notificationScheduler.randomSeed';
   static const _cachedPoolKey = 'notificationScheduler.cachedPool';
 
+  /// Used only when the live Firestore fetch fails *and* there's no cached
+  /// pool yet — a first-ever launch with no connectivity at all, which the
+  /// SharedPreferences cache alone can't help with. Reminders are meant to
+  /// feel fully on-device (see the class doc), so scheduling something
+  /// generic beats reporting "check your internet" for a feature the reader
+  /// never associated with the network in the first place.
+  static const _bundledFallbackPool = <PoolMessage>[
+    PoolMessage(
+      id: 'bundled-1',
+      text: 'خذ لحظة اليوم لتتذكر نعم الله عليك، فالشكر يزيد القلب طمأنينة.',
+      order: 0,
+    ),
+    PoolMessage(
+      id: 'bundled-2',
+      text: 'ابتسامة، كلمة طيبة، أو دعوة صادقة — كلها صدقات في متناول يدك اليوم.',
+      order: 1,
+    ),
+    PoolMessage(
+      id: 'bundled-3',
+      text: 'إن مع العسر يسراً — قف قليلاً وتنفّس، فالفرج قريب بإذن الله.',
+      order: 2,
+    ),
+  ];
+
   final FlutterLocalNotificationsPlugin _plugin;
   final NotificationDataSource _dataSource;
   Future<void>? _initFuture;
@@ -208,6 +232,16 @@ class NotificationScheduler {
           usedExactAlarms: false,
         );
       }
+
+      // Reminders default to enabled, so the very first reschedule() call
+      // (HomeScreen's initState, on the reader's first-ever app launch)
+      // needs at least one reminder on — and that call never went through
+      // requestPermission() at all, since only the settings-drawer toggle
+      // used to call it. Without POST_NOTIFICATIONS actually granted, every
+      // notification scheduled below is silently never shown by the OS, no
+      // matter how successful this method itself reports. Requesting here
+      // covers every caller instead of relying on each one to remember to.
+      await requestPermission();
 
       final pool = await _loadPool();
       if (pool.isEmpty) {
@@ -341,7 +375,7 @@ class NotificationScheduler {
       return pool;
     } catch (_) {
       final cached = prefs.getString(_cachedPoolKey);
-      if (cached == null) rethrow;
+      if (cached == null) return _bundledFallbackPool;
       final decoded = jsonDecode(cached) as List;
       return decoded
           .map((e) => PoolMessage(
