@@ -50,6 +50,21 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
     });
     try {
       await CommunityService().toggleLike(widget.post.id);
+    } catch (_) {
+      // The optimistic count above never gets corrected otherwise — there's
+      // no live stream driving it on this screen (see the class doc) — so
+      // a failed toggle would otherwise silently leave the displayed count
+      // wrong with no indication anything went awry.
+      if (mounted) {
+        setState(() {
+          _likeCount += currentlyLiked ? 1 : -1;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت'),
+          ),
+        );
+      }
     } finally {
       _isToggling = false;
     }

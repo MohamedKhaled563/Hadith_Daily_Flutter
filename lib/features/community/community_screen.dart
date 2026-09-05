@@ -143,7 +143,23 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   return _CommunityPostCard(
                     post: post,
                     rank: index + 1,
-                    onLikeToggle: () => CommunityService().toggleLike(post.id),
+                    onLikeToggle: () async {
+                      try {
+                        await CommunityService().toggleLike(post.id);
+                      } catch (_) {
+                        // Otherwise a failed toggle is a silent no-op: the
+                        // tap visibly does nothing and there's no hint why.
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت',
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
                     onTap: () => Navigator.push(
                       context,
                       SmoothPageRoute(child: CommunityPostScreen(post: post)),

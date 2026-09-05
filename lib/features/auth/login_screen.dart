@@ -468,6 +468,16 @@ class _LoginScreenState extends State<LoginScreen>
                                   sending = false;
                                   error = authErrorMessage(e);
                                 });
+                              } catch (_) {
+                                // Otherwise a network-level hiccup here
+                                // leaves `sending` stuck true forever, with
+                                // the sheet showing a spinner with no way
+                                // forward but dismissing it.
+                                setSheetState(() {
+                                  sending = false;
+                                  error =
+                                      'تعذّر الإرسال، تحقق من اتصالك بالإنترنت وحاول مرة أخرى';
+                                });
                               }
                             },
                 ),

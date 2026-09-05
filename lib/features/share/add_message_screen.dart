@@ -120,7 +120,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('تعذّر إرسال رسالتك، حاول مرة أخرى 🌿'),
+          content: Text('تعذّر إرسال رسالتك، تحقق من اتصالك بالإنترنت وحاول مرة أخرى 🌿'),
         ),
       );
       return;

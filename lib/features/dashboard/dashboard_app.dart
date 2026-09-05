@@ -228,6 +228,12 @@ class _SignInScreenState extends State<_SignInScreen> {
                             sending = false;
                             dialogError = e.message ?? 'تعذّر إرسال الرابط';
                           });
+                        } catch (_) {
+                          setDialogState(() {
+                            sending = false;
+                            dialogError =
+                                'تعذّر الإرسال، تحقق من اتصالك بالإنترنت';
+                          });
                         }
                       },
                 child: sending
