@@ -53,6 +53,12 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
   }
 
   Future<void> _submit() async {
+    // The button's onPressed only goes to a no-op once _submitting flips
+    // true and this widget rebuilds — a frame later. Two taps dispatched
+    // before that rebuild both still reach the old closure and would both
+    // pass validation and post, creating a duplicate submission.
+    if (_submitting) return;
+
     final messageText = _messageController.text.trim();
 
     var hasError = false;

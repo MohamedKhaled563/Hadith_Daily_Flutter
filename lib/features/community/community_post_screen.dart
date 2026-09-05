@@ -35,11 +35,24 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
   // always the real answer, even across devices.
   late int _likeCount = widget.post.likes;
 
-  void _toggleLike(bool currentlyLiked) {
+  // Guards against a rapid double-tap: without it, two taps fired before
+  // the likeStatus stream's first update lands both read the same stale
+  // `currentlyLiked`, so _likeCount shifts twice in the same direction
+  // while the two Firestore toggles (like then unlike) actually cancel out
+  // — leaving the local count permanently off from the real value.
+  bool _isToggling = false;
+
+  Future<void> _toggleLike(bool currentlyLiked) async {
+    if (_isToggling) return;
+    _isToggling = true;
     setState(() {
       _likeCount += currentlyLiked ? -1 : 1;
     });
-    CommunityService().toggleLike(widget.post.id);
+    try {
+      await CommunityService().toggleLike(widget.post.id);
+    } finally {
+      _isToggling = false;
+    }
   }
 
   @override

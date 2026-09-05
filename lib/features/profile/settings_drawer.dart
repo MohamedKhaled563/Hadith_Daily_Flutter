@@ -254,17 +254,34 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
     _syncNotifications();
   }
 
+  // Per-slot generation counters: guard against a rapid flip-flop (toggle
+  // on, then off again before requestPermission()'s async round trip
+  // resolves) applying its state update out of order. Without this, the
+  // slower first call's continuation can land after the faster second
+  // call's, clobbering the user's actual latest choice with a stale one.
+  int _morningToggleGen = 0;
+  int _eveningToggleGen = 0;
+
   /// Re-lays the on-device notification schedule from the current reminder
   /// settings — cheap to call after every toggle/time change since
   /// NotificationScheduler.reschedule() always starts by cancelling
   /// whatever it previously queued.
   Future<void> _toggleReminder(bool isMorning, bool value) async {
+    final myGen = isMorning ? ++_morningToggleGen : ++_eveningToggleGen;
+
     if (value) {
       final granted = await NotificationScheduler.instance.requestPermission();
       if (!granted && mounted) {
         _toast('يحتاج التذكير إلى إذن الإشعارات من إعدادات الجهاز');
       }
     }
+
+    if (!mounted) return;
+    // A newer toggle of this same slot has since started — let it own the
+    // final state instead of this now-stale call clobbering it.
+    final currentGen = isMorning ? _morningToggleGen : _eveningToggleGen;
+    if (currentGen != myGen) return;
+
     isMorning
         ? _state.toggleMorningReminder(value)
         : _state.toggleEveningReminder(value);
