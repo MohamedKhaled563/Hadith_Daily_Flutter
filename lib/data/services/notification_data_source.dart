@@ -13,10 +13,17 @@ abstract class NotificationDataSource {
 }
 
 class FirestoreNotificationDataSource implements NotificationDataSource {
-  FirestoreNotificationDataSource([FirebaseFirestore? firestore])
-      : _db = firestore ?? FirebaseFirestore.instance;
+  FirestoreNotificationDataSource([this._firestoreOverride]);
 
-  final FirebaseFirestore _db;
+  final FirebaseFirestore? _firestoreOverride;
+
+  // Resolved lazily rather than at construction: NotificationScheduler
+  // builds this data source as soon as its singleton is first touched
+  // (e.g. SplashScreen checking a cold-start notification tap), which can
+  // happen before Firebase.initializeApp() has run — FirebaseFirestore.
+  // instance would throw synchronously right there instead of only when a
+  // message actually needs loading.
+  FirebaseFirestore get _db => _firestoreOverride ?? FirebaseFirestore.instance;
 
   @override
   Future<List<Map<String, dynamic>>> loadActiveMessages() async {

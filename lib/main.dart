@@ -3,9 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_state_controller.dart';
+import 'core/widgets/smooth_page_route.dart';
+import 'data/models/insight.dart';
 import 'data/repositories/hadith_repository.dart';
+import 'data/services/notification_scheduler.dart';
+import 'features/messages/daily_message_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'firebase_options.dart';
+
+/// Lets [NotificationScheduler.tappedMessage] open the tapped reminder's
+/// message regardless of what screen is currently showing — a cold-start
+/// tap instead goes through SplashScreen (see its own launch-payload check),
+/// since there's no live Navigator yet for that case.
+final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +26,33 @@ void main() async {
     HadithRepository().load(),
     AppStateController().init(),
   ]);
+  NotificationScheduler.tappedMessage.addListener(_openTappedMessage);
   runApp(const HadithApp());
+}
+
+void _openTappedMessage() {
+  final payload = NotificationScheduler.tappedMessage.value;
+  if (payload == null) return;
+
+  final repo = HadithRepository();
+  Insight? insight;
+  try {
+    insight = repo.insights.firstWhere((i) => i.message == payload);
+  } catch (_) {
+    insight = null;
+  }
+  if (insight == null) return;
+
+  final navState = navigatorKey.currentState;
+  if (navState == null) return;
+  navState.push(
+    SeamlessMessagePageRoute(
+      child: DailyMessageScreen(
+        insight: insight,
+        hadith: repo.getByNumber(insight.hadithNumber),
+      ),
+    ),
+  );
 }
 
 class HadithApp extends StatelessWidget {
@@ -30,6 +66,7 @@ class HadithApp extends StatelessWidget {
       animation: state,
       builder: (context, child) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
           title: 'طيّب قلبك',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,

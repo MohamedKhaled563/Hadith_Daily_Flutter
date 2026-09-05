@@ -6,8 +6,12 @@ import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/theme/app_state_controller.dart';
+import '../../data/models/insight.dart';
+import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/notification_scheduler.dart';
 import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
+import '../messages/daily_message_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -28,6 +32,13 @@ class _SplashScreenState extends State<SplashScreen>
   Timer? _quoteTimer;
   Timer? _autoAdvanceTimer;
 
+  // Started immediately so it's very likely already resolved by the time
+  // _navigateToHome runs (2.8s later, or sooner on a tap-to-skip) — a cold
+  // start from tapping a reminder notification never fires
+  // NotificationScheduler.tappedMessage (that's only for a live tap while
+  // the app is already running), so this is checked separately, once.
+  String? _pendingNotificationPayload;
+
   final List<String> _inspirationalQuotes = [
     'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ 🌿',
     'طِبْ نفساً واستبشر بنور النبوة ✨',
@@ -38,6 +49,13 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+
+    NotificationScheduler.instance.consumeLaunchPayload().then((payload) {
+      _pendingNotificationPayload = payload;
+    }).catchError((_) {
+      // Best-effort: a platform-channel hiccup here should never block
+      // showing the splash screen, just skip the notification deep link.
+    });
 
     // Rhythmic Heartbeat pulse (Lub-Dub organic curve)
     _heartPulseController = AnimationController(
@@ -120,6 +138,32 @@ class _SplashScreenState extends State<SplashScreen>
       context,
       SmoothPageRoute(child: destination),
     );
+
+    // Cold-started by tapping a reminder: land on Home first (above) so the
+    // back button behaves normally, then stack the tapped message on top of
+    // it — same two calls as the live-tap listener in main.dart, just
+    // sequenced instead of racing a Navigator that doesn't exist yet.
+    if (state.isLoggedIn && _pendingNotificationPayload != null) {
+      final repo = HadithRepository();
+      Insight? insight;
+      try {
+        insight = repo.insights
+            .firstWhere((i) => i.message == _pendingNotificationPayload);
+      } catch (_) {
+        insight = null;
+      }
+      if (insight != null) {
+        Navigator.push(
+          context,
+          SeamlessMessagePageRoute(
+            child: DailyMessageScreen(
+              insight: insight,
+              hadith: repo.getByNumber(insight.hadithNumber),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override

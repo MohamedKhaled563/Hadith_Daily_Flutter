@@ -83,6 +83,18 @@ class NotificationScheduler {
   final NotificationDataSource _dataSource;
   Future<void>? _initFuture;
 
+  /// The tapped notification's message text (its `payload`, set from
+  /// [_scheduleOne]'s `body`) — set whenever the reader taps a reminder
+  /// while the app is running (foreground or backgrounded). A cold start
+  /// from a terminated state instead goes through
+  /// [consumeLaunchPayload], which SplashScreen checks once at launch.
+  static final ValueNotifier<String?> tappedMessage =
+      ValueNotifier<String?>(null);
+
+  static void _onNotificationResponse(NotificationResponse response) {
+    tappedMessage.value = response.payload;
+  }
+
   // requestPermission() and reschedule() can both fire in close succession
   // (e.g. toggling a reminder switch right after app start) — without
   // memoising the in-flight Future, each call would race to invoke
@@ -110,7 +122,21 @@ class NotificationScheduler {
     const iosInit = DarwinInitializationSettings();
     await _plugin.initialize(
       const InitializationSettings(android: androidInit, iOS: iosInit),
+      onDidReceiveNotificationResponse: _onNotificationResponse,
     );
+  }
+
+  /// Whether the app was launched by tapping a reminder while fully
+  /// terminated — returns that notification's payload (its message text) if
+  /// so, checked once at startup since a cold start never fires
+  /// [_onNotificationResponse]. Safe to call before [_ensureInitialized]:
+  /// this reads native launch state directly, no plugin init required.
+  Future<String?> consumeLaunchPayload() async {
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    if (details?.didNotificationLaunchApp ?? false) {
+      return details?.notificationResponse?.payload;
+    }
+    return null;
   }
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>
@@ -260,6 +286,10 @@ class NotificationScheduler {
       androidScheduleMode: scheduleMode,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
+      // The message text itself — tapping the reminder resolves this back
+      // to its Insight (see SplashScreen/main.dart) so the reader lands on
+      // that exact daily message instead of just the home screen.
+      payload: body,
     );
     return true;
   }

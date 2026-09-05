@@ -58,7 +58,11 @@ void main() {
   /// call needs, then lets each test override the specific behaviour (exact
   /// alarm availability, permission grants, ...) it cares about.
   void stubPluginDefaults({bool canScheduleExact = true}) {
-    when(() => plugin.initialize(any())).thenAnswer((_) async => true);
+    when(() => plugin.initialize(
+          any(),
+          onDidReceiveNotificationResponse:
+              any(named: 'onDidReceiveNotificationResponse'),
+        )).thenAnswer((_) async => true);
     when(() => plugin.cancelAll()).thenAnswer((_) async {});
     when(() => plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>()).thenReturn(androidPlugin);
@@ -71,6 +75,7 @@ void main() {
           androidScheduleMode: any(named: 'androidScheduleMode'),
           uiLocalNotificationDateInterpretation:
               any(named: 'uiLocalNotificationDateInterpretation'),
+          payload: any(named: 'payload'),
         )).thenAnswer((_) async {});
     when(() => plugin.pendingNotificationRequests())
         .thenAnswer((_) async => <PendingNotificationRequest>[]);
@@ -340,6 +345,7 @@ void main() {
             androidScheduleMode: captureAny(named: 'androidScheduleMode'),
             uiLocalNotificationDateInterpretation:
                 any(named: 'uiLocalNotificationDateInterpretation'),
+            payload: any(named: 'payload'),
           )).captured;
       expect(captured, isNotEmpty);
       expect(captured, everyElement(AndroidScheduleMode.exactAllowWhileIdle));
@@ -371,6 +377,7 @@ void main() {
             androidScheduleMode: captureAny(named: 'androidScheduleMode'),
             uiLocalNotificationDateInterpretation:
                 any(named: 'uiLocalNotificationDateInterpretation'),
+            payload: any(named: 'payload'),
           )).captured;
       expect(
           captured, everyElement(AndroidScheduleMode.inexactAllowWhileIdle));
