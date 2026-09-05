@@ -36,7 +36,10 @@ rules_version = '2';
 // since someone has to be able to promote before anyone can use the UI.
 // Phase 12 adds notificationMessages/ — a small moderator/admin-curated
 // pool for scheduled local notifications (NotificationScheduler picks
-// per-device, no server push involved).
+// per-device, no server push involved). Phase 14 lets a moderator/admin
+// create a communityMessages doc directly (any status) from the
+// dashboard's Excel bulk-edit tab, alongside the existing author-submits-
+// pending path.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -88,6 +91,29 @@ service cloud.firestore {
                   && request.resource.data.text.size() > 0
                   && request.resource.data.text.size() <= 300;
       allow delete: if isModerator();
+    }
+
+    // Phase 15: a moderator's Excel bulk-edit (bulk_add_page.dart) that
+    // touches more than kBulkChangeThreshold items gets staged here instead
+    // of writing dailyMessages/communityMessages/notificationMessages
+    // directly — an admin reviews it from the dashboard's "طلبات المراجعة"
+    // tab (bulk_change_requests_page.dart) and approving replays the staged
+    // writes through the ordinary rules above. This collection only gates
+    // *when* those writes happen; it never bypasses their own rules.
+    // A moderator can create their own request and read it back to see its
+    // status; only an admin can decide it (approve/reject) or delete it.
+    match /bulkChangeRequests/{requestId} {
+      allow read: if isAdmin()
+                  || (isModerator()
+                      && resource.data.submittedByUid == request.auth.uid);
+      allow create: if isModerator()
+                  && request.resource.data.submittedByUid == request.auth.uid
+                  && request.resource.data.status == 'pending';
+      allow update: if isAdmin()
+                  && request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['status', 'reviewedByUid', 'reviewedAt', 'reviewNote'])
+                  && request.resource.data.status in ['approved', 'rejected'];
+      allow delete: if isAdmin();
     }
 
     // Public read; a moderator/admin (the dashboard's mode toggle) is the
@@ -158,27 +184,44 @@ service cloud.firestore {
                   || request.auth.uid == resource.data.authorUid
                   || isModerator();
 
-      // Must be signed in (this app has no anonymous path at all), must
-      // claim authorship truthfully, and can only ever be created pending —
-      // a client cannot create a message that's already approved. Phase 10
-      // adds the size/range checks: nothing here stops one account from
-      // spamming the pending queue with many submissions (that needs a
-      // counting read rules can't cheaply do, or a Cloud Function this
-      // project deliberately doesn't have), but it does stop any single
-      // submission from being pathologically large or aimed at a hadith
-      // number that doesn't exist.
-      allow create: if request.auth != null
-                  && request.resource.data.authorUid == request.auth.uid
-                  && request.resource.data.status == 'pending'
-                  && request.resource.data.likeCount == 0
-                  && request.resource.data.message is string
-                  && request.resource.data.message.size() > 0
-                  && request.resource.data.message.size() <= 2000
-                  && request.resource.data.authorName is string
-                  && request.resource.data.authorName.size() <= 100
-                  && request.resource.data.hadithNumber is int
-                  && request.resource.data.hadithNumber >= 1
-                  && request.resource.data.hadithNumber <= 42;
+      // Two unrelated things, so an OR:
+      //   1. an ordinary signed-in author, submitting for review — must be
+      //      signed in (this app has no anonymous path at all), must claim
+      //      authorship truthfully, and can only ever be created pending —
+      //      a client cannot create a message that's already approved.
+      //      Phase 10 adds the size/range checks: nothing here stops one
+      //      account from spamming the pending queue with many submissions
+      //      (that needs a counting read rules can't cheaply do, or a Cloud
+      //      Function this project deliberately doesn't have), but it does
+      //      stop any single submission from being pathologically large or
+      //      aimed at a hadith number that doesn't exist.
+      //   2. a moderator/admin, adding a message directly from the
+      //      dashboard's Excel bulk-edit tab — trusted the same way their
+      //      update access already is below, so no status/authorUid
+      //      constraint; still worth keeping the size/range validation so a
+      //      bad row in the sheet can't write garbage.
+      allow create: if (request.auth != null
+                        && request.resource.data.authorUid == request.auth.uid
+                        && request.resource.data.status == 'pending'
+                        && request.resource.data.likeCount == 0
+                        && request.resource.data.message is string
+                        && request.resource.data.message.size() > 0
+                        && request.resource.data.message.size() <= 2000
+                        && request.resource.data.authorName is string
+                        && request.resource.data.authorName.size() <= 100
+                        && request.resource.data.hadithNumber is int
+                        && request.resource.data.hadithNumber >= 1
+                        && request.resource.data.hadithNumber <= 42)
+                  || (isModerator()
+                      && request.resource.data.message is string
+                      && request.resource.data.message.size() > 0
+                      && request.resource.data.message.size() <= 2000
+                      && request.resource.data.authorName is string
+                      && request.resource.data.authorName.size() <= 100
+                      && request.resource.data.hadithNumber is int
+                      && request.resource.data.hadithNumber >= 1
+                      && request.resource.data.hadithNumber <= 42
+                      && request.resource.data.status in ['pending', 'approved', 'rejected']);
 
       // Four unrelated things are allowed to update a message, so this is
       // an OR of four independent conditions:

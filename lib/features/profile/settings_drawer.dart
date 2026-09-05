@@ -271,13 +271,17 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
     _syncNotifications();
   }
 
-  void _syncNotifications() {
-    NotificationScheduler.instance.reschedule(
+  Future<void> _syncNotifications() async {
+    final enabled = _state.morningReminderEnabled || _state.eveningReminderEnabled;
+    final result = await NotificationScheduler.instance.reschedule(
       morningEnabled: _state.morningReminderEnabled,
       morningTime: _state.morningReminderTime,
       eveningEnabled: _state.eveningReminderEnabled,
       eveningTime: _state.eveningReminderTime,
     );
+    if (enabled && !result.succeeded && mounted) {
+      _toast('تعذّر جدولة التذكيرات، تحقق من اتصالك بالإنترنت وحاول مجدداً');
+    }
   }
 
   // ---------------------------------------------------------------- build ----

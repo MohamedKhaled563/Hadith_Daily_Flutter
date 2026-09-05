@@ -122,6 +122,10 @@ def _encode_value(v):
         return {"integerValue": str(v)}
     if isinstance(v, str):
         return {"stringValue": v}
+    if isinstance(v, dict):
+        return {"mapValue": {"fields": _encode_fields(v)}}
+    if isinstance(v, list):
+        return {"arrayValue": {"values": [_encode_value(item) for item in v]}}
     raise TypeError(type(v))
 
 
@@ -390,6 +394,44 @@ def main() -> int:
     )
     check("create while signed out", resp.status_code == 200, False)
 
+    # Phase 14: a moderator/admin creating a communityMessages doc directly
+    # from the dashboard's Excel bulk-edit tab — already-approved, no
+    # authorUid-matches-caller constraint, likeCount doesn't have to be 0.
+    # This is the case the plain-author branch above deliberately blocks.
+    resp = create_doc(
+        "communityMessages",
+        {
+            "authorUid": uid_a,
+            "authorName": "من الإكسل",
+            "hadithNumber": 3,
+            "message": "أُضيفت مباشرة من لوحة الإشراف",
+            "status": "approved",
+            "likeCount": 5,
+        },
+        token_admin,
+    )
+    check("moderator creates a pre-approved community message via Excel", resp.status_code == 200, True)
+    excel_created_name = resp.json().get("name") if resp.status_code == 200 else None
+    if excel_created_name:
+        admin_delete("communityMessages", excel_created_name.rsplit("/", 1)[-1])
+
+    # A plain (non-moderator) user attempting the same already-approved,
+    # someone-else's-uid shape a moderator just used above — must still be
+    # denied; only isModerator() unlocks that branch.
+    resp = create_doc(
+        "communityMessages",
+        {
+            "authorUid": uid_b,
+            "authorName": "محاولة غير مصرح بها",
+            "hadithNumber": 3,
+            "message": "محاولة انتحال صلاحية المشرف",
+            "status": "approved",
+            "likeCount": 5,
+        },
+        token_a,
+    )
+    check("non-moderator tries the moderator-only pre-approved create shape", resp.status_code == 200, False)
+
     if created_name:
         doc_id = created_name.rsplit("/", 1)[-1]
 
@@ -429,6 +471,134 @@ def main() -> int:
             f"{FIRESTORE_URL}/communityMessages/{doc_id}", headers=rest_headers(token_a)
         )
         check("author deletes own pending submission", resp.status_code == 200, True)
+
+    print("\n== bulkChangeRequests (phase 15) ==")
+
+    # Both test accounts act as moderators for this section — a request
+    # submitted by one moderator must stay invisible to another, and only
+    # an admin may decide (approve/reject) or delete one.
+    admin_update("users", uid_a, {"role": "moderator"})
+    admin_update("users", uid_b, {"role": "moderator"})
+
+    sample_sheets = {
+        "dailyMessages": {
+            "collection": "dailyMessages",
+            "label": "رسائل اليوم",
+            "creates": [{"hadithNumber": 1, "arabic": "نص", "order": 101}],
+            "updates": [],
+            "deletes": [],
+            "invalidRowCount": 0,
+            "addsServerTimestamp": False,
+        },
+    }
+
+    # A moderator submitting their own pending request — allowed.
+    resp = create_doc(
+        "bulkChangeRequests",
+        {
+            "status": "pending",
+            "submittedByUid": uid_a,
+            "submittedByEmail": "a@test",
+            "totalChanges": 11,
+            "sheets": sample_sheets,
+        },
+        token_a,
+    )
+    check("moderator submits own bulk change request", resp.status_code == 200, True)
+    request_name = resp.json().get("name") if resp.status_code == 200 else None
+
+    # Submitting on someone else's behalf — must be denied.
+    resp = create_doc(
+        "bulkChangeRequests",
+        {
+            "status": "pending",
+            "submittedByUid": uid_b,
+            "submittedByEmail": "b@test",
+            "totalChanges": 11,
+            "sheets": sample_sheets,
+        },
+        token_a,
+    )
+    check("submit a bulk change request claiming another uid", resp.status_code == 200, False)
+
+    # Submitting already-approved (skipping review) — must be denied.
+    resp = create_doc(
+        "bulkChangeRequests",
+        {
+            "status": "approved",
+            "submittedByUid": uid_a,
+            "submittedByEmail": "a@test",
+            "totalChanges": 11,
+            "sheets": sample_sheets,
+        },
+        token_a,
+    )
+    check("submit a bulk change request pre-approved", resp.status_code == 200, False)
+
+    if request_name:
+        request_id = request_name.rsplit("/", 1)[-1]
+
+        # The submitting moderator reads their own request — allowed.
+        resp = requests.get(
+            f"{FIRESTORE_URL}/bulkChangeRequests/{request_id}", headers=rest_headers(token_a)
+        )
+        check("submitting moderator reads their own request", resp.status_code == 200, True)
+
+        # A different moderator reads it — must be denied (not theirs, not admin).
+        resp = requests.get(
+            f"{FIRESTORE_URL}/bulkChangeRequests/{request_id}", headers=rest_headers(token_b)
+        )
+        check("another moderator reads someone else's request", resp.status_code == 200, False)
+
+        # An admin reads it — allowed.
+        resp = requests.get(
+            f"{FIRESTORE_URL}/bulkChangeRequests/{request_id}", headers=rest_headers(token_admin)
+        )
+        check("admin reads a pending request", resp.status_code == 200, True)
+
+        # The submitting moderator tries to approve their own request — must
+        # be denied; only an admin may decide it.
+        resp = requests.patch(
+            f"{FIRESTORE_URL}/bulkChangeRequests/{request_id}"
+            "?updateMask.fieldPaths=status&updateMask.fieldPaths=reviewedByUid",
+            json={"fields": _encode_fields({"status": "approved", "reviewedByUid": uid_a})},
+            headers=rest_headers(token_a),
+        )
+        check("moderator tries to approve their own request", resp.status_code == 200, False)
+
+        # An admin tries to tamper with the staged payload instead of just
+        # deciding it — must be denied (update is restricted to the review
+        # fields only).
+        resp = requests.patch(
+            f"{FIRESTORE_URL}/bulkChangeRequests/{request_id}?updateMask.fieldPaths=totalChanges",
+            json={"fields": _encode_fields({"totalChanges": 999})},
+            headers=rest_headers(token_admin),
+        )
+        check("admin tries to edit the staged payload instead of the status", resp.status_code == 200, False)
+
+        # An admin approves it properly — allowed.
+        resp = requests.patch(
+            f"{FIRESTORE_URL}/bulkChangeRequests/{request_id}"
+            "?updateMask.fieldPaths=status&updateMask.fieldPaths=reviewedByUid",
+            json={"fields": _encode_fields({"status": "approved", "reviewedByUid": uid_admin})},
+            headers=rest_headers(token_admin),
+        )
+        check("admin approves a pending request", resp.status_code == 200, True)
+
+        # The (non-admin) submitting moderator tries to delete it — denied.
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/bulkChangeRequests/{request_id}", headers=rest_headers(token_a)
+        )
+        check("moderator tries to delete a request", resp.status_code == 200, False)
+
+        # An admin deletes it — allowed (cleanup).
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/bulkChangeRequests/{request_id}", headers=rest_headers(token_admin)
+        )
+        check("admin deletes a request", resp.status_code == 200, True)
+
+    admin_update("users", uid_a, {"role": "user"})
+    admin_update("users", uid_b, {"role": "user"})
 
     for uid in (uid_a, uid_b, uid_admin):
         admin_delete("users", uid)

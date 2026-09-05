@@ -37,15 +37,6 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.userChanges();
   User? get currentUser => _auth.currentUser;
 
-  // Google/other non-password providers arrive already verified by their
-  // provider, so this only ever gates the email/password path.
-  bool get isEmailVerified => _auth.currentUser?.emailVerified ?? true;
-
-  Future<void> reloadCurrentUser() => _auth.currentUser!.reload();
-
-  Future<void> resendVerificationEmail() =>
-      _auth.currentUser!.sendEmailVerification();
-
   /// Normalizes a display name the same way on every check/claim so
   /// "Ahmed", " ahmed ", and "AHMED" all collide on one `usernames/` doc.
   String normalizeDisplayName(String name) =>
@@ -96,7 +87,7 @@ class AuthService {
     // someone else grabbed the same name in the moment between the sign-up
     // screen's own pre-check and here, the rules deny this as an update
     // against an already-existing doc; roll back the account rather than
-    // leave an orphaned, permanently-unverified one behind.
+    // leave an orphaned one behind.
     if (displayName.isNotEmpty) {
       final nameKey = normalizeDisplayName(displayName);
       try {
@@ -120,7 +111,6 @@ class AuthService {
       await credential.user?.reload();
     }
 
-    await credential.user?.sendEmailVerification();
     await _ensureUserDoc(_auth.currentUser ?? credential.user!);
     return credential;
   }

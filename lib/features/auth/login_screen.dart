@@ -14,7 +14,6 @@ import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../home/home_screen.dart';
 import 'auth_error_messages.dart';
-import 'email_verification_screen.dart';
 import 'signup_screen.dart';
 
 /// Sign-in screen: email/password and Google both go through Firebase Auth.
@@ -104,11 +103,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     Navigator.pushReplacement(
       context,
-      SmoothPageRoute(
-        child: AuthService.instance.isEmailVerified
-            ? const HomeScreen()
-            : const EmailVerificationScreen(),
-      ),
+      SmoothPageRoute(child: const HomeScreen()),
     );
   }
 
@@ -172,8 +167,12 @@ class _LoginScreenState extends State<LoginScreen>
                 24 + MediaQuery.viewInsetsOf(context).bottom,
               ),
               child: ConstrainedBox(
-                constraints:
-                    BoxConstraints(minHeight: constraints.maxHeight - 36),
+                constraints: BoxConstraints(
+                  minHeight: (constraints.maxHeight - 36).clamp(
+                    0,
+                    double.infinity,
+                  ),
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

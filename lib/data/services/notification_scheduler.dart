@@ -1,12 +1,31 @@
 import 'dart:math';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+
+import 'notification_data_source.dart';
+
+/// Outcome of a [NotificationScheduler.reschedule] call — lets callers (and
+/// tests) tell "nothing to schedule" apart from "tried and failed", which
+/// the previous fire-and-forget version couldn't distinguish.
+@immutable
+class NotificationScheduleResult {
+  const NotificationScheduleResult({
+    required this.scheduledCount,
+    required this.usedExactAlarms,
+    this.error,
+  });
+
+  final int scheduledCount;
+  final bool usedExactAlarms;
+  final Object? error;
+
+  bool get succeeded => error == null;
+}
 
 /// Schedules the morning/evening reminder notifications from
 /// notificationMessages — entirely on-device, no server push (Spark plan,
@@ -29,16 +48,39 @@ import 'package:timezone/timezone.dart' as tz;
 /// change), which is what keeps the rolling window populated without any
 /// background execution beyond what the OS already does for a scheduled
 /// local notification.
+///
+/// On Android 12+ an *inexact* alarm (the previous, only mode this class
+/// used) is not delivered at its requested time — the OS batches it into a
+/// maintenance window that can be minutes to hours later depending on the
+/// app's standby bucket, which is why a reminder set "one minute from now"
+/// can appear to never fire. [reschedule] now asks for the exact-alarm
+/// permission and uses `exactAllowWhileIdle` whenever it has been granted,
+/// falling back to the inexact mode only when it hasn't.
 class NotificationScheduler {
-  NotificationScheduler._internal();
+  NotificationScheduler._internal({
+    FlutterLocalNotificationsPlugin? plugin,
+    NotificationDataSource? dataSource,
+  })  : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
+        _dataSource = dataSource ?? FirestoreNotificationDataSource();
+
   static final NotificationScheduler instance = NotificationScheduler._internal();
   factory NotificationScheduler() => instance;
+
+  /// Test-only seam: build an isolated instance with fakes instead of the
+  /// real plugin/Firestore, so unit tests never touch a platform channel or
+  /// a live project.
+  @visibleForTesting
+  factory NotificationScheduler.test({
+    required FlutterLocalNotificationsPlugin plugin,
+    required NotificationDataSource dataSource,
+  }) =>
+      NotificationScheduler._internal(plugin: plugin, dataSource: dataSource);
 
   static const _daysAhead = 14;
   static const _randomSeedKey = 'notificationScheduler.randomSeed';
 
-  final _plugin = FlutterLocalNotificationsPlugin();
-  final _db = FirebaseFirestore.instance;
+  final FlutterLocalNotificationsPlugin _plugin;
+  final NotificationDataSource _dataSource;
   bool _tzReady = false;
 
   Future<void> _ensureInitialized() async {
@@ -63,14 +105,23 @@ class NotificationScheduler {
     _tzReady = true;
   }
 
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
   /// Android 13+/iOS need an explicit runtime grant before any notification
-  /// can show — call this once, e.g. the first time a reminder is enabled.
+  /// can show, and Android 12+ separately gates *exact* alarms behind their
+  /// own grant — call this once, e.g. the first time a reminder is enabled.
+  /// Returns whether the notification permission itself was granted; exact
+  /// alarms are best-effort (checked again in [reschedule]) since some
+  /// OEMs/OS versions don't support requesting them at all.
   Future<bool> requestPermission() async {
     await _ensureInitialized();
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _android;
     if (android != null) {
-      return await android.requestNotificationsPermission() ?? false;
+      final granted = await android.requestNotificationsPermission() ?? false;
+      await android.requestExactAlarmsPermission();
+      return granted;
     }
     final ios = _plugin.resolvePlatformSpecificImplementation<
         IOSFlutterLocalNotificationsPlugin>();
@@ -85,69 +136,101 @@ class NotificationScheduler {
   /// fresh `_daysAhead`-day window from today, honouring which of the two
   /// slots are enabled and at what time. Safe to call as often as needed —
   /// e.g. on every app start and every time a reminder setting changes.
-  Future<void> reschedule({
+  ///
+  /// Never throws: a Firestore/plugin failure is reported through the
+  /// returned [NotificationScheduleResult] instead, so a transient offline
+  /// error can't silently leave the user with zero scheduled reminders and
+  /// no indication why.
+  Future<NotificationScheduleResult> reschedule({
     required bool morningEnabled,
     required TimeOfDay morningTime,
     required bool eveningEnabled,
     required TimeOfDay eveningTime,
   }) async {
-    await _ensureInitialized();
-    await _plugin.cancelAll();
+    try {
+      await _ensureInitialized();
+      await _plugin.cancelAll();
 
-    if (!morningEnabled && !eveningEnabled) return;
-
-    final pool = await _loadPool();
-    if (pool.isEmpty) return;
-
-    final mode = await _mode();
-    final seed = await _deviceSeed();
-    final now = tz.TZDateTime.now(tz.local);
-
-    for (var offset = 0; offset < _daysAhead; offset++) {
-      final day = tz.TZDateTime(tz.local, now.year, now.month, now.day)
-          .add(Duration(days: offset));
-      final message = _pickForDay(pool, day, mode, seed);
-
-      if (morningEnabled) {
-        await _scheduleOne(
-          id: offset * 2,
-          day: day,
-          time: morningTime,
-          title: 'رسالة الصباح 🌅',
-          body: message,
-          now: now,
+      if (!morningEnabled && !eveningEnabled) {
+        return const NotificationScheduleResult(
+          scheduledCount: 0,
+          usedExactAlarms: false,
         );
       }
-      if (eveningEnabled) {
-        await _scheduleOne(
-          id: offset * 2 + 1,
-          day: day,
-          time: eveningTime,
-          title: 'تأمل المساء 🌙',
-          body: message,
-          now: now,
+
+      final pool = await _loadPool();
+      if (pool.isEmpty) {
+        return const NotificationScheduleResult(
+          scheduledCount: 0,
+          usedExactAlarms: false,
         );
       }
+
+      final mode = await _dataSource.loadMode();
+      final seed = await _deviceSeed();
+      final now = tz.TZDateTime.now(tz.local);
+      final useExact = (await _android?.canScheduleExactNotifications()) ??
+          false;
+      final scheduleMode = useExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
+
+      var scheduledCount = 0;
+      for (var offset = 0; offset < _daysAhead; offset++) {
+        final day = tz.TZDateTime(tz.local, now.year, now.month, now.day)
+            .add(Duration(days: offset));
+        final message = pickMessageForDay(pool, day, mode, seed);
+
+        if (morningEnabled) {
+          final scheduled = await _scheduleOne(
+            id: offset * 2,
+            day: day,
+            time: morningTime,
+            title: 'رسالة الصباح 🌅',
+            body: message,
+            now: now,
+            scheduleMode: scheduleMode,
+          );
+          if (scheduled) scheduledCount++;
+        }
+        if (eveningEnabled) {
+          final scheduled = await _scheduleOne(
+            id: offset * 2 + 1,
+            day: day,
+            time: eveningTime,
+            title: 'تأمل المساء 🌙',
+            body: message,
+            now: now,
+            scheduleMode: scheduleMode,
+          );
+          if (scheduled) scheduledCount++;
+        }
+      }
+
+      return NotificationScheduleResult(
+        scheduledCount: scheduledCount,
+        usedExactAlarms: useExact,
+      );
+    } catch (error) {
+      return NotificationScheduleResult(
+        scheduledCount: 0,
+        usedExactAlarms: false,
+        error: error,
+      );
     }
   }
 
-  Future<void> _scheduleOne({
+  Future<bool> _scheduleOne({
     required int id,
     required tz.TZDateTime day,
     required TimeOfDay time,
     required String title,
     required String body,
     required tz.TZDateTime now,
+    required AndroidScheduleMode scheduleMode,
   }) async {
-    final scheduled = tz.TZDateTime(
-      tz.local,
-      day.year,
-      day.month,
-      day.day,
-      time.hour,
-      time.minute,
-    );
-    if (scheduled.isBefore(now)) return;
+    final scheduled = resolveScheduledTime(day, time);
+    if (isInPast(scheduled, now)) return false;
 
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -166,35 +249,16 @@ class NotificationScheduler {
       body,
       scheduled,
       details,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: scheduleMode,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
+    return true;
   }
 
-  Future<List<_PoolMessage>> _loadPool() async {
-    final snapshot = await _db
-        .collection('notificationMessages')
-        .where('active', isEqualTo: true)
-        .get();
-    final pool = snapshot.docs
-        .map((doc) => _PoolMessage(
-              text: (doc.data()['text'] as String?)?.trim() ?? '',
-              order: (doc.data()['order'] as num?)?.toInt() ?? 0,
-            ))
-        .where((m) => m.text.isNotEmpty)
-        .toList()
-      ..sort((a, b) => a.order.compareTo(b.order));
-    return pool;
-  }
-
-  Future<String> _mode() async {
-    try {
-      final doc = await _db.collection('settings').doc('notificationMode').get();
-      return doc.data()?['mode'] == 'manual' ? 'manual' : 'random';
-    } catch (_) {
-      return 'random';
-    }
+  Future<List<PoolMessage>> _loadPool() async {
+    final docs = await _dataSource.loadActiveMessages();
+    return buildPool(docs);
   }
 
   /// How many notifications are currently queued — used to confirm
@@ -214,24 +278,63 @@ class NotificationScheduler {
     }
     return seed;
   }
-
-  String _pickForDay(
-    List<_PoolMessage> pool,
-    tz.TZDateTime day,
-    String mode,
-    int deviceSeed,
-  ) {
-    final daysSinceEpoch = day.millisecondsSinceEpoch ~/ (1000 * 60 * 60 * 24);
-    if (mode == 'manual') {
-      return pool[daysSinceEpoch % pool.length].text;
-    }
-    final random = Random(deviceSeed ^ daysSinceEpoch);
-    return pool[random.nextInt(pool.length)].text;
-  }
 }
 
-class _PoolMessage {
-  const _PoolMessage({required this.text, required this.order});
+@immutable
+class PoolMessage {
+  const PoolMessage({required this.text, required this.order});
   final String text;
   final int order;
+}
+
+/// Filters out inactive/blank-text docs and sorts by `order` — pulled out
+/// of the Firestore call so it can be unit tested with plain maps.
+List<PoolMessage> buildPool(List<Map<String, dynamic>> docs) {
+  final pool = docs
+      .map((data) => PoolMessage(
+            text: (data['text'] as String?)?.trim() ?? '',
+            order: (data['order'] as num?)?.toInt() ?? 0,
+          ))
+      .where((m) => m.text.isNotEmpty)
+      .toList()
+    ..sort((a, b) => a.order.compareTo(b.order));
+  return pool;
+}
+
+/// The exact instant a reminder for [day] at [time] should fire, in the
+/// same timezone location as [day] — pulled out so tests can construct one
+/// without going through the platform timezone plugin.
+tz.TZDateTime resolveScheduledTime(tz.TZDateTime day, TimeOfDay time) {
+  return tz.TZDateTime(
+    day.location,
+    day.year,
+    day.month,
+    day.day,
+    time.hour,
+    time.minute,
+  );
+}
+
+/// Whether [scheduled] has already passed [now] — a reminder in this state
+/// is skipped rather than fired immediately/in the past. This is the exact
+/// boundary check involved when a reminder set for "one minute from now"
+/// does or doesn't go out.
+bool isInPast(tz.TZDateTime scheduled, tz.TZDateTime now) =>
+    scheduled.isBefore(now);
+
+/// Which pool message a given calendar day resolves to under 'manual' or
+/// 'random' mode — pulled out of the class so it can be unit tested without
+/// any platform/Firestore dependency.
+String pickMessageForDay(
+  List<PoolMessage> pool,
+  tz.TZDateTime day,
+  String mode,
+  int deviceSeed,
+) {
+  final daysSinceEpoch = day.millisecondsSinceEpoch ~/ (1000 * 60 * 60 * 24);
+  if (mode == 'manual') {
+    return pool[daysSinceEpoch % pool.length].text;
+  }
+  final random = Random(deviceSeed ^ daysSinceEpoch);
+  return pool[random.nextInt(pool.length)].text;
 }

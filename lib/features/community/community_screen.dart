@@ -121,6 +121,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 );
               }
 
+              final featured = posts.take(3).toList();
+              // The rest of the list, excluding whatever's already shown in
+              // the featured strip above it — otherwise the top posts would
+              // render twice.
+              final rest = posts.skip(featured.length).toList();
+
               // Sharing already has a standing entry point — the bottom-nav
               // "شارك رسالة" tab — so this list doesn't need its own second
               // call to action; it used to show a floating banner below the
@@ -133,13 +139,23 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   20,
                   12 + BottomNavigation.reservedHeight(context),
                 ),
-                itemCount: posts.length,
+                itemCount: rest.length + 1,
                 separatorBuilder: (_, __) => const SizedBox(height: 18),
                 itemBuilder: (context, index) {
-                  final post = posts[index];
+                  if (index == 0) {
+                    return _FeaturedStrip(
+                      posts: featured,
+                      sortByLikes: _sortByLikes,
+                      onOpen: (post) => Navigator.push(
+                        context,
+                        SmoothPageRoute(child: CommunityPostScreen(post: post)),
+                      ),
+                    );
+                  }
+                  final post = rest[index - 1];
                   return _CommunityPostCard(
                     post: post,
-                    rank: index + 1,
+                    rank: featured.length + index,
                     onLikeToggle: () => CommunityService().toggleLike(post.id),
                     onTap: () => Navigator.push(
                       context,
@@ -152,6 +168,140 @@ class _CommunityScreenState extends State<CommunityScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The top 3 posts under whichever sort is currently selected — most-liked
+/// or most-recent — shown as a compact horizontal strip above the full
+/// list. Just the like count and the author's name, no role/admin label:
+/// this highlights standout community writing, not who wrote it.
+class _FeaturedStrip extends StatelessWidget {
+  const _FeaturedStrip({
+    required this.posts,
+    required this.sortByLikes,
+    required this.onOpen,
+  });
+
+  final List<CommunityPost> posts;
+  final bool sortByLikes;
+  final ValueChanged<CommunityPost> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    if (posts.isEmpty) return const SizedBox.shrink();
+    final palette = context.palette;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, size: 16, color: palette.goldText),
+              const SizedBox(width: 6),
+              Text(
+                sortByLikes ? 'الأكثر إعجاباً' : 'أحدث المشاركات',
+                style: TextStyle(
+                  fontFamily: kSans,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: palette.bodyText,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 128,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: posts.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final post = posts[index];
+              return _FeaturedCard(post: post, onTap: () => onOpen(post));
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FeaturedCard extends StatelessWidget {
+  const _FeaturedCard({required this.post, required this.onTap});
+
+  final CommunityPost post;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return TapTarget(
+      onTap: onTap,
+      semanticLabel: 'مشاركة بقلم ${post.authorName}، ${post.likes} إعجاب',
+      child: Container(
+        width: 190,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          border: Border.all(color: palette.cardBorder, width: 1.1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    post.authorName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: palette.bodyText,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(Icons.favorite_rounded, size: 13, color: palette.goldText),
+                const SizedBox(width: 3),
+                Text(
+                  toArabicDigits(post.likes),
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: palette.goldText,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Text(
+                post.message,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: kSans,
+                  fontSize: 12.5,
+                  height: 1.3,
+                  color: palette.mutedText,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -79,9 +79,6 @@ class AppStateController extends ChangeNotifier {
   bool _isLoggedIn = false;
   bool get isLoggedIn => _isLoggedIn;
 
-  bool _needsEmailVerification = false;
-  bool get needsEmailVerification => _needsEmailVerification;
-
   String _userName = 'زائر كريم';
   String get userName => _userName;
 
@@ -94,12 +91,10 @@ class AppStateController extends ChangeNotifier {
   void _applyUser(User? user) {
     if (user == null) {
       _isLoggedIn = false;
-      _needsEmailVerification = false;
       _userName = 'زائر كريم';
       _userEmail = '';
     } else {
       _isLoggedIn = true;
-      _needsEmailVerification = !user.emailVerified;
       _userName = user.displayName?.isNotEmpty == true
           ? user.displayName!
           : (user.email ?? 'زائر كريم');

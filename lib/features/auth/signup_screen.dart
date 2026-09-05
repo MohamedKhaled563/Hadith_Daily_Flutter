@@ -15,7 +15,6 @@ import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../home/home_screen.dart';
 import 'auth_error_messages.dart';
-import 'email_verification_screen.dart';
 
 /// How the reader wants to register.
 enum _SignUpMethod { email, mobile }
@@ -196,7 +195,7 @@ class _SignUpScreenState extends State<SignUpScreen>
 
     Navigator.pushAndRemoveUntil(
       context,
-      SmoothPageRoute(child: const EmailVerificationScreen()),
+      SmoothPageRoute(child: const HomeScreen()),
       (route) => false,
     );
   }
@@ -274,8 +273,12 @@ class _SignUpScreenState extends State<SignUpScreen>
                 24 + MediaQuery.viewInsetsOf(context).bottom,
               ),
               child: ConstrainedBox(
-                constraints:
-                    BoxConstraints(minHeight: constraints.maxHeight - 32),
+                constraints: BoxConstraints(
+                  minHeight: (constraints.maxHeight - 32).clamp(
+                    0,
+                    double.infinity,
+                  ),
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

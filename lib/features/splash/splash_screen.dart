@@ -6,7 +6,6 @@ import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/theme/app_state_controller.dart';
-import '../auth/email_verification_screen.dart';
 import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
 
@@ -113,18 +112,10 @@ class _SplashScreenState extends State<SplashScreen>
     _quoteTimer?.cancel();
     _autoAdvanceTimer?.cancel();
 
-    // Straight to Home for a verified, signed-in user; an unverified
-    // email/password account goes to the verification gate instead, and a
-    // signed-out reader goes through the login page.
+    // Straight to Home for a signed-in reader, or the login page otherwise.
     final state = AppStateController();
-    final Widget destination;
-    if (!state.isLoggedIn) {
-      destination = const LoginScreen();
-    } else if (state.needsEmailVerification) {
-      destination = const EmailVerificationScreen();
-    } else {
-      destination = const HomeScreen();
-    }
+    final Widget destination =
+        state.isLoggedIn ? const HomeScreen() : const LoginScreen();
     Navigator.pushReplacement(
       context,
       SmoothPageRoute(child: destination),

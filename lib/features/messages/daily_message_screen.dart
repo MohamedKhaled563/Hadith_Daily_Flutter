@@ -162,7 +162,10 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                   ),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight - 16,
+                      minHeight: (constraints.maxHeight - 16).clamp(
+                        0,
+                        double.infinity,
+                      ),
                     ),
                     child: Center(child: _buildMessageCard()),
                   ),

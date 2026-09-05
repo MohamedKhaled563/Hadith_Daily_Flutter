@@ -4,6 +4,13 @@
          show — NotificationScheduler requests it the first time a reminder
          is switched on (lib/data/services/notification_scheduler.dart). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Android 12+ (API 31+) gates *exact*-time alarms behind this special
+         permission; without it every reminder is scheduled "inexact" and the
+         OS is free to batch/delay delivery by minutes to hours to save
+         battery — which is what made reminders appear to never fire.
+         User-grantable like POST_NOTIFICATIONS, requested from
+         NotificationScheduler.requestPermission(). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <application
         android:label="طيّب قلبك"
         android:name="${applicationName}"
