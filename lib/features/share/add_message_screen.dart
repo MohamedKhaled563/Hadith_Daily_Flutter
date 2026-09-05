@@ -181,10 +181,8 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
         const SizedBox(height: 14),
 
         Expanded(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              20, 8, 20, 24 + BottomNavigation.reservedHeight(context),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -266,51 +264,75 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
 
                 const SizedBox(height: 16),
 
-                Row(
-                  children: [
-                    Expanded(child: _Label('نص الرسالة أو التأمل')),
-                    TapTarget(
-                      onTap: _openExpandedEditor,
-                      semanticLabel: 'تكبير مربع النص',
-                      minSize: 32,
-                      child: Icon(
-                        Icons.open_in_full_rounded,
-                        size: 16,
-                        color: palette.goldText,
-                      ),
-                    ),
-                  ],
-                ),
+                _Label('نص الرسالة أو التأمل'),
                 const SizedBox(height: 6),
-                _FieldShell(
-                  padding: const EdgeInsets.all(16),
-                  borderColor: _messageError != null
-                      ? const Color(0xFFB3261E)
-                      : null,
-                  child: TextField(
-                    controller: _messageController,
-                    maxLines: 5,
-                    onChanged: (_) {
-                      if (_messageError != null) {
-                        setState(() => _messageError = null);
-                      }
-                    },
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      color: palette.bodyText,
-                      height: AppLeading.body,
-                    ),
-                    decoration: InputDecoration(
-                      hintText:
-                          'اكتب ما فتح الله به عليك من أثر هذا الحديث في حياتك...',
-                      hintStyle: TextStyle(
-                        color: palette.mutedText,
-                        fontSize: 13,
-                        height: AppLeading.body,
-                        fontFamily: kSans,
+
+                // Expanded rather than a fixed maxLines: the box fills
+                // whatever room is left on the screen — short on a small
+                // phone, tall on a tablet — instead of a fixed height that
+                // wastes space on some devices and cramps others.
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: _FieldShell(
+                          padding: const EdgeInsetsDirectional.fromSTEB(
+                            16, 16, 44, 16,
+                          ),
+                          borderColor: _messageError != null
+                              ? const Color(0xFFB3261E)
+                              : null,
+                          child: TextField(
+                            controller: _messageController,
+                            maxLines: null,
+                            expands: true,
+                            textAlignVertical: TextAlignVertical.top,
+                            onChanged: (_) {
+                              if (_messageError != null) {
+                                setState(() => _messageError = null);
+                              }
+                            },
+                            style: TextStyle(
+                              fontFamily: kSans,
+                              color: palette.bodyText,
+                              height: AppLeading.body,
+                            ),
+                            decoration: InputDecoration(
+                              hintText:
+                                  'اكتب ما فتح الله به عليك من أثر هذا الحديث في حياتك...',
+                              hintStyle: TextStyle(
+                                color: palette.mutedText,
+                                fontSize: 13,
+                                height: AppLeading.body,
+                                fontFamily: kSans,
+                              ),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
                       ),
-                      border: InputBorder.none,
-                    ),
+                      PositionedDirectional(
+                        top: 8,
+                        end: 8,
+                        child: TapTarget(
+                          onTap: _openExpandedEditor,
+                          semanticLabel: 'تكبير مربع النص',
+                          minSize: 32,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: palette.surfaceSunken,
+                            ),
+                            child: Icon(
+                              Icons.open_in_full_rounded,
+                              size: 15,
+                              color: palette.goldText,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -318,8 +340,6 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                   const SizedBox(height: 8),
                   _InlineError(_messageError!),
                 ],
-
-                const SizedBox(height: 16),
               ],
             ),
           ),
