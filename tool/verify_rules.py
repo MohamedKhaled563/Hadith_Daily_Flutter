@@ -30,17 +30,54 @@ PROJECT = "hadithdaily-5fc06"
 API_KEY = "AIzaSyA1jc9xLvrPYS-Svye4q8zXAhAAUhPZbj0"  # web app key, public by design
 
 import firebase_admin
+import google.auth
+import google.auth.transport.requests
 import requests
-from firebase_admin import auth, credentials, firestore
+from firebase_admin import auth, credentials
 
 cred = credentials.Certificate(str(SERVICE_ACCOUNT_KEY))
 app = firebase_admin.initialize_app(cred)
-db = firestore.client(app)
 
 FIRESTORE_URL = (
     f"https://firestore.googleapis.com/v1/projects/{PROJECT}"
     "/databases/(default)/documents"
 )
+
+# Admin/bootstrap writes below go over plain REST with the service account's
+# own OAuth token rather than the google-cloud-firestore (gRPC) client:
+# service-account-authenticated requests bypass security rules the same way
+# regardless of transport, and some sandboxes only allow outbound HTTPS, not
+# raw gRPC — REST keeps this script portable to those.
+_admin_creds, _ = google.auth.load_credentials_from_file(
+    str(SERVICE_ACCOUNT_KEY),
+    scopes=["https://www.googleapis.com/auth/cloud-platform"],
+)
+_admin_creds.refresh(google.auth.transport.requests.Request())
+
+
+def admin_headers() -> dict:
+    return {"Authorization": f"Bearer {_admin_creds.token}"}
+
+
+def admin_set(collection: str, doc_id: str, fields: dict) -> None:
+    requests.patch(
+        f"{FIRESTORE_URL}/{collection}/{doc_id}",
+        json={"fields": _encode_fields(fields)},
+        headers=admin_headers(),
+    ).raise_for_status()
+
+
+def admin_update(collection: str, doc_id: str, fields: dict) -> None:
+    mask = "&".join(f"updateMask.fieldPaths={k}" for k in fields)
+    requests.patch(
+        f"{FIRESTORE_URL}/{collection}/{doc_id}?{mask}",
+        json={"fields": _encode_fields(fields)},
+        headers=admin_headers(),
+    ).raise_for_status()
+
+
+def admin_delete(collection: str, doc_id: str) -> None:
+    requests.delete(f"{FIRESTORE_URL}/{collection}/{doc_id}", headers=admin_headers())
 
 _passed = 0
 _failed = 0
@@ -103,9 +140,9 @@ def main() -> int:
     # throwaway test accounts need the same bootstrap or every isModerator()/
     # isAdmin() check below would hit a missing document instead of a real
     # allow/deny decision.
-    db.collection("users").document(uid_a).set({"email": "a@test", "role": "user"})
-    db.collection("users").document(uid_b).set({"email": "b@test", "role": "user"})
-    db.collection("users").document(uid_admin).set({"email": "admin@test", "role": "admin"})
+    admin_set("users", uid_a, {"email": "a@test", "role": "user"})
+    admin_set("users", uid_b, {"email": "b@test", "role": "user"})
+    admin_set("users", uid_admin, {"email": "admin@test", "role": "admin"})
 
     token_a = id_token_for(uid_a)
     token_b = id_token_for(uid_b)
@@ -121,7 +158,7 @@ def main() -> int:
     )
     check("admin promotes another user to moderator", resp.status_code == 200, True)
     # Put it back so later checks start from a known 'user' state.
-    db.collection("users").document(uid_b).update({"role": "user"})
+    admin_update("users", uid_b, {"role": "user"})
 
     # A plain (non-admin) user trying to promote someone else — denied.
     resp = requests.patch(
@@ -133,14 +170,14 @@ def main() -> int:
 
     # A moderator (not admin) trying to promote someone else — denied;
     # only isAdmin() may change role, isModerator() isn't enough.
-    db.collection("users").document(uid_a).update({"role": "moderator"})
+    admin_update("users", uid_a, {"role": "moderator"})
     resp = requests.patch(
         f"{FIRESTORE_URL}/users/{uid_b}?updateMask.fieldPaths=role",
         json={"fields": _encode_fields({"role": "admin"})},
         headers=rest_headers(token_a),
     )
     check("moderator (non-admin) tries to promote another user", resp.status_code == 200, False)
-    db.collection("users").document(uid_a).update({"role": "user"})
+    admin_update("users", uid_a, {"role": "user"})
 
     # An admin trying to change their OWN role — denied (self-demotion
     # lockout guard: uid != request.auth.uid in the rule).
@@ -158,6 +195,60 @@ def main() -> int:
         headers=rest_headers(token_a),
     )
     check("user renames themselves", resp.status_code == 200, True)
+
+    print("\n== usernames (phase 13) ==")
+
+    # Signed-out client checking availability of an unclaimed name — allowed
+    # (this is the whole point: the sign-up screen has no account yet).
+    resp = requests.get(f"{FIRESTORE_URL}/usernames/ahmed-test", headers=rest_headers(None))
+    check("signed-out user reads an unclaimed name", resp.status_code == 200, False)
+    # A 404 from Firestore's GET is still an "allowed read of a missing doc"
+    # rather than a permission error — confirm that's actually why it failed.
+    if resp.status_code != 200:
+        check("...and it's a 404 (missing), not permission-denied", resp.status_code == 404, True)
+
+    # User A claims a name for themselves — allowed.
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/usernames/ahmed-test",
+        json={"fields": _encode_fields({"uid": uid_a})},
+        headers=rest_headers(token_a),
+    )
+    check("user claims a username for their own uid", resp.status_code == 200, True)
+
+    # Signed-out client can now see the name is taken.
+    resp = requests.get(f"{FIRESTORE_URL}/usernames/ahmed-test", headers=rest_headers(None))
+    check("signed-out user reads a claimed name", resp.status_code == 200, True)
+
+    # User B tries to claim the same name — must be denied (already exists,
+    # and update is blocked outright).
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/usernames/ahmed-test",
+        json={"fields": _encode_fields({"uid": uid_b})},
+        headers=rest_headers(token_b),
+    )
+    check("second user claims an already-taken username", resp.status_code == 200, False)
+
+    # User B claims someone else's uid on a fresh name — must be denied.
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/usernames/impersonated-test",
+        json={"fields": _encode_fields({"uid": uid_a})},
+        headers=rest_headers(token_b),
+    )
+    check("claim a fresh username with someone else's uid", resp.status_code == 200, False)
+
+    # Unauthenticated claim attempt — must be denied.
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/usernames/anon-test",
+        json={"fields": _encode_fields({"uid": uid_a})},
+        headers=rest_headers(None),
+    )
+    check("claim a username while signed out", resp.status_code == 200, False)
+
+    # Rules block update/delete outright (even for an admin) — clean up
+    # through the service account's own admin access, which bypasses rules
+    # entirely, so a re-run doesn't find these names already claimed.
+    for name in ("ahmed-test", "impersonated-test", "anon-test"):
+        admin_delete("usernames", name)
 
     print("\n== notificationMessages (phase 12) ==")
 
@@ -340,7 +431,7 @@ def main() -> int:
         check("author deletes own pending submission", resp.status_code == 200, True)
 
     for uid in (uid_a, uid_b, uid_admin):
-        db.collection("users").document(uid).delete()
+        admin_delete("users", uid)
         try:
             auth.delete_user(uid)
         except auth.UserNotFoundError:

@@ -11,6 +11,12 @@ import 'package:google_sign_in/google_sign_in.dart';
 /// - `serverClientId` is the project's *web* OAuth client (the one Firebase
 ///   itself verifies idTokens against), needed on both platforms.
 /// - `clientId` is the iOS app's own OAuth client, required only on iOS.
+/// Thrown by [AuthService.signUpWithEmail] when another account claims the
+/// same normalized display name in the moment between the sign-up screen's
+/// own pre-check and this call — see the `usernames/` collection in
+/// firestore.rules for how that race is closed.
+class DisplayNameTakenException implements Exception {}
+
 class AuthService {
   AuthService._internal();
   static final AuthService instance = AuthService._internal();
@@ -22,6 +28,7 @@ class AuthService {
       '305295927502-4bqfmmrh77fbmjk4mqgd1b5fai0q2hnl.apps.googleusercontent.com';
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   bool _googleReady = false;
 
@@ -29,6 +36,27 @@ class AuthService {
   // sign-up — see signUpWithEmail — is picked up without a separate sign-in.
   Stream<User?> get authStateChanges => _auth.userChanges();
   User? get currentUser => _auth.currentUser;
+
+  // Google/other non-password providers arrive already verified by their
+  // provider, so this only ever gates the email/password path.
+  bool get isEmailVerified => _auth.currentUser?.emailVerified ?? true;
+
+  Future<void> reloadCurrentUser() => _auth.currentUser!.reload();
+
+  Future<void> resendVerificationEmail() =>
+      _auth.currentUser!.sendEmailVerification();
+
+  /// Normalizes a display name the same way on every check/claim so
+  /// "Ahmed", " ahmed ", and "AHMED" all collide on one `usernames/` doc.
+  String normalizeDisplayName(String name) =>
+      name.trim().toLowerCase().replaceAll('/', '-');
+
+  Future<bool> isDisplayNameTaken(String name) async {
+    final key = normalizeDisplayName(name);
+    if (key.isEmpty) return false;
+    final doc = await _firestore.collection('usernames').doc(key).get();
+    return doc.exists;
+  }
 
   Future<void> _ensureGoogleReady() async {
     if (_googleReady) return;
@@ -62,7 +90,28 @@ class AuthService {
       email: email,
       password: password,
     );
+
+    // Claim the normalized name right after the account exists (the write
+    // needs request.auth to be this new user — see firestore.rules). If
+    // someone else grabbed the same name in the moment between the sign-up
+    // screen's own pre-check and here, the rules deny this as an update
+    // against an already-existing doc; roll back the account rather than
+    // leave an orphaned, permanently-unverified one behind.
     if (displayName.isNotEmpty) {
+      final nameKey = normalizeDisplayName(displayName);
+      try {
+        await _firestore
+            .collection('usernames')
+            .doc(nameKey)
+            .set({'uid': credential.user!.uid});
+      } on FirebaseException catch (e) {
+        if (e.code == 'permission-denied') {
+          await credential.user?.delete();
+          throw DisplayNameTakenException();
+        }
+        rethrow;
+      }
+
       await credential.user?.updateDisplayName(displayName);
       // updateDisplayName() writes the new name to the Auth server, but the
       // in-memory User object we're already holding doesn't pick it up on
@@ -70,6 +119,8 @@ class AuthService {
       // stale (empty) displayName and mirrors that into Firestore instead.
       await credential.user?.reload();
     }
+
+    await credential.user?.sendEmailVerification();
     await _ensureUserDoc(_auth.currentUser ?? credential.user!);
     return credential;
   }

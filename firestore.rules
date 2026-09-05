@@ -130,6 +130,26 @@ service cloud.firestore {
                       && request.resource.data.role in ['user', 'moderator', 'admin']);
     }
 
+    // Phase 13: normalized-display-name uniqueness registry. Doc id is the
+    // display name lowercased/trimmed by the client; the value is just
+    // {uid}. Public read so the sign-up screen can check availability
+    // before an account even exists — users/{uid} itself can't be read
+    // pre-auth, which is why this lives as its own collection instead of
+    // querying users/ by displayName. Create is restricted to the very
+    // account claiming the name, and update/delete are blocked outright,
+    // so a name that's already claimed can never be overwritten — that
+    // split (rather than a transaction) is what closes the race between
+    // two sign-ups claiming the same name at once: whichever create lands
+    // first wins, the second is evaluated as an update against an
+    // already-existing doc and denied.
+    match /usernames/{nameKey} {
+      allow read: if true;
+      allow create: if request.auth != null
+                  && request.resource.data.keys().hasOnly(['uid'])
+                  && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     match /communityMessages/{messageId} {
       // Public once approved; the author can always see their own
       // (including while still pending); moderators/admins can see

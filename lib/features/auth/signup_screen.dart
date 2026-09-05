@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,7 @@ import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../home/home_screen.dart';
 import 'auth_error_messages.dart';
+import 'email_verification_screen.dart';
 
 /// How the reader wants to register.
 enum _SignUpMethod { email, mobile }
@@ -45,6 +47,8 @@ class _SignUpScreenState extends State<SignUpScreen>
   String _loadingMessage = 'جارٍ إنشاء الحساب…';
   bool _acceptedTerms = false;
   String? _error;
+  String? _nameError;
+  Timer? _nameCheckDebounce;
 
   late final AnimationController _entrance = AnimationController(
     vsync: this,
@@ -70,6 +74,7 @@ class _SignUpScreenState extends State<SignUpScreen>
   @override
   void dispose() {
     _entrance.dispose();
+    _nameCheckDebounce?.cancel();
     _nameController.dispose();
     _contactController.dispose();
     _passwordController.dispose();
@@ -78,9 +83,34 @@ class _SignUpScreenState extends State<SignUpScreen>
 
   bool get _isEmail => _method == _SignUpMethod.email;
 
+  /// Live, debounced duplicate check as the reader types — applies
+  /// regardless of the chosen method (email or phone), since the name field
+  /// is shared between both. This is UX feedback only; [_submit] always
+  /// re-checks authoritatively right before creating the account.
+  void _onNameChanged(String value) {
+    _clearError(value);
+    _nameCheckDebounce?.cancel();
+    setState(() => _nameError = null);
+
+    final name = value.trim();
+    if (name.isEmpty) return;
+
+    _nameCheckDebounce = Timer(const Duration(milliseconds: 500), () async {
+      final taken = await AuthService.instance.isDisplayNameTaken(name);
+      if (!mounted) return;
+      if (name != _nameController.text.trim()) return;
+      if (taken) {
+        setState(() => _nameError = 'هذا الاسم مستخدم بالفعل، جرّب اسماً آخر');
+      }
+    });
+  }
+
   String? _validate() {
     if (_nameController.text.trim().isEmpty) {
       return 'أدخل اسمك أو لقبك';
+    }
+    if (_nameError != null) {
+      return _nameError;
     }
 
     final contact = _contactController.text.trim();
@@ -120,16 +150,40 @@ class _SignUpScreenState extends State<SignUpScreen>
 
     setState(() {
       _submitting = true;
-      _loadingMessage = 'جارٍ إنشاء الحساب…';
+      _loadingMessage = 'جارٍ التحقق من الاسم…';
       _error = null;
     });
+
+    final name = _nameController.text.trim();
+    // Authoritative re-check right before creating the account — the live
+    // check above is debounced and may be stale (e.g. submitted before it
+    // ever fired). signUpWithEmail still re-checks via the security rules
+    // themselves in case of a race after this point.
+    final taken = await AuthService.instance.isDisplayNameTaken(name);
+    if (!mounted) return;
+    if (taken) {
+      setState(() {
+        _submitting = false;
+        _nameError = 'هذا الاسم مستخدم بالفعل، جرّب اسماً آخر';
+      });
+      return;
+    }
+
+    setState(() => _loadingMessage = 'جارٍ إنشاء الحساب…');
 
     try {
       await AuthService.instance.signUpWithEmail(
         email: _contactController.text.trim(),
         password: _passwordController.text,
-        displayName: _nameController.text.trim(),
+        displayName: name,
       );
+    } on DisplayNameTakenException {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _nameError = 'هذا الاسم مستخدم بالفعل، جرّب اسماً آخر';
+      });
+      return;
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -142,7 +196,7 @@ class _SignUpScreenState extends State<SignUpScreen>
 
     Navigator.pushAndRemoveUntil(
       context,
-      SmoothPageRoute(child: const HomeScreen()),
+      SmoothPageRoute(child: const EmailVerificationScreen()),
       (route) => false,
     );
   }
@@ -279,7 +333,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   controller: _nameController,
                                   enabled: !_submitting,
                                   textInputAction: TextInputAction.next,
-                                  onChanged: _clearError,
+                                  onChanged: _onNameChanged,
                                   style: TextStyle(
                                     fontFamily: kSans,
                                     fontSize: 14,
@@ -291,6 +345,23 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   ),
                                 ),
                               ),
+                              if (_nameError != null) ...[
+                                const SizedBox(height: 6),
+                                Padding(
+                                  padding: const EdgeInsetsDirectional.only(
+                                    start: 4,
+                                  ),
+                                  child: Text(
+                                    _nameError!,
+                                    style: const TextStyle(
+                                      fontFamily: kSans,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFB3261E),
+                                    ),
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 14),
                               _Label(_isEmail
                                   ? 'البريد الإلكتروني'
