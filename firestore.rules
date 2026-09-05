@@ -52,6 +52,13 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && roleOf(request.auth.uid) == 'admin';
     }
+    // Whether request.auth's own like doc exists once this request's writes
+    // are applied — existsAfter() sees a transaction's own prior writes, so
+    // this reflects CommunityService.toggleLike's real outcome rather than
+    // being an independent, spoofable claim.
+    function likeExistsAfter(messageId) {
+      return existsAfter(/databases/$(database)/documents/communityMessages/$(messageId)/likes/$(request.auth.uid));
+    }
 
     match /hadiths/{hadithId} {
       allow read: if true;
@@ -235,12 +242,17 @@ service cloud.firestore {
       //      likes/ subcollection as the actual source of truth for "have
       //      I liked this", and CommunityService now moves this counter
       //      only from inside the same transaction that writes the
-      //      subcollection doc. This clause stays as a narrow safety net —
-      //      it still can't move the counter by anything but exactly ±1.
+      //      subcollection doc. This clause is tied to that subcollection
+      //      write via existsAfter() — the counter can only move in the
+      //      direction the requester's own likes/{uid} doc actually moved
+      //      in this same transaction, so calling this update on its own
+      //      (without truly toggling a like) is denied, not just capped
+      //      to ±1 as before.
       //   4. ANY signed-in device, but only ever moving `timesShown` up by
       //      exactly one and stamping `lastShownAt` — phase 5's delivery
       //      engine, only ever applies to an approved message since that's
-      //      the only status the pool draws from.
+      //      the only status the pool draws from (now enforced here, not
+      //      just documented).
       allow update: if (request.auth.uid == resource.data.authorUid
                         && resource.data.status == 'pending'
                         && request.resource.data.message is string
@@ -248,13 +260,17 @@ service cloud.firestore {
                         && request.resource.data.message.size() <= 2000)
                   || isModerator()
                   || (request.auth != null
+                      && resource.data.status == 'approved'
                       && request.resource.data.diff(resource.data)
                            .affectedKeys().hasOnly(['likeCount'])
-                      && (request.resource.data.likeCount
-                            == resource.data.likeCount + 1
-                          || request.resource.data.likeCount
-                            == resource.data.likeCount - 1))
+                      && ((request.resource.data.likeCount
+                             == resource.data.likeCount + 1
+                           && likeExistsAfter(messageId))
+                          || (request.resource.data.likeCount
+                                == resource.data.likeCount - 1
+                              && !likeExistsAfter(messageId))))
                   || (request.auth != null
+                      && resource.data.status == 'approved'
                       && request.resource.data.diff(resource.data)
                            .affectedKeys().hasOnly(['timesShown', 'lastShownAt'])
                       && request.resource.data.timesShown
