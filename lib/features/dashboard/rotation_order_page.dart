@@ -36,6 +36,13 @@ class _RotationOrderPageState extends State<RotationOrderPage> {
   final _searchController = TextEditingController();
   String _search = '';
 
+  // Loaded once rather than on every keystroke: _search used to be threaded
+  // straight into a FutureBuilder that re-ran two full collection reads per
+  // character typed, resetting the list to a loading spinner (and losing
+  // scroll position) each time. Filtering below now runs against this one
+  // cached fetch instead.
+  late final Future<List<_PoolEntry>> _poolFuture = _loadPool();
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -44,6 +51,48 @@ class _RotationOrderPageState extends State<RotationOrderPage> {
 
   Future<void> _setMode(String mode) {
     return _db.collection('settings').doc('deliveryMode').set({'mode': mode});
+  }
+
+  Future<List<_PoolEntry>> _loadPool() async {
+    final entries = <_PoolEntry>[];
+
+    final dm = await _db.collection('dailyMessages').get();
+    for (final doc in dm.docs) {
+      final data = doc.data();
+      entries.add(
+        _PoolEntry(
+          ref: doc.reference,
+          text: (data['arabic'] as String?)?.trim() ?? '',
+          hadithNumber: data['hadithNumber'] as int? ?? 0,
+          order: (data['order'] as num?)?.toInt() ?? 0,
+          timesShown: (data['timesShown'] as num?)?.toInt() ?? 0,
+          lastShownAt: data['lastShownAt'] as Timestamp?,
+          source: 'dailyMessages',
+        ),
+      );
+    }
+
+    final cm = await _db
+        .collection('communityMessages')
+        .where('status', isEqualTo: 'approved')
+        .get();
+    for (final doc in cm.docs) {
+      final data = doc.data();
+      entries.add(
+        _PoolEntry(
+          ref: doc.reference,
+          text: (data['message'] as String?)?.trim() ?? '',
+          hadithNumber: data['hadithNumber'] as int? ?? 0,
+          order: (data['order'] as num?)?.toInt() ?? (1 << 30),
+          timesShown: (data['timesShown'] as num?)?.toInt() ?? 0,
+          lastShownAt: data['lastShownAt'] as Timestamp?,
+          source: 'communityMessages',
+        ),
+      );
+    }
+
+    entries.sort((a, b) => a.order.compareTo(b.order));
+    return entries;
   }
 
   @override
@@ -64,7 +113,40 @@ class _RotationOrderPageState extends State<RotationOrderPage> {
             onChanged: (v) => setState(() => _search = v.trim()),
           ),
         ),
-        Expanded(child: _PoolList(search: _search)),
+        Expanded(
+          child: FutureBuilder<List<_PoolEntry>>(
+            future: _poolFuture,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text('تعذّر التحميل: ${snapshot.error}'));
+              }
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              var entries = snapshot.data!;
+              if (_search.isNotEmpty) {
+                final asNumber = int.tryParse(_search);
+                entries = entries
+                    .where(
+                      (e) =>
+                          (asNumber != null && e.hadithNumber == asNumber) ||
+                          e.text.contains(_search),
+                    )
+                    .toList();
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                itemCount: entries.length,
+                itemBuilder: (context, index) => _PoolRow(
+                  key: ValueKey(entries[index].ref.path),
+                  entry: entries[index],
+                ),
+              );
+            },
+          ),
+        ),
       ],
     );
   }
@@ -128,91 +210,6 @@ class _ModeToggle extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class _PoolList extends StatelessWidget {
-  const _PoolList({required this.search});
-
-  final String search;
-
-  Future<List<_PoolEntry>> _load() async {
-    final db = FirebaseFirestore.instance;
-    final entries = <_PoolEntry>[];
-
-    final dm = await db.collection('dailyMessages').get();
-    for (final doc in dm.docs) {
-      final data = doc.data();
-      entries.add(
-        _PoolEntry(
-          ref: doc.reference,
-          text: (data['arabic'] as String?)?.trim() ?? '',
-          hadithNumber: data['hadithNumber'] as int? ?? 0,
-          order: (data['order'] as num?)?.toInt() ?? 0,
-          timesShown: (data['timesShown'] as num?)?.toInt() ?? 0,
-          lastShownAt: data['lastShownAt'] as Timestamp?,
-          source: 'dailyMessages',
-        ),
-      );
-    }
-
-    final cm = await db
-        .collection('communityMessages')
-        .where('status', isEqualTo: 'approved')
-        .get();
-    for (final doc in cm.docs) {
-      final data = doc.data();
-      entries.add(
-        _PoolEntry(
-          ref: doc.reference,
-          text: (data['message'] as String?)?.trim() ?? '',
-          hadithNumber: data['hadithNumber'] as int? ?? 0,
-          order: (data['order'] as num?)?.toInt() ?? (1 << 30),
-          timesShown: (data['timesShown'] as num?)?.toInt() ?? 0,
-          lastShownAt: data['lastShownAt'] as Timestamp?,
-          source: 'communityMessages',
-        ),
-      );
-    }
-
-    entries.sort((a, b) => a.order.compareTo(b.order));
-    return entries;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<_PoolEntry>>(
-      future: _load(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('تعذّر التحميل: ${snapshot.error}'));
-        }
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        var entries = snapshot.data!;
-        if (search.isNotEmpty) {
-          final asNumber = int.tryParse(search);
-          entries = entries
-              .where(
-                (e) =>
-                    (asNumber != null && e.hadithNumber == asNumber) ||
-                    e.text.contains(search),
-              )
-              .toList();
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-          itemCount: entries.length,
-          itemBuilder: (context, index) => _PoolRow(
-            key: ValueKey(entries[index].ref.path),
-            entry: entries[index],
-          ),
-        );
-      },
     );
   }
 }
