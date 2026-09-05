@@ -103,12 +103,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              final posts = List<CommunityPost>.from(snapshot.data!)
+              final sorted = List<CommunityPost>.from(snapshot.data!)
                 ..sort(
                   _sortByLikes
                       ? (a, b) => b.likes.compareTo(a.likes)
                       : (a, b) => b.createdAt.compareTo(a.createdAt),
                 );
+              final posts = sorted.take(3).toList();
 
               if (posts.isEmpty) {
                 return AppEmptyState(

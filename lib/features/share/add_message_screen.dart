@@ -8,6 +8,7 @@ import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/tap_target.dart';
 import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
@@ -30,7 +31,6 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
   final _authorController = TextEditingController();
 
   Hadith? _selectedHadith;
-  bool _shareWithCommunity = true;
   String? _messageError;
   String? _hadithError;
   bool _submitting = false;
@@ -84,22 +84,6 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
       _messageError = null;
       _hadithError = null;
     });
-
-    // There is nowhere in this app to keep a message that isn't published —
-    // turning the switch off means "don't send it," not "save it privately."
-    // The old copy claimed the message was saved either way, which quietly
-    // discarded it when the switch was off.
-    if (!_shareWithCommunity) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'لن يتم نشر رسالتك بما أن المشاركة العامة معطّلة — '
-            'فعّل الخيار أعلاه لنشرها 🌿',
-          ),
-        ),
-      );
-      return;
-    }
 
     final authorName = _authorController.text.trim().isEmpty
         ? (_state.isLoggedIn && _state.userName.isNotEmpty
@@ -282,7 +266,21 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
 
                 const SizedBox(height: 16),
 
-                _Label('نص الرسالة أو التأمل'),
+                Row(
+                  children: [
+                    Expanded(child: _Label('نص الرسالة أو التأمل')),
+                    TapTarget(
+                      onTap: _openExpandedEditor,
+                      semanticLabel: 'تكبير مربع النص',
+                      minSize: 32,
+                      child: Icon(
+                        Icons.open_in_full_rounded,
+                        size: 16,
+                        color: palette.goldText,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 6),
                 _FieldShell(
                   padding: const EdgeInsets.all(16),
@@ -321,45 +319,91 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                   _InlineError(_messageError!),
                 ],
 
-                const SizedBox(height: 14),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'مشاركة الرسالة في مجتمع الحديث العام',
-                        style: TextStyle(
-                          fontFamily: kSans,
-                          fontSize: 13,
-                          height: AppLeading.chrome,
-                          fontWeight: FontWeight.w600,
-                          color: palette.bodyText,
-                        ),
-                      ),
-                    ),
-                    Switch(
-                      value: _shareWithCommunity,
-                      activeThumbColor: AppColors.primaryGreen,
-                      onChanged: (val) =>
-                          setState(() => _shareWithCommunity = val),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                AppButton(
-                  text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة 🌿',
-                  icon: _submitting ? null : Icons.send_rounded,
-                  onPressed: _submitting ? () {} : () => _submit(),
-                ),
-
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
               ],
             ),
           ),
         ),
+
+        // Pinned outside the scroll area so the submit button stays put
+        // instead of travelling with the fields above it.
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            20, 8, 20, 12 + BottomNavigation.reservedHeight(context),
+          ),
+          child: AppButton(
+            text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة 🌿',
+            icon: _submitting ? null : Icons.send_rounded,
+            onPressed: _submitting ? () {} : () => _submit(),
+          ),
+        ),
       ],
+      ),
+    );
+  }
+
+  Future<void> _openExpandedEditor() async {
+    final palette = context.palette;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.all(20),
+        backgroundColor: palette.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.listItem),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Label('نص الرسالة أو التأمل'),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: MediaQuery.of(dialogContext).size.height * 0.5,
+                child: TextField(
+                  controller: _messageController,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  autofocus: true,
+                  onChanged: (_) {
+                    if (_messageError != null) {
+                      setState(() => _messageError = null);
+                    }
+                  },
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    color: palette.bodyText,
+                    height: AppLeading.body,
+                  ),
+                  decoration: InputDecoration(
+                    hintText:
+                        'اكتب ما فتح الله به عليك من أثر هذا الحديث في حياتك...',
+                    hintStyle: TextStyle(
+                      color: palette.mutedText,
+                      fontSize: 13,
+                      height: AppLeading.body,
+                      fontFamily: kSans,
+                    ),
+                    filled: true,
+                    fillColor: palette.surfaceSunken,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadii.listItem),
+                      borderSide: BorderSide(color: palette.cardBorder),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              AppButton(
+                text: 'تم',
+                onPressed: () => Navigator.of(dialogContext).pop(),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
