@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -61,6 +63,12 @@ Future<void> _pumpAt(
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
+    // HomeScreen keeps every tab mounted (IndexedStack) and its
+    // CommunityScreen/NotificationScheduler children reach for
+    // FirebaseFirestore.instance as soon as they build — register a fake
+    // default app so that succeeds instead of throwing [core/no-app].
+    setupFirebaseCoreMocks();
+    await Firebase.initializeApp();
     await HadithRepository().load();
   });
 

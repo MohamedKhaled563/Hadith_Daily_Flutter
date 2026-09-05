@@ -38,6 +38,13 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.0
   mocktail: ^1.0.5
+  # Widget-test-only: HomeScreen keeps every tab mounted (IndexedStack, so
+  # ambient state survives tab switches — see home_screen.dart), which means
+  # CommunityScreen/NotificationScheduler reach for FirebaseFirestore.instance
+  # as soon as HomeScreen builds. setupFirebaseCoreMocks() registers a fake
+  # default app so that lookup succeeds instead of throwing [core/no-app] in
+  # tests, without needing a real backend.
+  firebase_core_platform_interface: ^8.1.1
 
 flutter:
   uses-material-design: true
