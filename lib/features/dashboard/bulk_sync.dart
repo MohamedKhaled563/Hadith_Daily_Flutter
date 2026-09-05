@@ -10,9 +10,16 @@ class BatchWriter {
   WriteBatch _batch;
   int _pending = 0;
 
+  /// How many writes have actually been committed so far (across every
+  /// auto-flush at the 400-op mark, plus a final [flush]) — lets a caller
+  /// report "N of M applied" if a later write in the same upload throws,
+  /// since everything already committed here is permanent regardless.
+  int committedCount = 0;
+
   Future<void> _maybeFlush() async {
     if (_pending >= 400) {
       await _batch.commit();
+      committedCount += _pending;
       _batch = _db.batch();
       _pending = 0;
     }
@@ -43,7 +50,11 @@ class BatchWriter {
   }
 
   Future<void> flush() async {
-    if (_pending > 0) await _batch.commit();
+    if (_pending > 0) {
+      await _batch.commit();
+      committedCount += _pending;
+      _pending = 0;
+    }
   }
 }
 
@@ -109,7 +120,35 @@ class SheetDiff {
       );
 }
 
-Future<void> applySheetDiff(
+/// A Firestore `merge: true` set() creates the document if it's missing —
+/// so if a doc this diff means to update was deleted (by another admin, or
+/// because the uploaded sheet is stale) since the diff was built, applying
+/// it as-is would silently resurrect a new doc under that id containing
+/// only the columns this diff supplies, missing every other field a normal
+/// doc in this collection has. Checked in batches of 30 (Firestore's
+/// `whereIn` limit) rather than one read per doc.
+Future<Set<String>> _existingDocIds(
+  FirebaseFirestore db,
+  String collection,
+  List<String> ids,
+) async {
+  final existing = <String>{};
+  for (var i = 0; i < ids.length; i += 30) {
+    final chunk = ids.sublist(i, i + 30 > ids.length ? ids.length : i + 30);
+    if (chunk.isEmpty) continue;
+    final snapshot = await db
+        .collection(collection)
+        .where(FieldPath.documentId, whereIn: chunk)
+        .get();
+    existing.addAll(snapshot.docs.map((d) => d.id));
+  }
+  return existing;
+}
+
+/// Applies [diff] and returns the docIds among [SheetDiff.updates] that were
+/// skipped because their target no longer exists — the caller should warn
+/// the admin about these rather than let them pass silently.
+Future<List<String>> applySheetDiff(
   FirebaseFirestore db,
   BatchWriter writer,
   SheetDiff diff,
@@ -117,9 +156,21 @@ Future<void> applySheetDiff(
   for (final docId in diff.deletes) {
     await writer.delete(db.collection(diff.collection).doc(docId));
   }
+
+  final existingIds = await _existingDocIds(
+    db,
+    diff.collection,
+    diff.updates.map((e) => e.key).toList(),
+  );
+  final skipped = <String>[];
   for (final entry in diff.updates) {
+    if (!existingIds.contains(entry.key)) {
+      skipped.add(entry.key);
+      continue;
+    }
     await writer.merge(db.collection(diff.collection).doc(entry.key), entry.value);
   }
+
   for (final fields in diff.creates) {
     final data = Map<String, dynamic>.from(fields);
     if (diff.addsServerTimestamp) {
@@ -127,6 +178,8 @@ Future<void> applySheetDiff(
     }
     await writer.set(db.collection(diff.collection).doc(), data);
   }
+
+  return skipped;
 }
 
 String sheetDiffSummary(SheetDiff diff) {

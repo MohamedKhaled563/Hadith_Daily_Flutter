@@ -31,13 +31,20 @@ class _BulkChangeRequestsPageState extends State<BulkChangeRequestsPage> {
 
   Future<void> _approve(String requestId, Map<String, dynamic> data) async {
     setState(() => _busyRequestIds.add(requestId));
+    BatchWriter? writer;
     try {
       final db = FirebaseFirestore.instance;
       final sheetsJson = Map<String, dynamic>.from(data['sheets'] as Map);
-      final writer = BatchWriter(db);
+      writer = BatchWriter(db);
+      final skippedIds = <String>[];
       for (final entry in sheetsJson.entries) {
         final diff = SheetDiff.fromJson(Map<String, dynamic>.from(entry.value as Map));
-        await applySheetDiff(db, writer, diff);
+        // The diff was captured when the moderator submitted this request,
+        // possibly days before this approval — applySheetDiff's own
+        // existence check (against current Firestore state, not the
+        // snapshot the diff was built from) is what keeps a since-deleted
+        // doc from being silently resurrected by a stale update.
+        skippedIds.addAll(await applySheetDiff(db, writer, diff));
       }
       await writer.flush();
 
@@ -46,10 +53,25 @@ class _BulkChangeRequestsPageState extends State<BulkChangeRequestsPage> {
         'reviewedByUid': FirebaseAuth.instance.currentUser?.uid ?? '',
         'reviewedAt': FieldValue.serverTimestamp(),
       });
+
+      if (mounted && skippedIds.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '⚠️ تم تجاهل ${skippedIds.length} تحديث لأن المستند المستهدف '
+              'حُذف منذ إرسال هذا الطلب',
+            ),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذّرت الموافقة: $e')),
+        SnackBar(
+          content: Text(
+            'تعذّرت الموافقة بعد تطبيق ${writer?.committedCount ?? 0} تغيير: $e',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _busyRequestIds.remove(requestId));

@@ -280,6 +280,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
       _excelResult = null;
     });
 
+    BatchWriter? writer;
     try {
       final workbook = xls.Excel.decodeBytes(bytes);
       final db = FirebaseFirestore.instance;
@@ -343,22 +344,30 @@ class _BulkAddPageState extends State<BulkAddPage> {
         }
       }
 
-      final writer = BatchWriter(db);
+      writer = BatchWriter(db);
+      final skippedIds = <String>[];
       for (final diff in diffs) {
-        await applySheetDiff(db, writer, diff);
+        skippedIds.addAll(await applySheetDiff(db, writer, diff));
       }
       await writer.flush();
 
       if (!mounted) return;
       setState(() {
         _excelResultIsError = false;
-        _excelResult = diffs.map(sheetDiffSummary).join('\n');
+        var result = diffs.map(sheetDiffSummary).join('\n');
+        if (skippedIds.isNotEmpty) {
+          result += '\n⚠️ تم تجاهل ${skippedIds.length} تحديث لأن المستند '
+              'المستهدف لم يعد موجوداً: ${skippedIds.take(6).join('، ')}'
+              '${skippedIds.length > 6 ? '…' : ''}';
+        }
+        _excelResult = result;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _excelResultIsError = true;
-        _excelResult = 'تعذّر الرفع: $e';
+        _excelResult =
+            'تعذّر الرفع بعد تطبيق ${writer?.committedCount ?? 0} تغيير: $e';
       });
     } finally {
       if (mounted) setState(() => _excelBusy = false);
