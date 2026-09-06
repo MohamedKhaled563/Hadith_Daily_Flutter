@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_state_controller.dart';
@@ -18,6 +19,16 @@ final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Every primary screen (Home, Community, Favorites, Daily Message, Share)
+  // is built around a portrait-shaped hero layout with a fixed-height bottom
+  // nav bar — in landscape the nav bar overlaps that content instead of
+  // reflowing. Locking orientation avoids that rather than requiring every
+  // screen in the app to be redesigned for a mode that gives a single-column
+  // Arabic reading app no benefit anyway.
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // AppStateController.init() reads FirebaseAuth.currentUser, so it must run
   // after Firebase is ready.
