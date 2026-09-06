@@ -11,6 +11,7 @@ import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../core/theme/app_state_controller.dart';
+import '../../core/utils/notification_reliability_tip.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/daily_tip_service.dart';
 import '../../data/services/notification_scheduler.dart';
@@ -373,7 +374,9 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
     // settings drawer) — never blocks the home screen on a Firestore round
     // trip or a permission dialog.
     final state = AppStateController();
-    if (state.morningReminderEnabled || state.eveningReminderEnabled) {
+    final anyReminderEnabled =
+        state.morningReminderEnabled || state.eveningReminderEnabled;
+    if (anyReminderEnabled) {
       NotificationScheduler.instance.reschedule(
         morningEnabled: state.morningReminderEnabled,
         morningTime: state.morningReminderTime,
@@ -381,6 +384,18 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
         eveningTime: state.eveningReminderTime,
       );
     }
+
+    // A granted permission only means the OS *will* show a notification if
+    // asked to — MIUI and several other OEMs (plus iOS Focus/Do Not
+    // Disturb) can still keep it from ever appearing, with no way for the
+    // app to detect or fix that. One-time, only if it's actually relevant.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      NotificationReliabilityTip.maybeShow(
+        context,
+        anyReminderEnabled: anyReminderEnabled,
+      );
+    });
 
     _heartbeat = AnimationController(
       vsync: this,

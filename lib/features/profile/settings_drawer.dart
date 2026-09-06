@@ -297,7 +297,14 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
       eveningTime: _state.eveningReminderTime,
     );
     if (enabled && !result.succeeded && mounted) {
-      _toast('تعذّر جدولة التذكيرات، تحقق من اتصالك بالإنترنت وحاول مجدداً');
+      // The bundled fallback pool means a content-fetch failure alone
+      // should no longer ever reach here — so if this does still fire,
+      // the real cause is something else entirely (a plugin/platform
+      // exception, not connectivity), and blaming "your internet" would
+      // be actively misleading. Surfacing the actual error is what makes
+      // that other cause diagnosable instead of a dead end.
+      debugPrint('NotificationScheduler.reschedule failed: ${result.error}');
+      _toast('تعذّر جدولة التذكيرات: ${result.error}');
     }
   }
 

@@ -241,7 +241,16 @@ class NotificationScheduler {
       // notification scheduled below is silently never shown by the OS, no
       // matter how successful this method itself reports. Requesting here
       // covers every caller instead of relying on each one to remember to.
-      await requestPermission();
+      //
+      // Guarded on its own: some OEM builds throw from the underlying
+      // platform call itself (rather than just returning false) — that
+      // must not abort scheduling outright and get blamed on connectivity
+      // by the generic catch below, when it has nothing to do with it.
+      try {
+        await requestPermission();
+      } catch (error) {
+        debugPrint('NotificationScheduler.requestPermission threw: $error');
+      }
 
       final pool = await _loadPool();
       if (pool.isEmpty) {
@@ -254,8 +263,16 @@ class NotificationScheduler {
       final mode = await _dataSource.loadMode();
       final seed = await _deviceSeed();
       final now = tz.TZDateTime.now(tz.local);
-      final useExact = (await _android?.canScheduleExactNotifications()) ??
-          false;
+      bool useExact;
+      try {
+        useExact = (await _android?.canScheduleExactNotifications()) ?? false;
+      } catch (error) {
+        // Some OEM builds throw here rather than just returning false/null
+        // — falls back to inexact rather than failing the whole reschedule
+        // over what's ultimately a "nice to have" scheduling precision.
+        debugPrint('canScheduleExactNotifications threw: $error');
+        useExact = false;
+      }
       final scheduleMode = useExact
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
