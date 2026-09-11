@@ -11,6 +11,9 @@
          User-grantable like POST_NOTIFICATIONS, requested from
          NotificationScheduler.requestPermission(). -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <!-- Lets ScheduledNotificationBootReceiver re-arm reminders after a
+         device reboot (the ones AlarmManager drops on power-off). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application
         android:label="طيّب قلبك"
         android:name="${applicationName}"
@@ -46,6 +49,20 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- flutter_local_notifications (18.x) no longer registers these in its
+             own manifest — without them here, AlarmManager fires but there's no
+             receiver component to deliver the broadcast to, so scheduled
+             reminders silently never show. -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
     </application>
     <queries>
         <intent>

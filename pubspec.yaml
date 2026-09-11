@@ -30,8 +30,13 @@ dependencies:
   # (NotificationScheduler). Local-only, no FCM/server component, so it
   # stays on the free Spark plan like everything else.
   flutter_local_notifications: ^18.0.1
-  timezone: ^0.9.4
-  flutter_timezone: ^3.0.1
+  # Only used for its TZDateTime/Location/TimeZone *types* now (see
+  # NotificationScheduler._deviceLocation) — never for a named IANA zone's
+  # bundled DST rules, which for at least one real zone (Africa/Cairo) have
+  # lagged the real-world policy and caused reminders to schedule at the
+  # wrong instant. The exact version here no longer matters for that reason;
+  # left within what flutter_local_notifications 18.0.1 allows (<0.11.0).
+  timezone: ^0.10.1
   # Used only to detect a Xiaomi/MIUI device — see
   # lib/core/utils/notification_reliability_tip.dart — MIUI's own
   # background/battery restrictions block scheduled reminders independently

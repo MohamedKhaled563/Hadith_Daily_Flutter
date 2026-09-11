@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -111,7 +110,7 @@ class NotificationScheduler {
   Future<void>? _initFuture;
 
   /// The tapped notification's message text (its `payload`, set from
-  /// [_scheduleOne]'s `body`) — set whenever the reader taps a reminder
+  /// [_syncOne]'s `body`) — set whenever the reader taps a reminder
   /// while the app is running (foreground or backgrounded). A cold start
   /// from a terminated state instead goes through
   /// [consumeLaunchPayload], which SplashScreen checks once at launch.
@@ -135,15 +134,17 @@ class NotificationScheduler {
   }
 
   Future<void> _doInitialize() async {
+    // Deliberately NOT using flutter_timezone + tz.setLocalLocation(named
+    // IANA zone) here — see reschedule()'s doc comment for why: the
+    // `timezone` package's bundled DST rules for a volatile zone
+    // (Africa/Cairo, for the reader who reported this) can disagree with
+    // the phone's own current offset, and flutter_local_notifications'
+    // Android side re-derives the alarm time from a TZDateTime's *wall-clock
+    // digits* — which inherit whatever offset the named zone's (possibly
+    // wrong) rule assigns — rather than from its underlying instant. Only
+    // tz_data.initializeTimeZones() is needed here; _deviceLocation() below
+    // builds a location from the OS's own reported offset instead.
     tz_data.initializeTimeZones();
-    try {
-      final name = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(name));
-    } catch (_) {
-      // Falls back to whatever the timezone package defaults to (UTC) —
-      // reminder times would be off, but scheduling still works rather
-      // than crashing outright.
-    }
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
@@ -154,7 +155,7 @@ class NotificationScheduler {
   }
 
   /// Resolves a tapped notification's payload (a `notificationMessages` doc
-  /// id — see [_scheduleOne]) back to the message it actually showed, or
+  /// id — see [_syncOne]) back to the message it actually showed, or
   /// null if [id] is empty or the doc is missing/unreadable (e.g. deleted
   /// since the reminder was scheduled). `notificationMessages` docs have no
   /// hadith association, so this always comes back with `hadithNumber: 0`;
@@ -207,10 +208,20 @@ class NotificationScheduler {
     return true;
   }
 
-  /// Cancels everything this scheduler previously queued and lays down a
-  /// fresh `_daysAhead`-day window from today, honouring which of the two
-  /// slots are enabled and at what time. Safe to call as often as needed —
-  /// e.g. on every app start and every time a reminder setting changes.
+  /// Re-lays the future `_daysAhead`-day window from today, honouring which
+  /// of the two slots are enabled and at what time. Safe to call as often as
+  /// needed — e.g. on every app start and every time a reminder setting
+  /// changes.
+  ///
+  /// Deliberately never touches a slot whose time has already passed today
+  /// (see [_syncOne]): an earlier version called `_plugin.cancelAll()`
+  /// up front, which on Android also dismisses whatever is *currently
+  /// showing* in the notification shade, not just pending alarms — so
+  /// opening the app shortly after a reminder fired (e.g. to check whether
+  /// it arrived) would silently wipe it out again via this same rolling
+  /// reschedule. That is what made reminders look like they fired
+  /// "randomly": they fired every time, but reopening the app right after
+  /// often erased the evidence.
   ///
   /// Never throws: a Firestore/plugin failure is reported through the
   /// returned [NotificationScheduleResult] instead, so a transient offline
@@ -224,32 +235,26 @@ class NotificationScheduler {
   }) async {
     try {
       await _ensureInitialized();
-      await _plugin.cancelAll();
 
-      if (!morningEnabled && !eveningEnabled) {
-        return const NotificationScheduleResult(
-          scheduledCount: 0,
-          usedExactAlarms: false,
-        );
-      }
-
-      // Reminders default to enabled, so the very first reschedule() call
-      // (HomeScreen's initState, on the reader's first-ever app launch)
-      // needs at least one reminder on — and that call never went through
-      // requestPermission() at all, since only the settings-drawer toggle
-      // used to call it. Without POST_NOTIFICATIONS actually granted, every
-      // notification scheduled below is silently never shown by the OS, no
-      // matter how successful this method itself reports. Requesting here
-      // covers every caller instead of relying on each one to remember to.
-      //
-      // Guarded on its own: some OEM builds throw from the underlying
-      // platform call itself (rather than just returning false) — that
-      // must not abort scheduling outright and get blamed on connectivity
-      // by the generic catch below, when it has nothing to do with it.
-      try {
-        await requestPermission();
-      } catch (error) {
-        debugPrint('NotificationScheduler.requestPermission threw: $error');
+      if (morningEnabled || eveningEnabled) {
+        // Reminders default to enabled, so the very first reschedule() call
+        // (HomeScreen's initState, on the reader's first-ever app launch)
+        // needs at least one reminder on — and that call never went through
+        // requestPermission() at all, since only the settings-drawer toggle
+        // used to call it. Without POST_NOTIFICATIONS actually granted, every
+        // notification scheduled below is silently never shown by the OS, no
+        // matter how successful this method itself reports. Requesting here
+        // covers every caller instead of relying on each one to remember to.
+        //
+        // Guarded on its own: some OEM builds throw from the underlying
+        // platform call itself (rather than just returning false) — that
+        // must not abort scheduling outright and get blamed on connectivity
+        // by the generic catch below, when it has nothing to do with it.
+        try {
+          await requestPermission();
+        } catch (error) {
+          debugPrint('NotificationScheduler.requestPermission threw: $error');
+        }
       }
 
       final pool = await _loadPool();
@@ -262,7 +267,24 @@ class NotificationScheduler {
 
       final mode = await _dataSource.loadMode();
       final seed = await _deviceSeed();
-      final now = tz.TZDateTime.now(tz.local);
+      // Deliberately the device's own local clock, not
+      // tz.TZDateTime.now(a named IANA zone): the `timezone` package's
+      // bundled IANA data has repeatedly lagged Egypt's actual
+      // (frequently-reversed) DST policy, which made Africa/Cairo resolve
+      // up to an hour ahead of the phone's real clock — silently skipping
+      // reminders that were still minutes away as "already past", and (once
+      // that comparison was fixed here) still scheduling at the wrong
+      // instant regardless, because flutter_local_notifications' Android
+      // side re-derives the AlarmManager target from a TZDateTime's
+      // wall-clock digits rather than its underlying instant, inheriting
+      // whichever offset the zone's rule assigned to them. _syncOne works
+      // around that by tagging the instant with _deviceLocation(now) — a
+      // location built from this DateTime's own offset, with no DST rule to
+      // disagree with the phone — instead of a named zone. None of this
+      // depends on which real-world zone the device is in or whether its
+      // clock is zone-synced or set manually: it only ever asks the OS what
+      // time it is right now, which is also all the reader is looking at.
+      final now = DateTime.now();
       bool useExact;
       try {
         useExact = (await _android?.canScheduleExactNotifications()) ?? false;
@@ -279,36 +301,35 @@ class NotificationScheduler {
 
       var scheduledCount = 0;
       for (var offset = 0; offset < _daysAhead; offset++) {
-        final day = tz.TZDateTime(tz.local, now.year, now.month, now.day)
+        final day = DateTime(now.year, now.month, now.day)
             .add(Duration(days: offset));
         final message = pickMessageForDay(pool, day, mode, seed);
 
-        if (morningEnabled) {
-          final scheduled = await _scheduleOne(
-            id: offset * 2,
-            day: day,
-            time: morningTime,
-            title: 'رسالة الصباح 🌅',
-            body: message.text,
-            payload: message.id,
-            now: now,
-            scheduleMode: scheduleMode,
-          );
-          if (scheduled) scheduledCount++;
-        }
-        if (eveningEnabled) {
-          final scheduled = await _scheduleOne(
-            id: offset * 2 + 1,
-            day: day,
-            time: eveningTime,
-            title: 'تأمل المساء 🌙',
-            body: message.text,
-            payload: message.id,
-            now: now,
-            scheduleMode: scheduleMode,
-          );
-          if (scheduled) scheduledCount++;
-        }
+        final morningScheduled = await _syncOne(
+          id: offset * 2,
+          day: day,
+          time: morningTime,
+          enabled: morningEnabled,
+          title: 'رسالة الصباح 🌅',
+          body: message.text,
+          payload: message.id,
+          now: now,
+          scheduleMode: scheduleMode,
+        );
+        if (morningScheduled) scheduledCount++;
+
+        final eveningScheduled = await _syncOne(
+          id: offset * 2 + 1,
+          day: day,
+          time: eveningTime,
+          enabled: eveningEnabled,
+          title: 'تأمل المساء 🌙',
+          body: message.text,
+          payload: message.id,
+          now: now,
+          scheduleMode: scheduleMode,
+        );
+        if (eveningScheduled) scheduledCount++;
       }
 
       return NotificationScheduleResult(
@@ -324,18 +345,31 @@ class NotificationScheduler {
     }
   }
 
-  Future<bool> _scheduleOne({
+  /// Brings a single day/slot id in line with the current settings, and
+  /// reports whether it ended up scheduled.
+  ///
+  /// A slot whose time has already passed today is left completely alone —
+  /// no cancel, no reschedule — specifically so a reminder that already
+  /// fired (and may still be sitting in the notification shade) survives
+  /// the next [reschedule] call instead of being wiped by it. Every other
+  /// slot is cancelled first (clearing any stale alarm/shown notification
+  /// for that id) and then re-scheduled only if [enabled].
+  Future<bool> _syncOne({
     required int id,
-    required tz.TZDateTime day,
+    required DateTime day,
     required TimeOfDay time,
+    required bool enabled,
     required String title,
     required String body,
     required String payload,
-    required tz.TZDateTime now,
+    required DateTime now,
     required AndroidScheduleMode scheduleMode,
   }) async {
     final scheduled = resolveScheduledTime(day, time);
     if (isInPast(scheduled, now)) return false;
+
+    await _plugin.cancel(id);
+    if (!enabled) return false;
 
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -348,11 +382,21 @@ class NotificationScheduler {
       iOS: DarwinNotificationDetails(),
     );
 
+    // Tagged with a location built from the device's own live offset
+    // (_deviceLocation), not a named IANA zone: flutter_local_notifications'
+    // Android side re-derives the actual AlarmManager target from this
+    // TZDateTime's *wall-clock digits*, re-interpreted through whatever
+    // offset its location reports — so a named zone whose bundled DST rule
+    // disagrees with the phone's real current offset (see reschedule()'s
+    // doc) would still schedule at the wrong instant even though `scheduled`
+    // itself is correct. A location with no DST rule to get wrong avoids
+    // that regardless of the device's real-world zone, and works the same
+    // way whether the OS clock is zone-synced or set manually.
     await _plugin.zonedSchedule(
       id,
       title,
       body,
-      scheduled,
+      tz.TZDateTime.from(scheduled, _deviceLocation(now)),
       details,
       androidScheduleMode: scheduleMode,
       uiLocalNotificationDateInterpretation:
@@ -446,12 +490,48 @@ List<PoolMessage> buildPool(List<Map<String, dynamic>> docs) {
   return pool;
 }
 
-/// The exact instant a reminder for [day] at [time] should fire, in the
-/// same timezone location as [day] — pulled out so tests can construct one
-/// without going through the platform timezone plugin.
-tz.TZDateTime resolveScheduledTime(tz.TZDateTime day, TimeOfDay time) {
-  return tz.TZDateTime(
-    day.location,
+/// A [tz.Location] with a single, permanent [tz.TimeZone] fixed at [now]'s
+/// own `timeZoneOffset` — i.e. whatever the OS/Dart says the device's UTC
+/// offset actually is *right now*, with no DST rule (or IANA zone
+/// identity) attached at all. Building this fresh from the live device
+/// clock, instead of looking up a named zone via flutter_timezone +
+/// tz.getLocation(), is what makes zonedSchedule's target immune to a
+/// bundled-tzdata/real-world mismatch for any zone, on Android or iOS,
+/// whether the OS clock is zone-synced or set manually — see
+/// [NotificationScheduler.reschedule]'s doc for the bug this replaced.
+///
+/// Named as a `+HH:MM`/`-HH:MM` offset string rather than an arbitrary
+/// label: flutter_local_notifications' Android side re-resolves this
+/// [tz.Location]'s *name* through `java.time.ZoneId.of(...)` when it builds
+/// the actual AlarmManager target, so an arbitrary name (tried first, and
+/// it doesn't get simpler than "local") throws `Unknown time-zone ID` and
+/// silently drops the whole reschedule — `ZoneId.of` does, however, accept
+/// a fixed-offset string like `"+02:00"` directly, with no IANA lookup
+/// involved, which is exactly the "no DST rule to get wrong" guarantee this
+/// needs.
+tz.Location _deviceLocation(DateTime now) {
+  final offset = now.timeZoneOffset;
+  final totalMinutes = offset.inMinutes;
+  final sign = totalMinutes < 0 ? '-' : '+';
+  final absMinutes = totalMinutes.abs();
+  final hours = (absMinutes ~/ 60).toString().padLeft(2, '0');
+  final minutes = (absMinutes % 60).toString().padLeft(2, '0');
+  final name = '$sign$hours:$minutes';
+  return tz.Location(
+    name,
+    const [],
+    const [],
+    [tz.TimeZone(offset.inMilliseconds, isDst: false, abbreviation: name)],
+  );
+}
+
+/// The exact instant a reminder for [day] at [time] should fire, as a plain
+/// (device-local) [DateTime] — pulled out so tests can construct one
+/// directly. Deliberately not a [tz.TZDateTime]: see [NotificationScheduler
+/// .reschedule]'s doc for why local-time arithmetic here avoids the
+/// `timezone` package's offset tables entirely.
+DateTime resolveScheduledTime(DateTime day, TimeOfDay time) {
+  return DateTime(
     day.year,
     day.month,
     day.day,
@@ -464,15 +544,14 @@ tz.TZDateTime resolveScheduledTime(tz.TZDateTime day, TimeOfDay time) {
 /// is skipped rather than fired immediately/in the past. This is the exact
 /// boundary check involved when a reminder set for "one minute from now"
 /// does or doesn't go out.
-bool isInPast(tz.TZDateTime scheduled, tz.TZDateTime now) =>
-    scheduled.isBefore(now);
+bool isInPast(DateTime scheduled, DateTime now) => scheduled.isBefore(now);
 
 /// Which pool message a given calendar day resolves to under 'manual' or
 /// 'random' mode — pulled out of the class so it can be unit tested without
 /// any platform/Firestore dependency.
 PoolMessage pickMessageForDay(
   List<PoolMessage> pool,
-  tz.TZDateTime day,
+  DateTime day,
   String mode,
   int deviceSeed,
 ) {

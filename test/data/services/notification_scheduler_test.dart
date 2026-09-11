@@ -71,7 +71,8 @@ void main() {
           onDidReceiveNotificationResponse:
               any(named: 'onDidReceiveNotificationResponse'),
         )).thenAnswer((_) async => true);
-    when(() => plugin.cancelAll()).thenAnswer((_) async {});
+    when(() => plugin.cancel(any(), tag: any(named: 'tag')))
+        .thenAnswer((_) async {});
     when(() => plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>()).thenReturn(androidPlugin);
     when(() => plugin.zonedSchedule(
@@ -169,9 +170,17 @@ void main() {
   });
 
   group('resolveScheduledTime / isInPast', () {
+    // Deliberately plain (non-UTC, non-TZDateTime) DateTimes: reschedule()
+    // now does all of its local-time arithmetic this way on purpose — see
+    // its doc comment — specifically to stay correct even when the
+    // `timezone` package's bundled offset table for the device's zone is
+    // wrong (as it was for Africa/Cairo, the bug these two tests are named
+    // after). Mixing in a UTC TZDateTime here would silently reintroduce
+    // exactly that class of bug into the test itself on any machine whose
+    // local offset isn't zero.
     test('reproduces the reported bug window: set for one minute ahead', () {
-      final now = tz.TZDateTime(tz.UTC, 2026, 9, 5, 11, 53);
-      final day = tz.TZDateTime(tz.UTC, 2026, 9, 5);
+      final now = DateTime(2026, 9, 5, 11, 53);
+      final day = DateTime(2026, 9, 5);
       final scheduled =
           resolveScheduledTime(day, const TimeOfDay(hour: 11, minute: 54));
 
@@ -181,8 +190,8 @@ void main() {
     });
 
     test('a time already passed today is treated as in the past', () {
-      final now = tz.TZDateTime(tz.UTC, 2026, 9, 5, 11, 55);
-      final day = tz.TZDateTime(tz.UTC, 2026, 9, 5);
+      final now = DateTime(2026, 9, 5, 11, 55);
+      final day = DateTime(2026, 9, 5);
       final scheduled =
           resolveScheduledTime(day, const TimeOfDay(hour: 11, minute: 54));
 
@@ -214,8 +223,11 @@ void main() {
               any(named: 'uiLocalNotificationDateInterpretation')));
     });
 
-    test('always clears the previous schedule before laying a new one',
-        () async {
+    test(
+        'clears every future slot (but never a past one) when both '
+        'reminders are disabled — using per-id cancel rather than '
+        'cancelAll(), which would also dismiss whatever is currently '
+        'showing in the notification shade', () async {
       final scheduler = NotificationScheduler.test(
         plugin: plugin,
         dataSource: _FakeDataSource(messages: activePool),
@@ -228,7 +240,16 @@ void main() {
         eveningTime: const TimeOfDay(hour: 20, minute: 0),
       );
 
-      verify(() => plugin.cancelAll()).called(1);
+      // 14 days ahead, two slots/day = up to 28 cancels; at least the 13
+      // guaranteed-future days' worth (today's own two slots may or may not
+      // have already passed depending on wall-clock time when this runs).
+      verify(() => plugin.cancel(any(), tag: any(named: 'tag')))
+          .called(greaterThanOrEqualTo(26));
+      verifyNever(() => plugin.zonedSchedule(any(), any(), any(), any(),
+          any(),
+          androidScheduleMode: any(named: 'androidScheduleMode'),
+          uiLocalNotificationDateInterpretation:
+              any(named: 'uiLocalNotificationDateInterpretation')));
     });
 
     test('schedules nothing when the message pool is empty', () async {
@@ -293,6 +314,13 @@ void main() {
 
       expect(result.succeeded, isTrue);
       expect(result.scheduledCount, 13); // 14 days ahead minus today
+      // id 0 is today's morning slot (offset 0 * 2) — its time (midnight)
+      // is already past, so it must be left completely untouched: no
+      // cancel, no reschedule. This is what stops a reminder that already
+      // fired (and may still be sitting in the shade) from being wiped out
+      // by the very next reschedule() call, e.g. when the reader opens the
+      // app to check whether it arrived.
+      verifyNever(() => plugin.cancel(0, tag: any(named: 'tag')));
     });
 
     test('schedules today too when the requested time is still ahead',
