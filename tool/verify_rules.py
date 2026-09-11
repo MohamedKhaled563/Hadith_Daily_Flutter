@@ -301,6 +301,88 @@ def main() -> int:
     resp = requests.get(f"{FIRESTORE_URL}/notificationMessages", headers=rest_headers(None))
     check("signed-out user lists notification messages", resp.status_code == 200, False)
 
+    print("\n== phase 16: dailyMessages/notificationMessages moderator-creates/admin-edits ==")
+
+    # uid_a plays moderator for this section only — demoted back to 'user'
+    # at the end so later sections (which assume uid_a starts as 'user')
+    # aren't affected.
+    admin_update("users", uid_a, {"role": "moderator"})
+    token_a_mod = id_token_for(uid_a)
+
+    # A moderator creating a dailyMessages doc — still allowed (unchanged).
+    resp = create_doc(
+        "dailyMessages",
+        {"hadithNumber": 1, "arabic": "رسالة يومية من مشرف", "order": 150},
+        token_a_mod,
+    )
+    check("moderator creates a dailyMessages doc", resp.status_code == 200, True)
+    daily_doc_name = resp.json().get("name") if resp.status_code == 200 else None
+
+    if daily_doc_name:
+        daily_doc_id = daily_doc_name.rsplit("/", 1)[-1]
+
+        # A moderator (non-admin) editing that doc — must now be denied.
+        resp = requests.patch(
+            f"{FIRESTORE_URL}/dailyMessages/{daily_doc_id}?updateMask.fieldPaths=arabic",
+            json={"fields": _encode_fields({"arabic": "تعديل من مشرف"})},
+            headers=rest_headers(token_a_mod),
+        )
+        check("moderator (non-admin) edits an existing dailyMessages doc", resp.status_code == 200, False)
+
+        # A moderator (non-admin) deleting that doc — must now be denied.
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/dailyMessages/{daily_doc_id}", headers=rest_headers(token_a_mod)
+        )
+        check("moderator (non-admin) deletes an existing dailyMessages doc", resp.status_code == 200, False)
+
+        # An admin editing that same doc — still allowed.
+        resp = requests.patch(
+            f"{FIRESTORE_URL}/dailyMessages/{daily_doc_id}?updateMask.fieldPaths=arabic",
+            json={"fields": _encode_fields({"arabic": "تعديل من مدير"})},
+            headers=rest_headers(token_admin),
+        )
+        check("admin edits an existing dailyMessages doc", resp.status_code == 200, True)
+
+        # An admin deleting it — allowed (cleanup).
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/dailyMessages/{daily_doc_id}", headers=rest_headers(token_admin)
+        )
+        check("admin deletes a dailyMessages doc", resp.status_code == 200, True)
+
+    # A moderator creating a notificationMessages doc — still allowed.
+    resp = create_doc(
+        "notificationMessages",
+        {"text": "رسالة تنبيه من مشرف", "order": 5, "active": True},
+        token_a_mod,
+    )
+    check("moderator creates a notificationMessages doc", resp.status_code == 200, True)
+    notif_doc_name2 = resp.json().get("name") if resp.status_code == 200 else None
+
+    if notif_doc_name2:
+        notif_doc_id2 = notif_doc_name2.rsplit("/", 1)[-1]
+
+        # A moderator (non-admin) editing it — must now be denied.
+        resp = requests.patch(
+            f"{FIRESTORE_URL}/notificationMessages/{notif_doc_id2}?updateMask.fieldPaths=text",
+            json={"fields": _encode_fields({"text": "تعديل من مشرف"})},
+            headers=rest_headers(token_a_mod),
+        )
+        check("moderator (non-admin) edits an existing notificationMessages doc", resp.status_code == 200, False)
+
+        # A moderator (non-admin) deleting it — must now be denied.
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/notificationMessages/{notif_doc_id2}", headers=rest_headers(token_a_mod)
+        )
+        check("moderator (non-admin) deletes an existing notificationMessages doc", resp.status_code == 200, False)
+
+        # An admin deleting it — allowed (cleanup).
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/notificationMessages/{notif_doc_id2}", headers=rest_headers(token_admin)
+        )
+        check("admin deletes a notificationMessages doc", resp.status_code == 200, True)
+
+    admin_update("users", uid_a, {"role": "user"})
+
     print("\n== communityMessages create ==")
 
     # Valid pending submission by its own author — should be allowed.

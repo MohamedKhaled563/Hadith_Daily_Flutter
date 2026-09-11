@@ -39,7 +39,15 @@ rules_version = '2';
 // per-device, no server push involved). Phase 14 lets a moderator/admin
 // create a communityMessages doc directly (any status) from the
 // dashboard's Excel bulk-edit tab, alongside the existing author-submits-
-// pending path.
+// pending path. Phase 16 narrows dailyMessages/notificationMessages update
+// and delete from isModerator() to isAdmin() — a moderator's Excel bulk
+// tool went create-only (BulkAddPage._restrictToCreatesOnly), and these
+// two collections have no other moderator-facing edit path, so this closes
+// the gap where a moderator could still write directly against the rules
+// even though the dashboard UI no longer offers it. communityMessages is
+// untouched: its isModerator() update/delete is what the pending-queue
+// approve/reject workflow runs on, a legitimate per-item moderator duty
+// unrelated to the bulk tool.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -71,33 +79,43 @@ service cloud.firestore {
     //   2. ANY signed-in device that just picked this as its own daily
     //      tip, but only ever moving `timesShown` up by exactly one and
     //      stamping `lastShownAt` — phase 5's delivery engine.
+    // Phase 16: a moderator may only ever create here (the dashboard's bulk
+    // tool gives them an empty template, never the existing rows) — editing
+    // or deleting an existing message is admin-only from this point on,
+    // matching the dashboard's BulkAddPage role split. The any-signed-in-
+    // device timesShown/lastShownAt clause is unrelated (phase 5's delivery
+    // engine) and stays open to every signed-in device, not just staff.
     match /dailyMessages/{messageId} {
       allow read: if true;
       allow create: if isModerator();
-      allow update: if isModerator()
+      allow update: if isAdmin()
                   || (request.auth != null
                       && request.resource.data.diff(resource.data)
                            .affectedKeys().hasOnly(['timesShown', 'lastShownAt'])
                       && request.resource.data.timesShown
                            == resource.data.get('timesShown', 0) + 1);
-      allow delete: if isModerator();
+      allow delete: if isAdmin();
     }
 
     // Phase 12: a small curated pool a moderator/admin manages from the
     // dashboard's "رسائل التنبيه" tab. NotificationScheduler picks from the
     // `active` ones — public read since any signed-in device needs it to
     // schedule its own local notifications; only a moderator/admin writes.
+    // Phase 16: same moderator-creates/admin-edits split as dailyMessages
+    // above, for the same reason — this pool has no individual moderator
+    // workflow of its own (unlike communityMessages' pending queue), so
+    // there's nothing legitimate for a moderator to update or delete here.
     match /notificationMessages/{messageId} {
       allow read: if request.auth != null;
       allow create: if isModerator()
                   && request.resource.data.text is string
                   && request.resource.data.text.size() > 0
                   && request.resource.data.text.size() <= 300;
-      allow update: if isModerator()
+      allow update: if isAdmin()
                   && request.resource.data.text is string
                   && request.resource.data.text.size() > 0
                   && request.resource.data.text.size() <= 300;
-      allow delete: if isModerator();
+      allow delete: if isAdmin();
     }
 
     // Phase 15: a moderator's Excel bulk-edit (bulk_add_page.dart) that

@@ -13,19 +13,28 @@ import 'bulk_sync.dart';
 /// tool, no spreadsheet host, everything through the dashboard itself:
 ///
 ///  1. Quick paste — one hadith, many new lines, fastest for adding to
-///     dailyMessages specifically.
+///     dailyMessages specifically. Always create-only, for both roles.
 ///  2. Excel round trip — one workbook, three sheet tabs (one per
 ///     collection: dailyMessages, communityMessages, notificationMessages).
-///     Edit existing text/status/order or append new rows in any sheet,
-///     upload it back. Rows with a docId are updated in place; blank-docId
-///     rows are created; clearing a row's text deletes that document.
+///
+/// The Excel round trip is role-gated:
+///  - Admins download the *current* data (every existing row, with its
+///    docId) and can edit or clear any cell: a row with a docId is updated
+///    in place, a blank-docId row is created, and clearing a row's text
+///    deletes that document. Admins see and can change everything.
+///  - Moderators never see existing content through this tool — they
+///    download an *empty* template (headers only) and can only append new
+///    rows. There is nothing to download-and-reupload: moderators add,
+///    admins edit/modify. Even if a moderator's uploaded sheet somehow
+///    carries a docId (a hand-edited file, say), any update/delete it
+///    implies is dropped rather than applied — see [_restrictToCreatesOnly].
 ///
 /// Both the download and the upload go through package:file_picker's
 /// saveFile()/pickFile(), which handle the browser download/upload dance
 /// for us — no direct dart:html usage needed here.
 ///
-/// A moderator's upload that touches more than [kBulkChangeThreshold] items
-/// is staged in `bulkChangeRequests` instead of applied immediately — an
+/// A moderator's upload that adds more than [kBulkChangeThreshold] items is
+/// still staged in `bulkChangeRequests` instead of applied immediately — an
 /// admin approves it from BulkChangeRequestsPage. Admins always apply at
 /// once, since they'd otherwise have to approve their own edits.
 class BulkAddPage extends StatefulWidget {
@@ -261,6 +270,56 @@ class _BulkAddPageState extends State<BulkAddPage> {
     }
   }
 
+  /// Moderator-only counterpart to [_downloadExcel]: the same three sheet
+  /// tabs and headers, but no Firestore reads and no data rows — a
+  /// moderator never sees existing content through this tool, only ever
+  /// appends to it. Nothing here can leak or overwrite current data because
+  /// there's nothing of the current data in the file to begin with.
+  Future<void> _downloadTemplate() async {
+    setState(() {
+      _excelBusy = true;
+      _excelResult = null;
+    });
+
+    try {
+      final workbook = xls.Excel.createExcel();
+      workbook[_dailySheet]
+          .appendRow(_dailyHeaders.map(xls.TextCellValue.new).toList());
+      workbook[_communitySheet]
+          .appendRow(_communityHeaders.map(xls.TextCellValue.new).toList());
+      workbook[_notificationSheet]
+          .appendRow(_notificationHeaders.map(xls.TextCellValue.new).toList());
+
+      if (workbook.sheets.containsKey('Sheet1')) {
+        workbook.delete('Sheet1');
+      }
+
+      final bytes = workbook.encode();
+      if (bytes == null) throw StateError('تعذّر إنشاء ملف Excel');
+      await FilePicker.saveFile(
+        fileName: 'hadith-messages-template.xlsx',
+        bytes: Uint8List.fromList(bytes),
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _excelResultIsError = false;
+        _excelResult = 'تم تنزيل نموذج فارغ. أضف صفوف الرسائل الجديدة في أي '
+            'ورقة (اترك عمود "المعرف" فارغاً) ثم ارفعه.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _excelResultIsError = true;
+        _excelResult = 'تعذّر التنزيل: $e';
+      });
+    } finally {
+      if (mounted) setState(() => _excelBusy = false);
+    }
+  }
+
   String _formatTimestamp(Timestamp ts) {
     final d = ts.toDate();
     String two(int n) => n.toString().padLeft(2, '0');
@@ -284,7 +343,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
     try {
       final workbook = xls.Excel.decodeBytes(bytes);
       final db = FirebaseFirestore.instance;
-      final diffs = <SheetDiff>[];
+      var diffs = <SheetDiff>[];
 
       if (workbook.tables.containsKey(_dailySheet)) {
         diffs.add(await _diffDailyMessages(db, workbook.tables[_dailySheet]!));
@@ -303,9 +362,27 @@ class _BulkAddPageState extends State<BulkAddPage> {
         );
       }
 
+      // Moderators can only add — even if their uploaded sheet carries a
+      // docId (the empty template never has one, but a hand-edited file
+      // could), any update or delete it implies is dropped here rather than
+      // applied. Only an admin's upload can touch existing documents.
+      var rejectedUpdates = 0;
+      var rejectedDeletes = 0;
+      if (!widget.isAdmin) {
+        final restricted = _restrictToCreatesOnly(diffs);
+        diffs = restricted.diffs;
+        rejectedUpdates = restricted.rejectedUpdates;
+        rejectedDeletes = restricted.rejectedDeletes;
+      }
+      final rejectedNote = (rejectedUpdates > 0 || rejectedDeletes > 0)
+          ? '\n⚠️ تم تجاهل $rejectedUpdates تحديثاً و$rejectedDeletes حذفاً — '
+              'المشرفون يمكنهم فقط إضافة عناصر جديدة، لا تعديل أو حذف '
+              'الموجود؛ للتعديل أو الحذف تواصل مع المدير.'
+          : '';
+
       final totalChanges = diffs.fold(0, (n, d) => n + d.changeCount);
 
-      // A moderator's large bulk edit needs an admin's sign-off first —
+      // A moderator's large bulk add needs an admin's sign-off first —
       // stage it instead of writing directly. Admins always apply at once,
       // regardless of size, since they're the ones who'd otherwise have to
       // approve their own change.
@@ -325,7 +402,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
           _excelResultIsError = false;
           _excelResult = 'هذا التعديل يشمل $totalChanges عنصراً (أكثر من '
               '$kBulkChangeThreshold) فتم إرساله لمراجعة المدير قبل التنفيذ '
-              '— راجع تبويب "طلبات المراجعة" لمتابعة حالته.';
+              '— راجع تبويب "طلبات المراجعة" لمتابعة حالته.$rejectedNote';
         });
         return;
       }
@@ -360,6 +437,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
               'المستهدف لم يعد موجوداً: ${skippedIds.take(6).join('، ')}'
               '${skippedIds.length > 6 ? '…' : ''}';
         }
+        result += rejectedNote;
         _excelResult = result;
       });
     } catch (e) {
@@ -728,6 +806,33 @@ class _BulkAddPageState extends State<BulkAddPage> {
     );
   }
 
+  /// Drops every update/delete from [diffs], keeping only creates — the
+  /// enforcement point for "moderators can only add new items". Applied
+  /// after diffing rather than by refusing to build updates/deletes in the
+  /// first place, so it also catches a hand-edited sheet that adds a docId
+  /// the moderator was never given (the template ships with none).
+  _RestrictedDiffs _restrictToCreatesOnly(List<SheetDiff> diffs) {
+    var rejectedUpdates = 0;
+    var rejectedDeletes = 0;
+    final restricted = <SheetDiff>[];
+    for (final d in diffs) {
+      rejectedUpdates += d.updates.length;
+      rejectedDeletes += d.deletes.length;
+      restricted.add(
+        SheetDiff(
+          collection: d.collection,
+          label: d.label,
+          creates: d.creates,
+          updates: const [],
+          deletes: const [],
+          invalidRows: d.invalidRows,
+          addsServerTimestamp: d.addsServerTimestamp,
+        ),
+      );
+    }
+    return _RestrictedDiffs(restricted, rejectedUpdates, rejectedDeletes);
+  }
+
   /// True when every field the upload would write already matches what's
   /// in Firestore — lets a no-op download→upload round trip report "0
   /// updated" instead of rewriting every row with identical data.
@@ -774,26 +879,33 @@ class _BulkAddPageState extends State<BulkAddPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'تنزيل ورفع Excel',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            Text(
+              widget.isAdmin ? 'تنزيل ورفع Excel' : 'إضافة عبر Excel',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'ملف واحد بثلاث أوراق (تبويبات): "رسائل اليوم"، "مجتمع الحديث"، '
-              '"رسائل التنبيه". عدّل النصوص أو أضف صفوفاً جديدة (اترك عمود '
-              '"المعرف" فارغاً للصفوف الجديدة) في أي ورقة، ثم ارفع الملف — '
-              'الصفوف ذات المعرف تُحدَّث، والجديدة تُضاف. لحذف رسالة، أبقِ '
-              'عمود "المعرف" كما هو وامسح عمود "النص" فقط. في ورقة "مجتمع '
-              'الحديث"، عمود "الحالة" يقبل: قيد المراجعة / معتمدة / مرفوضة — '
-              'وتغييره هو نفسه إجراء الاعتماد أو الرفض.',
-            ),
-            if (!widget.isAdmin) ...[
+            if (widget.isAdmin)
+              const Text(
+                'ملف واحد بثلاث أوراق (تبويبات): "رسائل اليوم"، "مجتمع الحديث"، '
+                '"رسائل التنبيه". عدّل النصوص أو أضف صفوفاً جديدة (اترك عمود '
+                '"المعرف" فارغاً للصفوف الجديدة) في أي ورقة، ثم ارفع الملف — '
+                'الصفوف ذات المعرف تُحدَّث، والجديدة تُضاف. لحذف رسالة، أبقِ '
+                'عمود "المعرف" كما هو وامسح عمود "النص" فقط. في ورقة "مجتمع '
+                'الحديث"، عمود "الحالة" يقبل: قيد المراجعة / معتمدة / مرفوضة — '
+                'وتغييره هو نفسه إجراء الاعتماد أو الرفض.',
+              )
+            else ...[
+              const Text(
+                'نزّل نموذجاً فارغاً بثلاث أوراق، أضف صفوف الرسائل الجديدة فيه '
+                'فقط (اترك عمود "المعرف" فارغاً)، ثم ارفعه. لا يمكنك هنا رؤية '
+                'الرسائل الحالية ولا تعديلها أو حذفها — هذا التنقيح متاح '
+                'للمدير فقط؛ لمراجعة مشاركات المجتمع فرداً فرداً استخدم تبويب '
+                '"قائمة المراجعة".',
+              ),
               const SizedBox(height: 8),
               Text(
-                'ملاحظة: أي رفعة تشمل أكثر من $kBulkChangeThreshold عناصر '
-                '(تحديث + حذف + إضافة) تُرسَل لمراجعة المدير قبل التنفيذ، '
-                'ولا تُطبَّق مباشرة.',
+                'ملاحظة: أي رفعة تضيف أكثر من $kBulkChangeThreshold عناصر '
+                'تُرسَل لمراجعة المدير قبل التنفيذ، ولا تُطبَّق مباشرة.',
                 style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
               ),
             ],
@@ -802,9 +914,11 @@ class _BulkAddPageState extends State<BulkAddPage> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _excelBusy ? null : _downloadExcel,
+                    onPressed: _excelBusy
+                        ? null
+                        : (widget.isAdmin ? _downloadExcel : _downloadTemplate),
                     icon: const Icon(Icons.download_rounded),
-                    label: const Text('تنزيل Excel'),
+                    label: Text(widget.isAdmin ? 'تنزيل Excel' : 'تنزيل نموذج فارغ'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -898,4 +1012,15 @@ class _BulkAddPageState extends State<BulkAddPage> {
       ),
     );
   }
+}
+
+/// Result of [_BulkAddPageState._restrictToCreatesOnly] — the create-only
+/// diffs plus how many update/delete rows were dropped, so the caller can
+/// tell the moderator why their upload didn't fully match what they typed.
+class _RestrictedDiffs {
+  _RestrictedDiffs(this.diffs, this.rejectedUpdates, this.rejectedDeletes);
+
+  final List<SheetDiff> diffs;
+  final int rejectedUpdates;
+  final int rejectedDeletes;
 }
