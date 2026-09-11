@@ -16,13 +16,24 @@ class HadithDetailScreen extends StatelessWidget {
   final Hadith hadith;
 
   void _copyHadith(BuildContext context) {
-    final buffer = StringBuffer()
-      ..writeln('« ${hadith.title} »')
-      ..writeln('الحديث رقم ${hadith.number} من الأربعين النووية\n')
-      ..writeln('نص الحديث:')
+    final buffer = StringBuffer()..writeln('« ${hadith.title} »');
+    if (hadith.narrator.isNotEmpty) {
+      buffer.writeln('الراوي: ${hadith.narrator}');
+    }
+    buffer.writeln('الحديث رقم ${hadith.number} من الأربعين النووية\n');
+    buffer.writeln('نص الحديث:');
+    if (hadith.isnad.isNotEmpty) {
+      buffer.writeln(hadith.isnad);
+    }
+    buffer
       ..writeln(hadith.text)
       ..writeln('\nالمصدر: ${hadith.reference}');
 
+    if (hadith.shortExplanation.isNotEmpty) {
+      buffer
+        ..writeln('\nخلاصة الشرح:')
+        ..writeln(hadith.shortExplanation);
+    }
     if (hadith.explanation.isNotEmpty) {
       buffer
         ..writeln('\nالشرح:')
@@ -143,6 +154,22 @@ class HadithDetailScreen extends StatelessWidget {
                         title: 'نص الحديث الشريف',
                       ),
                       const SizedBox(height: 14),
+                      if (hadith.isnad.isNotEmpty) ...[
+                        // The isnad/ananah phrase that introduces the hadith
+                        // (عنعنة) — set apart from the hadith text itself so
+                        // the reader can tell where the chain of narration
+                        // ends and the Prophet's words begin.
+                        Text(
+                          hadith.isnad,
+                          textAlign: TextAlign.start,
+                          style: AppTextStyles.hadithText.copyWith(
+                            fontSize: 15,
+                            fontStyle: FontStyle.italic,
+                            color: palette.bodyText.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                       // The Prophetic text in Amiri — a Naskh face — set apart
                       // from the Tajawal UI chrome around it.
                       Text(
@@ -152,34 +179,74 @@ class HadithDetailScreen extends StatelessWidget {
                           color: palette.bodyText,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      Align(
-                        alignment: AlignmentDirectional.centerEnd,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: palette.surface,
-                            borderRadius: BorderRadius.circular(AppRadii.pill),
-                            border: Border.all(color: palette.cardBorder),
-                          ),
-                          child: Text(
-                            hadith.reference,
-                            style: TextStyle(
-                              fontFamily: kSans,
-                              fontSize: 12,
-                              height: AppLeading.chrome,
-                              fontWeight: FontWeight.w700,
-                              color: palette.goldText,
+                      if (hadith.narrator.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: palette.surface,
+                              borderRadius: BorderRadius.circular(
+                                AppRadii.pill,
+                              ),
+                              border: Border.all(color: palette.cardBorder),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.person_outline_rounded,
+                                  size: 14,
+                                  color: palette.goldText,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  hadith.narrator,
+                                  style: TextStyle(
+                                    fontFamily: kSans,
+                                    fontSize: 12,
+                                    height: AppLeading.chrome,
+                                    fontWeight: FontWeight.w700,
+                                    color: palette.goldText,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
+                if (hadith.shortExplanation.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  ParchmentCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _CardHeading(
+                          icon: Icons.summarize_rounded,
+                          title: 'خلاصة الشرح',
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          hadith.shortExplanation,
+                          textAlign: TextAlign.start,
+                          style: TextStyle(
+                            fontFamily: kSans,
+                            fontSize: 14.5,
+                            height: AppLeading.body,
+                            color: palette.bodyText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 if (hadith.explanation.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   ParchmentCard(

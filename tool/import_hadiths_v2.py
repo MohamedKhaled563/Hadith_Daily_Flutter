@@ -7,10 +7,12 @@ previously sourced from `Hadith App DB.xlsx` by the now-retired
 The database and the bundled JSON are both meant to hold only this
 workbook's data — see `import_daily_messages_v2.py` for the same decision
 applied to `dailyMessages`/`insights.json`. This script therefore captures
-every column the sheet has, without inventing fields the old workbook had
-that this one doesn't (no `reference`, `keyLessons`, or `narratorBio` — this
-workbook simply doesn't supply them; the Hadith model's own fallbacks and
-empty defaults cover their absence).
+every column the sheet has, without inventing fields the workbook doesn't
+supply (no `keyLessons`/`narratorBio` — the Hadith model's own empty
+defaults cover their absence). The sheet now also supplies the narrator's
+name (الراوي) and the isnad/ananah phrase that introduces the hadith text
+(عنعنة), which map to the model's `narrator`/`isnad` fields, and a short
+explanation alongside the full one.
 
 Run from the project root:
 
@@ -58,7 +60,16 @@ def load_hadiths() -> list[dict]:
 
     hadiths = []
     for row in sheet.iter_rows(min_row=2, values_only=True):
-        hadith_id, title, text, full_expl, short_expl, messages_count = row
+        (
+            hadith_id,
+            title,
+            narrator,
+            isnad,
+            text,
+            full_expl,
+            short_expl,
+            messages_count,
+        ) = row
         if hadith_id is None:
             continue
 
@@ -67,6 +78,8 @@ def load_hadiths() -> list[dict]:
             {
                 "number": num,
                 "title": clean(title),
+                "narrator": clean(narrator),
+                "isnad": clean(isnad),
                 "text": clean(text),
                 "fullExplanation": clean(full_expl),
                 "shortExplanation": clean(short_expl),
@@ -83,18 +96,21 @@ def write_json(hadiths: list[dict]) -> None:
     """Write `assets/data/hadiths.json` in the shape `Hadith.fromJson` expects.
 
     `fullExplanation` becomes the JSON `explanation` field — the app's detail
-    screen shows one explanation, and the full one is the closer match to
-    what that field held before. `reference`/`keyLessons`/`narratorBio` are
-    simply omitted; the Dart model already defaults each of them (a fixed
-    reference string, an empty list, an empty string) when the JSON doesn't
-    have the key, so nothing breaks by leaving them out.
+    screen shows it as the main explanation card. `shortExplanation` is kept
+    alongside it for the brief-summary card. `reference`/`keyLessons`/
+    `narratorBio` are simply omitted; the Dart model already defaults each of
+    them (a fixed reference string, an empty list, an empty string) when the
+    JSON doesn't have the key, so nothing breaks by leaving them out.
     """
     records = [
         {
             "number": h["number"],
             "title": h["title"],
+            "narrator": h["narrator"],
+            "isnad": h["isnad"],
             "text": h["text"],
             "explanation": h["fullExplanation"],
+            "shortExplanation": h["shortExplanation"],
         }
         for h in hadiths
     ]
