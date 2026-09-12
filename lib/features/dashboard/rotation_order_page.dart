@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-/// One row in the delivery pool — either a dailyMessages doc or an approved
-/// communityMessages doc, unified for display. See DailyTipService, which
-/// draws from exactly this same pool.
+/// One row in the delivery pool — either a dailyMessages doc ("رسائل
+/// اليوم", added by staff) or an approved communityMessages doc
+/// ("مشاركات المجتمع", submitted by app users and approved from the
+/// pending queue). Unified for display — see DailyTipService, which draws
+/// from exactly this same pool.
 class _PoolEntry {
   _PoolEntry({
     required this.ref,
@@ -18,12 +20,22 @@ class _PoolEntry {
   final DocumentReference<Map<String, dynamic>> ref;
   final String text;
   final int hadithNumber;
-  final int order;
+  int order;
   final int timesShown;
   final Timestamp? lastShownAt;
   final String source; // 'dailyMessages' | 'communityMessages'
 }
 
+enum _SourceFilter { all, daily, community }
+
+/// Order is only meaningful in manual delivery mode, and only coherent
+/// when dragging the *whole* mixed pool — reordering a filtered/searched
+/// subset would leave the hidden items' order values interleaved
+/// incorrectly. So dragging (and the single "حفظ الترتيب" batch save,
+/// same pattern as NotificationMessagesPage) is only enabled with no
+/// search text and the "الكل" filter selected; a specific-source filter or
+/// active search still lets you browse and see each row's order, just not
+/// drag it.
 class RotationOrderPage extends StatefulWidget {
   const RotationOrderPage({super.key});
 
@@ -35,13 +47,12 @@ class _RotationOrderPageState extends State<RotationOrderPage> {
   final _db = FirebaseFirestore.instance;
   final _searchController = TextEditingController();
   String _search = '';
+  _SourceFilter _filter = _SourceFilter.all;
 
-  // Loaded once rather than on every keystroke: _search used to be threaded
-  // straight into a FutureBuilder that re-ran two full collection reads per
-  // character typed, resetting the list to a loading spinner (and losing
-  // scroll position) each time. Filtering below now runs against this one
-  // cached fetch instead.
-  late final Future<List<_PoolEntry>> _poolFuture = _loadPool();
+  late Future<List<_PoolEntry>> _poolFuture = _loadPool();
+  List<_PoolEntry>? _entries;
+  bool _orderDirty = false;
+  bool _savingOrder = false;
 
   @override
   void dispose() {
@@ -95,67 +106,202 @@ class _RotationOrderPageState extends State<RotationOrderPage> {
     return entries;
   }
 
+  void _reload() {
+    setState(() {
+      _orderDirty = false;
+      _entries = null;
+      _poolFuture = _loadPool();
+    });
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    final entries = _entries;
+    if (entries == null) return;
+    setState(() {
+      final item = entries.removeAt(oldIndex);
+      entries.insert(newIndex, item);
+      for (var i = 0; i < entries.length; i++) {
+        entries[i].order = i;
+      }
+      _orderDirty = true;
+    });
+  }
+
+  Future<void> _saveOrder() async {
+    final entries = _entries;
+    if (entries == null || _savingOrder) return;
+    setState(() => _savingOrder = true);
+    try {
+      final batch = _db.batch();
+      for (final entry in entries) {
+        batch.update(entry.ref, {'order': entry.order});
+      }
+      await batch.commit();
+      if (mounted) {
+        setState(() {
+          _orderDirty = false;
+          _savingOrder = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حفظ الترتيب')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _savingOrder = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذّر حفظ الترتيب')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
       children: [
-        _ModeToggle(onChanged: _setMode),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: TextField(
-            controller: _searchController,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search_rounded),
-              hintText: 'ابحث برقم الحديث أو جزء من النص...',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            onChanged: (v) => setState(() => _search = v.trim()),
-          ),
-        ),
-        Expanded(
-          child: FutureBuilder<List<_PoolEntry>>(
-            future: _poolFuture,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Center(child: Text('تعذّر التحميل: ${snapshot.error}'));
-              }
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              var entries = snapshot.data!;
-              if (_search.isNotEmpty) {
-                final asNumber = int.tryParse(_search);
-                entries = entries
-                    .where(
-                      (e) =>
-                          (asNumber != null && e.hadithNumber == asNumber) ||
-                          e.text.contains(_search),
-                    )
-                    .toList();
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                itemCount: entries.length,
-                itemBuilder: (context, index) => _PoolRow(
-                  key: ValueKey(entries[index].ref.path),
-                  entry: entries[index],
+        Column(
+          children: [
+            _ModeToggle(onChanged: _setMode, onRefresh: _reload),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search_rounded),
+                  hintText: 'ابحث برقم الحديث أو جزء من النص...',
+                  border: OutlineInputBorder(),
+                  isDense: true,
                 ),
-              );
-            },
-          ),
+                onChanged: (v) => setState(() => _search = v.trim()),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: SegmentedButton<_SourceFilter>(
+                  segments: const [
+                    ButtonSegment(value: _SourceFilter.all, label: Text('الكل')),
+                    ButtonSegment(
+                      value: _SourceFilter.daily,
+                      label: Text('رسائل اليوم'),
+                    ),
+                    ButtonSegment(
+                      value: _SourceFilter.community,
+                      label: Text('مشاركات المجتمع'),
+                    ),
+                  ],
+                  selected: {_filter},
+                  onSelectionChanged: (s) => setState(() => _filter = s.first),
+                ),
+              ),
+            ),
+            Expanded(
+              child: FutureBuilder<List<_PoolEntry>>(
+                future: _poolFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('تعذّر التحميل: ${snapshot.error}'));
+                  }
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  _entries ??= snapshot.data!;
+                  final entries = _entries!;
+
+                  return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                    stream: _db
+                        .collection('settings')
+                        .doc('deliveryMode')
+                        .snapshots(),
+                    builder: (context, modeSnap) {
+                      final mode =
+                          modeSnap.data?.data()?['mode'] as String? ?? 'random';
+
+                      // Indices into `entries` (the full, order-authoritative
+                      // list) for the rows currently visible — dragging needs
+                      // the real index, not the filtered position.
+                      final asNumber = int.tryParse(_search);
+                      final visibleIndices = <int>[
+                        for (var i = 0; i < entries.length; i++)
+                          if ((_filter == _SourceFilter.all ||
+                                  (_filter == _SourceFilter.daily &&
+                                      entries[i].source == 'dailyMessages') ||
+                                  (_filter == _SourceFilter.community &&
+                                      entries[i].source ==
+                                          'communityMessages')) &&
+                              (_search.isEmpty ||
+                                  (asNumber != null &&
+                                      entries[i].hadithNumber == asNumber) ||
+                                  entries[i].text.contains(_search)))
+                            i,
+                      ];
+
+                      final draggable = mode == 'manual' &&
+                          _filter == _SourceFilter.all &&
+                          _search.isEmpty;
+
+                      if (visibleIndices.isEmpty) {
+                        return const Center(
+                          child: Text('لا توجد نتائج مطابقة'),
+                        );
+                      }
+
+                      return ReorderableListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
+                        buildDefaultDragHandles: false,
+                        itemCount: visibleIndices.length,
+                        onReorderItem: draggable
+                            ? (oldVisible, newVisible) => _onReorder(
+                                  visibleIndices[oldVisible],
+                                  visibleIndices[newVisible],
+                                )
+                            : (_, __) {},
+                        itemBuilder: (context, visibleIndex) {
+                          final entry = entries[visibleIndices[visibleIndex]];
+                          return _PoolRow(
+                            key: ValueKey(entry.ref.path),
+                            entry: entry,
+                            draggable: draggable,
+                            dragIndex: visibleIndex,
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
+        if (_orderDirty)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton.extended(
+              onPressed: _savingOrder ? null : _saveOrder,
+              backgroundColor: Colors.green,
+              icon: _savingOrder
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.check_rounded),
+              label: const Text('حفظ الترتيب'),
+            ),
+          ),
       ],
     );
   }
 }
 
 class _ModeToggle extends StatelessWidget {
-  const _ModeToggle({required this.onChanged});
+  const _ModeToggle({required this.onChanged, required this.onRefresh});
 
   final ValueChanged<String> onChanged;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -200,9 +346,14 @@ class _ModeToggle extends StatelessWidget {
                   ),
                   Text(
                     mode == 'manual'
-                        ? 'يسير كل جهاز حسب "الترتيب" أدناه'
+                        ? 'اسحب الرسائل لترتيبها (بدون فلتر أو بحث)، ثم اضغط "حفظ الترتيب"'
                         : 'يختار كل جهاز عشوائياً مما لم يُعرض له بعد',
                     style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded),
+                    tooltip: 'تحديث القائمة',
+                    onPressed: onRefresh,
                   ),
                 ],
               ),
@@ -214,90 +365,83 @@ class _ModeToggle extends StatelessWidget {
   }
 }
 
-class _PoolRow extends StatefulWidget {
-  const _PoolRow({super.key, required this.entry});
+class _PoolRow extends StatelessWidget {
+  const _PoolRow({
+    super.key,
+    required this.entry,
+    required this.draggable,
+    required this.dragIndex,
+  });
 
   final _PoolEntry entry;
-
-  @override
-  State<_PoolRow> createState() => _PoolRowState();
-}
-
-class _PoolRowState extends State<_PoolRow> {
-  late final TextEditingController _orderController;
-
-  @override
-  void initState() {
-    super.initState();
-    _orderController = TextEditingController(text: '${widget.entry.order}');
-  }
-
-  @override
-  void dispose() {
-    _orderController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveOrder() async {
-    final value = int.tryParse(_orderController.text.trim());
-    if (value == null) return;
-    await widget.entry.ref.update({'order': value});
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('تم حفظ الترتيب')));
-    }
-  }
+  final bool draggable;
+  final int dragIndex;
 
   @override
   Widget build(BuildContext context) {
-    final e = widget.entry;
-    final everShown = e.timesShown > 0;
+    final everShown = entry.timesShown > 0;
+    final isCommunity = entry.source == 'communityMessages';
 
     return Card(
+      key: ValueKey('card-${entry.ref.path}'),
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            SizedBox(
-              width: 64,
-              child: TextField(
-                controller: _orderController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'الترتيب',
-                  isDense: true,
-                ),
-                onSubmitted: (_) => _saveOrder(),
+            if (draggable) ...[
+              ReorderableDragStartListener(
+                index: dragIndex,
+                child: const Icon(Icons.drag_handle_rounded),
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.save_rounded, size: 18),
-              tooltip: 'حفظ الترتيب',
-              onPressed: _saveOrder,
-            ),
-            const SizedBox(width: 8),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    e.text,
+                    entry.text,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  Text(
-                    'الحديث ${e.hadithNumber}  ·  ${e.source == 'communityMessages' ? 'من المجتمع' : 'من رسائل اليوم'}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  const SizedBox(height: 4),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    children: [
+                      Text(
+                        'الحديث ${entry.hadithNumber}  ·  الترتيب ${entry.order}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: (isCommunity ? Colors.blue : Colors.brown)
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          isCommunity ? 'من المجتمع' : 'من رسائل اليوم',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: isCommunity ? Colors.blue[800] : Colors.brown[700],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
             Chip(
-              label: Text(everShown ? 'عُرضت ${e.timesShown} مرة' : 'لم تُعرض بعد'),
+              label: Text(everShown ? 'عُرضت ${entry.timesShown} مرة' : 'لم تُعرض بعد'),
               backgroundColor: everShown
                   ? Colors.green.withValues(alpha: 0.12)
                   : Colors.grey.withValues(alpha: 0.15),

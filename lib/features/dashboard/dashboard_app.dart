@@ -379,7 +379,10 @@ class _DashboardHomeState extends State<_DashboardHome> {
               // sees these tabs, matching what tool/set_role.py has always
               // required.
               if (widget.isAdmin)
-                const Tab(text: 'الترتيب والتوزيع', icon: Icon(Icons.shuffle_rounded)),
+                const Tab(
+                  text: 'رسائل اليوم ومشاركات المجتمع',
+                  icon: Icon(Icons.shuffle_rounded),
+                ),
               if (widget.isAdmin)
                 const Tab(text: 'طلبات المراجعة', icon: Icon(Icons.rule_folder_rounded)),
               if (widget.isAdmin)
