@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/hadith.dart';
 import '../models/insight.dart';
 
@@ -22,7 +24,7 @@ class HadithRepository {
   /// `tool/import_hadiths_v2.py` and `tool/import_daily_messages_v2.py` —
   /// re-run those scripts rather than editing the JSON by hand.
   Future<void> load() async {
-    await Future.wait([loadHadiths(), _loadInsights()]);
+    await Future.wait([loadHadiths(), _loadInsights(), _loadFavorites()]);
   }
 
   Future<void> _loadInsights() async {
@@ -85,13 +87,79 @@ class HadithRepository {
     }
   }
 
-  final Set<int> _favoriteHadithNumbers = {1, 2, 12};
-  // Seeded empty: the previous demo entries referenced sample messages that
-  // no longer exist now that the content comes from the workbook.
-  final Set<String> _favoriteInsightTexts = <String>{};
+  static const _favoriteHadithsPrefsKey = 'favoriteHadithNumbers';
+  static const _favoriteInsightsPrefsKey = 'favoriteInsightTexts';
+
+  // Seeded with a few favorites so a first-ever launch doesn't look empty;
+  // overwritten by whatever's in SharedPreferences as soon as _loadFavorites
+  // resolves, so this default only ever shows for an instant on first run.
+  Set<int> _favoriteHadithNumbers = {1, 2, 12};
+
+  // Keyed the same way as before, but stores the actual Insight rather than
+  // just its key. Storing only the key worked fine for *checking* favorite
+  // state, but `getFavoriteInsights()` used to reconstruct the list by
+  // filtering the bundled `_insights` (the 246 entries shipped in
+  // insights.json) — so a daily message whose text came from a *reader's*
+  // community submission rather than the moderator-curated bundle matched no
+  // key was still marked, but it could never appear in the reader's own
+  // Favorites list. Keeping the Insight itself fixes that regardless of
+  // where the message originated.
+  Map<String, Insight> _favoriteInsights = <String, Insight>{};
+
+  Future<void> _loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedHadiths = prefs.getStringList(_favoriteHadithsPrefsKey);
+    if (storedHadiths != null) {
+      _favoriteHadithNumbers = storedHadiths.map(int.parse).toSet();
+    }
+
+    final storedInsights = prefs.getStringList(_favoriteInsightsPrefsKey);
+    if (storedInsights != null) {
+      final restored = <String, Insight>{};
+      for (final entry in storedInsights) {
+        try {
+          final insight = Insight.fromJson(
+            json.decode(entry) as Map<String, dynamic>,
+          );
+          restored[_insightKey(insight)] = insight;
+        } catch (_) {
+          // A malformed entry shouldn't take the rest of the list down with
+          // it — just drop that one favorite.
+        }
+      }
+      _favoriteInsights = restored;
+    }
+  }
+
+  Future<void> _persistFavoriteHadiths() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _favoriteHadithsPrefsKey,
+      _favoriteHadithNumbers.map((n) => n.toString()).toList(),
+    );
+  }
+
+  Future<void> _persistFavoriteInsights() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _favoriteInsightsPrefsKey,
+      _favoriteInsights.values
+          .map(
+            (i) => json.encode({
+              'hadithNumber': i.hadithNumber,
+              'arabic': i.arabic,
+              'english': i.english,
+              'category': i.category,
+              'themes': i.themes,
+              'keywords': i.keywords,
+            }),
+          )
+          .toList(),
+    );
+  }
 
   Set<int> get favoriteHadithNumbers => _favoriteHadithNumbers;
-  Set<String> get favoriteInsightTexts => _favoriteInsightTexts;
+  Set<String> get favoriteInsightTexts => _favoriteInsights.keys.toSet();
 
   bool isHadithFavorite(int number) => _favoriteHadithNumbers.contains(number);
 
@@ -101,6 +169,7 @@ class HadithRepository {
     } else {
       _favoriteHadithNumbers.add(number);
     }
+    unawaited(_persistFavoriteHadiths());
   }
 
   // Keyed by hadithNumber+text rather than text alone: the source workbook
@@ -110,22 +179,19 @@ class HadithRepository {
   String _insightKey(Insight insight) => '${insight.hadithNumber}::${insight.message}';
 
   bool isInsightFavorite(Insight insight) =>
-      _favoriteInsightTexts.contains(_insightKey(insight));
+      _favoriteInsights.containsKey(_insightKey(insight));
 
   void toggleFavoriteInsight(Insight insight) {
     final key = _insightKey(insight);
-    if (_favoriteInsightTexts.contains(key)) {
-      _favoriteInsightTexts.remove(key);
+    if (_favoriteInsights.containsKey(key)) {
+      _favoriteInsights.remove(key);
     } else {
-      _favoriteInsightTexts.add(key);
+      _favoriteInsights[key] = insight;
     }
+    unawaited(_persistFavoriteInsights());
   }
 
-  List<Insight> getFavoriteInsights() {
-    return _insights
-        .where((i) => _favoriteInsightTexts.contains(_insightKey(i)))
-        .toList();
-  }
+  List<Insight> getFavoriteInsights() => _favoriteInsights.values.toList();
 
   List<Hadith> getFavoriteHadiths() {
     return _hadiths.where((h) => _favoriteHadithNumbers.contains(h.number)).toList();

@@ -3,6 +3,7 @@ import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:hadith_app/core/theme/app_state_controller.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
@@ -69,6 +70,7 @@ void main() {
     // default app so that succeeds instead of throwing [core/no-app].
     setupFirebaseCoreMocks();
     await Firebase.initializeApp();
+    SharedPreferences.setMockInitialValues({});
     await HadithRepository().load();
   });
 

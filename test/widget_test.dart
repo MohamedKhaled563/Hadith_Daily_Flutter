@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/auth/login_screen.dart';
@@ -14,6 +15,7 @@ const _pastSplash = Duration(seconds: 4);
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
     await HadithRepository().load();
   });
 
