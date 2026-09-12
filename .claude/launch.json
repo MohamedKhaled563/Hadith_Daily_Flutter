@@ -13,7 +13,8 @@
         "--web-port",
         "8765"
       ],
-      "port": 8765
+      "port": 8765,
+      "autoPort": true
     },
     {
       "name": "phone",

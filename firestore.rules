@@ -313,6 +313,32 @@ service cloud.firestore {
       }
     }
 
+    // A signed-in user's message from the settings drawer's "تواصل معنا
+    // واقترح فكرة" sheet — visible to a moderator/admin from the
+    // dashboard's "تواصل معنا" tab. No public read: this is a one-way
+    // mailbox, not a community feed, so only the reviewing side needs
+    // access to it.
+    match /feedbackMessages/{messageId} {
+      allow read: if isModerator();
+      allow create: if request.auth != null
+                  && request.resource.data.authorUid == request.auth.uid
+                  && request.resource.data.message is string
+                  && request.resource.data.message.size() > 0
+                  && request.resource.data.message.size() <= 2000
+                  && request.resource.data.userName is string
+                  && request.resource.data.userName.size() <= 100
+                  && request.resource.data.userEmail is string
+                  && request.resource.data.userEmail.size() <= 200
+                  && request.resource.data.read == false;
+      // A moderator/admin toggling `read` after reviewing it, or deleting
+      // it outright — no author-side edit or delete, since this is a
+      // one-way mailbox, not a message the sender manages afterward.
+      allow update: if isModerator()
+                  && request.resource.data.diff(resource.data)
+                       .affectedKeys().hasOnly(['read']);
+      allow delete: if isModerator();
+    }
+
     // Everything else stays fully locked until a later phase explicitly
     // opens it up.
     match /{document=**} {

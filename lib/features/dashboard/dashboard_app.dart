@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/auth/auth_service.dart';
 import 'bulk_add_page.dart';
 import 'bulk_change_requests_page.dart';
+import 'feedback_messages_page.dart';
 import 'notification_messages_page.dart';
 import 'pending_queue_page.dart';
 import 'rotation_order_page.dart';
@@ -336,7 +337,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
   @override
   Widget build(BuildContext context) {
     final email = AuthService.instance.currentUser?.email ?? '';
-    final tabCount = widget.isAdmin ? 6 : 4;
+    final tabCount = widget.isAdmin ? 7 : 4;
 
     return DefaultTabController(
       length: tabCount,
@@ -369,13 +370,16 @@ class _DashboardHomeState extends State<_DashboardHome> {
                 text: 'قائمة المراجعة',
                 icon: Icon(Icons.pending_actions_rounded),
               ),
-              const Tab(text: 'الترتيب والتوزيع', icon: Icon(Icons.shuffle_rounded)),
               const Tab(text: 'تعديل بالجملة', icon: Icon(Icons.playlist_add_rounded)),
               const Tab(text: 'رسائل التنبيه', icon: Icon(Icons.notifications_active_outlined)),
-              // Role management, and approving a moderator's bulk edits,
-              // both touch things only an admin should control, so both
-              // stay admin-only — a moderator never sees these tabs,
-              // matching what tool/set_role.py has always required.
+              const Tab(text: 'تواصل معنا', icon: Icon(Icons.mail_outline_rounded)),
+              // Rotation ordering, role management, and approving a
+              // moderator's bulk edits all touch things only an admin should
+              // control, so all three stay admin-only — a moderator never
+              // sees these tabs, matching what tool/set_role.py has always
+              // required.
+              if (widget.isAdmin)
+                const Tab(text: 'الترتيب والتوزيع', icon: Icon(Icons.shuffle_rounded)),
               if (widget.isAdmin)
                 const Tab(text: 'طلبات المراجعة', icon: Icon(Icons.rule_folder_rounded)),
               if (widget.isAdmin)
@@ -388,9 +392,10 @@ class _DashboardHomeState extends State<_DashboardHome> {
           index: _tab,
           children: [
             const PendingQueuePage(),
-            const RotationOrderPage(),
             BulkAddPage(isAdmin: widget.isAdmin),
-            const NotificationMessagesPage(),
+            NotificationMessagesPage(isAdmin: widget.isAdmin),
+            const FeedbackMessagesPage(),
+            if (widget.isAdmin) const RotationOrderPage(),
             if (widget.isAdmin) const BulkChangeRequestsPage(),
             if (widget.isAdmin) const UsersPage(),
           ],

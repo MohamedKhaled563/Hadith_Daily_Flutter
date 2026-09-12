@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_state_controller.dart';
@@ -12,6 +10,7 @@ import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
+import '../../data/services/feedback_service.dart';
 import '../../data/services/notification_scheduler.dart';
 import '../auth/login_screen.dart';
 import '../community/my_submissions_screen.dart';
@@ -135,12 +134,12 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
     showBotanicalSheet<void>(
       context: context,
       title: 'تواصل معنا واقترح 🌿',
-      subtitle:
-          'يسعدنا سماع رأيك — اكتب ملاحظتك ثم أرسلها عبر بريدك أو أي تطبيق تختاره',
+      subtitle: 'يسعدنا سماع رأيك — اكتب ملاحظتك وسيصل فريق الإشراف إليها',
       child: Builder(
         builder: (sheetContext) {
           final palette = sheetContext.palette;
           String? error;
+          bool sending = false;
 
           return StatefulBuilder(
             builder: (_, setFieldState) => Column(
@@ -160,6 +159,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                   child: TextField(
                     controller: msgCtrl,
                     maxLines: 4,
+                    enabled: !sending,
                     onChanged: (_) {
                       if (error != null) setFieldState(() => error = null);
                     },
@@ -197,22 +197,42 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                 ],
                 const SizedBox(height: 20),
                 AppButton(
-                  text: 'إرسال الاقتراح',
+                  text: sending ? 'جارِ الإرسال...' : 'إرسال الاقتراح',
                   icon: Icons.send_rounded,
                   onPressed: () {
-                    final text = msgCtrl.text.trim();
-                    if (text.isEmpty) {
-                      setFieldState(
-                        () => error = 'اكتب ملاحظتك أولاً لتتمكن من إرسالها',
-                      );
-                      return;
-                    }
-                    Navigator.pop(sheetContext);
-                    SharePlus.instance.share(
-                      ShareParams(
-                        text: 'اقتراح على تطبيق «طيّب قلبك»:\n\n$text',
-                      ),
-                    );
+                    if (sending) return;
+                    () async {
+                      final text = msgCtrl.text.trim();
+                      if (text.isEmpty) {
+                        setFieldState(
+                          () => error =
+                              'اكتب ملاحظتك أولاً لتتمكن من إرسالها',
+                        );
+                        return;
+                      }
+                      setFieldState(() {
+                        sending = true;
+                        error = null;
+                      });
+                      try {
+                        await FeedbackService.instance.submit(
+                          message: text,
+                          userName: _state.userName,
+                          userEmail: _state.userEmail,
+                        );
+                        if (sheetContext.mounted) {
+                          Navigator.pop(sheetContext);
+                        }
+                        if (mounted) {
+                          _toast('تم إرسال رسالتك، شكراً لتواصلك معنا 🌿');
+                        }
+                      } catch (_) {
+                        setFieldState(() {
+                          sending = false;
+                          error = 'تعذّر الإرسال، تحقق من اتصالك وحاول مجدداً';
+                        });
+                      }
+                    }();
                   },
                 ),
               ],
@@ -221,16 +241,6 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
         },
       ),
     );
-  }
-
-  void _shareApp() {
-    Clipboard.setData(
-      const ClipboardData(
-        text: '🌿 تطبيق «طيّب قلبك» — هدايات وأحاديث الأربعين النووية بأسلوب '
-            'روحي هادئ يملأ يومك طمأنينة وسكينة.',
-      ),
-    );
-    _toast('تم نسخ عبارة المشاركة 🌿');
   }
 
   Future<void> _pickTime(bool isMorning) async {
@@ -405,12 +415,6 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                             icon: Icons.chat_bubble_outline_rounded,
                             title: 'تواصل معنا واقترح فكرة',
                             onTap: _showFeedbackSheet,
-                          ),
-                          _Divider(),
-                          _NavTile(
-                            icon: Icons.share_rounded,
-                            title: 'شارك التطبيق وكن داعياً للخير 🌿',
-                            onTap: _shareApp,
                           ),
                         ],
                       ),
