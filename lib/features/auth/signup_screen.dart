@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
@@ -16,13 +15,13 @@ import '../../core/widgets/tap_target.dart';
 import '../home/home_screen.dart';
 import 'auth_error_messages.dart';
 
-/// How the reader wants to register.
-enum _SignUpMethod { email, mobile }
-
 /// Real sign-up screen: email/password creates a Firebase account; Google
-/// signs in via the official `google_sign_in` flow. Phone sign-up is deferred
-/// (SMS verification is the one part of Firebase Auth that isn't free) and
-/// still shows as "coming soon".
+/// signs in via the official `google_sign_in` flow.
+///
+/// Phone sign-up used to be offered as a second method that only ever showed
+/// a "coming soon" message on submit (SMS verification is the one part of
+/// Firebase Auth that isn't free) — removed rather than left half-working;
+/// re-add the toggle once phone auth is actually implemented.
 ///
 /// The Google mark drawn below is a neutral stand-in rather than an
 /// approximation of Google's actual logo, which their brand guidelines
@@ -40,7 +39,6 @@ class _SignUpScreenState extends State<SignUpScreen>
   final _contactController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  _SignUpMethod _method = _SignUpMethod.email;
   bool _obscurePassword = true;
   bool _submitting = false;
   String _loadingMessage = 'جارٍ إنشاء الحساب…';
@@ -80,12 +78,9 @@ class _SignUpScreenState extends State<SignUpScreen>
     super.dispose();
   }
 
-  bool get _isEmail => _method == _SignUpMethod.email;
-
-  /// Live, debounced duplicate check as the reader types — applies
-  /// regardless of the chosen method (email or phone), since the name field
-  /// is shared between both. This is UX feedback only; [_submit] always
-  /// re-checks authoritatively right before creating the account.
+  /// Live, debounced duplicate check as the reader types. This is UX
+  /// feedback only; [_submit] always re-checks authoritatively right before
+  /// creating the account.
   void _onNameChanged(String value) {
     _clearError(value);
     _nameCheckDebounce?.cancel();
@@ -123,13 +118,10 @@ class _SignUpScreenState extends State<SignUpScreen>
 
     final contact = _contactController.text.trim();
     if (contact.isEmpty) {
-      return _isEmail ? 'أدخل بريدك الإلكتروني' : 'أدخل رقم جوالك';
+      return 'أدخل بريدك الإلكتروني';
     }
-    if (_isEmail && !contact.contains('@')) {
+    if (!contact.contains('@')) {
       return 'أدخل بريداً إلكترونياً صحيحاً';
-    }
-    if (!_isEmail && contact.replaceAll(RegExp(r'[^0-9]'), '').length < 9) {
-      return 'أدخل رقم جوال صحيحاً';
     }
 
     if (_passwordController.text.length < 6) {
@@ -144,11 +136,6 @@ class _SignUpScreenState extends State<SignUpScreen>
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-
-    if (!_isEmail) {
-      _comingSoon('رقم الجوال');
-      return;
-    }
 
     final problem = _validate();
     if (problem != null) {
@@ -266,14 +253,6 @@ class _SignUpScreenState extends State<SignUpScreen>
     );
   }
 
-  void _comingSoon(String provider) {
-    HapticFeedback.selectionClick();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text('التسجيل عبر $provider غير مفعّل في النسخة التجريبية')),
-    );
-  }
-
   void _clearError(String _) {
     if (_error != null) setState(() => _error = null);
   }
@@ -341,15 +320,6 @@ class _SignUpScreenState extends State<SignUpScreen>
                               const SizedBox(height: 18),
                               const OrDivider(),
                               const SizedBox(height: 18),
-                              _MethodToggle(
-                                method: _method,
-                                onChanged: (m) => setState(() {
-                                  _method = m;
-                                  _contactController.clear();
-                                  _error = null;
-                                }),
-                              ),
-                              const SizedBox(height: 18),
                               _Label('الاسم أو اللقب'),
                               const SizedBox(height: 6),
                               GlassField(
@@ -392,15 +362,11 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ],
                               const SizedBox(height: 14),
-                              _Label(_isEmail
-                                  ? 'البريد الإلكتروني'
-                                  : 'رقم الجوال'),
+                              _Label('البريد الإلكتروني'),
                               const SizedBox(height: 6),
                               GlassField(
                                 leading: Icon(
-                                  _isEmail
-                                      ? Icons.mail_outline_rounded
-                                      : Icons.phone_iphone_rounded,
+                                  Icons.mail_outline_rounded,
                                   size: 20,
                                   color: palette.goldText,
                                 ),
@@ -409,11 +375,9 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   enabled: !_submitting,
                                   textInputAction: TextInputAction.next,
                                   onChanged: _clearError,
-                                  keyboardType: _isEmail
-                                      ? TextInputType.emailAddress
-                                      : TextInputType.phone,
-                                  // Both are Latin/numeric, so they read LTR
-                                  // inside the otherwise RTL layout.
+                                  keyboardType: TextInputType.emailAddress,
+                                  // Email reads LTR inside the otherwise RTL
+                                  // layout.
                                   textDirection: TextDirection.ltr,
                                   textAlign: TextAlign.left,
                                   style: TextStyle(
@@ -422,9 +386,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                     color: palette.bodyText,
                                   ),
                                   decoration: _inputDecoration(
-                                    _isEmail
-                                        ? 'name@example.com'
-                                        : '05xxxxxxxx',
+                                    'name@example.com',
                                     palette.mutedText,
                                     ltrHint: true,
                                   ),
@@ -552,90 +514,6 @@ class _SignUpScreenState extends State<SignUpScreen>
 }
 
 // ------------------------------------------------------------- fragments ----
-
-class _MethodToggle extends StatelessWidget {
-  const _MethodToggle({required this.method, required this.onChanged});
-
-  final _SignUpMethod method;
-  final ValueChanged<_SignUpMethod> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    Widget option(_SignUpMethod value, String label, IconData icon) {
-      final selected = method == value;
-      return Expanded(
-        child: TapTarget(
-          onTap: () => onChanged(value),
-          semanticLabel: label,
-          selected: selected,
-          minSize: 44,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-            decoration: BoxDecoration(
-              color: selected
-                  ? Colors.white.withValues(
-                      alpha: context.isDarkMode ? 0.10 : 0.72,
-                    )
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 16,
-                  color: selected ? palette.goldText : palette.mutedText,
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      fontSize: 13,
-                      height: AppLeading.chrome,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                      color: selected ? palette.bodyText : palette.mutedText,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(
-          alpha: context.isDarkMode ? 0.04 : 0.30,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(
-            alpha: context.isDarkMode ? 0.10 : 0.55,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          option(
-              _SignUpMethod.email, 'بريد إلكتروني', Icons.mail_outline_rounded),
-          option(_SignUpMethod.mobile, 'رقم جوال', Icons.phone_iphone_rounded),
-        ],
-      ),
-    );
-  }
-}
 
 class ProviderButton extends StatelessWidget {
   const ProviderButton({
