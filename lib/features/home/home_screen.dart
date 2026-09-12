@@ -87,29 +87,34 @@ class _HomeScreenState extends State<HomeScreen> {
           showBottomLandscape: true,
           child: SafeArea(
             bottom: false,
-            child: IndexedStack(
-              index: _currentTabIndex,
-              children: [
-                // TickerMode pauses the home screen's ambient animations while
-                // another tab is showing — IndexedStack does not do this for us.
-                TickerMode(
-                  enabled: _currentTabIndex == 0,
-                  child: _HomeMainView(
-                    onOpenDrawer: _openDrawer,
-                    onOpenAllHadiths: () => Navigator.push(
-                      context,
-                      SmoothPageRoute(child: const HadithListScreen()),
+            // See BottomNavigation.scope: lets every tab's call to
+            // BottomNavigation.reservedHeight(context) reserve the bar's
+            // real measured height instead of a hand-computed estimate.
+            child: BottomNavigation.scope(
+              child: IndexedStack(
+                index: _currentTabIndex,
+                children: [
+                  // TickerMode pauses the home screen's ambient animations while
+                  // another tab is showing — IndexedStack does not do this for us.
+                  TickerMode(
+                    enabled: _currentTabIndex == 0,
+                    child: _HomeMainView(
+                      onOpenDrawer: _openDrawer,
+                      onOpenAllHadiths: () => Navigator.push(
+                        context,
+                        SmoothPageRoute(child: const HadithListScreen()),
+                      ),
+                      onHeartClick: _openDailyMessage,
                     ),
-                    onHeartClick: _openDailyMessage,
                   ),
-                ),
-                FavoritesScreen(onOpenDrawer: _openDrawer),
-                CommunityScreen(
-                  onOpenDrawer: _openDrawer,
-                  onSwitchToShareTab: () => _goToTab(3),
-                ),
-                AddMessageScreen(onPostCreated: () => _goToTab(2)),
-              ],
+                  FavoritesScreen(onOpenDrawer: _openDrawer),
+                  CommunityScreen(
+                    onOpenDrawer: _openDrawer,
+                    onSwitchToShareTab: () => _goToTab(3),
+                  ),
+                  AddMessageScreen(onPostCreated: () => _goToTab(2)),
+                ],
+              ),
             ),
           ),
         ),

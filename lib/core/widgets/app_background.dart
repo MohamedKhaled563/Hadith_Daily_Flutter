@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'asset_helper.dart';
+import 'bottom_navigation.dart';
 
 /// Paints the botanical ground behind a screen's content.
 ///
@@ -56,14 +57,14 @@ class AppBackground extends StatelessWidget {
   }
 
   Widget _buildHomeImage(bool isDark) => _background(
-    'assets/images/home_background.png',
-    opacity: isDark ? 0.45 : 1.0,
-  );
+        'assets/images/home_background.png',
+        opacity: isDark ? 0.45 : 1.0,
+      );
 
   Widget _buildInnerImage(bool isDark) => _background(
-    'assets/images/background_empty.png',
-    opacity: isDark ? 0.35 : 1.0,
-  );
+        'assets/images/background_empty.png',
+        opacity: isDark ? 0.35 : 1.0,
+      );
 
   Widget _background(String path, {required double opacity}) {
     return Image.asset(
@@ -116,7 +117,16 @@ class AppScreen extends StatelessWidget {
       bottomNavigationBar: bottomNavigationBar,
       body: AppBackground(
         showBottomLandscape: showBottomLandscape,
-        child: SafeArea(bottom: false, child: child),
+        // Wrapping in the bar's scope here, once, means every screen built
+        // with a bottomNavigationBar automatically reserves the bar's real
+        // measured height (see BottomNavigation.reservedHeight) instead of
+        // each screen needing to remember to wrap itself.
+        child: SafeArea(
+          bottom: false,
+          child: bottomNavigationBar == null
+              ? child
+              : BottomNavigation.scope(child: child),
+        ),
       ),
     );
   }

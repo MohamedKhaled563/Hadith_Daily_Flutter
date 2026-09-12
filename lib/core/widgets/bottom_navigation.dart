@@ -2,7 +2,27 @@ import 'package:flutter/material.dart';
 import '../theme/app_text_styles.dart';
 import 'tap_target.dart';
 
-class BottomNavigation extends StatelessWidget {
+/// The bar's real on-screen height, measured after every layout rather than
+/// assumed from constants. A hand-computed estimate (bar height + gaps +
+/// `MediaQuery.viewPaddingOf(context).bottom`) used to be duplicated in every
+/// screen that reserves space for this floating bar, and on at least one
+/// Android version/emulator that estimate under-counted the real system
+/// gesture-bar inset enough that content — e.g. the "إرسال الرسالة" button —
+/// visually overlapped the bar instead of clearing it. Measuring the actual
+/// rendered widget sidesteps the whole question of what a given OS/version
+/// reports through which MediaQuery field, on Android or iOS alike.
+final ValueNotifier<double> _measuredBottomNavHeight = ValueNotifier<double>(0);
+
+/// Makes the real measured bar height available to every descendant that
+/// calls [BottomNavigation.reservedHeight] via `InheritedNotifier`, so each
+/// of those call sites — spread across several screens/routes — rebuilds
+/// automatically if the real height ever changes (rotation, a future label
+/// tweak, a different OS inset) instead of relying on a value baked in once.
+class _BottomNavHeightScope extends InheritedNotifier<ValueNotifier<double>> {
+  const _BottomNavHeightScope({required super.notifier, required super.child});
+}
+
+class BottomNavigation extends StatefulWidget {
   const BottomNavigation({
     super.key,
     required this.currentIndex,
@@ -12,19 +32,68 @@ class BottomNavigation extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  /// Height of the floating pill itself.
+  /// Height of the floating pill itself, used only as a same-frame fallback
+  /// before the bar has had a chance to lay out and report its real size.
   static const barHeight = 72.0;
   static const _topGap = 4.0;
   static const _bottomGap = 14.0;
 
+  /// Wrap a screen's body in this so its content reserves the bar's real
+  /// height — every screen with its own [BottomNavigation] (whether a tab
+  /// inside the home screen's IndexedStack or a separately pushed route)
+  /// should wrap its body with this once, near the Scaffold.
+  static Widget scope({required Widget child}) => _BottomNavHeightScope(
+        notifier: _measuredBottomNavHeight,
+        child: child,
+      );
+
   /// Space the bar occupies over the content, including the device's own
-  /// bottom inset. Scrollable content uses this as extra bottom padding so the
-  /// last item clears the pill — the body now extends behind it.
-  static double reservedHeight(BuildContext context) =>
-      barHeight +
-      _topGap +
-      _bottomGap +
-      MediaQuery.viewPaddingOf(context).bottom;
+  /// bottom inset. Scrollable content uses this as extra bottom padding so
+  /// the last item clears the pill — the body now extends behind it.
+  static double reservedHeight(BuildContext context) {
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<_BottomNavHeightScope>();
+    final measured = scope?.notifier?.value ?? 0;
+    if (measured > 0) return measured;
+    // Fallback: no scope above this context (shouldn't normally happen once
+    // every screen is wrapped), or the bar hasn't measured itself yet.
+    return barHeight +
+        _topGap +
+        _bottomGap +
+        MediaQuery.viewPaddingOf(context).bottom;
+  }
+
+  @override
+  State<BottomNavigation> createState() => _BottomNavigationState();
+}
+
+class _BottomNavigationState extends State<BottomNavigation> {
+  final _barKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _reportMeasuredHeight());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Re-measure on locale/text-scale/orientation changes, not just first
+    // build — any of those can change the bar's real rendered height.
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _reportMeasuredHeight());
+  }
+
+  void _reportMeasuredHeight() {
+    final height = _barKey.currentContext?.size?.height;
+    if (height != null &&
+        height > 0 &&
+        height != _measuredBottomNavHeight.value) {
+      _measuredBottomNavHeight.value = height;
+    }
+  }
 
   static const _items = <({IconData icon, IconData activeIcon, String label})>[
     (
@@ -40,7 +109,10 @@ class BottomNavigation extends StatelessWidget {
     (
       icon: Icons.forum_outlined,
       activeIcon: Icons.forum_rounded,
-      label: 'مجتمع الحديث',
+      // Shortened from the full "مجتمع الحديث": on 320dp-class screens the
+      // 4-way-equal-width tab bar didn't have room for the longest of the
+      // four labels and silently ellipsized it to "مجتمع الحد…".
+      label: 'المجتمع',
     ),
     (
       icon: Icons.edit_note_rounded,
@@ -56,14 +128,15 @@ class BottomNavigation extends StatelessWidget {
     // No background of its own: the scaffold body now extends behind the bar,
     // so the botanical scene shows through around the floating pill.
     return Padding(
+      key: _barKey,
       padding: EdgeInsets.fromLTRB(
         16,
-        _topGap,
+        BottomNavigation._topGap,
         16,
-        _bottomGap + MediaQuery.viewPaddingOf(context).bottom,
+        BottomNavigation._bottomGap + MediaQuery.viewPaddingOf(context).bottom,
       ),
       child: Container(
-        height: barHeight,
+        height: BottomNavigation.barHeight,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -74,7 +147,8 @@ class BottomNavigation extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(36),
           border: Border.all(
-            color: const Color(0xFFD6BE88).withValues(alpha: isDark ? 0.45 : 0.65),
+            color:
+                const Color(0xFFD6BE88).withValues(alpha: isDark ? 0.45 : 0.65),
             width: 1.3,
           ),
           boxShadow: [
@@ -84,7 +158,8 @@ class BottomNavigation extends StatelessWidget {
               offset: const Offset(0, 6),
             ),
             BoxShadow(
-              color: const Color(0xFFD6BE88).withValues(alpha: isDark ? 0.12 : 0.20),
+              color: const Color(0xFFD6BE88)
+                  .withValues(alpha: isDark ? 0.12 : 0.20),
               blurRadius: 10,
               offset: const Offset(0, -1),
             ),
@@ -103,8 +178,8 @@ class BottomNavigation extends StatelessWidget {
                     icon: _items[i].icon,
                     activeIcon: _items[i].activeIcon,
                     label: _items[i].label,
-                    isSelected: currentIndex == i,
-                    onTap: () => onTap(i),
+                    isSelected: widget.currentIndex == i,
+                    onTap: () => widget.onTap(i),
                   ),
                 ),
             ],
@@ -147,48 +222,47 @@ class _NavItem extends StatelessWidget {
       child: MediaQuery(
         data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
         child: SizedBox(
-        height: 72,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (isSelected)
-              const ExcludeSemantics(
-                child: IgnorePointer(child: _GoldenHalo()),
-              ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isSelected ? activeIcon : icon,
-                  color: isSelected ? Colors.white : _inactive,
-                  size: 24,
+          height: 72,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              if (isSelected)
+                const ExcludeSemantics(
+                  child: IgnorePointer(child: _GoldenHalo()),
                 ),
-                const SizedBox(height: 3),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      fontSize: 12.5,
-                      height: AppLeading.chrome,
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: isSelected ? Colors.white : _inactive,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isSelected ? activeIcon : icon,
+                    color: isSelected ? Colors.white : _inactive,
+                    size: 24,
+                  ),
+                  const SizedBox(height: 3),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 12.5,
+                        height: AppLeading.chrome,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? Colors.white : _inactive,
+                      ),
                     ),
                   ),
-                ),
-                if (isSelected) ...[
-                  const SizedBox(height: 2),
-                  const _ActiveDot(),
+                  if (isSelected) ...[
+                    const SizedBox(height: 2),
+                    const _ActiveDot(),
+                  ],
                 ],
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
         ),
       ),
     );
