@@ -177,18 +177,34 @@ class ShareCard extends StatelessWidget {
 
                     // The message itself, given the room it deserves. Type is
                     // scaled to length so a short line fills the canvas
-                    // instead of floating in it, and a long one still fits.
+                    // instead of floating in it, and a long one still fits —
+                    // but that character-count heuristic is only an estimate
+                    // of how many lines a message will wrap to at this
+                    // canvas width, and a message near a size-tier boundary
+                    // could still wrap one line taller than budgeted. The
+                    // FittedBox is the actual guarantee: if the wrapped text
+                    // is ever taller than the space left for it, it scales
+                    // the whole block down uniformly instead of the last
+                    // line silently clipping off (this only ever shrinks —
+                    // BoxFit.scaleDown never enlarges a message that already
+                    // fits, so normal messages render exactly as before).
                     Flexible(
                       child: Center(
-                        child: Text(
-                          '« $message »',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: kSans,
-                            fontSize: _messageSize,
-                            height: 1.8,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF243329),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: SizedBox(
+                            width: width - 34 - 34,
+                            child: Text(
+                              '« $message »',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: kSans,
+                                fontSize: _messageSize,
+                                height: 1.8,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF243329),
+                              ),
+                            ),
                           ),
                         ),
                       ),
