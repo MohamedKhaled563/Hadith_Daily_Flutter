@@ -372,20 +372,28 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.listItem),
         ),
+        // A Dialog already folds the keyboard's inset into the space it
+        // gives its child, but a *fixed* fraction-of-screen SizedBox for the
+        // field (the previous approach) doesn't shrink along with that —
+        // the moment the keyboard opened, the field + label + button no
+        // longer fit and the Column overflowed by however tall the keyboard
+        // was, on every phone. minLines/maxLines lets the field size itself
+        // instead of demanding a fixed height, and the SingleChildScrollView
+        // is a hard backstop: whatever's left over after the keyboard takes
+        // its share, this scrolls rather than overflows, on any device.
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Label('نص الرسالة أو التأمل'),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: MediaQuery.of(dialogContext).size.height * 0.5,
-                child: TextField(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Label('نص الرسالة أو التأمل'),
+                const SizedBox(height: 10),
+                TextField(
                   controller: _messageController,
-                  maxLines: null,
-                  expands: true,
+                  minLines: 8,
+                  maxLines: 16,
                   textAlignVertical: TextAlignVertical.top,
                   autofocus: true,
                   onChanged: (_) {
@@ -415,13 +423,13 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              AppButton(
-                text: 'تم',
-                onPressed: () => Navigator.of(dialogContext).pop(),
-              ),
-            ],
+                const SizedBox(height: 14),
+                AppButton(
+                  text: 'تم',
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
