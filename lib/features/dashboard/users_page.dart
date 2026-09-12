@@ -135,6 +135,54 @@ class _UserCardState extends State<_UserCard> {
     }
   }
 
+  /// Only ever deletes this Firestore users/{uid} profile/role record —
+  /// there's no Admin SDK here to delete the actual Firebase Auth account,
+  /// so the person can still sign in afterward as a plain 'user'. The
+  /// confirmation dialog says so explicitly rather than implying a full
+  /// account removal.
+  Future<void> _removeUser(String label) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف المستخدم من هذه القائمة؟'),
+        content: Text(
+          'سيُحذف سجل "$label" من قائمة المستخدمين والأدوار فقط — لن يُحذف '
+          'حسابه، وسيظل بإمكانه تسجيل الدخول كمستخدم عادي. هل تريد المتابعة؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _busy = true);
+    try {
+      await widget.doc.reference.delete();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم حذف "$label" من القائمة')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذّر الحذف: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = widget.doc.data();
@@ -192,9 +240,10 @@ class _UserCardState extends State<_UserCard> {
             ),
             const SizedBox(width: 12),
             if (widget.isSelf)
-              // Rules block an admin from changing their own role (a
-              // safety net against an accidental self-demotion lockout),
-              // so the control just shows the current role here instead.
+              // Rules block an admin from changing their own role or
+              // deleting their own record (a safety net against an
+              // accidental self-lockout), so the control just shows the
+              // current role here instead.
               Chip(label: Text(_roleLabels[role] ?? role))
             else if (_busy)
               const SizedBox(
@@ -202,7 +251,7 @@ class _UserCardState extends State<_UserCard> {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            else
+            else ...[
               DropdownButton<String>(
                 value: _roles.contains(role) ? role : 'user',
                 items: _roles
@@ -212,6 +261,12 @@ class _UserCardState extends State<_UserCard> {
                   if (value != null && value != role) _changeRole(value);
                 },
               ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                tooltip: 'حذف المستخدم',
+                onPressed: () => _removeUser(displayName.isNotEmpty ? displayName : email),
+              ),
+            ],
           ],
         ),
       ),

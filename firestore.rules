@@ -183,6 +183,18 @@ service cloud.firestore {
                       && request.resource.data.diff(resource.data)
                            .affectedKeys().hasOnly(['role'])
                       && request.resource.data.role in ['user', 'moderator', 'admin']);
+
+      // Phase 18: lets an admin remove another account's users/{uid}
+      // record from the dashboard's "المستخدمون" tab — same
+      // uid != request.auth.uid guard as the role update above, so an
+      // admin can't lock themselves out with nobody around to undo it.
+      // This only ever deletes the Firestore profile/role doc, never the
+      // underlying Firebase Auth account (that needs the Admin SDK, which
+      // nothing in this client-only app has access to) — the person can
+      // still sign in afterward, just as a plain 'user' (roleOf() falls
+      // back to 'user' when this doc is missing), and the create rule
+      // above lets them recreate this doc the ordinary way if they do.
+      allow delete: if isAdmin() && uid != request.auth.uid;
     }
 
     // Phase 13: normalized-display-name uniqueness registry. Doc id is the
