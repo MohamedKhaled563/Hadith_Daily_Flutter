@@ -127,6 +127,52 @@ class _RotationOrderPageState extends State<RotationOrderPage> {
     });
   }
 
+  final _deletingPaths = <String>{};
+
+  /// This whole page is admin-only (dashboard_app.dart never gives a
+  /// moderator this tab), so there's no extra role check needed here —
+  /// unlike notificationMessages' per-item delete, which lives on a page
+  /// both roles can open.
+  Future<void> _delete(_PoolEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف الرسالة نهائياً؟'),
+        content: Text(
+          entry.text.length > 120 ? '${entry.text.substring(0, 120)}…' : entry.text,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _deletingPaths.add(entry.ref.path));
+    try {
+      await entry.ref.delete();
+      if (!mounted) return;
+      setState(() {
+        _entries?.removeWhere((e) => e.ref.path == entry.ref.path);
+        _deletingPaths.remove(entry.ref.path);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _deletingPaths.remove(entry.ref.path));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر الحذف: $e')),
+      );
+    }
+  }
+
   Future<void> _saveOrder() async {
     final entries = _entries;
     if (entries == null || _savingOrder) return;
@@ -265,6 +311,8 @@ class _RotationOrderPageState extends State<RotationOrderPage> {
                             entry: entry,
                             draggable: draggable,
                             dragIndex: visibleIndex,
+                            deleting: _deletingPaths.contains(entry.ref.path),
+                            onDelete: () => _delete(entry),
                           );
                         },
                       );
@@ -371,11 +419,15 @@ class _PoolRow extends StatelessWidget {
     required this.entry,
     required this.draggable,
     required this.dragIndex,
+    required this.deleting,
+    required this.onDelete,
   });
 
   final _PoolEntry entry;
   final bool draggable;
   final int dragIndex;
+  final bool deleting;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -446,6 +498,21 @@ class _PoolRow extends StatelessWidget {
                   ? Colors.green.withValues(alpha: 0.12)
                   : Colors.grey.withValues(alpha: 0.15),
             ),
+            const SizedBox(width: 4),
+            deleting
+                ? const SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Padding(
+                      padding: EdgeInsets.all(8),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                    tooltip: 'حذف نهائياً',
+                    onPressed: onDelete,
+                  ),
           ],
         ),
       ),

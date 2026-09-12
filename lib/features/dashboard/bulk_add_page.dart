@@ -6,9 +6,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'bulk_add_parsing.dart' as parsing;
 import 'bulk_sync.dart';
 
-/// Two ways to bulk-edit the three message collections, replacing the
+/// Two ways to bulk-add to the three message collections, replacing the
 /// Google-Sheets-bridge idea from the original roadmap — no separate sync
 /// tool, no spreadsheet host, everything through the dashboard itself:
 ///
@@ -17,26 +18,33 @@ import 'bulk_sync.dart';
 ///  2. Excel round trip — one workbook, three sheet tabs (one per
 ///     collection: dailyMessages, communityMessages, notificationMessages).
 ///
-/// The Excel round trip is role-gated:
-///  - Admins download the *current* data (every existing row, with its
-///    docId) and can edit or clear any cell: a row with a docId is updated
-///    in place, a blank-docId row is created, and clearing a row's text
-///    deletes that document. Admins see and can change everything.
-///  - Moderators never see existing content through this tool — they
-///    download an *empty* template (headers only) and can only append new
-///    rows. There is nothing to download-and-reupload: moderators add,
-///    admins edit/modify. Even if a moderator's uploaded sheet somehow
-///    carries a docId (a hand-edited file, say), any update/delete it
-///    implies is dropped rather than applied — see [_restrictToCreatesOnly].
+/// The Excel round trip is **add-only for every role** — a moderator and an
+/// admin get the exact same upload template and the exact same behavior:
+/// every row in the sheet becomes a new document. There is no "المعرف"
+/// (docId) column anywhere in the upload template, so there is nothing for
+/// either role to type an id into, nothing to key an update or a delete
+/// off of, and nothing that can accidentally overwrite or delete an
+/// existing message. Editing or deleting an existing message happens
+/// per-item elsewhere in the dashboard (e.g. "رسائل التنبيه" or the pending
+/// review queue), never through this Excel tool.
+///
+/// Only an admin can additionally download the *current* data (every
+/// existing row, with its docId) — purely to see what already exists
+/// (e.g. to avoid duplicating a hadith, or to check current order values).
+/// That export is read-only in spirit: re-uploading it verbatim would just
+/// create a duplicate of every row it contains, since the upload path has
+/// no way to recognize a docId column even if one is present. Uploading it
+/// is explicitly guarded against — see [parsing.headerMismatchNote].
 ///
 /// Both the download and the upload go through package:file_picker's
 /// saveFile()/pickFile(), which handle the browser download/upload dance
 /// for us — no direct dart:html usage needed here.
 ///
-/// A moderator's upload that adds more than [kBulkChangeThreshold] items is
-/// still staged in `bulkChangeRequests` instead of applied immediately — an
-/// admin approves it from BulkChangeRequestsPage. Admins always apply at
-/// once, since they'd otherwise have to approve their own edits.
+/// An upload that adds more than [kBulkChangeThreshold] items from a
+/// moderator is still staged in `bulkChangeRequests` instead of applied
+/// immediately — an admin approves it from BulkChangeRequestsPage. Admins
+/// always apply at once, since they'd otherwise have to approve their own
+/// additions.
 class BulkAddPage extends StatefulWidget {
   const BulkAddPage({super.key, required this.isAdmin});
 
@@ -145,8 +153,10 @@ class _BulkAddPageState extends State<BulkAddPage> {
   static const _communitySheet = 'مجتمع الحديث';
   static const _notificationSheet = 'رسائل التنبيه';
 
-  static const _dailyHeaders = ['المعرف', 'رقم الحديث', 'النص', 'الترتيب'];
-  static const _communityHeaders = [
+  /// Headers for the admin-only, read-only "current data" export — the
+  /// only place "المعرف" (docId) ever appears in this feature.
+  static const _dailyViewHeaders = ['المعرف', 'رقم الحديث', 'النص', 'الترتيب'];
+  static const _communityViewHeaders = [
     'المعرف',
     'رقم الحديث',
     'النص',
@@ -157,20 +167,18 @@ class _BulkAddPageState extends State<BulkAddPage> {
     'تاريخ الإضافة',
     'الترتيب',
   ];
-  static const _notificationHeaders = ['المعرف', 'النص', 'نشطة', 'الترتيب'];
+  static const _notificationViewHeaders = ['المعرف', 'النص', 'نشطة', 'الترتيب'];
 
   static const _statusLabels = {
     'pending': 'قيد المراجعة',
     'approved': 'معتمدة',
     'rejected': 'مرفوضة',
   };
-  static const _statusFromLabel = {
-    'قيد المراجعة': 'pending',
-    'معتمدة': 'approved',
-    'مرفوضة': 'rejected',
-  };
 
-  Future<void> _downloadExcel() async {
+  /// Admin-only: every existing row across the three collections, with its
+  /// docId, for reference — never meant to be re-uploaded. See the class
+  /// doc comment and [parsing.headerMismatchNote].
+  Future<void> _downloadCurrentData() async {
     setState(() {
       _excelBusy = true;
       _excelResult = null;
@@ -183,7 +191,8 @@ class _BulkAddPageState extends State<BulkAddPage> {
       final dailySnap =
           await db.collection('dailyMessages').orderBy('order').get();
       final dailySheet = workbook[_dailySheet];
-      dailySheet.appendRow(_dailyHeaders.map(xls.TextCellValue.new).toList());
+      dailySheet
+          .appendRow(_dailyViewHeaders.map(xls.TextCellValue.new).toList());
       for (final doc in dailySnap.docs) {
         final data = doc.data();
         dailySheet.appendRow([
@@ -199,8 +208,9 @@ class _BulkAddPageState extends State<BulkAddPage> {
           .orderBy('createdAt')
           .get();
       final communitySheet = workbook[_communitySheet];
-      communitySheet
-          .appendRow(_communityHeaders.map(xls.TextCellValue.new).toList());
+      communitySheet.appendRow(
+        _communityViewHeaders.map(xls.TextCellValue.new).toList(),
+      );
       for (final doc in communitySnap.docs) {
         final data = doc.data();
         final createdAt = data['createdAt'];
@@ -224,8 +234,9 @@ class _BulkAddPageState extends State<BulkAddPage> {
       final notificationSnap =
           await db.collection('notificationMessages').orderBy('order').get();
       final notificationSheet = workbook[_notificationSheet];
-      notificationSheet
-          .appendRow(_notificationHeaders.map(xls.TextCellValue.new).toList());
+      notificationSheet.appendRow(
+        _notificationViewHeaders.map(xls.TextCellValue.new).toList(),
+      );
       for (final doc in notificationSnap.docs) {
         final data = doc.data();
         notificationSheet.appendRow([
@@ -246,7 +257,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
       final bytes = workbook.encode();
       if (bytes == null) throw StateError('تعذّر إنشاء ملف Excel');
       await FilePicker.saveFile(
-        fileName: 'hadith-messages.xlsx',
+        fileName: 'hadith-messages-current-data.xlsx',
         bytes: Uint8List.fromList(bytes),
         mimeType:
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -257,7 +268,9 @@ class _BulkAddPageState extends State<BulkAddPage> {
         _excelResultIsError = false;
         _excelResult = 'تم تنزيل ${dailySnap.docs.length} رسالة يومية، '
             '${communitySnap.docs.length} مشاركة مجتمع، '
-            '${notificationSnap.docs.length} رسالة تنبيه';
+            '${notificationSnap.docs.length} رسالة تنبيه — '
+            'هذا الملف للعرض فقط، لا تُعِد رفعه؛ لإضافة رسائل جديدة استخدم '
+            '"تنزيل نموذج الإضافة".';
       });
     } catch (e) {
       if (!mounted) return;
@@ -270,11 +283,10 @@ class _BulkAddPageState extends State<BulkAddPage> {
     }
   }
 
-  /// Moderator-only counterpart to [_downloadExcel]: the same three sheet
-  /// tabs and headers, but no Firestore reads and no data rows — a
-  /// moderator never sees existing content through this tool, only ever
-  /// appends to it. Nothing here can leak or overwrite current data because
-  /// there's nothing of the current data in the file to begin with.
+  /// The add-only upload template: the same three sheet tabs both roles
+  /// upload, with no docId column and no existing data — there is nothing
+  /// here that could leak or overwrite current content because there's
+  /// nothing of the current data in the file to begin with.
   Future<void> _downloadTemplate() async {
     setState(() {
       _excelBusy = true;
@@ -283,12 +295,15 @@ class _BulkAddPageState extends State<BulkAddPage> {
 
     try {
       final workbook = xls.Excel.createExcel();
-      workbook[_dailySheet]
-          .appendRow(_dailyHeaders.map(xls.TextCellValue.new).toList());
-      workbook[_communitySheet]
-          .appendRow(_communityHeaders.map(xls.TextCellValue.new).toList());
-      workbook[_notificationSheet]
-          .appendRow(_notificationHeaders.map(xls.TextCellValue.new).toList());
+      workbook[_dailySheet].appendRow(
+        parsing.dailyAddHeaders.map(xls.TextCellValue.new).toList(),
+      );
+      workbook[_communitySheet].appendRow(
+        parsing.communityAddHeaders.map(xls.TextCellValue.new).toList(),
+      );
+      workbook[_notificationSheet].appendRow(
+        parsing.notificationAddHeaders.map(xls.TextCellValue.new).toList(),
+      );
 
       if (workbook.sheets.containsKey('Sheet1')) {
         workbook.delete('Sheet1');
@@ -297,7 +312,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
       final bytes = workbook.encode();
       if (bytes == null) throw StateError('تعذّر إنشاء ملف Excel');
       await FilePicker.saveFile(
-        fileName: 'hadith-messages-template.xlsx',
+        fileName: 'hadith-messages-add-template.xlsx',
         bytes: Uint8List.fromList(bytes),
         mimeType:
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -307,7 +322,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
       setState(() {
         _excelResultIsError = false;
         _excelResult = 'تم تنزيل نموذج فارغ. أضف صفوف الرسائل الجديدة في أي '
-            'ورقة (اترك عمود "المعرف" فارغاً) ثم ارفعه.';
+            'ورقة ثم ارفعه — كل صف يصبح رسالة جديدة.';
       });
     } catch (e) {
       if (!mounted) return;
@@ -343,49 +358,36 @@ class _BulkAddPageState extends State<BulkAddPage> {
     try {
       final workbook = xls.Excel.decodeBytes(bytes);
       final db = FirebaseFirestore.instance;
-      var diffs = <SheetDiff>[];
+      final diffs = <SheetDiff>[];
 
       if (workbook.tables.containsKey(_dailySheet)) {
-        diffs.add(await _diffDailyMessages(db, workbook.tables[_dailySheet]!));
+        diffs.add(
+          await _collectDailyCreates(db, workbook.tables[_dailySheet]!),
+        );
       }
       if (workbook.tables.containsKey(_communitySheet)) {
         diffs.add(
-          await _diffCommunityMessages(db, workbook.tables[_communitySheet]!),
+          await _collectCommunityCreates(
+            db,
+            workbook.tables[_communitySheet]!,
+          ),
         );
       }
       if (workbook.tables.containsKey(_notificationSheet)) {
         diffs.add(
-          await _diffNotificationMessages(
+          await _collectNotificationCreates(
             db,
             workbook.tables[_notificationSheet]!,
           ),
         );
       }
 
-      // Moderators can only add — even if their uploaded sheet carries a
-      // docId (the empty template never has one, but a hand-edited file
-      // could), any update or delete it implies is dropped here rather than
-      // applied. Only an admin's upload can touch existing documents.
-      var rejectedUpdates = 0;
-      var rejectedDeletes = 0;
-      if (!widget.isAdmin) {
-        final restricted = _restrictToCreatesOnly(diffs);
-        diffs = restricted.diffs;
-        rejectedUpdates = restricted.rejectedUpdates;
-        rejectedDeletes = restricted.rejectedDeletes;
-      }
-      final rejectedNote = (rejectedUpdates > 0 || rejectedDeletes > 0)
-          ? '\n⚠️ تم تجاهل $rejectedUpdates تحديثاً و$rejectedDeletes حذفاً — '
-              'المشرفون يمكنهم فقط إضافة عناصر جديدة، لا تعديل أو حذف '
-              'الموجود؛ للتعديل أو الحذف تواصل مع المدير.'
-          : '';
-
       final totalChanges = diffs.fold(0, (n, d) => n + d.changeCount);
 
       // A moderator's large bulk add needs an admin's sign-off first —
       // stage it instead of writing directly. Admins always apply at once,
       // regardless of size, since they're the ones who'd otherwise have to
-      // approve their own change.
+      // approve their own additions.
       if (!widget.isAdmin && totalChanges > kBulkChangeThreshold) {
         final user = FirebaseAuth.instance.currentUser;
         await db.collection('bulkChangeRequests').add({
@@ -400,45 +402,23 @@ class _BulkAddPageState extends State<BulkAddPage> {
         if (!mounted) return;
         setState(() {
           _excelResultIsError = false;
-          _excelResult = 'هذا التعديل يشمل $totalChanges عنصراً (أكثر من '
-              '$kBulkChangeThreshold) فتم إرساله لمراجعة المدير قبل التنفيذ '
-              '— راجع تبويب "طلبات المراجعة" لمتابعة حالته.$rejectedNote';
+          _excelResult = 'هذه الإضافة تشمل $totalChanges عنصراً (أكثر من '
+              '$kBulkChangeThreshold) فتم إرسالها لمراجعة المدير قبل التنفيذ '
+              '— راجع تبويب "طلبات المراجعة" لمتابعة حالتها.';
         });
         return;
       }
 
-      final totalDeletes = diffs.fold(0, (n, d) => n + d.deletes.length);
-      if (totalDeletes > 0) {
-        if (!mounted) return;
-        final confirmed = await _confirmDeletes(diffs);
-        if (!confirmed) {
-          if (!mounted) return;
-          setState(() {
-            _excelResultIsError = false;
-            _excelResult = 'أُلغي الرفع — لم يُحذف أو يُحدَّث أي شيء.';
-          });
-          return;
-        }
-      }
-
       writer = BatchWriter(db);
-      final skippedIds = <String>[];
       for (final diff in diffs) {
-        skippedIds.addAll(await applySheetDiff(db, writer, diff));
+        await applySheetDiff(db, writer, diff);
       }
       await writer.flush();
 
       if (!mounted) return;
       setState(() {
         _excelResultIsError = false;
-        var result = diffs.map(sheetDiffSummary).join('\n');
-        if (skippedIds.isNotEmpty) {
-          result += '\n⚠️ تم تجاهل ${skippedIds.length} تحديث لأن المستند '
-              'المستهدف لم يعد موجوداً: ${skippedIds.take(6).join('، ')}'
-              '${skippedIds.length > 6 ? '…' : ''}';
-        }
-        result += rejectedNote;
-        _excelResult = result;
+        _excelResult = diffs.map(sheetDiffSummary).join('\n');
       });
     } catch (e) {
       if (!mounted) return;
@@ -452,127 +432,37 @@ class _BulkAddPageState extends State<BulkAddPage> {
     }
   }
 
-  /// Shows exactly which documents are about to be deleted (by collection
-  /// and docId) and requires an explicit confirmation before the upload
-  /// proceeds — a moderator or admin should never lose content to a
-  /// spreadsheet edit they didn't intend as a deletion.
-  Future<bool> _confirmDeletes(List<SheetDiff> diffs) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تأكيد الحذف'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final diff in diffs.where((d) => d.deletes.isNotEmpty)) ...[
-                Text(
-                  '${diff.label}: سيُحذف ${diff.deletes.length} عنصراً نهائياً',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  diff.deletes.take(10).join('، ') +
-                      (diff.deletes.length > 10 ? '…' : ''),
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
-                ),
-                const SizedBox(height: 12),
-              ],
-              const Text('هل تريد المتابعة؟'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
-            child: const Text('نعم، احذف'),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
-  }
-
   // -------------------------------------------------------- dailyMessages ---
 
-  Future<SheetDiff> _diffDailyMessages(
+  /// Add-only: every valid row becomes a new dailyMessages doc. There is no
+  /// docId column any more, so there is nothing here that can update or
+  /// delete an existing message — see the class doc comment. Row parsing
+  /// and validation live in bulk_add_parsing.dart (pure, directly unit
+  /// tested by tool/test_bulk_add_parsing.dart); only the per-hadith
+  /// starting sequence number needs Firestore, so that part stays here.
+  Future<SheetDiff> _collectDailyCreates(
     FirebaseFirestore db,
     xls.Sheet sheet,
   ) async {
     const collection = 'dailyMessages';
-    final rows = sheet.rows.skip(1);
+    const label = 'رسائل اليوم';
 
-    final newRowsByHadith = <int, List<String>>{};
-    final updates = <MapEntry<String, Map<String, dynamic>>>[];
-    final deletes = <String>{};
-    final invalidRows = <String>[];
-    final seenDocIds = <String>{};
-
-    var rowNumber = 1;
-    for (final row in rows) {
-      rowNumber++;
-      final docId = _cellString(row, 0);
-      final hadithNumberRaw = _cellString(row, 1);
-      final text = _cellString(row, 2).trim();
-      final orderRaw = _cellString(row, 3);
-
-      if (docId.isEmpty && hadithNumberRaw.isEmpty && text.isEmpty) continue;
-
-      if (docId.isNotEmpty && !seenDocIds.add(docId)) {
-        invalidRows.add('$rowNumber (معرف مكرر)');
-        continue;
-      }
-
-      if (docId.isNotEmpty && text.isEmpty) {
-        deletes.add(docId);
-        continue;
-      }
-
-      final hadithNumber = int.tryParse(_normalizeDigits(hadithNumberRaw));
-      if (hadithNumber == null || hadithNumber < 1 || hadithNumber > 42) {
-        invalidRows.add('$rowNumber (رقم حديث غير صحيح)');
-        continue;
-      }
-      if (text.isEmpty) {
-        invalidRows.add('$rowNumber (نص فارغ)');
-        continue;
-      }
-      final order =
-          orderRaw.isEmpty ? null : int.tryParse(_normalizeDigits(orderRaw));
-
-      if (docId.isEmpty) {
-        newRowsByHadith.putIfAbsent(hadithNumber, () => []).add(text);
-      } else {
-        updates.add(MapEntry(docId, {
-          'hadithNumber': hadithNumber,
-          'arabic': text,
-          if (order != null) 'order': order,
-        }));
-      }
+    final headerError = parsing.headerMismatchNote(sheet, parsing.dailyAddHeaders);
+    if (headerError != null) {
+      return SheetDiff(
+        collection: collection,
+        label: label,
+        creates: const [],
+        updates: const [],
+        deletes: const [],
+        invalidRows: [headerError],
+      );
     }
 
-    final existingDocs = {
-      for (final d in (await db.collection(collection).get(
-            const GetOptions(source: Source.server),
-          ))
-              .docs)
-        d.id: d.data(),
-    };
-    // Deletes are explicit only: a docId present with a blank "text" cell.
-    // A row simply missing from the sheet (filtered out, sorted away, or
-    // never downloaded because it was created after the last download)
-    // must NOT be treated as a delete request — see the bulk-editor
-    // deletion-safety fix.
-    updates.removeWhere((e) => _unchanged(e.value, existingDocs[e.key]));
+    final parsed = parsing.parseDailyRows(sheet);
 
     final creates = <Map<String, dynamic>>[];
-    for (final entry in newRowsByHadith.entries) {
+    for (final entry in parsed.newRowsByHadith.entries) {
       final startSeq = await _countForHadith(db, entry.key);
       for (var i = 0; i < entry.value.length; i++) {
         creates.add({
@@ -587,285 +477,102 @@ class _BulkAddPageState extends State<BulkAddPage> {
 
     return SheetDiff(
       collection: collection,
-      label: 'رسائل اليوم',
+      label: label,
       creates: creates,
-      updates: updates,
-      deletes: deletes.toList(),
-      invalidRows: invalidRows,
+      updates: const [],
+      deletes: const [],
+      invalidRows: parsed.invalidRows,
     );
   }
 
   // ---------------------------------------------------- communityMessages ---
 
-  Future<SheetDiff> _diffCommunityMessages(
+  /// Add-only, same as [_collectDailyCreates]. A dashboard-authored
+  /// community message is created straight into 'approved' status — if it
+  /// needs review first, that's what the ordinary author-submits-pending
+  /// path and the pending-queue tab are for. Fully pure aside from
+  /// stamping the current admin/moderator's uid, so parsing lives entirely
+  /// in bulk_add_parsing.dart.
+  Future<SheetDiff> _collectCommunityCreates(
     FirebaseFirestore db,
     xls.Sheet sheet,
   ) async {
     const collection = 'communityMessages';
-    final rows = sheet.rows.skip(1);
-    final currentUser = FirebaseAuth.instance.currentUser;
+    const label = 'مجتمع الحديث';
 
-    final creates = <Map<String, dynamic>>[];
-    final updates = <MapEntry<String, Map<String, dynamic>>>[];
-    final deletes = <String>{};
-    final invalidRows = <String>[];
-    final seenDocIds = <String>{};
-
-    var rowNumber = 1;
-    for (final row in rows) {
-      rowNumber++;
-      final docId = _cellString(row, 0);
-      final hadithNumberRaw = _cellString(row, 1);
-      final text = _cellString(row, 2).trim();
-      final statusLabel = _cellString(row, 3).trim();
-      final likesRaw = _cellString(row, 4);
-      final authorName = _cellString(row, 5).trim();
-      final orderRaw = _cellString(row, 8);
-
-      if (docId.isEmpty && hadithNumberRaw.isEmpty && text.isEmpty) continue;
-
-      if (docId.isNotEmpty && !seenDocIds.add(docId)) {
-        invalidRows.add('$rowNumber (معرف مكرر)');
-        continue;
-      }
-
-      if (docId.isNotEmpty && text.isEmpty) {
-        deletes.add(docId);
-        continue;
-      }
-
-      final hadithNumber = int.tryParse(_normalizeDigits(hadithNumberRaw));
-      if (hadithNumber == null || hadithNumber < 1 || hadithNumber > 42) {
-        invalidRows.add('$rowNumber (رقم حديث غير صحيح)');
-        continue;
-      }
-      if (text.isEmpty) {
-        invalidRows.add('$rowNumber (نص فارغ)');
-        continue;
-      }
-      if (text.length > 2000) {
-        invalidRows.add('$rowNumber (النص أطول من ٢٠٠٠ حرف)');
-        continue;
-      }
-
-      final isNew = docId.isEmpty;
-      final status = _statusFromLabel[statusLabel] ??
-          (isNew && statusLabel.isEmpty ? 'approved' : null);
-      if (status == null) {
-        invalidRows.add(
-          '$rowNumber (حالة غير معروفة — استخدم قيد المراجعة/معتمدة/مرفوضة)',
-        );
-        continue;
-      }
-
-      final order =
-          orderRaw.isEmpty ? null : int.tryParse(_normalizeDigits(orderRaw));
-
-      if (isNew) {
-        creates.add({
-          'authorUid': currentUser?.uid ?? '',
-          'authorName': authorName.isEmpty ? 'لوحة الإشراف' : authorName,
-          'hadithNumber': hadithNumber,
-          'message': text,
-          'status': status,
-          'likeCount': 0,
-          if (order != null) 'order': order,
-        });
-      } else {
-        final likes = likesRaw.isEmpty
-            ? null
-            : int.tryParse(_normalizeDigits(likesRaw));
-        updates.add(MapEntry(docId, {
-          'hadithNumber': hadithNumber,
-          'message': text,
-          'status': status,
-          if (authorName.isNotEmpty) 'authorName': authorName,
-          if (likes != null) 'likeCount': likes,
-          if (order != null) 'order': order,
-        }));
-      }
+    final headerError =
+        parsing.headerMismatchNote(sheet, parsing.communityAddHeaders);
+    if (headerError != null) {
+      return SheetDiff(
+        collection: collection,
+        label: label,
+        creates: const [],
+        updates: const [],
+        deletes: const [],
+        invalidRows: [headerError],
+        addsServerTimestamp: true,
+      );
     }
 
-    final existingDocs = {
-      for (final d in (await db.collection(collection).get(
-            const GetOptions(source: Source.server),
-          ))
-              .docs)
-        d.id: d.data(),
-    };
-    // Deletes are explicit only — see the matching comment in
-    // _diffDailyMessages.
-    updates.removeWhere((e) => _unchanged(e.value, existingDocs[e.key]));
+    final parsed = parsing.parseCommunityRows(sheet);
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final creates = [
+      for (final fields in parsed.creates) {...fields, 'authorUid': currentUid},
+    ];
 
     return SheetDiff(
       collection: collection,
-      label: 'مجتمع الحديث',
+      label: label,
       creates: creates,
-      updates: updates,
-      deletes: deletes.toList(),
-      invalidRows: invalidRows,
+      updates: const [],
+      deletes: const [],
+      invalidRows: parsed.invalidRows,
       addsServerTimestamp: true,
     );
   }
 
   // ------------------------------------------------- notificationMessages ---
 
-  Future<SheetDiff> _diffNotificationMessages(
+  /// Add-only, same as [_collectDailyCreates]. Only the starting sequence
+  /// number for rows with no explicit "الترتيب" needs Firestore.
+  Future<SheetDiff> _collectNotificationCreates(
     FirebaseFirestore db,
     xls.Sheet sheet,
   ) async {
     const collection = 'notificationMessages';
-    final rows = sheet.rows.skip(1);
+    const label = 'رسائل التنبيه';
 
-    final creates = <Map<String, dynamic>>[];
-    final updates = <MapEntry<String, Map<String, dynamic>>>[];
-    final deletes = <String>{};
-    final invalidRows = <String>[];
-    final seenDocIds = <String>{};
-
-    var rowNumber = 1;
-    var newSeq = await _countForCollection(db, collection);
-    for (final row in rows) {
-      rowNumber++;
-      final docId = _cellString(row, 0);
-      final text = _cellString(row, 1).trim();
-      final activeRaw = _cellString(row, 2).trim();
-      final orderRaw = _cellString(row, 3);
-
-      if (docId.isEmpty && text.isEmpty) continue;
-
-      if (docId.isNotEmpty && !seenDocIds.add(docId)) {
-        invalidRows.add('$rowNumber (معرف مكرر)');
-        continue;
-      }
-
-      if (docId.isNotEmpty && text.isEmpty) {
-        deletes.add(docId);
-        continue;
-      }
-
-      if (text.isEmpty) {
-        invalidRows.add('$rowNumber (نص فارغ)');
-        continue;
-      }
-      if (text.length > 300) {
-        invalidRows.add('$rowNumber (النص أطول من ٣٠٠ حرف)');
-        continue;
-      }
-
-      bool? active;
-      if (activeRaw.isNotEmpty) {
-        if (activeRaw == 'نعم') {
-          active = true;
-        } else if (activeRaw == 'لا') {
-          active = false;
-        } else {
-          invalidRows.add('$rowNumber (عمود نشطة يجب أن يكون نعم أو لا)');
-          continue;
-        }
-      }
-
-      final order =
-          orderRaw.isEmpty ? null : int.tryParse(_normalizeDigits(orderRaw));
-
-      if (docId.isEmpty) {
-        creates.add({
-          'text': text,
-          'active': active ?? true,
-          'order': order ?? newSeq,
-        });
-        newSeq++;
-      } else {
-        updates.add(MapEntry(docId, {
-          'text': text,
-          if (active != null) 'active': active,
-          if (order != null) 'order': order,
-        }));
-      }
+    final headerError =
+        parsing.headerMismatchNote(sheet, parsing.notificationAddHeaders);
+    if (headerError != null) {
+      return SheetDiff(
+        collection: collection,
+        label: label,
+        creates: const [],
+        updates: const [],
+        deletes: const [],
+        invalidRows: [headerError],
+        addsServerTimestamp: true,
+      );
     }
 
-    final existingDocs = {
-      for (final d in (await db.collection(collection).get(
-            const GetOptions(source: Source.server),
-          ))
-              .docs)
-        d.id: d.data(),
-    };
-    // Deletes are explicit only — see the matching comment in
-    // _diffDailyMessages.
-    updates.removeWhere((e) => _unchanged(e.value, existingDocs[e.key]));
+    final startSeq = await _countForCollection(db, collection);
+    final parsed = parsing.parseNotificationRows(sheet, startSeq: startSeq);
 
     return SheetDiff(
       collection: collection,
-      label: 'رسائل التنبيه',
-      creates: creates,
-      updates: updates,
-      deletes: deletes.toList(),
-      invalidRows: invalidRows,
+      label: label,
+      creates: parsed.creates,
+      updates: const [],
+      deletes: const [],
+      invalidRows: parsed.invalidRows,
       addsServerTimestamp: true,
     );
-  }
-
-  /// Drops every update/delete from [diffs], keeping only creates — the
-  /// enforcement point for "moderators can only add new items". Applied
-  /// after diffing rather than by refusing to build updates/deletes in the
-  /// first place, so it also catches a hand-edited sheet that adds a docId
-  /// the moderator was never given (the template ships with none).
-  _RestrictedDiffs _restrictToCreatesOnly(List<SheetDiff> diffs) {
-    var rejectedUpdates = 0;
-    var rejectedDeletes = 0;
-    final restricted = <SheetDiff>[];
-    for (final d in diffs) {
-      rejectedUpdates += d.updates.length;
-      rejectedDeletes += d.deletes.length;
-      restricted.add(
-        SheetDiff(
-          collection: d.collection,
-          label: d.label,
-          creates: d.creates,
-          updates: const [],
-          deletes: const [],
-          invalidRows: d.invalidRows,
-          addsServerTimestamp: d.addsServerTimestamp,
-        ),
-      );
-    }
-    return _RestrictedDiffs(restricted, rejectedUpdates, rejectedDeletes);
-  }
-
-  /// True when every field the upload would write already matches what's
-  /// in Firestore — lets a no-op download→upload round trip report "0
-  /// updated" instead of rewriting every row with identical data.
-  bool _unchanged(Map<String, dynamic> newFields, Map<String, dynamic>? existing) {
-    if (existing == null) return false;
-    for (final entry in newFields.entries) {
-      if (existing[entry.key] != entry.value) return false;
-    }
-    return true;
   }
 
   Future<int> _countForCollection(FirebaseFirestore db, String collection) async {
     final agg = await db.collection(collection).count().get();
     return agg.count ?? 0;
-  }
-
-  String _cellString(List<xls.Data?> row, int index) {
-    if (index >= row.length) return '';
-    return row[index]?.value?.toString().trim() ?? '';
-  }
-
-  static const _arabicIndicDigits = '٠١٢٣٤٥٦٧٨٩';
-
-  /// Excel round trips through Arabic locales sometimes leave numeric cells
-  /// as Arabic-Indic digits (٠-٩) instead of ASCII ones — int.tryParse
-  /// doesn't understand those, so normalize before parsing.
-  String _normalizeDigits(String input) {
-    final buffer = StringBuffer();
-    for (final ch in input.codeUnits) {
-      final index = _arabicIndicDigits.codeUnits.indexOf(ch);
-      buffer.writeCharCode(index == -1 ? ch : 0x30 + index);
-    }
-    return buffer.toString();
   }
 
   // ---------------------------------------------------------------- build ---
@@ -879,46 +586,31 @@ class _BulkAddPageState extends State<BulkAddPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.isAdmin ? 'تنزيل ورفع Excel' : 'إضافة عبر Excel',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            const Text(
+              'إضافة عبر Excel',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
-            if (widget.isAdmin)
-              const Text(
-                'ملف واحد بثلاث أوراق (تبويبات): "رسائل اليوم"، "مجتمع الحديث"، '
-                '"رسائل التنبيه". عدّل النصوص أو أضف صفوفاً جديدة (اترك عمود '
-                '"المعرف" فارغاً للصفوف الجديدة) في أي ورقة، ثم ارفع الملف — '
-                'الصفوف ذات المعرف تُحدَّث، والجديدة تُضاف. لحذف رسالة، أبقِ '
-                'عمود "المعرف" كما هو وامسح عمود "النص" فقط. في ورقة "مجتمع '
-                'الحديث"، عمود "الحالة" يقبل: قيد المراجعة / معتمدة / مرفوضة — '
-                'وتغييره هو نفسه إجراء الاعتماد أو الرفض.',
-              )
-            else ...[
-              const Text(
-                'نزّل نموذجاً فارغاً بثلاث أوراق، أضف صفوف الرسائل الجديدة فيه '
-                'فقط (اترك عمود "المعرف" فارغاً)، ثم ارفعه. لا يمكنك هنا رؤية '
-                'الرسائل الحالية ولا تعديلها أو حذفها — هذا التنقيح متاح '
-                'للمدير فقط؛ لمراجعة مشاركات المجتمع فرداً فرداً استخدم تبويب '
-                '"قائمة المراجعة".',
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'ملاحظة: أي رفعة تضيف أكثر من $kBulkChangeThreshold عناصر '
-                'تُرسَل لمراجعة المدير قبل التنفيذ، ولا تُطبَّق مباشرة.',
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-              ),
-            ],
+            const Text(
+              'نزّل نموذج الإضافة (ثلاث أوراق: "رسائل اليوم"، "مجتمع الحديث"، '
+              '"رسائل التنبيه")، أضف صفوف الرسائل الجديدة فيه، ثم ارفعه — كل '
+              'صف يصبح رسالة جديدة. هذه الأداة للإضافة فقط: لا يمكنك من '
+              'خلالها تعديل أو حذف رسالة موجودة.',
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'ملاحظة: أي رفعة تضيف أكثر من $kBulkChangeThreshold عناصر من '
+              'مشرف تُرسَل لمراجعة المدير قبل التنفيذ، ولا تُطبَّق مباشرة.',
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _excelBusy
-                        ? null
-                        : (widget.isAdmin ? _downloadExcel : _downloadTemplate),
+                    onPressed: _excelBusy ? null : _downloadTemplate,
                     icon: const Icon(Icons.download_rounded),
-                    label: Text(widget.isAdmin ? 'تنزيل Excel' : 'تنزيل نموذج فارغ'),
+                    label: const Text('تنزيل نموذج الإضافة'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -937,6 +629,20 @@ class _BulkAddPageState extends State<BulkAddPage> {
                 ),
               ],
             ),
+            if (widget.isAdmin) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _excelBusy ? null : _downloadCurrentData,
+                icon: const Icon(Icons.visibility_outlined),
+                label: const Text('تنزيل البيانات الحالية (للعرض فقط)'),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'ملف مرجعي فقط لرؤية كل الرسائل الموجودة حالياً بمعرّفاتها — '
+                'لا ترفعه مرة أخرى، فسيُضيف كل صف فيه كرسالة مكررة جديدة.',
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              ),
+            ],
             if (_excelResult != null) ...[
               const SizedBox(height: 8),
               Text(
@@ -1012,15 +718,4 @@ class _BulkAddPageState extends State<BulkAddPage> {
       ),
     );
   }
-}
-
-/// Result of [_BulkAddPageState._restrictToCreatesOnly] — the create-only
-/// diffs plus how many update/delete rows were dropped, so the caller can
-/// tell the moderator why their upload didn't fully match what they typed.
-class _RestrictedDiffs {
-  _RestrictedDiffs(this.diffs, this.rejectedUpdates, this.rejectedDeletes);
-
-  final List<SheetDiff> diffs;
-  final int rejectedUpdates;
-  final int rejectedDeletes;
 }

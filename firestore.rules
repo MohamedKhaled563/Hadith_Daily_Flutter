@@ -41,13 +41,17 @@ rules_version = '2';
 // dashboard's Excel bulk-edit tab, alongside the existing author-submits-
 // pending path. Phase 16 narrows dailyMessages/notificationMessages update
 // and delete from isModerator() to isAdmin() — a moderator's Excel bulk
-// tool went create-only (BulkAddPage._restrictToCreatesOnly), and these
-// two collections have no other moderator-facing edit path, so this closes
-// the gap where a moderator could still write directly against the rules
-// even though the dashboard UI no longer offers it. communityMessages is
-// untouched: its isModerator() update/delete is what the pending-queue
-// approve/reject workflow runs on, a legitimate per-item moderator duty
-// unrelated to the bulk tool.
+// tool went create-only, and these two collections have no other
+// moderator-facing edit path, so this closes the gap where a moderator
+// could still write directly against the rules even though the dashboard
+// UI no longer offers it. communityMessages is untouched: its
+// isModerator() update/delete is what the pending-queue approve/reject
+// workflow runs on, a legitimate per-item moderator duty unrelated to the
+// bulk tool. Phase 17 removes the docId column from the bulk tool's upload
+// template entirely (for both roles) — BulkAddPage now only ever produces
+// create writes (BulkAddPage._collect*Creates), so the update/delete rules
+// below are exercised only by each collection's own per-item edit path,
+// never by the bulk tool.
 service cloud.firestore {
   match /databases/{database}/documents {
 
