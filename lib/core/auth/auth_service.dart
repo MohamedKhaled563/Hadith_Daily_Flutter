@@ -52,9 +52,8 @@ class AuthService {
   Future<void> _ensureGoogleReady() async {
     if (_googleReady) return;
     await _googleSignIn.initialize(
-      clientId: defaultTargetPlatform == TargetPlatform.iOS
-          ? _iosClientId
-          : null,
+      clientId:
+          defaultTargetPlatform == TargetPlatform.iOS ? _iosClientId : null,
       serverClientId: _webClientId,
     );
     _googleReady = true;
@@ -83,19 +82,36 @@ class AuthService {
     );
 
     // Everything from here on runs against an already-created account: if
-    // any of it fails — the username claim, updateDisplayName/reload, or
-    // _ensureUserDoc's own write — roll the account back rather than leave
-    // it stranded half set-up (created, but with no matching users/{uid}
-    // doc and, in the username-claim case, a name it can never actually use
-    // since firestore.rules forbids editing/deleting a claimed
-    // usernames/{key} doc). The one exception is a name collision, which
+    // any of it fails, roll the account back rather than leave it stranded
+    // half set-up. The username claim is deliberately done *last*, after
+    // updateDisplayName/reload and _ensureUserDoc already succeeded: a
+    // usernames/{key} doc can never be edited or deleted once claimed (see
+    // firestore.rules), so if that step failed partway through this
+    // sequence, the name would be permanently unusable by anyone even
+    // though the account claiming it was rolled back. Doing it last means
+    // the only thing that can still fail after it succeeds is nothing — and
+    // if it fails, the worst orphan left behind is a stray users/{uid} doc
+    // keyed by a uid nobody will ever collide with, not a human-readable
+    // name blocked forever. The one exception is a name collision, which
     // already has its own specific rollback+error below.
     try {
-      // Claim the normalized name right after the account exists (the write
-      // needs request.auth to be this new user — see firestore.rules). If
-      // someone else grabbed the same name in the moment between the
-      // sign-up screen's own pre-check and here, the rules deny this as an
-      // update against an already-existing doc.
+      if (displayName.isNotEmpty) {
+        await credential.user?.updateDisplayName(displayName);
+        // updateDisplayName() writes the new name to the Auth server, but
+        // the in-memory User object we're already holding doesn't pick it
+        // up on its own — without this reload, _ensureUserDoc below reads
+        // the stale (empty) displayName and mirrors that into Firestore
+        // instead.
+        await credential.user?.reload();
+      }
+
+      await _ensureUserDoc(_auth.currentUser ?? credential.user!);
+
+      // Claim the normalized name last (the write needs request.auth to be
+      // this new user — see firestore.rules). If someone else grabbed the
+      // same name in the moment between the sign-up screen's own pre-check
+      // and here, the rules deny this as an update against an
+      // already-existing doc.
       if (displayName.isNotEmpty) {
         final nameKey = normalizeDisplayName(displayName);
         try {
@@ -110,17 +126,7 @@ class AuthService {
           }
           rethrow;
         }
-
-        await credential.user?.updateDisplayName(displayName);
-        // updateDisplayName() writes the new name to the Auth server, but
-        // the in-memory User object we're already holding doesn't pick it
-        // up on its own — without this reload, _ensureUserDoc below reads
-        // the stale (empty) displayName and mirrors that into Firestore
-        // instead.
-        await credential.user?.reload();
       }
-
-      await _ensureUserDoc(_auth.currentUser ?? credential.user!);
     } on DisplayNameTakenException {
       rethrow;
     } catch (_) {
