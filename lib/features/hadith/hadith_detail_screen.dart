@@ -204,14 +204,18 @@ class HadithDetailScreen extends StatelessWidget {
                                   color: palette.goldText,
                                 ),
                                 const SizedBox(width: 6),
-                                Text(
-                                  hadith.narrator,
-                                  style: TextStyle(
-                                    fontFamily: kSans,
-                                    fontSize: 12,
-                                    height: AppLeading.chrome,
-                                    fontWeight: FontWeight.w700,
-                                    color: palette.goldText,
+                                Flexible(
+                                  child: Text(
+                                    hadith.narrator,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontFamily: kSans,
+                                      fontSize: 12,
+                                      height: AppLeading.chrome,
+                                      fontWeight: FontWeight.w700,
+                                      color: palette.goldText,
+                                    ),
                                   ),
                                 ),
                               ],

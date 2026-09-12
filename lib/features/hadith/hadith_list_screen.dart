@@ -323,18 +323,39 @@ class _HadithListCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Prefer the narrator's name (اسم الراوي) when the workbook has
+              // one — it's more specific to this hadith than the generic
+              // "من الأربعين النووية" fallback `hadith.reference` carries
+              // when no explicit source/reference was given.
               Flexible(
-                child: Text(
-                  hadith.reference,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 11.5,
-                    height: AppLeading.chrome,
-                    fontWeight: FontWeight.w600,
-                    color: palette.goldText,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (hadith.narrator.isNotEmpty) ...[
+                      Icon(
+                        Icons.person_outline_rounded,
+                        size: 13,
+                        color: palette.goldText,
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    Flexible(
+                      child: Text(
+                        hadith.narrator.isNotEmpty
+                            ? hadith.narrator
+                            : hadith.reference,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: kSans,
+                          fontSize: 11.5,
+                          height: AppLeading.chrome,
+                          fontWeight: FontWeight.w600,
+                          color: palette.goldText,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               // chevron_left points "forward" under RTL.
