@@ -579,141 +579,152 @@ class _BulkAddPageState extends State<BulkAddPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'إضافة عبر Excel',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'نزّل نموذج الإضافة (ثلاث أوراق: "رسائل اليوم"، "مجتمع الحديث"، '
-              '"رسائل التنبيه")، أضف صفوف الرسائل الجديدة فيه، ثم ارفعه — كل '
-              'صف يصبح رسالة جديدة. هذه الأداة للإضافة فقط: لا يمكنك من '
-              'خلالها تعديل أو حذف رسالة موجودة.',
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'ملاحظة: أي رفعة تضيف أكثر من $kBulkChangeThreshold عناصر من '
-              'مشرف تُرسَل لمراجعة المدير قبل التنفيذ، ولا تُطبَّق مباشرة.',
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            Row(
+    // The IndexedStack this page sits in (see _DashboardHome) gives loose
+    // constraints, so without SizedBox.expand the SingleChildScrollView
+    // below collapses to the width/height of its content instead of
+    // filling the tab area — which also drags its scrollbar in from the
+    // true edge to wherever the ConstrainedBox's 640px column happens to
+    // end. SizedBox.expand fills the tab; Center then keeps the readable
+    // form column centered in that full-width area instead of pinned left.
+    return SizedBox.expand(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _excelBusy ? null : _downloadTemplate,
-                    icon: const Icon(Icons.download_rounded),
-                    label: const Text('تنزيل نموذج الإضافة'),
+                const Text(
+                  'إضافة عبر Excel',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'نزّل نموذج الإضافة (ثلاث أوراق: "رسائل اليوم"، "مجتمع الحديث"، '
+                  '"رسائل التنبيه")، أضف صفوف الرسائل الجديدة فيه، ثم ارفعه — كل '
+                  'صف يصبح رسالة جديدة. هذه الأداة للإضافة فقط: لا يمكنك من '
+                  'خلالها تعديل أو حذف رسالة موجودة.',
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'ملاحظة: أي رفعة تضيف أكثر من $kBulkChangeThreshold عناصر من '
+                  'مشرف تُرسَل لمراجعة المدير قبل التنفيذ، ولا تُطبَّق مباشرة.',
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _excelBusy ? null : _downloadTemplate,
+                        icon: const Icon(Icons.download_rounded),
+                        label: const Text('تنزيل نموذج الإضافة'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _excelBusy ? null : _uploadExcel,
+                        icon: _excelBusy
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.upload_rounded),
+                        label: const Text('رفع Excel'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (widget.isAdmin) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _excelBusy ? null : _downloadCurrentData,
+                    icon: const Icon(Icons.visibility_outlined),
+                    label: const Text('تنزيل البيانات الحالية (للعرض فقط)'),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'ملف مرجعي فقط لرؤية كل الرسائل الموجودة حالياً بمعرّفاتها — '
+                    'لا ترفعه مرة أخرى، فسيُضيف كل صف فيه كرسالة مكررة جديدة.',
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                  ),
+                ],
+                if (_excelResult != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _excelResult!,
+                    style: TextStyle(
+                      color: _excelResultIsError ? Colors.red : Colors.green.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 28),
+                const Divider(),
+                const SizedBox(height: 12),
+                const Text(
+                  'إضافة سريعة (لصق) — رسائل اليوم فقط',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'لإضافة رسائل جديدة لحديث واحد بسرعة، دون المرور بملف Excel.',
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: 160,
+                  child: TextField(
+                    controller: _hadithController,
+                    keyboardType: TextInputType.number,
+                    enabled: !_pasteSubmitting,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم الحديث (١-٤٢)',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _excelBusy ? null : _uploadExcel,
-                    icon: _excelBusy
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.upload_rounded),
-                    label: const Text('رفع Excel'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _textController,
+                  maxLines: 8,
+                  minLines: 5,
+                  enabled: !_pasteSubmitting,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    labelText: 'الرسائل — سطر لكل رسالة',
+                    border: const OutlineInputBorder(),
+                    helperText: '${_lines.length} رسالة جاهزة للإضافة',
+                    alignLabelWithHint: true,
                   ),
+                ),
+                const SizedBox(height: 12),
+                if (_pasteResult != null) ...[
+                  Text(
+                    _pasteResult!,
+                    style: TextStyle(
+                      color: _pasteResultIsError ? Colors.red : Colors.green.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                FilledButton.icon(
+                  onPressed: _pasteSubmitting ? null : _submitPaste,
+                  icon: _pasteSubmitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.playlist_add_rounded),
+                  label: Text(_pasteSubmitting ? 'جارٍ الإضافة…' : 'إضافة الرسائل'),
                 ),
               ],
             ),
-            if (widget.isAdmin) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _excelBusy ? null : _downloadCurrentData,
-                icon: const Icon(Icons.visibility_outlined),
-                label: const Text('تنزيل البيانات الحالية (للعرض فقط)'),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'ملف مرجعي فقط لرؤية كل الرسائل الموجودة حالياً بمعرّفاتها — '
-                'لا ترفعه مرة أخرى، فسيُضيف كل صف فيه كرسالة مكررة جديدة.',
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-              ),
-            ],
-            if (_excelResult != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _excelResult!,
-                style: TextStyle(
-                  color: _excelResultIsError ? Colors.red : Colors.green.shade700,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-            const SizedBox(height: 28),
-            const Divider(),
-            const SizedBox(height: 12),
-            const Text(
-              'إضافة سريعة (لصق) — رسائل اليوم فقط',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'لإضافة رسائل جديدة لحديث واحد بسرعة، دون المرور بملف Excel.',
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: 160,
-              child: TextField(
-                controller: _hadithController,
-                keyboardType: TextInputType.number,
-                enabled: !_pasteSubmitting,
-                decoration: const InputDecoration(
-                  labelText: 'رقم الحديث (١-٤٢)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _textController,
-              maxLines: 8,
-              minLines: 5,
-              enabled: !_pasteSubmitting,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                labelText: 'الرسائل — سطر لكل رسالة',
-                border: const OutlineInputBorder(),
-                helperText: '${_lines.length} رسالة جاهزة للإضافة',
-                alignLabelWithHint: true,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (_pasteResult != null) ...[
-              Text(
-                _pasteResult!,
-                style: TextStyle(
-                  color: _pasteResultIsError ? Colors.red : Colors.green.shade700,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            FilledButton.icon(
-              onPressed: _pasteSubmitting ? null : _submitPaste,
-              icon: _pasteSubmitting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.playlist_add_rounded),
-              label: Text(_pasteSubmitting ? 'جارٍ الإضافة…' : 'إضافة الرسائل'),
-            ),
-          ],
+          ),
         ),
       ),
     );
