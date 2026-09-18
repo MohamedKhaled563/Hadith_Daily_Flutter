@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar / notification-shade icon. Android renders this as a flat
+     white silhouette on Android 5+ regardless of the fillColor below, so it
+     must be a simple transparent-background shape — NOT the multi-layer,
+     full-color adaptive launcher icon (@mipmap/ic_launcher), which either
+     renders as a solid white/gray block or is rejected in the notification
+     shade. Reuses the app's heart mark from
+     drawable/ic_launcher_foreground.xml. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,34 C48,26 36,26 30,34 C24,42 24,54 34,64 L54,82 L74,64 C84,54 84,42 78,34 C72,26 60,26 54,34 Z"/>
+</vector>

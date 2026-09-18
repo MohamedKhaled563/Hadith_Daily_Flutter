@@ -146,7 +146,11 @@ class NotificationScheduler {
     // builds a location from the OS's own reported offset instead.
     tz_data.initializeTimeZones();
 
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    // A dedicated white-silhouette drawable, not @mipmap/ic_launcher: that's
+    // the full-color adaptive launcher icon, and Android's notification
+    // shade either renders it as a blank white/gray block or forces its own
+    // fallback glyph instead — see drawable/ic_stat_notify.xml.
+    const androidInit = AndroidInitializationSettings('@drawable/ic_stat_notify');
     const iosInit = DarwinInitializationSettings();
     await _plugin.initialize(
       const InitializationSettings(android: androidInit, iOS: iosInit),
