@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/app_links.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
 import '../../core/theme/app_palette.dart';
@@ -16,6 +17,7 @@ import '../../core/widgets/tap_target.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/message_like_service.dart';
 import '../hadith/hadith_detail_screen.dart';
 
 class DailyMessageScreen extends StatefulWidget {
@@ -45,9 +47,13 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
     _isBookmarked = _repo.isInsightFavorite(widget.insight);
   }
 
-  String get _shareText => '« ${widget.insight.message} »\n\n'
-      '📌 المرتبط بـ: ${widget.hadith?.title ?? 'حديث نبوي شريف'}\n'
-      '🌿 من تطبيق: طيّب قلبك - هدي النبوة';
+  String get _shareText {
+    final link = AppLinks.storeLink;
+    return '« ${widget.insight.message} »\n\n'
+        '📌 المرتبط بـ: ${widget.hadith?.title ?? 'حديث نبوي شريف'}\n'
+        '🌿 من تطبيق: طيّب قلبك - هدي النبوة'
+        '${link == null ? '' : '\n$link'}';
+  }
 
   void _copyMessageText() {
     Clipboard.setData(ClipboardData(text: _shareText));
@@ -180,17 +186,23 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
               20,
               8 + BottomNavigation.reservedHeight(context),
             ),
-            child: _MessageToolbar(
-              isBookmarked: _isBookmarked,
-              likes: _repo.insightLikeCount(widget.insight),
-              isLiked: _repo.isInsightLiked(widget.insight),
-              onBookmark: _toggleBookmark,
-              onShare: _showSharePreview,
-              onCopy: _copyMessageText,
-              onLike: () => setState(
-                () => _repo.toggleInsightLike(widget.insight),
-              ),
-            ),
+            child: widget.insight.isLikeable
+                ? _LiveMessageToolbar(
+                    insight: widget.insight,
+                    isBookmarked: _isBookmarked,
+                    onBookmark: _toggleBookmark,
+                    onShare: _showSharePreview,
+                    onCopy: _copyMessageText,
+                  )
+                : _MessageToolbar(
+                    isBookmarked: _isBookmarked,
+                    likes: null,
+                    isLiked: false,
+                    onBookmark: _toggleBookmark,
+                    onShare: _showSharePreview,
+                    onCopy: _copyMessageText,
+                    onLike: null,
+                  ),
           ),
         ],
       ),
@@ -323,8 +335,70 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
   }
 }
 
-/// A floating toolbar below the message card: the like counter on the right,
-/// bookmark/share/copy grouped on the left, separated by a hairline divider.
+/// Streams the live like count + this device's own like status from
+/// [MessageLikeService] and feeds them into [_MessageToolbar] — split out
+/// from it so a non-likeable insight (see [Insight.isLikeable]) never has to
+/// touch Firestore at all.
+class _LiveMessageToolbar extends StatelessWidget {
+  const _LiveMessageToolbar({
+    required this.insight,
+    required this.isBookmarked,
+    required this.onBookmark,
+    required this.onShare,
+    required this.onCopy,
+  });
+
+  final Insight insight;
+  final bool isBookmarked;
+  final VoidCallback onBookmark;
+  final VoidCallback onShare;
+  final VoidCallback onCopy;
+
+  @override
+  Widget build(BuildContext context) {
+    final likeService = MessageLikeService();
+
+    return StreamBuilder<int>(
+      stream: likeService.likeCount(insight.sourceCollection, insight.id),
+      builder: (context, likeCountSnap) {
+        return StreamBuilder<bool>(
+          stream: likeService.likeStatus(insight.sourceCollection, insight.id),
+          builder: (context, likedSnap) {
+            final isLiked = likedSnap.data ?? false;
+            return _MessageToolbar(
+              isBookmarked: isBookmarked,
+              likes: likeCountSnap.data ?? 0,
+              isLiked: isLiked,
+              onBookmark: onBookmark,
+              onShare: onShare,
+              onCopy: onCopy,
+              onLike: () async {
+                try {
+                  await likeService.toggleLike(
+                    insight.sourceCollection,
+                    insight.id,
+                  );
+                } catch (_) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('تعذّر تسجيل الإعجاب، حاول مجدداً'),
+                    ),
+                  );
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// A floating toolbar below the message card: the like counter on the right
+/// (omitted when [likes] is null — the insight has nothing to like against,
+/// see [Insight.isLikeable]), bookmark/share/copy grouped on the left,
+/// separated by a hairline divider.
 class _MessageToolbar extends StatelessWidget {
   const _MessageToolbar({
     required this.isBookmarked,
@@ -337,12 +411,12 @@ class _MessageToolbar extends StatelessWidget {
   });
 
   final bool isBookmarked;
-  final int likes;
+  final int? likes;
   final bool isLiked;
   final VoidCallback onBookmark;
   final VoidCallback onShare;
   final VoidCallback onCopy;
-  final VoidCallback onLike;
+  final VoidCallback? onLike;
 
   @override
   Widget build(BuildContext context) {
@@ -361,13 +435,12 @@ class _MessageToolbar extends StatelessWidget {
         children: [
           // First child sits at the START edge — the right, in RTL — which
           // is where the like counter belongs.
-          // Backed by the repository, keyed by message text — not a
-          // hardcoded number that used to reset every time this card was
-          // reopened.
-          LikeCounter(likes: likes, isLiked: isLiked, onTap: onLike),
-          const SizedBox(width: 14),
-          Container(width: 1, height: 22, color: palette.cardBorder),
-          const SizedBox(width: 14),
+          if (likes != null && onLike != null) ...[
+            LikeCounter(likes: likes!, isLiked: isLiked, onTap: onLike!),
+            const SizedBox(width: 14),
+            Container(width: 1, height: 22, color: palette.cardBorder),
+            const SizedBox(width: 14),
+          ],
           _CardActionIcon(
             icon: isBookmarked
                 ? Icons.bookmark_rounded

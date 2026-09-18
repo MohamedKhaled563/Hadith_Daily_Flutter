@@ -32,6 +32,8 @@ class DailyTip {
     arabic: text,
     english: '',
     category: category,
+    id: id,
+    sourceCollection: sourceCollection,
   );
 }
 

@@ -10,6 +10,14 @@ class Insight {
   final String themes;
   final String keywords;
 
+  /// Firestore doc id this insight was loaded from, and which collection
+  /// ('dailyMessages' | 'communityMessages') it lives in — empty when the
+  /// insight has no backing doc (e.g. a bundled/local-only or notification
+  /// insight), which is what tells the like button there's nothing to
+  /// persist a like against.
+  final String id;
+  final String sourceCollection;
+
   const Insight({
     required this.hadithNumber,
     required this.arabic,
@@ -17,9 +25,13 @@ class Insight {
     this.category = 'رسالة اليوم',
     this.themes = '',
     this.keywords = '',
+    this.id = '',
+    this.sourceCollection = '',
   });
 
   String get message => arabic;
+
+  bool get isLikeable => id.isNotEmpty && sourceCollection.isNotEmpty;
 
   factory Insight.fromJson(Map<String, dynamic> json) {
     final category = (json['category'] as String? ?? '').trim();
@@ -31,6 +43,8 @@ class Insight {
       category: category.isEmpty ? 'رسالة اليوم' : category,
       themes: json['themes'] as String? ?? '',
       keywords: json['keywords'] as String? ?? '',
+      id: json['id'] as String? ?? '',
+      sourceCollection: json['sourceCollection'] as String? ?? '',
     );
   }
 }

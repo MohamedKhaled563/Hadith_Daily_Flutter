@@ -152,6 +152,8 @@ class HadithRepository {
               'category': i.category,
               'themes': i.themes,
               'keywords': i.keywords,
+              'id': i.id,
+              'sourceCollection': i.sourceCollection,
             }),
           )
           .toList(),
@@ -214,29 +216,5 @@ class HadithRepository {
   /// Messages attached to a given hadith.
   List<Insight> getInsightsForHadith(int hadithNumber) {
     return _insights.where((i) => i.hadithNumber == hadithNumber).toList();
-  }
-
-  // Insight likes, keyed by message text like the favorites above. Starts at
-  // zero rather than a seeded number — an honest count for this session
-  // beats a number that looks real but isn't.
-  final Set<String> _likedInsightTexts = <String>{};
-  final Map<String, int> _insightLikeCounts = <String, int>{};
-
-  bool isInsightLiked(Insight insight) =>
-      _likedInsightTexts.contains(_insightKey(insight));
-
-  int insightLikeCount(Insight insight) =>
-      _insightLikeCounts[_insightKey(insight)] ?? 0;
-
-  void toggleInsightLike(Insight insight) {
-    final key = _insightKey(insight);
-    final liked = _likedInsightTexts.contains(key);
-    if (liked) {
-      _likedInsightTexts.remove(key);
-      _insightLikeCounts[key] = ((_insightLikeCounts[key] ?? 0) - 1).clamp(0, 1 << 30);
-    } else {
-      _likedInsightTexts.add(key);
-      _insightLikeCounts[key] = (_insightLikeCounts[key] ?? 0) + 1;
-    }
   }
 }

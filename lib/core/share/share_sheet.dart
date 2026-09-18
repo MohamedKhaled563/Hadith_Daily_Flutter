@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app_links.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_text_styles.dart';
@@ -102,6 +103,8 @@ Future<void> showShareSheet({
                   );
                 }
                 buffer.write('\n🌿 من تطبيق «طيّب قلبك»');
+                final link = AppLinks.storeLink;
+                if (link != null) buffer.write('\n$link');
 
                 Clipboard.setData(ClipboardData(text: buffer.toString()));
                 Navigator.pop(sheetContext);

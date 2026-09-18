@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/app_links.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
 import '../../core/theme/app_palette.dart';
@@ -8,7 +9,10 @@ import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/parchment_card.dart';
+import '../../core/widgets/smooth_page_route.dart';
+import '../../core/widgets/tap_target.dart';
 import '../../data/models/hadith.dart';
+import 'hadith_explanation_screen.dart';
 
 class HadithDetailScreen extends StatelessWidget {
   const HadithDetailScreen({super.key, required this.hadith});
@@ -44,6 +48,12 @@ class HadithDetailScreen extends StatelessWidget {
       for (final lesson in hadith.keyLessons) {
         buffer.writeln('• $lesson');
       }
+    }
+
+    final link = AppLinks.storeLink;
+    if (link != null) {
+      buffer.writeln('\n🌿 من تطبيق «طيّب قلبك»');
+      buffer.writeln(link);
     }
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
@@ -179,47 +189,44 @@ class HadithDetailScreen extends StatelessWidget {
                           color: palette.bodyText,
                         ),
                       ),
-                      if (hadith.narrator.isNotEmpty) ...[
+                      if (hadith.narrator.isNotEmpty ||
+                          (hadith.source?.trim().isNotEmpty ?? false)) ...[
                         const SizedBox(height: 16),
                         Align(
                           alignment: AlignmentDirectional.centerEnd,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: palette.surface,
-                              borderRadius: BorderRadius.circular(
-                                AppRadii.pill,
-                              ),
-                              border: Border.all(color: palette.cardBorder),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.person_outline_rounded,
-                                  size: 14,
-                                  color: palette.goldText,
+                          child: Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              // Labeled explicitly — this used to be a bare
+                              // name with a person icon and no label, which
+                              // is what read as the same thing as the
+                              // reference chip below (a tester flagged the
+                              // two as indistinguishable).
+                              if (hadith.narrator.isNotEmpty)
+                                _AttributionChip(
+                                  icon: Icons.person_outline_rounded,
+                                  label: 'الراوي',
+                                  value: hadith.narrator,
                                 ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    hadith.narrator,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontFamily: kSans,
-                                      fontSize: 12,
-                                      height: AppLeading.chrome,
-                                      fontWeight: FontWeight.w700,
-                                      color: palette.goldText,
-                                    ),
-                                  ),
+                              // Deliberately reads `hadith.source` here, not
+                              // `hadith.reference` — reference falls back to
+                              // the generic "من الأربعين النووية" book title
+                              // when no real source was entered (true for
+                              // all 42 bundled hadiths today), and showing
+                              // that fallback as "أخرجه: ..." reads as a
+                              // fabricated isnad attribution. `source` has
+                              // no such fallback, so this chip only appears
+                              // once a real transmitter (e.g. "رواه مسلم")
+                              // is actually entered in the data.
+                              if (hadith.source?.trim().isNotEmpty ?? false)
+                                _AttributionChip(
+                                  icon: Icons.auto_stories_rounded,
+                                  label: 'أخرجه',
+                                  value: hadith.source!.trim(),
                                 ),
-                              ],
-                            ),
+                            ],
                           ),
                         ),
                       ],
@@ -253,28 +260,7 @@ class HadithDetailScreen extends StatelessWidget {
                 ],
                 if (hadith.explanation.isNotEmpty) ...[
                   const SizedBox(height: 14),
-                  ParchmentCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _CardHeading(
-                          icon: Icons.menu_book_rounded,
-                          title: 'شرح الحديث وبيانه',
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          hadith.explanation,
-                          textAlign: TextAlign.start,
-                          style: TextStyle(
-                            fontFamily: kSans,
-                            fontSize: 14.5,
-                            height: AppLeading.body,
-                            color: palette.bodyText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _ExplanationTeaserCard(hadith: hadith),
                 ],
                 if (hadith.narratorBio.isNotEmpty) ...[
                   const SizedBox(height: 14),
@@ -385,6 +371,156 @@ class _CardHeading extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A single labeled fact about the hadith's attribution — who narrated it
+/// (الراوي) or who transmitted/compiled it (أخرجه). Kept as one small chip
+/// type used twice rather than two bespoke pills, so "الراوي: فلان" and
+/// "أخرجه: رواه مسلم" always read the same way instead of looking like two
+/// unrelated bits of chrome.
+class _AttributionChip extends StatelessWidget {
+  const _AttributionChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      constraints: const BoxConstraints(maxWidth: 260),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+        border: Border.all(color: palette.cardBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: palette.goldText),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 12,
+                      height: AppLeading.chrome,
+                      fontWeight: FontWeight.w500,
+                      color: palette.goldText.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  TextSpan(
+                    text: value,
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 12,
+                      height: AppLeading.chrome,
+                      fontWeight: FontWeight.w700,
+                      color: palette.goldText,
+                    ),
+                  ),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A teaser for "شرح الحديث وبيانه" — the opening line or two of the full
+/// explanation, fading out, with a button that opens
+/// [HadithExplanationScreen]. Kept off this page entirely (rather than an
+/// in-place expand) so the hadith page stays a quick reference: text,
+/// attribution, the short summary — someone who wants the full scholarly
+/// explanation gets an uninterrupted reading screen for it instead of a
+/// long block pushing everything else down.
+class _ExplanationTeaserCard extends StatelessWidget {
+  const _ExplanationTeaserCard({required this.hadith});
+
+  final Hadith hadith;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return ParchmentCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _CardHeading(
+            icon: Icons.menu_book_rounded,
+            title: 'شرح الحديث وبيانه',
+          ),
+          const SizedBox(height: 10),
+          // Plain ellipsis rather than a gradient fade: the card's
+          // background is itself a gradient (see ParchmentCard), so a
+          // flat-color fade never blends cleanly against it and shows up as
+          // a visible seam. An ellipsis has no such problem and reads just
+          // as clearly as "there's more".
+          Text(
+            hadith.explanation,
+            textAlign: TextAlign.start,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 14.5,
+              height: AppLeading.body,
+              color: palette.bodyText,
+            ),
+          ),
+          const SizedBox(height: 10),
+          TapTarget(
+            onTap: () => Navigator.push(
+              context,
+              SmoothPageRoute(
+                child: HadithExplanationScreen(hadith: hadith),
+              ),
+            ),
+            semanticLabel: 'قراءة الشرح كاملاً',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'قراءة الشرح كاملاً',
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 13,
+                    height: AppLeading.chrome,
+                    fontWeight: FontWeight.w700,
+                    color: palette.goldText,
+                  ),
+                ),
+                // chevron_left, not _right: this app reads right-to-left
+                // (see the back button elsewhere using chevron_right for
+                // the same reason), so "forward, keep reading" points left.
+                Icon(
+                  Icons.chevron_left_rounded,
+                  size: 18,
+                  color: palette.goldText,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

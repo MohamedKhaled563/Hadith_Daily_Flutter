@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../app_links.dart';
 import 'share_card.dart';
 
 /// Renders a [ShareCard] to a PNG and hands it to the platform share sheet,
@@ -105,6 +106,8 @@ class ShareService {
       buffer.write(number == null ? title : 'الحديث $number: $title');
     }
     buffer.write('\n🌿 من تطبيق «طيّب قلبك»');
+    final link = AppLinks.storeLink;
+    if (link != null) buffer.write('\n$link');
     return buffer.toString();
   }
 

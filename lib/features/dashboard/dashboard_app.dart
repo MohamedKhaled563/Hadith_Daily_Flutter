@@ -24,8 +24,14 @@ class DashboardApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFF3C5940),
         fontFamily: 'Tajawal',
       ),
+      // The dashboard's own chrome (tables, lists, forms, scrollbars) is
+      // Latin-aligned tooling, not the mobile app's Arabic reading surface —
+      // forcing the whole tree RTL just because its labels are Arabic text
+      // was what pushed every list's scrollbar to the left. Arabic text
+      // still shapes and aligns correctly on its own inside an LTR
+      // container; only the surrounding layout direction changes here.
       builder: (context, child) =>
-          Directionality(textDirection: TextDirection.rtl, child: child!),
+          Directionality(textDirection: TextDirection.ltr, child: child!),
       home: const _AuthGate(),
     );
   }
