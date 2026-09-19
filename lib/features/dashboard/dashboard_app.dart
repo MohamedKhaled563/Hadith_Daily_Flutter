@@ -267,58 +267,58 @@ class _SignInScreenState extends State<_SignInScreen> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.shield_moon_outlined, size: 48),
-                const SizedBox(height: 12),
-                const Text(
-                  'لوحة الإشراف',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-                ),
-                const Text('طيّب قلبك — للمشرفين والمديرين'),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'البريد الإلكتروني',
-                    border: OutlineInputBorder(),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.shield_moon_outlined, size: 48),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'لوحة الإشراف',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                   ),
-                  keyboardType: TextInputType.emailAddress,
-                  onSubmitted: (_) => _submit(),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'كلمة المرور',
-                    border: OutlineInputBorder(),
+                  const Text('طيّب قلبك — للمشرفين والمديرين'),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'البريد الإلكتروني',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    onSubmitted: (_) => _submit(),
                   ),
-                  obscureText: true,
-                  onSubmitted: (_) => _submit(),
-                ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: _submitting ? null : _showForgotPasswordDialog,
-                    child: const Text('نسيت كلمة المرور؟'),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'كلمة المرور',
+                      border: OutlineInputBorder(),
+                    ),
+                    obscureText: true,
+                    onSubmitted: (_) => _submit(),
                   ),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 4),
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: _submitting ? null : _showForgotPasswordDialog,
+                      child: const Text('نسيت كلمة المرور؟'),
+                    ),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 4),
+                    Text(_error!, style: const TextStyle(color: Colors.red)),
+                  ],
+                  const SizedBox(height: 8),
+                  FilledButton(
+                    onPressed: _submitting ? null : _submit,
+                    child: _submitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('دخول'),
+                  ),
                 ],
-                const SizedBox(height: 8),
-                FilledButton(
-                  onPressed: _submitting ? null : _submit,
-                  child: _submitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('دخول'),
-                ),
-              ],
               ),
             ),
           ),
@@ -368,33 +368,54 @@ class _DashboardHomeState extends State<_DashboardHome> {
               onPressed: () => AuthService.instance.signOut(),
             ),
           ],
-          bottom: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: [
-              const Tab(
-                text: 'قائمة المراجعة',
-                icon: Icon(Icons.pending_actions_rounded),
+          // The AppBar/app chrome stays LTR (see DashboardApp's builder), but
+          // the tab labels are Arabic, so a plain LTR TabBar anchors them to
+          // the left — wrapping just the TabBar in RTL Directionality
+          // anchors the tabs to the right instead, without touching the
+          // rest of the LTR layout (scrollbars, tables, etc).
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(kTextTabBarHeight),
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: [
+                  const Tab(
+                    text: 'قائمة المراجعة',
+                    icon: Icon(Icons.pending_actions_rounded),
+                  ),
+                  const Tab(
+                      text: 'تعديل بالجملة',
+                      icon: Icon(Icons.playlist_add_rounded)),
+                  const Tab(
+                      text: 'رسائل التنبيه',
+                      icon: Icon(Icons.notifications_active_outlined)),
+                  const Tab(
+                      text: 'تواصل معنا',
+                      icon: Icon(Icons.mail_outline_rounded)),
+                  // Rotation ordering, role management, and approving a
+                  // moderator's bulk edits all touch things only an admin should
+                  // control, so all three stay admin-only — a moderator never
+                  // sees these tabs, matching what tool/set_role.py has always
+                  // required.
+                  if (widget.isAdmin)
+                    const Tab(
+                      text: 'رسائل اليوم ومشاركات المجتمع',
+                      icon: Icon(Icons.shuffle_rounded),
+                    ),
+                  if (widget.isAdmin)
+                    const Tab(
+                        text: 'طلبات المراجعة',
+                        icon: Icon(Icons.rule_folder_rounded)),
+                  if (widget.isAdmin)
+                    const Tab(
+                        text: 'المستخدمون',
+                        icon: Icon(Icons.admin_panel_settings_rounded)),
+                ],
+                onTap: (i) => setState(() => _tab = i),
               ),
-              const Tab(text: 'تعديل بالجملة', icon: Icon(Icons.playlist_add_rounded)),
-              const Tab(text: 'رسائل التنبيه', icon: Icon(Icons.notifications_active_outlined)),
-              const Tab(text: 'تواصل معنا', icon: Icon(Icons.mail_outline_rounded)),
-              // Rotation ordering, role management, and approving a
-              // moderator's bulk edits all touch things only an admin should
-              // control, so all three stay admin-only — a moderator never
-              // sees these tabs, matching what tool/set_role.py has always
-              // required.
-              if (widget.isAdmin)
-                const Tab(
-                  text: 'رسائل اليوم ومشاركات المجتمع',
-                  icon: Icon(Icons.shuffle_rounded),
-                ),
-              if (widget.isAdmin)
-                const Tab(text: 'طلبات المراجعة', icon: Icon(Icons.rule_folder_rounded)),
-              if (widget.isAdmin)
-                const Tab(text: 'المستخدمون', icon: Icon(Icons.admin_panel_settings_rounded)),
-            ],
-            onTap: (i) => setState(() => _tab = i),
+            ),
           ),
         ),
         body: IndexedStack(
