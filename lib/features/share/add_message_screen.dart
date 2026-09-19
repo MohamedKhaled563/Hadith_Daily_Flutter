@@ -181,7 +181,15 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
         const SizedBox(height: 14),
 
         Expanded(
-          child: Padding(
+          // A plain Column here doesn't shrink with the keyboard the way
+          // Expanded/BottomNavigation-scoped screens elsewhere do — this one
+          // has no Scaffold of its own to resize it, so on a small screen the
+          // keyboard opening left less height than the fixed-size fields above
+          // the message box needed, and the Column overflowed instead of
+          // shrinking. Scrolling is the backstop: whatever the keyboard takes,
+          // the reader can still reach every field by scrolling instead of the
+          // layout breaking.
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,73 +275,71 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                 _Label('نص الرسالة أو التأمل'),
                 const SizedBox(height: 6),
 
-                // Expanded rather than a fixed maxLines: the box fills
-                // whatever room is left on the screen — short on a small
-                // phone, tall on a tablet — instead of a fixed height that
-                // wastes space on some devices and cramps others.
-                Expanded(
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: _FieldShell(
-                          padding: const EdgeInsetsDirectional.fromSTEB(
-                            16, 16, 44, 16,
+                // minLines/maxLines rather than Expanded+expands:true: this
+                // field now lives in a SingleChildScrollView, which gives its
+                // children unbounded height — Expanded needs a bounded parent
+                // and would assert. Sizing to its own content (with a floor
+                // and a cap) is also what the fullscreen editor below already
+                // does successfully under the same keyboard-inset pressure.
+                Stack(
+                  children: [
+                    _FieldShell(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        16, 16, 44, 16,
+                      ),
+                      borderColor: _messageError != null
+                          ? const Color(0xFFB3261E)
+                          : null,
+                      child: TextField(
+                        controller: _messageController,
+                        minLines: 6,
+                        maxLines: 12,
+                        textAlignVertical: TextAlignVertical.top,
+                        onChanged: (_) {
+                          if (_messageError != null) {
+                            setState(() => _messageError = null);
+                          }
+                        },
+                        style: TextStyle(
+                          fontFamily: kSans,
+                          color: palette.bodyText,
+                          height: AppLeading.body,
+                        ),
+                        decoration: InputDecoration(
+                          hintText:
+                              'اكتب ما فتح الله به عليك من أثر هذا الحديث في حياتك...',
+                          hintStyle: TextStyle(
+                            color: palette.mutedText,
+                            fontSize: 13,
+                            height: AppLeading.body,
+                            fontFamily: kSans,
                           ),
-                          borderColor: _messageError != null
-                              ? const Color(0xFFB3261E)
-                              : null,
-                          child: TextField(
-                            controller: _messageController,
-                            maxLines: null,
-                            expands: true,
-                            textAlignVertical: TextAlignVertical.top,
-                            onChanged: (_) {
-                              if (_messageError != null) {
-                                setState(() => _messageError = null);
-                              }
-                            },
-                            style: TextStyle(
-                              fontFamily: kSans,
-                              color: palette.bodyText,
-                              height: AppLeading.body,
-                            ),
-                            decoration: InputDecoration(
-                              hintText:
-                                  'اكتب ما فتح الله به عليك من أثر هذا الحديث في حياتك...',
-                              hintStyle: TextStyle(
-                                color: palette.mutedText,
-                                fontSize: 13,
-                                height: AppLeading.body,
-                                fontFamily: kSans,
-                              ),
-                              border: InputBorder.none,
-                            ),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    PositionedDirectional(
+                      top: 8,
+                      end: 8,
+                      child: TapTarget(
+                        onTap: _openExpandedEditor,
+                        semanticLabel: 'تكبير مربع النص',
+                        minSize: 32,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: palette.surfaceSunken,
+                          ),
+                          child: Icon(
+                            Icons.open_in_full_rounded,
+                            size: 15,
+                            color: palette.goldText,
                           ),
                         ),
                       ),
-                      PositionedDirectional(
-                        top: 8,
-                        end: 8,
-                        child: TapTarget(
-                          onTap: _openExpandedEditor,
-                          semanticLabel: 'تكبير مربع النص',
-                          minSize: 32,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: palette.surfaceSunken,
-                            ),
-                            child: Icon(
-                              Icons.open_in_full_rounded,
-                              size: 15,
-                              color: palette.goldText,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
 
                 if (_messageError != null) ...[
