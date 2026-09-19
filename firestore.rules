@@ -177,9 +177,9 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Public read; a moderator/admin (the dashboard's mode toggle) is the
-    // only client allowed to write it, alongside tool/set_delivery_mode.py
-    // via the Admin SDK for anyone without dashboard access handy.
+    // Public read; a moderator/admin is the only client allowed to write —
+    // covers both the notification-mode flag and dailyMessageSchedule's
+    // per-date pins (DailyMessageSchedulePage).
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isModerator();

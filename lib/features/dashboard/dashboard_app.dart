@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import '../../core/auth/auth_service.dart';
 import 'bulk_add_page.dart';
 import 'bulk_change_requests_page.dart';
+import 'daily_message_schedule_page.dart';
 import 'feedback_messages_page.dart';
 import 'notification_messages_page.dart';
 import 'pending_queue_page.dart';
-import 'rotation_order_page.dart';
 import 'users_page.dart';
 
 class DashboardApp extends StatelessWidget {
@@ -353,13 +353,23 @@ class _DashboardHomeState extends State<_DashboardHome> {
           // the leading/actions widths, which pins it noticeably off-centre
           // whenever those two sides are asymmetric (as they are here: no
           // leading, ~200px of actions on the right) — flexibleSpace draws
-          // behind the toolbar row, so a Center here spans the *entire* bar
-          // width regardless of what the actions take up.
+          // behind the toolbar row so a Center here spans the *entire* bar
+          // width regardless of what the actions take up. flexibleSpace's
+          // own height covers the toolbar AND the tab bar below it though,
+          // so it has to be pinned to the top and capped at just
+          // kToolbarHeight — otherwise centering vertically lands the title
+          // on top of the tabs instead of in the toolbar strip.
           flexibleSpace: const SafeArea(
-            child: Center(
-              child: Text(
-                'لوحة الإشراف — طيّب قلبك',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                height: kToolbarHeight,
+                child: Center(
+                  child: Text(
+                    'لوحة الإشراف — طيّب قلبك',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  ),
+                ),
               ),
             ),
           ),
@@ -415,7 +425,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
                   if (widget.isAdmin)
                     const Tab(
                       text: 'رسائل اليوم ومشاركات المجتمع',
-                      icon: Icon(Icons.shuffle_rounded),
+                      icon: Icon(Icons.event_available_rounded),
                     ),
                   if (widget.isAdmin)
                     const Tab(
@@ -438,7 +448,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
             BulkAddPage(isAdmin: widget.isAdmin),
             NotificationMessagesPage(isAdmin: widget.isAdmin),
             const FeedbackMessagesPage(),
-            if (widget.isAdmin) const RotationOrderPage(),
+            if (widget.isAdmin) const DailyMessageSchedulePage(),
             if (widget.isAdmin) const BulkChangeRequestsPage(),
             if (widget.isAdmin) const UsersPage(),
           ],
