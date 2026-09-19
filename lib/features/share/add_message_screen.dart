@@ -29,11 +29,21 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
   final AppStateController _state = AppStateController();
   final _messageController = TextEditingController();
   final _authorController = TextEditingController();
+  // This screen sits inside the home Scaffold's body, and Scaffold strips
+  // the keyboard's inset out of the MediaQuery it hands to its body (it's
+  // already accounted for via resizing) — so MediaQuery.viewInsets.bottom
+  // reads 0 here even while the keyboard is up. Tracking focus directly is
+  // what actually tells this screen a field's keyboard is showing.
+  final _authorFocusNode = FocusNode();
+  final _messageFocusNode = FocusNode();
 
   Hadith? _selectedHadith;
   String? _messageError;
   String? _hadithError;
   bool _submitting = false;
+
+  bool get _keyboardLikelyOpen =>
+      _authorFocusNode.hasFocus || _messageFocusNode.hasFocus;
 
   @override
   void initState() {
@@ -43,12 +53,18 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
     if (_state.isLoggedIn && _state.userName.isNotEmpty) {
       _authorController.text = _state.userName;
     }
+    _authorFocusNode.addListener(_onFocusChanged);
+    _messageFocusNode.addListener(_onFocusChanged);
   }
+
+  void _onFocusChanged() => setState(() {});
 
   @override
   void dispose() {
     _messageController.dispose();
     _authorController.dispose();
+    _authorFocusNode.dispose();
+    _messageFocusNode.dispose();
     super.dispose();
   }
 
@@ -253,6 +269,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                 _FieldShell(
                   child: TextField(
                     controller: _authorController,
+                    focusNode: _authorFocusNode,
                     textInputAction: TextInputAction.next,
                     style: TextStyle(
                       fontFamily: kSans,
@@ -292,6 +309,7 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                           : null,
                       child: TextField(
                         controller: _messageController,
+                        focusNode: _messageFocusNode,
                         minLines: 6,
                         maxLines: 12,
                         textAlignVertical: TextAlignVertical.top,
@@ -355,7 +373,20 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
         // instead of travelling with the fields above it.
         Padding(
           padding: EdgeInsets.fromLTRB(
-            20, 8, 20, 12 + BottomNavigation.reservedHeight(context),
+            20,
+            8,
+            20,
+            // The bottom nav bar's own height only needs reserving when the
+            // bar is actually floating over the content, at the very bottom
+            // of the screen. Once a field is focused the keyboard covers the
+            // bar instead, and the Scaffold has already shifted this button
+            // up to sit right above the keyboard — adding the bar's height on
+            // top of that left a tall dead gap of background art between the
+            // button and the keyboard.
+            12 +
+                (_keyboardLikelyOpen
+                    ? 0
+                    : BottomNavigation.reservedHeight(context)),
           ),
           child: AppButton(
             text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة 🌿',
