@@ -339,7 +339,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
 /// [MessageLikeService] and feeds them into [_MessageToolbar] — split out
 /// from it so a non-likeable insight (see [Insight.isLikeable]) never has to
 /// touch Firestore at all.
-class _LiveMessageToolbar extends StatelessWidget {
+class _LiveMessageToolbar extends StatefulWidget {
   const _LiveMessageToolbar({
     required this.insight,
     required this.isBookmarked,
@@ -355,38 +355,84 @@ class _LiveMessageToolbar extends StatelessWidget {
   final VoidCallback onCopy;
 
   @override
-  Widget build(BuildContext context) {
-    final likeService = MessageLikeService();
+  State<_LiveMessageToolbar> createState() => _LiveMessageToolbarState();
+}
 
+class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
+  final _likeService = MessageLikeService();
+
+  // Optimistic "have I liked this": MessageLikeService.toggleLike runs a
+  // Firestore transaction, and unlike a plain set/update, a transaction's
+  // write is never applied to the local cache ahead of the server — the
+  // likeStatus()/likeCount() streams below sit frozen until the round trip
+  // completes. Without this override the heart would visibly do nothing
+  // for however long that takes. Cleared once the live stream confirms the
+  // same value, so a like from another device still always wins.
+  bool? _optimisticLiked;
+  bool _isToggling = false;
+
+  Future<void> _handleLike(bool serverLiked) async {
+    if (_isToggling) return;
+    final next = !(_optimisticLiked ?? serverLiked);
+    setState(() {
+      _optimisticLiked = next;
+      _isToggling = true;
+    });
+    try {
+      await _likeService.toggleLike(
+        widget.insight.sourceCollection,
+        widget.insight.id,
+      );
+    } catch (_) {
+      if (mounted) {
+        setState(() => _optimisticLiked = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذّر تسجيل الإعجاب، حاول مجدداً')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isToggling = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<int>(
-      stream: likeService.likeCount(insight.sourceCollection, insight.id),
+      stream: _likeService.likeCount(
+        widget.insight.sourceCollection,
+        widget.insight.id,
+      ),
       builder: (context, likeCountSnap) {
         return StreamBuilder<bool>(
-          stream: likeService.likeStatus(insight.sourceCollection, insight.id),
+          stream: _likeService.likeStatus(
+            widget.insight.sourceCollection,
+            widget.insight.id,
+          ),
           builder: (context, likedSnap) {
-            final isLiked = likedSnap.data ?? false;
-            return _MessageToolbar(
-              isBookmarked: isBookmarked,
-              likes: likeCountSnap.data ?? 0,
-              isLiked: isLiked,
-              onBookmark: onBookmark,
-              onShare: onShare,
-              onCopy: onCopy,
-              onLike: () async {
-                try {
-                  await likeService.toggleLike(
-                    insight.sourceCollection,
-                    insight.id,
-                  );
-                } catch (_) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('تعذّر تسجيل الإعجاب، حاول مجدداً'),
-                    ),
-                  );
+            final serverLiked = likedSnap.data ?? false;
+            if (_optimisticLiked != null && _optimisticLiked == serverLiked) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && _optimisticLiked == serverLiked) {
+                  setState(() => _optimisticLiked = null);
                 }
-              },
+              });
+            }
+            final isLiked = _optimisticLiked ?? serverLiked;
+            final serverCount = likeCountSnap.data ?? 0;
+            final displayedLikes =
+                serverCount +
+                (_optimisticLiked != null && _optimisticLiked != serverLiked
+                    ? (_optimisticLiked! ? 1 : -1)
+                    : 0);
+
+            return _MessageToolbar(
+              isBookmarked: widget.isBookmarked,
+              likes: displayedLikes,
+              isLiked: isLiked,
+              onBookmark: widget.onBookmark,
+              onShare: widget.onShare,
+              onCopy: widget.onCopy,
+              onLike: () => _handleLike(serverLiked),
             );
           },
         );

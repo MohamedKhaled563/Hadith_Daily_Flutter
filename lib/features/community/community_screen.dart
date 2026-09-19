@@ -144,23 +144,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   return _CommunityPostCard(
                     post: post,
                     rank: index + 1,
-                    onLikeToggle: () async {
-                      try {
-                        await CommunityService().toggleLike(post.id);
-                      } catch (_) {
-                        // Otherwise a failed toggle is a silent no-op: the
-                        // tap visibly does nothing and there's no hint why.
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت',
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    },
                     onTap: () => Navigator.push(
                       context,
                       SmoothPageRoute(child: CommunityPostScreen(post: post)),
@@ -224,13 +207,11 @@ class _CommunityPostCard extends StatefulWidget {
   const _CommunityPostCard({
     required this.post,
     required this.rank,
-    required this.onLikeToggle,
     required this.onTap,
   });
 
   final CommunityPost post;
   final int rank;
-  final VoidCallback onLikeToggle;
   final VoidCallback onTap;
 
   @override
@@ -239,6 +220,37 @@ class _CommunityPostCard extends StatefulWidget {
 
 class _CommunityPostCardState extends State<_CommunityPostCard> {
   final HadithRepository _repo = HadithRepository();
+  final _service = CommunityService();
+
+  // See _LiveMessageToolbar in daily_message_screen.dart for why this
+  // optimistic override exists: toggleLike is a Firestore transaction,
+  // which never gets an instant local-cache echo, so the likeStatus()
+  // stream below would otherwise sit frozen for the whole round trip.
+  bool? _optimisticLiked;
+  bool _isToggling = false;
+
+  Future<void> _handleLike(bool serverLiked) async {
+    if (_isToggling) return;
+    final next = !(_optimisticLiked ?? serverLiked);
+    setState(() {
+      _optimisticLiked = next;
+      _isToggling = true;
+    });
+    try {
+      await _service.toggleLike(widget.post.id);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _optimisticLiked = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isToggling = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -274,12 +286,28 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: StreamBuilder<bool>(
-                  stream: CommunityService().likeStatus(widget.post.id),
+                  stream: _service.likeStatus(widget.post.id),
                   builder: (context, snapshot) {
+                    final serverLiked = snapshot.data ?? false;
+                    if (_optimisticLiked != null &&
+                        _optimisticLiked == serverLiked) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted && _optimisticLiked == serverLiked) {
+                          setState(() => _optimisticLiked = null);
+                        }
+                      });
+                    }
+                    final isLiked = _optimisticLiked ?? serverLiked;
+                    final displayedLikes =
+                        widget.post.likes +
+                        (_optimisticLiked != null &&
+                                _optimisticLiked != serverLiked
+                            ? (_optimisticLiked! ? 1 : -1)
+                            : 0);
                     return LikeCounter(
-                      likes: widget.post.likes,
-                      isLiked: snapshot.data ?? false,
-                      onTap: widget.onLikeToggle,
+                      likes: displayedLikes,
+                      isLiked: isLiked,
+                      onTap: () => _handleLike(serverLiked),
                     );
                   },
                 ),

@@ -27,38 +27,31 @@ class CommunityPostScreen extends StatefulWidget {
 
 class _CommunityPostScreenState extends State<CommunityPostScreen> {
   final HadithRepository _repo = HadithRepository();
+  final _service = CommunityService();
 
-  // Optimistic: this screen gets a static [CommunityPost] snapshot from
-  // whoever navigated here, not a live query, so the count needs its own
-  // local state to feel instant rather than waiting on the round trip.
-  // "Have I liked this" itself comes from a live per-user stream so it's
-  // always the real answer, even across devices.
-  late int _likeCount = widget.post.likes;
-
-  // Guards against a rapid double-tap: without it, two taps fired before
-  // the likeStatus stream's first update lands both read the same stale
-  // `currentlyLiked`, so _likeCount shifts twice in the same direction
-  // while the two Firestore toggles (like then unlike) actually cancel out
-  // — leaving the local count permanently off from the real value.
+  // This screen gets a static [CommunityPost] snapshot from whoever
+  // navigated here, not a live query, so `widget.post.likes` never moves on
+  // its own — the optimistic delta below is computed against that fixed
+  // baseline. "Have I liked this" comes from a live per-user stream (always
+  // the real answer, even across devices), but toggleLike is a Firestore
+  // transaction and never gets an instant local-cache echo, so without this
+  // override the heart would sit frozen for the whole round trip — see
+  // _LiveMessageToolbar in daily_message_screen.dart for the same pattern.
+  bool? _optimisticLiked;
   bool _isToggling = false;
 
-  Future<void> _toggleLike(bool currentlyLiked) async {
+  Future<void> _handleLike(bool serverLiked) async {
     if (_isToggling) return;
-    _isToggling = true;
+    final next = !(_optimisticLiked ?? serverLiked);
     setState(() {
-      _likeCount += currentlyLiked ? -1 : 1;
+      _optimisticLiked = next;
+      _isToggling = true;
     });
     try {
-      await CommunityService().toggleLike(widget.post.id);
+      await _service.toggleLike(widget.post.id);
     } catch (_) {
-      // The optimistic count above never gets corrected otherwise — there's
-      // no live stream driving it on this screen (see the class doc) — so
-      // a failed toggle would otherwise silently leave the displayed count
-      // wrong with no indication anything went awry.
       if (mounted) {
-        setState(() {
-          _likeCount += currentlyLiked ? 1 : -1;
-        });
+        setState(() => _optimisticLiked = null);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت'),
@@ -66,7 +59,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
         );
       }
     } finally {
-      _isToggling = false;
+      if (mounted) setState(() => _isToggling = false);
     }
   }
 
@@ -293,13 +286,28 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
 
                 Center(
                   child: StreamBuilder<bool>(
-                    stream: CommunityService().likeStatus(widget.post.id),
+                    stream: _service.likeStatus(widget.post.id),
                     builder: (context, snapshot) {
-                      final isLiked = snapshot.data ?? false;
+                      final serverLiked = snapshot.data ?? false;
+                      if (_optimisticLiked != null &&
+                          _optimisticLiked == serverLiked) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && _optimisticLiked == serverLiked) {
+                            setState(() => _optimisticLiked = null);
+                          }
+                        });
+                      }
+                      final isLiked = _optimisticLiked ?? serverLiked;
+                      final displayedLikes =
+                          widget.post.likes +
+                          (_optimisticLiked != null &&
+                                  _optimisticLiked != serverLiked
+                              ? (_optimisticLiked! ? 1 : -1)
+                              : 0);
                       return LikeCounter(
-                        likes: _likeCount,
+                        likes: displayedLikes,
                         isLiked: isLiked,
-                        onTap: () => _toggleLike(isLiked),
+                        onTap: () => _handleLike(serverLiked),
                       );
                     },
                   ),
