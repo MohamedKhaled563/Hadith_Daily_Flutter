@@ -349,7 +349,20 @@ class _DashboardHomeState extends State<_DashboardHome> {
       length: tabCount,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('لوحة الإشراف — طيّب قلبك'),
+          // AppBar's own `centerTitle` centers the title only relative to
+          // the leading/actions widths, which pins it noticeably off-centre
+          // whenever those two sides are asymmetric (as they are here: no
+          // leading, ~200px of actions on the right) — flexibleSpace draws
+          // behind the toolbar row, so a Center here spans the *entire* bar
+          // width regardless of what the actions take up.
+          flexibleSpace: const SafeArea(
+            child: Center(
+              child: Text(
+                'لوحة الإشراف — طيّب قلبك',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
           actions: [
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 160),
