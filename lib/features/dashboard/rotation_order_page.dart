@@ -13,6 +13,7 @@ class _PoolEntry {
     required this.hadithNumber,
     required this.order,
     required this.timesShown,
+    required this.likeCount,
     required this.lastShownAt,
     required this.source,
   });
@@ -22,6 +23,7 @@ class _PoolEntry {
   final int hadithNumber;
   int order;
   final int timesShown;
+  final int likeCount;
   final Timestamp? lastShownAt;
   final String source; // 'dailyMessages' | 'communityMessages'
 }
@@ -77,6 +79,7 @@ class _RotationOrderPageState extends State<RotationOrderPage> {
           hadithNumber: data['hadithNumber'] as int? ?? 0,
           order: (data['order'] as num?)?.toInt() ?? 0,
           timesShown: (data['timesShown'] as num?)?.toInt() ?? 0,
+          likeCount: (data['likeCount'] as num?)?.toInt() ?? 0,
           lastShownAt: data['lastShownAt'] as Timestamp?,
           source: 'dailyMessages',
         ),
@@ -96,6 +99,7 @@ class _RotationOrderPageState extends State<RotationOrderPage> {
           hadithNumber: data['hadithNumber'] as int? ?? 0,
           order: (data['order'] as num?)?.toInt() ?? (1 << 30),
           timesShown: (data['timesShown'] as num?)?.toInt() ?? 0,
+          likeCount: (data['likeCount'] as num?)?.toInt() ?? 0,
           lastShownAt: data['lastShownAt'] as Timestamp?,
           source: 'communityMessages',
         ),
@@ -496,6 +500,18 @@ class _PoolRow extends StatelessWidget {
               label: Text(everShown ? 'عُرضت ${entry.timesShown} مرة' : 'لم تُعرض بعد'),
               backgroundColor: everShown
                   ? Colors.green.withValues(alpha: 0.12)
+                  : Colors.grey.withValues(alpha: 0.15),
+            ),
+            const SizedBox(width: 4),
+            Chip(
+              avatar: Icon(
+                Icons.favorite,
+                size: 16,
+                color: entry.likeCount > 0 ? Colors.red[700] : Colors.grey,
+              ),
+              label: Text('${entry.likeCount}'),
+              backgroundColor: entry.likeCount > 0
+                  ? Colors.red.withValues(alpha: 0.10)
                   : Colors.grey.withValues(alpha: 0.15),
             ),
             const SizedBox(width: 4),
