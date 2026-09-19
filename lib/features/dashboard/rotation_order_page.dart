@@ -504,12 +504,12 @@ class _PoolRow extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Chip(
-              avatar: Icon(
-                Icons.favorite,
-                size: 16,
-                color: entry.likeCount > 0 ? Colors.red[700] : Colors.grey,
+              label: Text(
+                '♥ ${entry.likeCount}',
+                style: TextStyle(
+                  color: entry.likeCount > 0 ? Colors.red[700] : Colors.grey[700],
+                ),
               ),
-              label: Text('${entry.likeCount}'),
               backgroundColor: entry.likeCount > 0
                   ? Colors.red.withValues(alpha: 0.10)
                   : Colors.grey.withValues(alpha: 0.15),
