@@ -323,17 +323,17 @@ class _HadithListCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Prefer the narrator's name (اسم الراوي) when the workbook has
-              // one — it's more specific to this hadith than the generic
-              // "من الأربعين النووية" fallback `hadith.reference` carries
-              // when no explicit source/reference was given.
+              // Prefer who extracted/collected the hadith (المخرج) when the
+              // workbook has one — it's more specific to this hadith than
+              // the generic "من الأربعين النووية" fallback `hadith.reference`
+              // carries when no explicit source/reference was given.
               Flexible(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (hadith.narrator.isNotEmpty) ...[
+                    if (hadith.mukhrij.isNotEmpty) ...[
                       Icon(
-                        Icons.person_outline_rounded,
+                        Icons.menu_book_rounded,
                         size: 13,
                         color: palette.goldText,
                       ),
@@ -341,8 +341,8 @@ class _HadithListCard extends StatelessWidget {
                     ],
                     Flexible(
                       child: Text(
-                        hadith.narrator.isNotEmpty
-                            ? hadith.narrator
+                        hadith.mukhrij.isNotEmpty
+                            ? hadith.mukhrij
                             : hadith.reference,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

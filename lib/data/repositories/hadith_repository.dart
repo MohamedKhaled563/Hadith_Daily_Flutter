@@ -57,10 +57,11 @@ class HadithRepository {
       final List<dynamic> jsonList = json.decode(jsonString);
       _hadiths = jsonList.map((e) => Hadith.fromJson(e as Map<String, dynamic>)).toList();
     } catch (error, stackTrace) {
-      // assets/data/hadiths.json is currently absent from the bundle, so this
-      // path is the one that actually runs — the app ships with 1 of the 42
-      // hadiths. This used to be `catch (_) {}`, which hid the failure
-      // completely. Keep it loud until the real data file is added.
+      // Should not happen in a normal build — assets/data/hadiths.json is
+      // bundled (see pubspec.yaml) and ships all 42 hadiths. This is a
+      // last-resort fallback so a corrupt/missing asset degrades to 1 hadith
+      // instead of crashing. This used to be `catch (_) {}`, which hid the
+      // failure completely. Keep it loud so a real regression isn't missed.
       assert(() {
         debugPrint(
           'HadithRepository: failed to load assets/data/hadiths.json — '

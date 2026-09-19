@@ -21,8 +21,8 @@ class HadithDetailScreen extends StatelessWidget {
 
   void _copyHadith(BuildContext context) {
     final buffer = StringBuffer()..writeln('« ${hadith.title} »');
-    if (hadith.narrator.isNotEmpty) {
-      buffer.writeln('الراوي: ${hadith.narrator}');
+    if (hadith.mukhrij.isNotEmpty) {
+      buffer.writeln('المُخَرِّج: ${hadith.mukhrij}');
     }
     buffer.writeln('الحديث رقم ${hadith.number} من الأربعين النووية\n');
     buffer.writeln('نص الحديث:');
@@ -189,7 +189,7 @@ class HadithDetailScreen extends StatelessWidget {
                           color: palette.bodyText,
                         ),
                       ),
-                      if (hadith.narrator.isNotEmpty ||
+                      if (hadith.mukhrij.isNotEmpty ||
                           (hadith.source?.trim().isNotEmpty ?? false)) ...[
                         const SizedBox(height: 16),
                         Align(
@@ -204,11 +204,11 @@ class HadithDetailScreen extends StatelessWidget {
                               // is what read as the same thing as the
                               // reference chip below (a tester flagged the
                               // two as indistinguishable).
-                              if (hadith.narrator.isNotEmpty)
+                              if (hadith.mukhrij.isNotEmpty)
                                 _AttributionChip(
-                                  icon: Icons.person_outline_rounded,
-                                  label: 'الراوي',
-                                  value: hadith.narrator,
+                                  icon: Icons.menu_book_rounded,
+                                  label: 'المُخَرِّج',
+                                  value: hadith.mukhrij,
                                 ),
                               // Deliberately reads `hadith.source` here, not
                               // `hadith.reference` — reference falls back to
@@ -375,11 +375,11 @@ class _CardHeading extends StatelessWidget {
   }
 }
 
-/// A single labeled fact about the hadith's attribution — who narrated it
-/// (الراوي) or who transmitted/compiled it (أخرجه). Kept as one small chip
-/// type used twice rather than two bespoke pills, so "الراوي: فلان" and
-/// "أخرجه: رواه مسلم" always read the same way instead of looking like two
-/// unrelated bits of chrome.
+/// A single labeled fact about the hadith's attribution — who extracted/
+/// collected it (المُخَرِّج) or who transmitted/compiled it (أخرجه). Kept as
+/// one small chip type used twice rather than two bespoke pills, so
+/// "المُخَرِّج: البخاري ومسلم" and "أخرجه: رواه مسلم" always read the same way
+/// instead of looking like two unrelated bits of chrome.
 class _AttributionChip extends StatelessWidget {
   const _AttributionChip({
     required this.icon,

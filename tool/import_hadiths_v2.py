@@ -9,10 +9,10 @@ workbook's data — see `import_daily_messages_v2.py` for the same decision
 applied to `dailyMessages`/`insights.json`. This script therefore captures
 every column the sheet has, without inventing fields the workbook doesn't
 supply (no `keyLessons`/`narratorBio` — the Hadith model's own empty
-defaults cover their absence). The sheet now also supplies the narrator's
-name (الراوي) and the isnad/ananah phrase that introduces the hadith text
-(عنعنة), which map to the model's `narrator`/`isnad` fields, and a short
-explanation alongside the full one.
+defaults cover their absence). The sheet supplies who extracted/collected
+the hadith (المخرج, e.g. "البخاري ومسلم") and the isnad/ananah phrase that
+introduces the hadith text (عنعنة), which map to the model's
+`mukhrij`/`isnad` fields, and a short explanation alongside the full one.
 
 Run from the project root:
 
@@ -63,7 +63,7 @@ def load_hadiths() -> list[dict]:
         (
             hadith_id,
             title,
-            narrator,
+            mukhrij,
             isnad,
             text,
             full_expl,
@@ -78,7 +78,7 @@ def load_hadiths() -> list[dict]:
             {
                 "number": num,
                 "title": clean(title),
-                "narrator": clean(narrator),
+                "mukhrij": clean(mukhrij),
                 "isnad": clean(isnad),
                 "text": clean(text),
                 "fullExplanation": clean(full_expl),
@@ -106,7 +106,7 @@ def write_json(hadiths: list[dict]) -> None:
         {
             "number": h["number"],
             "title": h["title"],
-            "narrator": h["narrator"],
+            "mukhrij": h["mukhrij"],
             "isnad": h["isnad"],
             "text": h["text"],
             "explanation": h["fullExplanation"],

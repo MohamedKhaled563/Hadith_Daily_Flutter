@@ -16,9 +16,9 @@ class Hadith {
   /// workbook. Empty when unavailable.
   final String narratorBio;
 
-  /// Name of the companion who narrated the hadith (الراوي), e.g. "عمر بن
-  /// الخطاب رضي الله عنه". Empty when unavailable.
-  final String narrator;
+  /// Who extracted/collected the hadith (المخرج), e.g. "البخاري ومسلم".
+  /// Empty when unavailable.
+  final String mukhrij;
 
   /// The isnad/ananah phrase that introduces the hadith text (عنعنة), e.g.
   /// "عَنْ عُمَرَ رَضِيَ اللهُ عَنْهُ قَالَ...". Empty when unavailable.
@@ -36,7 +36,7 @@ class Hadith {
     this.shortExplanation = '',
     this.keyLessons = const [],
     this.narratorBio = '',
-    this.narrator = '',
+    this.mukhrij = '',
     this.isnad = '',
     this.isFavorite = false,
   }) : reference = reference ?? (source ?? 'من الأربعين النووية');
@@ -58,7 +58,7 @@ class Hadith {
       shortExplanation: json['shortExplanation'] as String? ?? '',
       keyLessons: lessonsList,
       narratorBio: json['narratorBio'] as String? ?? '',
-      narrator: json['narrator'] as String? ?? '',
+      mukhrij: json['mukhrij'] as String? ?? '',
       isnad: json['isnad'] as String? ?? '',
       isFavorite: json['isFavorite'] as bool? ?? false,
     );
@@ -75,7 +75,7 @@ class Hadith {
       'shortExplanation': shortExplanation,
       'keyLessons': keyLessons,
       'narratorBio': narratorBio,
-      'narrator': narrator,
+      'mukhrij': mukhrij,
       'isnad': isnad,
       'isFavorite': isFavorite,
     };
