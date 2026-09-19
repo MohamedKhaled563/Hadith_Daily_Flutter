@@ -6,15 +6,16 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/app_state_controller.dart';
 import 'core/widgets/smooth_page_route.dart';
 import 'data/repositories/hadith_repository.dart';
+import 'data/services/daily_tip_service.dart';
 import 'data/services/notification_scheduler.dart';
 import 'features/messages/daily_message_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'firebase_options.dart';
 
-/// Lets [NotificationScheduler.tappedMessage] open the tapped reminder's
-/// message regardless of what screen is currently showing — a cold-start
-/// tap instead goes through SplashScreen (see its own launch-payload check),
-/// since there's no live Navigator yet for that case.
+/// Lets [NotificationScheduler.notificationTapped] open today's message
+/// regardless of what screen is currently showing — a cold-start tap
+/// instead goes through SplashScreen (see its own launch check), since
+/// there's no live Navigator yet for that case.
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -36,20 +37,25 @@ void main() async {
     HadithRepository().load(),
     AppStateController().init(),
   ]);
-  NotificationScheduler.tappedMessage.addListener(_openTappedMessage);
+  NotificationScheduler.notificationTapped.addListener(_openTodayMessage);
   runApp(const HadithApp());
 }
 
-void _openTappedMessage() async {
-  final payload = NotificationScheduler.tappedMessage.value;
-  final insight = await NotificationScheduler.instance.resolveTappedMessage(payload);
-  if (insight == null) return;
+/// Tapping a reminder always opens today's actual daily/community message
+/// (the same content the home screen's heart button shows) — never the
+/// reminder pool's own generic text, which the reader never associated
+/// with a specific "message" in the first place.
+void _openTodayMessage() async {
+  final tip = await DailyTipService().getTodayTip();
+  if (tip == null) return;
+  final insight = tip.toInsight();
+  final hadith = HadithRepository().getByNumber(insight.hadithNumber);
 
   final navState = navigatorKey.currentState;
   if (navState == null) return;
   navState.push(
     SeamlessMessagePageRoute(
-      child: DailyMessageScreen(insight: insight, hadith: null),
+      child: DailyMessageScreen(insight: insight, hadith: hadith),
     ),
   );
 }

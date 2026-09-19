@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
-import '../models/insight.dart';
 import 'notification_data_source.dart';
 
 /// Outcome of a [NotificationScheduler.reschedule] call — lets callers (and
@@ -109,16 +108,20 @@ class NotificationScheduler {
   final NotificationDataSource _dataSource;
   Future<void>? _initFuture;
 
-  /// The tapped notification's message text (its `payload`, set from
-  /// [_syncOne]'s `body`) — set whenever the reader taps a reminder
-  /// while the app is running (foreground or backgrounded). A cold start
-  /// from a terminated state instead goes through
-  /// [consumeLaunchPayload], which SplashScreen checks once at launch.
-  static final ValueNotifier<String?> tappedMessage =
-      ValueNotifier<String?>(null);
+  /// Fires whenever the reader taps a reminder while the app is running
+  /// (foreground or backgrounded) — a plain tap signal, not the tapped
+  /// notification's own text: the reminder pool (`notificationMessages`) is
+  /// a separate, generic set of blurbs curated only to fill the notification
+  /// body, not "today's message", so tapping must not reopen that text.
+  /// Listeners instead re-fetch today's actual message (DailyTipService,
+  /// same source the home screen's heart button uses). Incremented rather
+  /// than a bool so two taps in a row (value already `true`) still notify.
+  /// A cold start from a terminated state instead goes through
+  /// [wasLaunchedByNotification], which SplashScreen checks once at launch.
+  static final ValueNotifier<int> notificationTapped = ValueNotifier<int>(0);
 
   static void _onNotificationResponse(NotificationResponse response) {
-    tappedMessage.value = response.payload;
+    notificationTapped.value++;
   }
 
   // requestPermission() and reschedule() can both fire in close succession
@@ -158,31 +161,13 @@ class NotificationScheduler {
     );
   }
 
-  /// Resolves a tapped notification's payload (a `notificationMessages` doc
-  /// id — see [_syncOne]) back to the message it actually showed, or
-  /// null if [id] is empty or the doc is missing/unreadable (e.g. deleted
-  /// since the reminder was scheduled). `notificationMessages` docs have no
-  /// hadith association, so this always comes back with `hadithNumber: 0`;
-  /// callers pass `hadith: null` to whatever screen displays it.
-  Future<Insight?> resolveTappedMessage(String? id) async {
-    if (id == null || id.isEmpty) return null;
-    final data = await _dataSource.loadMessageById(id);
-    final text = (data?['text'] as String?)?.trim();
-    if (text == null || text.isEmpty) return null;
-    return Insight(hadithNumber: 0, arabic: text, english: '', category: 'رسالة تذكير');
-  }
-
   /// Whether the app was launched by tapping a reminder while fully
-  /// terminated — returns that notification's payload (a notificationMessages
-  /// doc id) if so, checked once at startup since a cold start never fires
+  /// terminated, checked once at startup since a cold start never fires
   /// [_onNotificationResponse]. Safe to call before [_ensureInitialized]:
   /// this reads native launch state directly, no plugin init required.
-  Future<String?> consumeLaunchPayload() async {
+  Future<bool> wasLaunchedByNotification() async {
     final details = await _plugin.getNotificationAppLaunchDetails();
-    if (details?.didNotificationLaunchApp ?? false) {
-      return details?.notificationResponse?.payload;
-    }
-    return null;
+    return details?.didNotificationLaunchApp ?? false;
   }
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>
@@ -405,11 +390,11 @@ class NotificationScheduler {
       androidScheduleMode: scheduleMode,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      // The notificationMessages doc id — tapping the reminder resolves this
-      // back to that exact doc (see SplashScreen/main.dart) so the reader
-      // lands on the message that was actually shown, instead of just the
-      // home screen. Not the text itself: several distinct docs can share
-      // identical text, and text isn't a stable/lookup-able key anyway.
+      // Kept only as a flutter_local_notifications-required field, not read
+      // by the app: tapping a reminder no longer resolves back to this
+      // notificationMessages doc — see NotificationScheduler.notificationTapped's
+      // doc for why (that pool's text is a generic blurb, not "today's
+      // message").
       payload: payload,
     );
     return true;

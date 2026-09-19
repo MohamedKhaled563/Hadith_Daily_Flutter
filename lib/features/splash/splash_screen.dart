@@ -6,7 +6,10 @@ import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/theme/app_state_controller.dart';
+import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
+import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/daily_tip_service.dart';
 import '../../data/services/notification_scheduler.dart';
 import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
@@ -34,9 +37,13 @@ class _SplashScreenState extends State<SplashScreen>
   // Started immediately so it's very likely already resolved by the time
   // _navigateToHome runs (2.8s later, or sooner on a tap-to-skip) — a cold
   // start from tapping a reminder notification never fires
-  // NotificationScheduler.tappedMessage (that's only for a live tap while
-  // the app is already running), so this is checked separately, once.
+  // NotificationScheduler.notificationTapped (that's only for a live tap
+  // while the app is already running), so this is checked separately, once.
+  // Resolves to today's actual daily/community message (DailyTipService) —
+  // the same content the home screen's heart button opens — never the
+  // reminder pool's own generic notification text.
   Insight? _pendingNotificationInsight;
+  Hadith? _pendingNotificationHadith;
 
   final List<String> _inspirationalQuotes = [
     'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ 🌿',
@@ -50,10 +57,15 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
 
     NotificationScheduler.instance
-        .consumeLaunchPayload()
-        .then((id) => NotificationScheduler.instance.resolveTappedMessage(id))
-        .then((insight) {
+        .wasLaunchedByNotification()
+        .then((launched) async {
+      if (!launched) return;
+      final tip = await DailyTipService().getTodayTip();
+      if (tip == null) return;
+      final insight = tip.toInsight();
       _pendingNotificationInsight = insight;
+      _pendingNotificationHadith =
+          HadithRepository().getByNumber(insight.hadithNumber);
     }).catchError((_) {
       // Best-effort: a platform-channel hiccup here should never block
       // showing the splash screen, just skip the notification deep link.
@@ -150,7 +162,10 @@ class _SplashScreenState extends State<SplashScreen>
       Navigator.push(
         context,
         SeamlessMessagePageRoute(
-          child: DailyMessageScreen(insight: insight, hadith: null),
+          child: DailyMessageScreen(
+            insight: insight,
+            hadith: _pendingNotificationHadith,
+          ),
         ),
       );
     }
