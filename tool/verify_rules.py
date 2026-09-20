@@ -248,7 +248,8 @@ def main() -> int:
     )
     check("claim a username while signed out", resp.status_code == 200, False)
 
-    # Rules block update/delete outright (even for an admin) — clean up
+    # Rules block update outright, and allow delete only to the uid that
+    # holds the name (see the account-deletion section at the end) — clean up
     # through the service account's own admin access, which bypasses rules
     # entirely, so a re-run doesn't find these names already claimed.
     for name in ("ahmed-test", "impersonated-test", "anon-test"):
@@ -681,6 +682,134 @@ def main() -> int:
 
     admin_update("users", uid_a, {"role": "user"})
     admin_update("users", uid_b, {"role": "user"})
+
+    # ------------------------------------------------------- account deletion
+    # The four rules widened so AccountDeletionService can wipe an account
+    # from the client (there are no Cloud Functions on the Spark plan). Each
+    # one is paired with the deny case that proves its guard actually holds —
+    # a rule that lets you delete your own thing is only correct if it stops
+    # you deleting someone else's.
+    print("\n== account deletion (self-service) ==")
+
+    # -- usernames: release your own claim, never anyone else's --------------
+    admin_set("usernames", "deltest-a", {"uid": uid_a})
+    admin_set("usernames", "deltest-b", {"uid": uid_b})
+
+    resp = requests.delete(
+        f"{FIRESTORE_URL}/usernames/deltest-b", headers=rest_headers(token_a)
+    )
+    check("release a username claimed by someone else", resp.status_code == 200, False)
+
+    resp = requests.delete(
+        f"{FIRESTORE_URL}/usernames/deltest-a", headers=rest_headers(None)
+    )
+    check("release a username while signed out", resp.status_code == 200, False)
+
+    resp = requests.delete(
+        f"{FIRESTORE_URL}/usernames/deltest-a", headers=rest_headers(token_a)
+    )
+    check("release your own username claim", resp.status_code == 200, True)
+
+    # Update is still closed, which is what keeps the create-only claim a
+    # race-free lock — widening delete must not have loosened that.
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/usernames/deltest-b",
+        json={"fields": _encode_fields({"uid": uid_a})},
+        headers=rest_headers(token_b),
+    )
+    check("overwrite your own username claim", resp.status_code == 200, False)
+
+    admin_delete("usernames", "deltest-a")
+    admin_delete("usernames", "deltest-b")
+
+    # -- communityMessages: an author may now delete an APPROVED post -------
+    approved_id = None
+    resp = create_doc(
+        "communityMessages",
+        {
+            "authorUid": uid_a,
+            "authorName": "كاتب الاختبار",
+            "hadithNumber": 1,
+            "message": "رسالة اختبار للحذف",
+            "status": "pending",
+            "likeCount": 0,
+        },
+        token_a,
+    )
+    if resp.status_code == 200:
+        approved_id = resp.json()["name"].rsplit("/", 1)[-1]
+        # Approve it out of band, so this tests the status the old rule
+        # refused rather than the pending one it already allowed.
+        admin_update("communityMessages", approved_id, {"status": "approved"})
+
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/communityMessages/{approved_id}",
+            headers=rest_headers(token_b),
+        )
+        check("non-author deletes an approved post", resp.status_code == 200, False)
+
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/communityMessages/{approved_id}",
+            headers=rest_headers(token_a),
+        )
+        check("author deletes own approved post", resp.status_code == 200, True)
+    else:
+        check("author deletes own approved post (setup failed)", False, True)
+
+    # -- feedbackMessages: an author may read and delete their own ----------
+    feedback_id = None
+    resp = create_doc(
+        "feedbackMessages",
+        {
+            "authorUid": uid_a,
+            "userName": "كاتب الاختبار",
+            "userEmail": "a@test",
+            "message": "ملاحظة اختبار",
+            "read": False,
+        },
+        token_a,
+    )
+    if resp.status_code == 200:
+        feedback_id = resp.json()["name"].rsplit("/", 1)[-1]
+
+        resp = requests.get(
+            f"{FIRESTORE_URL}/feedbackMessages/{feedback_id}",
+            headers=rest_headers(token_b),
+        )
+        check("read someone else's feedback", resp.status_code == 200, False)
+
+        resp = requests.get(
+            f"{FIRESTORE_URL}/feedbackMessages/{feedback_id}",
+            headers=rest_headers(token_a),
+        )
+        check("read your own feedback", resp.status_code == 200, True)
+
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/feedbackMessages/{feedback_id}",
+            headers=rest_headers(token_b),
+        )
+        check("delete someone else's feedback", resp.status_code == 200, False)
+
+        resp = requests.delete(
+            f"{FIRESTORE_URL}/feedbackMessages/{feedback_id}",
+            headers=rest_headers(token_a),
+        )
+        check("delete your own feedback", resp.status_code == 200, True)
+    else:
+        check("delete your own feedback (setup failed)", False, True)
+
+    # -- users/{uid}: delete your own profile doc, never someone else's -----
+    # Done last for uid_a, because roleOf() reads this doc and every check
+    # above depends on it existing.
+    resp = requests.delete(
+        f"{FIRESTORE_URL}/users/{uid_b}", headers=rest_headers(token_a)
+    )
+    check("delete someone else's profile doc", resp.status_code == 200, False)
+
+    resp = requests.delete(
+        f"{FIRESTORE_URL}/users/{uid_a}", headers=rest_headers(token_a)
+    )
+    check("delete your own profile doc", resp.status_code == 200, True)
 
     for uid in (uid_a, uid_b, uid_admin):
         admin_delete("users", uid)
