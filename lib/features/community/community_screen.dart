@@ -159,6 +159,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
   }
 }
 
+/// The likes/recency sort control.
+///
+/// Drawn as a sunken track with a raised pill over the selected half. The
+/// previous version — two words either side of a bullet — read as a subtitle,
+/// and users reported not realising it could be tapped at all. The track
+/// outline, the lifted pill and the leading icons are what now say "control"
+/// instead of "caption".
 class _SortToggle extends StatelessWidget {
   const _SortToggle({required this.sortByLikes, required this.onChanged});
 
@@ -169,36 +176,83 @@ class _SortToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    Widget option(String label, bool value) {
+    Widget option(String label, IconData icon, bool value) {
       final selected = sortByLikes == value;
-      return TapTarget(
-        onTap: () => onChanged(value),
-        semanticLabel: label,
-        selected: selected,
-        minSize: 44,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: kSans,
-              fontSize: 13,
-              height: AppLeading.chrome,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-              color: selected ? palette.goldText : palette.mutedText,
+      return Flexible(
+        child: TapTarget(
+          onTap: () => onChanged(value),
+          semanticLabel: label,
+          selected: selected,
+          minSize: 44,
+          // The pill is the whole target, so there is no dead border around
+          // the thing that looks tappable.
+          pressScale: AppPress.cardScale,
+          child: AnimatedContainer(
+            duration: AppPress.duration,
+            curve: AppPress.curve,
+            constraints: const BoxConstraints(minHeight: 44),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: selected ? palette.surface : Colors.transparent,
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              border: Border.all(
+                color: selected ? palette.cardBorderStrong : Colors.transparent,
+                width: 1.2,
+              ),
+              boxShadow: selected ? AppElevation.card : const [],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 15,
+                  color: selected ? palette.goldText : palette.mutedText,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 13,
+                      height: AppLeading.chrome,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                      color: selected ? palette.goldText : palette.mutedText,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       );
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(child: option('الأكثر إعجاباً', true)),
-        Text('•', style: TextStyle(color: palette.mutedText, fontSize: 12)),
-        option('الأحدث', false),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: palette.surfaceSunken,
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              border: Border.all(color: palette.cardBorder, width: 1.2),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                option('الأكثر إعجاباً', Icons.favorite_rounded, true),
+                option('الأحدث', Icons.schedule_rounded, false),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
