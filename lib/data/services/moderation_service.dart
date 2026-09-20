@@ -49,7 +49,14 @@ extension ReportReasonKey on ReportReason {
 ///    preference, not a moderation verdict, and keeping it in
 ///    SharedPreferences means it works for a guest, needs no rules, and
 ///    cannot leak who has blocked whom.
-class ModerationService {
+///
+/// It is a [ChangeNotifier] because the block list is read by a screen that
+/// does not own it: the community feed filters on it while building, but a
+/// reader can change it from the settings drawer, two screens away. Without
+/// the notification the feed kept its "everything here is hidden" empty state
+/// after the author had already been unhidden — the control appeared to do
+/// nothing until the tab was rebuilt for some unrelated reason.
+class ModerationService extends ChangeNotifier {
   ModerationService._internal();
   static final ModerationService instance = ModerationService._internal();
   factory ModerationService() => instance;
@@ -108,6 +115,7 @@ class ModerationService {
       // empty block list shows more than intended, never less.
       debugPrint('blocked authors failed to load: $error');
     }
+    notifyListeners();
   }
 
   Set<String> get blockedAuthors => Set.unmodifiable(_blocked);
@@ -129,5 +137,6 @@ class ModerationService {
     } catch (error) {
       debugPrint('blocked authors failed to save: $error');
     }
+    notifyListeners();
   }
 }

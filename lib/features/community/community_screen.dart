@@ -48,6 +48,25 @@ class _CommunityScreenState extends State<CommunityScreen> {
   /// order changing makes "the next ten" mean something different.
   int _limit = CommunityService.pageSize;
 
+  /// The block list is read here but changed elsewhere — the post screen, and
+  /// the settings drawer two screens away. Listening is what makes unhiding a
+  /// writer from the drawer actually bring their posts back.
+  @override
+  void initState() {
+    super.initState();
+    _moderation.addListener(_onBlockListChanged);
+  }
+
+  @override
+  void dispose() {
+    _moderation.removeListener(_onBlockListChanged);
+    super.dispose();
+  }
+
+  void _onBlockListChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _openAddMessage() => widget.onSwitchToShareTab?.call();
 
   void _setSort(bool byLikes) {
@@ -64,15 +83,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
   }
 
   /// The post screen can come back saying the reader just blocked its author.
-  /// The stream itself does not change — blocking is local — so the list has
-  /// to be told to rebuild, and the reader told what happened, here.
+  /// The rebuild is the listener's job — this only has to say what happened,
+  /// which the screen that closed itself is no longer around to say.
   Future<void> _openPost(CommunityPost post) async {
     final result = await Navigator.push(
       context,
       appPageRoute(child: CommunityPostScreen(post: post)),
     );
     if (!mounted || result != kAuthorBlocked) return;
-    setState(() {});
     showAppSnack(
       context,
       'لن تظهر لك مشاركات هذا الكاتب على هذا الجهاز',

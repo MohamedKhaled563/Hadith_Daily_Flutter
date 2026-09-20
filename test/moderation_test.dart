@@ -64,6 +64,23 @@ void main() {
     expect(moderation.blockedAuthors, isEmpty);
   });
 
+  test('changing the list tells whoever is showing it', () async {
+    // The community feed filters on this list while building but a reader
+    // can change it from the settings drawer, two screens away. Without the
+    // notification the feed kept its "everything here is hidden" empty state
+    // after the writer had already been unhidden, so unhiding looked broken.
+    var notifications = 0;
+    void listener() => notifications++;
+    moderation.addListener(listener);
+    addTearDown(() => moderation.removeListener(listener));
+
+    await moderation.setBlocked('أميرة', true);
+    expect(notifications, 1);
+
+    await moderation.setBlocked('أميرة', false);
+    expect(notifications, 2, reason: 'unhiding has to reach the feed too');
+  });
+
   test('the caller cannot mutate the block list behind the service', () async {
     await moderation.setBlocked('أميرة', true);
     expect(
