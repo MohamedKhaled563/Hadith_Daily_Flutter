@@ -35,23 +35,35 @@ class AssetHelper {
   }) {
     final isSvg = assetPath.endsWith('.svg');
     final rasterPath = isSvg ? assetPath.replaceAll('.svg', '.png') : assetPath;
-    final vectorPath = isSvg ? assetPath : assetPath.replaceAll('.png', '.svg');
+    final vectorPath = isSvg
+        ? assetPath
+        : assetPath.replaceAll(RegExp(r'\.(png|webp)$'), '.svg');
 
-    return Image.asset(
-      rasterPath,
-      width: width,
-      height: height,
-      fit: fit,
-      errorBuilder: (context, error, stackTrace) {
-        return SvgPicture.asset(
-          vectorPath,
-          width: width,
-          height: height,
-          fit: fit,
-          placeholderBuilder: (context) =>
-              fallback ?? _getFallbackWidget(assetPath, width, height),
-        );
-      },
+    return Builder(
+      builder: (context) => Image.asset(
+        rasterPath,
+        width: width,
+        height: height,
+        fit: fit,
+        // Decode at the size this will actually be drawn, not the size the
+        // file happens to be. The botanical corner ornaments are 320px wide
+        // and get painted at 86dp; without this each one sits in the image
+        // cache at 320x496x4 bytes whatever the screen. Scaled by the real
+        // device ratio so a 3x phone still gets real pixels.
+        cacheWidth: width == null
+            ? null
+            : (width * MediaQuery.devicePixelRatioOf(context)).round(),
+        errorBuilder: (context, error, stackTrace) {
+          return SvgPicture.asset(
+            vectorPath,
+            width: width,
+            height: height,
+            fit: fit,
+            placeholderBuilder: (context) =>
+                fallback ?? _getFallbackWidget(assetPath, width, height),
+          );
+        },
+      ),
     );
   }
 

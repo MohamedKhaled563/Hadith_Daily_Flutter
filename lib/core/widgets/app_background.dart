@@ -58,16 +58,24 @@ class AppBackground extends StatelessWidget {
   /// drawn at full opacity with no scrim. The ground now sits below the cards
   /// everywhere — 99th-percentile ground luminance 0.023 against the card's
   /// 0.032 — and the scene keeps its emerald rather than going grey.
+  /// WebP rather than PNG. These are full-bleed soft watercolours, which is
+  /// the case WebP compresses best: the same pixels went from 1471 KB to
+  /// 74 KB and 1007 KB to 12 KB, with no visible difference at 1:1.
+  ///
+  /// They are NOT higher resolution, and that is a separate, unfixed problem:
+  /// the source art in art-originals/ is only 853x1844, so on a 1080p phone
+  /// BoxFit.cover still upscales it. Nothing here can add detail that was
+  /// never rendered — that needs the artwork re-exported at source.
   Widget _buildHomeImage(bool isDark) => _background(
         isDark
-            ? 'assets/images/home_background_night.png'
-            : 'assets/images/home_background.png',
+            ? 'assets/images/home_background_night.webp'
+            : 'assets/images/home_background.webp',
       );
 
   Widget _buildInnerImage(bool isDark) => _background(
         isDark
-            ? 'assets/images/background_empty_night.png'
-            : 'assets/images/background_empty.png',
+            ? 'assets/images/background_empty_night.webp'
+            : 'assets/images/background_empty.webp',
       );
 
   Widget _background(String path) {
@@ -76,7 +84,7 @@ class AppBackground extends StatelessWidget {
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
         return AssetHelper.assetOrFallback(
-          assetPath: path.replaceAll('.png', '.svg'),
+          assetPath: path.replaceAll(RegExp(r'\.(png|webp)$'), '.svg'),
           fit: BoxFit.cover,
           fallback: const SizedBox.shrink(),
         );

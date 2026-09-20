@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 13+ themed icons tint a single-colour layer to the reader's
+     wallpaper. Without one, this app is the one that stays out of step on a
+     themed home screen. Same geometry as the foreground; the colour is
+     ignored, only the alpha matters. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="30"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M256,176 C226,120 152,112 118,156 C88,196 102,252 142,294 C178,332 222,368 256,398 C290,368 334,332 370,294 C410,252 424,196 394,156 C360,112 286,120 256,176 Z"/>
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="20"
+        android:strokeLineCap="round"
+        android:pathData="M256,384 C256,328 258,266 256,212"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M250,326 C210,314 174,280 164,238 C206,246 240,278 250,326 Z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M262,290 C302,278 338,244 348,202 C306,210 272,242 262,290 Z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M256,214 C238,188 240,154 256,134 C272,154 274,188 256,214 Z"/>
+</vector>
