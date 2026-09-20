@@ -28,18 +28,55 @@ import '../widgets/botanical_sheet.dart';
 /// unreliable with no explanation.
 class NotificationReliabilityTip {
   static const _shownKey = 'notificationReliabilityTip.shown';
+  static const _launchCountKey = 'notificationReliabilityTip.launches';
+
+  /// How many times the app has to have been opened before the tip is allowed
+  /// to appear on its own.
+  ///
+  /// It used to fire from a post-frame callback the first time HomeScreen
+  /// mounted, and because both reminders default to on, that meant every new
+  /// install's first sight of the app proper was a full-screen Android
+  /// battery-settings explainer sitting on top of a hero they had not seen
+  /// yet. The advice is genuinely useful — on several OEM builds reminders
+  /// silently never fire — but it is meaningless to someone who has not yet
+  /// read a single hadith, let alone waited for a reminder that failed to
+  /// arrive.
+  ///
+  /// Three launches is roughly "they came back, and a morning reminder has
+  /// plausibly been due by now".
+  static const _minLaunchesBeforeAutoShow = 3;
+
+  /// Counts an app launch, and returns whether the tip has earned the right
+  /// to show itself unprompted. Call once per app start.
+  static Future<bool> recordLaunchAndCheck() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_shownKey) ?? false) return false;
+
+    final count = (prefs.getInt(_launchCountKey) ?? 0) + 1;
+    await prefs.setInt(_launchCountKey, count);
+    return count >= _minLaunchesBeforeAutoShow;
+  }
 
   /// Shows the tip once ever, and only when the reader actually has a
   /// reminder enabled — no point warning someone who isn't using the
   /// feature these restrictions would affect.
+  ///
+  /// [force] skips the launch-count wait, for the one place where the reader
+  /// asked for this by their own action: switching a reminder on in settings.
+  /// That is the moment the advice is about something they just did.
   static Future<void> maybeShow(
     BuildContext context, {
     required bool anyReminderEnabled,
+    bool force = false,
   }) async {
     if (!anyReminderEnabled) return;
 
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_shownKey) ?? false) return;
+    if (!force &&
+        (prefs.getInt(_launchCountKey) ?? 0) < _minLaunchesBeforeAutoShow) {
+      return;
+    }
 
     bool isXiaomiFamily = false;
     if (Platform.isAndroid) {

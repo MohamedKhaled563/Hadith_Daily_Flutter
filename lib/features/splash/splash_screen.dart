@@ -6,11 +6,9 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/smooth_page_route.dart';
-import '../../core/theme/app_state_controller.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/daily_tip_service.dart';
 import '../../data/services/notification_scheduler.dart';
-import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
 import '../messages/daily_message_screen.dart';
 
@@ -146,13 +144,15 @@ class _SplashScreenState extends State<SplashScreen>
     _quoteTimer?.cancel();
     _autoAdvanceTimer?.cancel();
 
-    // Straight to Home for a signed-in reader, or the login page otherwise.
-    final state = AppStateController();
-    final Widget destination =
-        state.isLoggedIn ? const HomeScreen() : const LoginScreen();
+    // Always Home. The app used to send anyone without an account to the
+    // login screen from here, so a new install's first experience was a form
+    // — before a single hadith. Nothing a reader browses needs an identity:
+    // the hadiths, the daily messages and the approved community posts are
+    // all public-read, and bookmarks live on the device. Signing in is asked
+    // for at the three points that genuinely need it (see requireSignIn).
     Navigator.pushReplacement(
       context,
-      SmoothPageRoute(child: destination),
+      SmoothPageRoute(child: const HomeScreen()),
     );
 
     // Cold-started by tapping a reminder: land on Home first (above) so the
@@ -160,7 +160,7 @@ class _SplashScreenState extends State<SplashScreen>
     // it — same two calls as the live-tap listener in main.dart, just
     // sequenced instead of racing a Navigator that doesn't exist yet.
     final entries = _pendingNotificationEntries;
-    if (state.isLoggedIn && entries != null && entries.isNotEmpty) {
+    if (entries != null && entries.isNotEmpty) {
       Navigator.push(
         context,
         SeamlessMessagePageRoute(

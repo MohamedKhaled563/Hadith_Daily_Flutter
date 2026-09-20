@@ -396,8 +396,18 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
     // A granted permission only means the OS *will* show a notification if
     // asked to — MIUI and several other OEMs (plus iOS Focus/Do Not
     // Disturb) can still keep it from ever appearing, with no way for the
-    // app to detect or fix that. One-time, only if it's actually relevant.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // app to detect or fix that.
+    //
+    // Deliberately not on the first run: this used to cover the hero with a
+    // battery-settings sheet before a new reader had seen anything at all.
+    // recordLaunchAndCheck() holds it back until they have come back a few
+    // times, by which point a reminder has plausibly been due and failed —
+    // which is when the advice means something. Switching a reminder on in
+    // settings shows it immediately instead, since that is the reader asking.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!await NotificationReliabilityTip.recordLaunchAndCheck()) return;
+      // The State's own mounted, not context.mounted: this is a State.context
+      // being used after an await, and the two are not interchangeable.
       if (!mounted) return;
       NotificationReliabilityTip.maybeShow(
         context,

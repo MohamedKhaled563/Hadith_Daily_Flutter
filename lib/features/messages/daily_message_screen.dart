@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/app_links.dart';
+import '../../core/auth/sign_in_gate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
 import '../../core/theme/app_palette.dart';
@@ -500,6 +501,15 @@ class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
 
   Future<void> _handleLike(bool serverLiked) async {
     if (_isToggling) return;
+    // Liking is one of the three things that needs to know who you are — the
+    // like doc is keyed by uid so it follows the reader between devices.
+    if (!await requireSignIn(
+      context,
+      reason: 'سجّل الدخول ليبقى إعجابك محفوظاً على كل أجهزتك',
+    )) {
+      return;
+    }
+    if (!mounted) return;
     final next = !(_optimisticLiked ?? serverLiked);
     setState(() {
       _optimisticLiked = next;

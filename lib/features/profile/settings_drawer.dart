@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_state_controller.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/notification_reliability_tip.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/botanical_sheet.dart';
@@ -12,6 +13,7 @@ import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
 import '../../data/services/feedback_service.dart';
 import '../../data/services/notification_scheduler.dart';
+import '../../core/auth/sign_in_gate.dart';
 import '../../core/legal/legal_documents.dart';
 import '../auth/login_screen.dart';
 import '../community/my_submissions_screen.dart';
@@ -84,6 +86,16 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
       SmoothPageRoute(child: const LoginScreen()),
       (route) => false,
     );
+  }
+
+  /// The drawer's own way in for a guest who wants an account without first
+  /// bumping into a gate.
+  Future<void> _promptSignIn() async {
+    await requireSignIn(
+      context,
+      reason: 'لمشاركة رسالتك والإعجاب بما يلمس قلبك',
+    );
+    if (mounted) setState(() {});
   }
 
   void _logout() {
@@ -313,6 +325,17 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
         ? _state.toggleMorningReminder(value)
         : _state.toggleEveningReminder(value);
     _syncNotifications();
+
+    // Switching a reminder on is the one moment the reliability advice is
+    // about something the reader just did, so it skips the launch-count wait
+    // that keeps it off a new install's first screen. Still once ever.
+    if (value && mounted) {
+      NotificationReliabilityTip.maybeShow(
+        context,
+        anyReminderEnabled: true,
+        force: true,
+      );
+    }
   }
 
   Future<void> _syncNotifications() async {
@@ -351,7 +374,10 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
           child: SafeArea(
             child: Column(
               children: [
-                _ProfileHeader(state: _state, repo: _repo),
+                if (_state.isLoggedIn)
+                  _ProfileHeader(state: _state, repo: _repo)
+                else
+                  _GuestHeader(repo: _repo, onSignIn: _promptSignIn),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -458,24 +484,26 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                       // Sign-out lives here rather than behind the profile
                       // name: tapping your own name should show you your
                       // account, not offer to end the session.
-                      _SectionHeader('الحساب'),
-                      _SettingsCard(
-                        children: [
-                          _NavTile(
-                            icon: Icons.logout_rounded,
-                            title: 'تسجيل الخروج',
-                            onTap: _confirmLogout,
-                            destructive: true,
-                          ),
-                          _Divider(),
-                          _NavTile(
-                            icon: Icons.delete_outline_rounded,
-                            title: 'حذف الحساب نهائياً',
-                            onTap: _confirmDeleteAccount,
-                            destructive: true,
-                          ),
-                        ],
-                      ),
+                      if (_state.isLoggedIn) ...[
+                        _SectionHeader('الحساب'),
+                        _SettingsCard(
+                          children: [
+                            _NavTile(
+                              icon: Icons.logout_rounded,
+                              title: 'تسجيل الخروج',
+                              onTap: _confirmLogout,
+                              destructive: true,
+                            ),
+                            _Divider(),
+                            _NavTile(
+                              icon: Icons.delete_outline_rounded,
+                              title: 'حذف الحساب نهائياً',
+                              onTap: _confirmDeleteAccount,
+                              destructive: true,
+                            ),
+                          ],
+                        ),
+                      ],
 
                       const SizedBox(height: 24),
 
@@ -517,6 +545,97 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
 }
 
 // ------------------------------------------------------------- fragments ----
+
+/// What a guest sees in place of the profile card.
+///
+/// It still shows their saved count, because bookmarks are local and a guest
+/// really does have them — the card's job is to say "you already have
+/// something here" before it asks for anything.
+class _GuestHeader extends StatelessWidget {
+  const _GuestHeader({required this.repo, required this.onSignIn});
+
+  final HadithRepository repo;
+  final VoidCallback onSignIn;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
+    final saved =
+        repo.favoriteHadithNumbers.length + repo.favoriteInsightTexts.length;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: palette.cardBorder),
+        boxShadow: AppElevation.card,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: palette.surfaceSunken,
+                  border: Border.all(
+                    color: palette.cardBorderStrong,
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(
+                  Icons.person_outline_rounded,
+                  color: palette.goldText,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'زائر كريم',
+                      style: textTheme.titleMedium?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      saved == 0
+                          ? 'تصفّح كما تحب، بلا حساب'
+                          : 'محفوظاتك على هذا الجهاز: '
+                              '${toArabicDigits(saved)}',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.mutedText,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          AppButton(
+            text: 'تسجيل الدخول',
+            icon: Icons.login_rounded,
+            onPressed: onSignIn,
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({required this.state, required this.repo});

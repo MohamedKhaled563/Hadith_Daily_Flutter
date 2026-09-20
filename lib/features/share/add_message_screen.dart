@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/auth/sign_in_gate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/theme/app_palette.dart';
@@ -108,6 +109,17 @@ class _AddMessageScreenState extends State<AddMessageScreen>
     // before that rebuild both still reach the old closure and would both
     // pass validation and post, creating a duplicate submission.
     if (_submitting) return;
+
+    // Publishing needs an author. Asked for here rather than on the way in,
+    // so a guest can still write and choose a hadith first — the work they
+    // have already done is what makes the ask reasonable.
+    if (!await requireSignIn(
+      context,
+      reason: 'سجّل الدخول لنشر رسالتك باسمك',
+    )) {
+      return;
+    }
+    if (!mounted) return;
 
     final messageText = _messageController.text.trim();
 

@@ -30,7 +30,14 @@ import 'auth_error_messages.dart';
 /// approximation of Google's actual logo, which their brand guidelines
 /// reserve for their own supplied assets.
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+  const SignUpScreen({super.key, this.returnOnSuccess = false});
+
+  /// When true this screen was opened from the sign-in gate mid-task, so it
+  /// pops with `true` instead of replacing the stack with Home — the reader
+  /// gets dropped back exactly where they were, still holding whatever they
+  /// were part-way through.
+  final bool returnOnSuccess;
+
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -209,11 +216,7 @@ class _SignUpScreenState extends State<SignUpScreen>
     }
     if (!mounted) return;
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      SmoothPageRoute(child: const HomeScreen()),
-      (route) => false,
-    );
+    _finish();
   }
 
   Future<void> _submitGoogle() async {
@@ -249,15 +252,28 @@ class _SignUpScreenState extends State<SignUpScreen>
       return;
     }
 
+    _finish();
+  }
+
+  void _clearError(String _) {
+    if (_error != null) setState(() => _error = null);
+  }
+
+  /// Sign-in succeeded. Either hand the result back to the gate that opened
+  /// this screen, or — when this is the start of the session — replace the
+  /// stack with Home so there is nothing to go "back" to.
+  void _finish() {
+    if (widget.returnOnSuccess) {
+      Navigator.pop(context, true);
+      return;
+    }
+    // Drops the stack rather than replacing one route: a brand-new account
+    // has nothing behind it worth going back to.
     Navigator.pushAndRemoveUntil(
       context,
       SmoothPageRoute(child: const HomeScreen()),
       (route) => false,
     );
-  }
-
-  void _clearError(String _) {
-    if (_error != null) setState(() => _error = null);
   }
 
   @override

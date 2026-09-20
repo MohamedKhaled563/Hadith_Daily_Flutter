@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/auth/sign_in_gate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
 import '../../core/widgets/bottom_navigation.dart';
@@ -285,6 +286,13 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
 
   Future<void> _handleLike(bool serverLiked) async {
     if (_isToggling) return;
+    if (!await requireSignIn(
+      context,
+      reason: 'سجّل الدخول ليبقى إعجابك محفوظاً على كل أجهزتك',
+    )) {
+      return;
+    }
+    if (!mounted) return;
     final next = !(_optimisticLiked ?? serverLiked);
     setState(() {
       _optimisticLiked = next;

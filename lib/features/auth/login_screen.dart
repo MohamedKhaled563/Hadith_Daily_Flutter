@@ -18,7 +18,14 @@ import 'signup_screen.dart';
 
 /// Sign-in screen: email/password and Google both go through Firebase Auth.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.returnOnSuccess = false});
+
+  /// When true this screen was opened from the sign-in gate mid-task, so it
+  /// pops with `true` instead of replacing the stack with Home — the reader
+  /// gets dropped back exactly where they were, still holding whatever they
+  /// were part-way through.
+  final bool returnOnSuccess;
+
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -111,10 +118,7 @@ class _LoginScreenState extends State<LoginScreen>
     }
     if (!mounted) return;
 
-    Navigator.pushReplacement(
-      context,
-      SmoothPageRoute(child: const HomeScreen()),
-    );
+    _finish();
   }
 
   Future<void> _submitGoogle() async {
@@ -150,6 +154,17 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
 
+    _finish();
+  }
+
+  /// Sign-in succeeded. Either hand the result back to the gate that opened
+  /// this screen, or — when this is the start of the session — replace the
+  /// stack with Home so there is nothing to go "back" to.
+  void _finish() {
+    if (widget.returnOnSuccess) {
+      Navigator.pop(context, true);
+      return;
+    }
     Navigator.pushReplacement(
       context,
       SmoothPageRoute(child: const HomeScreen()),
@@ -306,7 +321,10 @@ class _LoginScreenState extends State<LoginScreen>
                                     : () => Navigator.push(
                                           context,
                                           SmoothPageRoute(
-                                            child: const SignUpScreen(),
+                                            child: SignUpScreen(
+                                              returnOnSuccess:
+                                                  widget.returnOnSuccess,
+                                            ),
                                           ),
                                         ),
                                 style: TextButton.styleFrom(
