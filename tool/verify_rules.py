@@ -895,6 +895,133 @@ def main() -> int:
     )
     check("moderator clears a report", resp.status_code == 200, True)
 
+    # -- the report queue the dashboard streams ------------------------------
+    # ContentReportsPage cannot be exercised from here (moderator sign-in),
+    # so what it stands on is proven instead: the ordered query, which needs
+    # the status+createdAt composite index, and the two writes its buttons
+    # make.
+    queue_post = f"post-{uuid.uuid4().hex[:8]}"
+    queue_id = f"{queue_post}_{uid_a}"
+    put_report(
+        queue_id,
+        {
+            "postId": queue_post,
+            "reporterUid": uid_a,
+            "reason": "offensive",
+            "note": "",
+            "status": "open",
+        },
+        token_a,
+    )
+
+    # The exact shape of the page's stream. Without the index this returns
+    # FAILED_PRECONDITION, which is the failure that would leave a moderator
+    # looking at an error instead of a queue.
+    resp = requests.post(
+        f"{FIRESTORE_URL}:runQuery",
+        json={
+            "structuredQuery": {
+                "from": [{"collectionId": "contentReports"}],
+                "where": {
+                    "fieldFilter": {
+                        "field": {"fieldPath": "status"},
+                        "op": "EQUAL",
+                        "value": {"stringValue": "open"},
+                    }
+                },
+                "orderBy": [
+                    {
+                        "field": {"fieldPath": "createdAt"},
+                        "direction": "DESCENDING",
+                    }
+                ],
+            }
+        },
+        headers=rest_headers(token_admin),
+    )
+    check(
+        "moderator streams the open-report queue (needs the index)",
+        resp.status_code == 200,
+        True,
+    )
+
+    resp = requests.post(
+        f"{FIRESTORE_URL}:runQuery",
+        json={
+            "structuredQuery": {
+                "from": [{"collectionId": "contentReports"}],
+                "where": {
+                    "fieldFilter": {
+                        "field": {"fieldPath": "status"},
+                        "op": "EQUAL",
+                        "value": {"stringValue": "open"},
+                    }
+                },
+            }
+        },
+        headers=rest_headers(token_a),
+    )
+    # A denied runQuery comes back 200 with no documents rather than 403, so
+    # this asserts on the payload: a reader must not be able to enumerate who
+    # reported what.
+    check(
+        "ordinary reader streams the report queue",
+        resp.status_code == 200
+        and any("document" in row for row in resp.json()),
+        False,
+    )
+
+    # "المشاركة سليمة" — close the report, leave the message alone.
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/contentReports/{queue_id}"
+        "?updateMask.fieldPaths=status&updateMask.fieldPaths=resolvedBy",
+        json={
+            "fields": {
+                "status": {"stringValue": "dismissed"},
+                "resolvedBy": {"stringValue": uid_admin},
+            }
+        },
+        headers=rest_headers(token_admin),
+    )
+    check("moderator dismisses a report", resp.status_code == 200, True)
+
+    # "إخفاء المشاركة" — the other button also writes to communityMessages,
+    # setting the status the community feed already filters out.
+    hidden_id = f"queue-hide-{uuid.uuid4().hex[:8]}"
+    admin_set(
+        "communityMessages",
+        hidden_id,
+        {
+            "authorUid": uid_b,
+            "authorName": "قارئ",
+            "hadithNumber": 1,
+            "message": "رسالة مُبلَّغ عنها",
+            "status": "approved",
+            "likeCount": 0,
+        },
+    )
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/communityMessages/{hidden_id}"
+        "?updateMask.fieldPaths=status",
+        json={"fields": {"status": {"stringValue": "rejected"}}},
+        headers=rest_headers(token_admin),
+    )
+    check("moderator hides a reported message", resp.status_code == 200, True)
+
+    resp = requests.patch(
+        f"{FIRESTORE_URL}/communityMessages/{hidden_id}"
+        "?updateMask.fieldPaths=status",
+        json={"fields": {"status": {"stringValue": "rejected"}}},
+        headers=rest_headers(token_a),
+    )
+    check("ordinary reader hides a message", resp.status_code == 200, False)
+
+    admin_delete("communityMessages", hidden_id)
+    requests.delete(
+        f"{FIRESTORE_URL}/contentReports/{queue_id}",
+        headers=rest_headers(token_admin),
+    )
+
     # -- users/{uid}: delete your own profile doc, never someone else's -----
     # Done last for uid_a, because roleOf() reads this doc and every check
     # above depends on it existing.

@@ -8,6 +8,7 @@ import 'bulk_change_requests_page.dart';
 import 'daily_message_schedule_page.dart';
 import 'feedback_messages_page.dart';
 import 'notification_messages_page.dart';
+import 'content_reports_page.dart';
 import 'pending_queue_page.dart';
 import 'users_page.dart';
 
@@ -408,6 +409,13 @@ class _DashboardHomeState extends State<_DashboardHome> {
                     text: 'قائمة المراجعة',
                     icon: Icon(Icons.pending_actions_rounded),
                   ),
+                  // Second, not last: intake is reviewed before it is
+                  // published, but a report is about something readers are
+                  // already seeing, so it is the more urgent of the two.
+                  const Tab(
+                    text: 'البلاغات',
+                    icon: Icon(Icons.flag_outlined),
+                  ),
                   const Tab(
                       text: 'تعديل بالجملة',
                       icon: Icon(Icons.playlist_add_rounded)),
@@ -445,6 +453,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
           index: _tab,
           children: [
             const PendingQueuePage(),
+            const ContentReportsPage(),
             BulkAddPage(isAdmin: widget.isAdmin),
             NotificationMessagesPage(isAdmin: widget.isAdmin),
             const FeedbackMessagesPage(),
