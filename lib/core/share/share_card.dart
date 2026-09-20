@@ -218,7 +218,7 @@ class ShareCard extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
-                          '✍️ ${attribution!}',
+                          attribution!,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontFamily: kSans,
@@ -250,7 +250,7 @@ class ShareCard extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     const Text(
-                      '🌿 طيّب قلبك • الأربعين النووية',
+                      'طيّب قلبك • الأربعين النووية',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: kSans,

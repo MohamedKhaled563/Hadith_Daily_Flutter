@@ -27,7 +27,7 @@ class FeedbackMessagesPage extends StatelessWidget {
         if (docs.isEmpty) {
           return const Center(
             child: Text(
-              'لا توجد رسائل من المستخدمين بعد 🌿',
+              'لا توجد رسائل من المستخدمين بعد',
               style: TextStyle(fontSize: 16),
             ),
           );

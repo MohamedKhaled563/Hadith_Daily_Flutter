@@ -115,7 +115,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
           Semantics(
             header: true,
             child: Text(
-              _showOnlyFavorites ? 'الأحاديث المحفوظة 🌿' : 'الأربعين النووية',
+              _showOnlyFavorites ? 'الأحاديث المحفوظة' : 'الأربعين النووية',
               textAlign: TextAlign.center,
               style: textTheme.headlineMedium,
             ),

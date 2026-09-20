@@ -102,7 +102,7 @@ class NotificationReliabilityTip {
 
     await showBotanicalSheet<void>(
       context: context,
-      title: 'لضمان وصول التذكيرات 🔔',
+      title: 'لضمان وصول التذكيرات',
       subtitle: Platform.isIOS
           ? 'خطوة أخيرة على جهاز آيفون'
           : 'خطوة أخيرة على جهازك',

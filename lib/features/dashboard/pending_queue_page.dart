@@ -26,7 +26,7 @@ class PendingQueuePage extends StatelessWidget {
         if (docs.isEmpty) {
           return const Center(
             child: Text(
-              'لا توجد رسائل بانتظار المراجعة 🌿',
+              'لا توجد رسائل بانتظار المراجعة',
               style: TextStyle(fontSize: 16),
             ),
           );

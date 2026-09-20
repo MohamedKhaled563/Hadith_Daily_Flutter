@@ -135,7 +135,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
               ),
               const SizedBox(height: 16),
               Text(
-                '📚 المصادر والتوثيق',
+                'المصادر والتوثيق',
                 style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: palette.goldText,
@@ -166,7 +166,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
 
     showBotanicalSheet<void>(
       context: context,
-      title: 'تواصل معنا واقترح 🌿',
+      title: 'تواصل معنا واقترح',
       subtitle: 'يسعدنا سماع رأيك — اكتب ملاحظتك وسيصل فريق الإشراف إليها',
       child: Builder(
         builder: (sheetContext) {
@@ -257,7 +257,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                           Navigator.pop(sheetContext);
                         }
                         if (mounted) {
-                          _toast('تم إرسال رسالتك، شكراً لتواصلك معنا 🌿');
+                          _toast('تم إرسال رسالتك، شكراً لتواصلك معنا');
                         }
                       } catch (_) {
                         setFieldState(() {
@@ -292,7 +292,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
     setState(() {});
     _toast(
       'تم حفظ وقتك المفضل لـ ${isMorning ? "تذكير الصباح" : "تذكير المساء"} '
-      '(${_formatTime(picked)}) 🌿',
+      '(${_formatTime(picked)})',
     );
     _syncNotifications();
   }

@@ -58,7 +58,7 @@ class _BulkChangeRequestsPageState extends State<BulkChangeRequestsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '⚠️ تم تجاهل ${skippedIds.length} تحديث لأن المستند المستهدف '
+              'تم تجاهل ${skippedIds.length} تحديث لأن المستند المستهدف '
               'حُذف منذ إرسال هذا الطلب',
             ),
           ),

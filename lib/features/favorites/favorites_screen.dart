@@ -307,7 +307,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         // leaving it would be a second control for one action.
                         TapTarget(
                           onTap: () => _copyText(
-                            '« ${insight.message} »\n— طيّب قلبك 🌿',
+                            '« ${insight.message} »\n— طيّب قلبك',
                           ),
                           semanticLabel: 'نسخ الرسالة',
                           child: Icon(

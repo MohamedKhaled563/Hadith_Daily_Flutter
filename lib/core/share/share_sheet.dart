@@ -28,7 +28,7 @@ Future<void> showShareSheet({
 }) {
   return showBotanicalSheet<void>(
     context: context,
-    title: 'مشاركة البطاقة 🌿',
+    title: 'مشاركة البطاقة',
     subtitle: 'ستُرسل كصورة تحمل هوية التطبيق',
     child: Builder(
       builder: (sheetContext) {
@@ -96,14 +96,14 @@ Future<void> showShareSheet({
               onPressed: () {
                 final buffer = StringBuffer('« $message »');
                 if (hadithTitle != null && hadithTitle.trim().isNotEmpty) {
-                  buffer.write('\n\n📌 ');
+                  buffer.write('\n\n');
                   buffer.write(
                     hadithNumber == null
                         ? hadithTitle
                         : 'الحديث $hadithNumber: $hadithTitle',
                   );
                 }
-                buffer.write('\n🌿 من تطبيق «طيّب قلبك»');
+                buffer.write('\nمن تطبيق «طيّب قلبك»');
                 final link = AppLinks.storeLink;
                 if (link != null) buffer.write('\n$link');
 

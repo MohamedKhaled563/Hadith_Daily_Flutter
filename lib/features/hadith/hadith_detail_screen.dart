@@ -83,7 +83,7 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
 
     final link = AppLinks.storeLink;
     if (link != null) {
-      buffer.writeln('\n🌿 من تطبيق «طيّب قلبك»');
+      buffer.writeln('\nمن تطبيق «طيّب قلبك»');
       buffer.writeln(link);
     }
 
@@ -346,7 +346,7 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
                       children: [
                         const _CardHeading(
                           icon: Icons.spa_rounded,
-                          title: 'من فوائد الحديث وهداياته 🌿',
+                          title: 'من فوائد الحديث وهداياته',
                         ),
                         const SizedBox(height: 12),
                         for (final lesson in hadith.keyLessons)

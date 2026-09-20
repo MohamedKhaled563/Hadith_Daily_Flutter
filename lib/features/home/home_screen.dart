@@ -760,7 +760,7 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
               ),
               const SizedBox(height: 8),
               Text(
-                'لمسة قلبية بانتظارك الآن 🌿',
+                'لمسة قلبية بانتظارك الآن',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: kSans,

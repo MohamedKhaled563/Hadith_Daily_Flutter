@@ -370,7 +370,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     showBotanicalSheet<void>(
       context: context,
-      title: 'نسيت كلمة المرور؟ 🌿',
+      title: 'نسيت كلمة المرور؟',
       subtitle: 'أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور',
       child: Builder(
         builder: (sheetContext) {
@@ -482,7 +482,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 setSheetState(() {
                                   sending = false;
                                   success =
-                                      'تم إرسال الرابط — تحقق من بريدك الإلكتروني 🌿';
+                                      'تم إرسال الرابط — تحقق من بريدك الإلكتروني';
                                 });
                               } on FirebaseAuthException catch (e) {
                                 setSheetState(() {

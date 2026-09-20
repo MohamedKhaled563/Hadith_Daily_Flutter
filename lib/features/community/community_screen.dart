@@ -638,7 +638,7 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
             _HadithLinkPill(hadith: hadith),
             const SizedBox(height: 14),
           ],
-          const _BrandSignature(label: '🌿 طيّب قلبك • مشاركات المجتمع'),
+          const _BrandSignature(label: 'طيّب قلبك • مشاركات المجتمع'),
         ],
       ),
     );

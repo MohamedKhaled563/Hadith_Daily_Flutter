@@ -47,7 +47,24 @@ def clean(value) -> str:
         return ""
     text = str(value).replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"[ \t]+", " ", text)
+    text = em_dash(text)
     return text.strip()
+
+
+def em_dash(text: str) -> str:
+    """A spaced ASCII hyphen used as a parenthetical dash becomes an em dash.
+
+    The workbook is typed on a normal keyboard, so asides come out as
+    `كل عمل نقوم به - عبادة كان أو عملا دنيويا - قيمته` -- a hyphen doing a
+    dash's job. It is the wrong mark: too short to read as a break, and it
+    sits mid-x-height against Arabic letterforms rather than on their optical
+    centre. The app's own UI copy already uses the em dash for exactly this.
+
+    The space on *both* sides is what makes this safe to automate. It is what
+    separates a dash from a hyphen that is joining something -- `e-mail`,
+    `2024-01-01`, a leading `- ` bullet -- none of which are touched.
+    """
+    return re.sub(r"(?<=\S) - (?=\S)", " \u2014 ", text)
 
 
 def load_hadiths() -> list[dict]:

@@ -282,8 +282,8 @@ class _MessagePageState extends State<_MessagePage> {
   String get _shareText {
     final link = AppLinks.storeLink;
     return '« ${_insight.message} »\n\n'
-        '📌 المرتبط بـ: ${_hadith?.title ?? 'حديث نبوي شريف'}\n'
-        '🌿 من تطبيق: طيّب قلبك - هدي النبوة'
+        'المرتبط بـ: ${_hadith?.title ??'حديث نبوي شريف'}\n'
+        'من تطبيق: طيّب قلبك - هدي النبوة'
         '${link == null ? '' : '\n$link'}';
   }
 
@@ -317,54 +317,68 @@ class _MessagePageState extends State<_MessagePage> {
     );
   }
 
+  Widget get _toolbar => _insight.isLikeable
+      ? _LiveMessageToolbar(
+          insight: _insight,
+          isBookmarked: _isBookmarked,
+          onBookmark: _toggleBookmark,
+          onShare: _showSharePreview,
+          onCopy: _copyMessageText,
+        )
+      : _MessageToolbar(
+          isBookmarked: _isBookmarked,
+          likes: null,
+          isLiked: false,
+          onBookmark: _toggleBookmark,
+          onShare: _showSharePreview,
+          onCopy: _copyMessageText,
+          onLike: null,
+        );
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: (constraints.maxHeight - 16).clamp(
-                      0,
-                      double.infinity,
-                    ),
-                  ),
-                  child: Center(child: _buildCard()),
-                ),
-              );
-            },
+    final navReserved = BottomNavigation.reservedHeight(context);
+
+    // The toolbar belongs to the card, not to the bottom of the screen.
+    //
+    // It used to be a fixed sibling below the scroll area, which kept its
+    // position stable across a swipe but put it ~90px above the nav bar and
+    // ~200px below the card — same pill, same radius, same elevation as the
+    // nav bar, at nav-bar distance from it. Proximity did the grouping, and
+    // it grouped the wrong two things: the reader saw one double-decker
+    // navigation bar, and a large void above the message.
+    //
+    // Card and toolbar now centre together as one block, so the controls read
+    // as belonging to the message they act on and the leftover space is
+    // shared evenly above and below instead of pooling at the top. The cost
+    // is the trade that was made deliberately before: the toolbar's vertical
+    // position now shifts a little between messages of different lengths.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final vertical = 16 + navReserved;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, 8, 20, 8 + navReserved),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: (constraints.maxHeight - vertical).clamp(
+                0,
+                double.infinity,
+              ),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildCard(),
+                  const SizedBox(height: 14),
+                  _toolbar,
+                ],
+              ),
+            ),
           ),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            0,
-            20,
-            8 + BottomNavigation.reservedHeight(context),
-          ),
-          child: _insight.isLikeable
-              ? _LiveMessageToolbar(
-                  insight: _insight,
-                  isBookmarked: _isBookmarked,
-                  onBookmark: _toggleBookmark,
-                  onShare: _showSharePreview,
-                  onCopy: _copyMessageText,
-                )
-              : _MessageToolbar(
-                  isBookmarked: _isBookmarked,
-                  likes: null,
-                  isLiked: false,
-                  onBookmark: _toggleBookmark,
-                  onShare: _showSharePreview,
-                  onCopy: _copyMessageText,
-                  onLike: null,
-                ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -471,7 +485,7 @@ class _MessagePageState extends State<_MessagePage> {
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  '🌿 طيّب قلبك • هدي النبوة',
+                  'طيّب قلبك • هدي النبوة',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: kSans,

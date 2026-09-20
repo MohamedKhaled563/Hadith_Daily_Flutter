@@ -438,7 +438,7 @@ class _AddMessageScreenState extends State<AddMessageScreen>
               boxShadow: AppElevation.card,
             ),
             child: AppButton(
-              text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة 🌿',
+              text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة',
               icon: _submitting ? null : Icons.send_rounded,
               onPressed: _submitting ? null : () => _submit(),
             ),

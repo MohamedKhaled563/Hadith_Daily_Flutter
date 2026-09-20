@@ -102,10 +102,10 @@ class ShareService {
   static String _caption(String message, String? title, String? number) {
     final buffer = StringBuffer('« $message »');
     if (title != null && title.trim().isNotEmpty) {
-      buffer.write('\n\n📌 ');
+      buffer.write('\n\n');
       buffer.write(number == null ? title : 'الحديث $number: $title');
     }
-    buffer.write('\n🌿 من تطبيق «طيّب قلبك»');
+    buffer.write('\nمن تطبيق «طيّب قلبك»');
     final link = AppLinks.storeLink;
     if (link != null) buffer.write('\n$link');
     return buffer.toString();

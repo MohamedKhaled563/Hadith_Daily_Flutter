@@ -44,10 +44,10 @@ class _SplashScreenState extends State<SplashScreen>
   List<DailyMessageEntry>? _pendingNotificationEntries;
 
   final List<String> _inspirationalQuotes = [
-    'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ 🌿',
-    'طِبْ نفساً واستبشر بنور النبوة ✨',
-    'الكلمة الطيبة صدقة ونور في القلب 🕊️',
-    'إن مع العسر يسراً، فاستبشر خيراً 🤍',
+    'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ',
+    'طِبْ نفساً واستبشر بنور النبوة',
+    'الكلمة الطيبة صدقة ونور في القلب',
+    'إن مع العسر يسراً، فاستبشر خيراً',
   ];
 
   @override
