@@ -17,6 +17,7 @@ import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
 import '../hadith/hadith_detail_screen.dart';
+import 'report_sheet.dart';
 
 class CommunityPostScreen extends StatefulWidget {
   const CommunityPostScreen({super.key, required this.post});
@@ -59,6 +60,20 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
       tone: _isBookmarked ? SnackTone.success : SnackTone.neutral,
       action: _isBookmarked ? null : undoAction(context, _toggleBookmark),
     );
+  }
+
+  /// The reader's way out of a message they should not have to see. Blocking
+  /// takes them back to the feed, because the screen they are standing on is
+  /// the very thing they just asked to stop seeing — leaving them on it would
+  /// make the control look broken.
+  Future<void> _report() async {
+    final outcome = await showReportSheet(context, widget.post);
+    if (!mounted) return;
+    if (outcome == ModerationOutcome.blocked) {
+      Navigator.pop(context, kAuthorBlocked);
+      return;
+    }
+    showModerationOutcome(context, outcome);
   }
 
   Future<void> _handleLike(bool serverLiked) async {
@@ -336,6 +351,36 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                         onTap: () => _handleLike(serverLiked),
                       );
                     },
+                  ),
+                ),
+                const SizedBox(height: 28),
+                // Deliberately quiet, and deliberately present. It sits below
+                // the message rather than beside the bookmark and share
+                // buttons because reporting is not one of the things a reader
+                // is here to do — but when they need it, it has to be on the
+                // content itself, not buried in settings.
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _report,
+                    icon: Icon(
+                      Icons.flag_outlined,
+                      size: 16,
+                      color: palette.mutedText,
+                    ),
+                    label: Text(
+                      'الإبلاغ عن هذه المشاركة',
+                      style: TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 12.5,
+                        height: AppLeading.chrome,
+                        fontWeight: FontWeight.w600,
+                        color: palette.mutedText,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
                   ),
                 ),
               ],

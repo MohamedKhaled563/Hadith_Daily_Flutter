@@ -181,153 +181,159 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         final hadith = _repo.getByNumber(insight.hadithNumber);
         final palette = context.palette;
 
-        return ParchmentCard(
-          padding: const EdgeInsets.all(18),
-          showCornerOrnaments: false,
-          showWatermark: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _CategoryPill(label: insight.category),
-                  TapTarget(
-                    onTap: () {
-                      AppHaptics.toggle();
-                      setState(
-                        () => _repo.toggleFavoriteInsight(insight),
-                      );
-                      // Removing something the reader deliberately saved is
-                      // the one place in this screen worth an undo: it used
-                      // to fire a one-second snack with nothing on it, and
-                      // the only way back was to find the message again.
-                      showAppSnack(
-                        context,
-                        'تمت الإزالة من المحفوظات',
-                        action: undoAction(context, () {
-                          setState(
-                            () => _repo.toggleFavoriteInsight(insight),
-                          );
-                        }),
-                      );
-                    },
-                    semanticLabel: 'إزالة الرسالة من المحفوظات',
-                    toggled: true,
-                    // Unsaving is reversible and low-stakes — the app's usual
-                    // gold, not the red reserved for destructive actions like
-                    // signing out.
-                    child: Icon(
-                      Icons.bookmark_remove_rounded,
-                      size: 22,
-                      color: palette.goldText,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              Text(
-                '« ${insight.message} »',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: kSans,
-                  fontSize: 16,
-                  height: AppLeading.body,
-                  fontWeight: FontWeight.w700,
-                  color: palette.bodyText,
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (hadith != null)
+        // The card itself opens the message, which is what tapping a saved
+        // message is obviously meant to do. It used to do nothing at all —
+        // the only way in was a 20px fullscreen glyph tucked between two
+        // other icons — so the card looked interactive and was not.
+        // The controls inside keep working: their own hit tests are opaque,
+        // so they win the gesture arena before this one sees the tap.
+        return PressableSurface(
+          onTap: () => _openMessage(insight, hadith),
+          semanticLabel: 'افتح الرسالة كاملة',
+          child: ParchmentCard(
+            padding: const EdgeInsets.all(18),
+            showCornerOrnaments: false,
+            showWatermark: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _CategoryPill(label: insight.category),
                     TapTarget(
-                      onTap: () => Navigator.push(
-                        context,
-                        appPageRoute(
-                          child: HadithDetailScreen(hadith: hadith),
-                        ),
+                      onTap: () {
+                        AppHaptics.toggle();
+                        setState(
+                          () => _repo.toggleFavoriteInsight(insight),
+                        );
+                        // Removing something the reader deliberately saved is
+                        // the one place in this screen worth an undo: it used
+                        // to fire a one-second snack with nothing on it, and
+                        // the only way back was to find the message again.
+                        showAppSnack(
+                          context,
+                          'تمت الإزالة من المحفوظات',
+                          action: undoAction(context, () {
+                            setState(
+                              () => _repo.toggleFavoriteInsight(insight),
+                            );
+                          }),
+                        );
+                      },
+                      semanticLabel: 'إزالة الرسالة من المحفوظات',
+                      toggled: true,
+                      // Unsaving is reversible and low-stakes — the app's usual
+                      // gold, not the red reserved for destructive actions like
+                      // signing out.
+                      child: Icon(
+                        Icons.bookmark_remove_rounded,
+                        size: 22,
+                        color: palette.goldText,
                       ),
-                      semanticLabel: 'افتح الحديث ${toArabicDigits(hadith.number)}',
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: palette.surface,
-                          borderRadius: BorderRadius.circular(AppRadii.pill),
-                          border: Border.all(color: palette.cardBorder),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.menu_book_rounded,
-                              size: 13,
-                              color: palette.goldText,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              'الحديث ${toArabicDigits(hadith.number)}',
-                              style: TextStyle(
-                                fontFamily: kSans,
-                                fontSize: 11.5,
-                                height: AppLeading.chrome,
-                                fontWeight: FontWeight.w700,
-                                color: palette.goldText,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
 
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                const SizedBox(height: 12),
+
+                Text(
+                  '« ${insight.message} »',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 16,
+                    height: AppLeading.body,
+                    fontWeight: FontWeight.w700,
+                    color: palette.bodyText,
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (hadith != null)
                       TapTarget(
                         onTap: () => Navigator.push(
                           context,
-                          appMessageRoute(child: DailyMessageScreen(
-                              insight: insight,
-                              hadith: hadith,
-                            ),
+                          appPageRoute(
+                            child: HadithDetailScreen(hadith: hadith),
                           ),
                         ),
-                        semanticLabel: 'عرض في بطاقة رسالة اليوم',
-                        child: Icon(
-                          Icons.fullscreen_rounded,
-                          size: 20,
-                          color: palette.goldText,
+                        semanticLabel: 'افتح الحديث ${toArabicDigits(hadith.number)}',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: palette.surface,
+                            borderRadius: BorderRadius.circular(AppRadii.pill),
+                            border: Border.all(color: palette.cardBorder),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.menu_book_rounded,
+                                size: 13,
+                                color: palette.goldText,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                'الحديث ${toArabicDigits(hadith.number)}',
+                                style: TextStyle(
+                                  fontFamily: kSans,
+                                  fontSize: 11.5,
+                                  height: AppLeading.chrome,
+                                  fontWeight: FontWeight.w700,
+                                  color: palette.goldText,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      TapTarget(
-                        onTap: () => _copyText(
-                          '« ${insight.message} »\n— طيّب قلبك 🌿',
+                      )
+                    else
+                      const SizedBox.shrink(),
+
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // The fullscreen glyph that used to sit here is
+                        // gone: the card itself now does what it did, and
+                        // leaving it would be a second control for one action.
+                        TapTarget(
+                          onTap: () => _copyText(
+                            '« ${insight.message} »\n— طيّب قلبك 🌿',
+                          ),
+                          semanticLabel: 'نسخ الرسالة',
+                          child: Icon(
+                            Icons.copy_rounded,
+                            size: 18,
+                            color: palette.goldText,
+                          ),
                         ),
-                        semanticLabel: 'نسخ الرسالة',
-                        child: Icon(
-                          Icons.copy_rounded,
-                          size: 18,
-                          color: palette.goldText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  void _openMessage(Insight insight, Hadith? hadith) {
+    Navigator.push(
+      context,
+      appMessageRoute(
+        child: DailyMessageScreen(insight: insight, hadith: hadith),
+      ),
     );
   }
 

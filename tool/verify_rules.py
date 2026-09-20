@@ -298,9 +298,13 @@ def main() -> int:
         )
         check("moderator/admin deletes a notification message", resp.status_code == 200, True)
 
-    # Signed-out read — denied.
+    # Signed-out read — allowed, and deliberately so. This case used to expect
+    # a deny, written when the app still had a sign-in wall. Guest browsing
+    # removed that wall, and the notification scheduler runs on a guest device
+    # too: with the read closed, every guest silently fell back to the bundled
+    # message pool. The assertion that matters now is the write, below.
     resp = requests.get(f"{FIRESTORE_URL}/notificationMessages", headers=rest_headers(None))
-    check("signed-out user lists notification messages", resp.status_code == 200, False)
+    check("signed-out user lists notification messages", resp.status_code == 200, True)
 
     print("\n== phase 16: dailyMessages/notificationMessages moderator-creates/admin-edits ==")
 
@@ -813,6 +817,83 @@ def main() -> int:
         token_a,
     )
     check("non-moderator creates a notification message", resp.status_code == 200, False)
+
+    # -- contentReports: App Store 1.2, the reporting half --------------------
+    # The doc id is `<postId>_<uid>` on purpose: it makes a second report of
+    # the same post by the same reader overwrite the first, so the row count a
+    # moderator sees is the number of *people* who objected, and nobody can
+    # inflate it. The rule enforces that shape rather than trusting the client
+    # to build the id correctly.
+    report_post = f"post-{uuid.uuid4().hex[:8]}"
+    report_id = f"{report_post}_{uid_a}"
+
+    def put_report(doc_id: str, fields: dict, token: str | None):
+        return requests.patch(
+            f"{FIRESTORE_URL}/contentReports/{doc_id}",
+            json={"fields": _encode_fields(fields)},
+            headers=rest_headers(token),
+        )
+
+    good = {
+        "postId": report_post,
+        "reporterUid": uid_a,
+        "reason": "offensive",
+        "note": "",
+        "status": "open",
+    }
+
+    resp = put_report(report_id, good, None)
+    check("report a post while signed out", resp.status_code == 200, False)
+
+    # Filing under someone else's name, which is what a harassment campaign
+    # would need in order to work.
+    resp = put_report(
+        f"{report_post}_{uid_b}", {**good, "reporterUid": uid_b}, token_a
+    )
+    check("file a report in someone else's name", resp.status_code == 200, False)
+
+    # Right uid in the body, wrong id — the stuffing case: one account
+    # writing many rows against the same post.
+    resp = put_report(f"{report_post}_extra", good, token_a)
+    check("stuff extra reports on one post", resp.status_code == 200, False)
+
+    resp = put_report(report_id, {**good, "note": "ن" * 501}, token_a)
+    check("report with an oversized note", resp.status_code == 200, False)
+
+    resp = put_report(report_id, {**good, "status": "resolved"}, token_a)
+    check("open a report already marked resolved", resp.status_code == 200, False)
+
+    resp = put_report(report_id, good, token_a)
+    check("report a post", resp.status_code == 200, True)
+
+    # Changing your mind about the reason is a refile of the same row.
+    resp = put_report(report_id, {**good, "reason": "misattributed"}, token_a)
+    check("refile your own open report", resp.status_code == 200, True)
+
+    resp = put_report(report_id, {**good, "reporterUid": uid_b}, token_b)
+    check("overwrite someone else's report", resp.status_code == 200, False)
+
+    resp = requests.get(
+        f"{FIRESTORE_URL}/contentReports/{report_id}", headers=rest_headers(token_a)
+    )
+    check("read your own report back", resp.status_code == 200, False)
+
+    resp = requests.get(
+        f"{FIRESTORE_URL}/contentReports/{report_id}",
+        headers=rest_headers(token_admin),
+    )
+    check("moderator reads a report", resp.status_code == 200, True)
+
+    resp = requests.delete(
+        f"{FIRESTORE_URL}/contentReports/{report_id}", headers=rest_headers(token_a)
+    )
+    check("reporter deletes their own report", resp.status_code == 200, False)
+
+    resp = requests.delete(
+        f"{FIRESTORE_URL}/contentReports/{report_id}",
+        headers=rest_headers(token_admin),
+    )
+    check("moderator clears a report", resp.status_code == 200, True)
 
     # -- users/{uid}: delete your own profile doc, never someone else's -----
     # Done last for uid_a, because roleOf() reads this doc and every check

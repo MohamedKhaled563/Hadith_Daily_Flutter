@@ -460,6 +460,46 @@ service cloud.firestore {
                       && resource.data.authorUid == request.auth.uid);
     }
 
+    // Reader-filed reports on an already-approved community message.
+    //
+    // App Store guideline 1.2 requires a way to report objectionable content
+    // in any app carrying user-generated content. The pending/approved queue
+    // covers intake; nothing covered a post that is already live.
+    //
+    // Doc id is `<postId>_<uid>`, which is what makes a report idempotent
+    // per reader — the rule below enforces that the id really does belong to
+    // the caller, so nobody can file a report in someone else's name or
+    // stuff the count by writing many docs.
+    match /contentReports/{reportId} {
+      // Only the reviewing side reads these. A reader learning who else
+      // objected to a post is a way to start an argument, not to moderate.
+      allow read: if isModerator();
+
+      allow create: if request.auth != null
+                  && reportId == request.resource.data.postId + '_' + request.auth.uid
+                  && request.resource.data.reporterUid == request.auth.uid
+                  && request.resource.data.postId is string
+                  && request.resource.data.postId.size() > 0
+                  && request.resource.data.reason is string
+                  && request.resource.data.reason.size() <= 40
+                  && request.resource.data.note is string
+                  && request.resource.data.note.size() <= 500
+                  && request.resource.data.status == 'open';
+
+      // A reader may refile (same doc id) while it is still open, which is
+      // how changing the reason works; they may not reopen or re-word one a
+      // moderator has already acted on.
+      allow update: if isModerator()
+                  || (request.auth != null
+                      && resource.data.reporterUid == request.auth.uid
+                      && resource.data.status == 'open'
+                      && request.resource.data.reporterUid == request.auth.uid
+                      && request.resource.data.postId == resource.data.postId
+                      && request.resource.data.status == 'open');
+
+      allow delete: if isModerator();
+    }
+
     // Everything else stays fully locked until a later phase explicitly
     // opens it up.
     match /{document=**} {

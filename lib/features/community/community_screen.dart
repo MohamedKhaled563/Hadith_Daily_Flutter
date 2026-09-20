@@ -19,7 +19,9 @@ import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
+import '../../data/services/moderation_service.dart';
 import 'community_post_screen.dart';
+import 'report_sheet.dart';
 
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold,
 /// the drawer and the background, so none are created here.
@@ -38,6 +40,8 @@ class CommunityScreen extends StatefulWidget {
 }
 
 class _CommunityScreenState extends State<CommunityScreen> {
+  final _moderation = ModerationService();
+
   bool _sortByLikes = true;
 
   /// Grows when the reader asks for more. Reset on a sort change, because the
@@ -57,6 +61,23 @@ class _CommunityScreenState extends State<CommunityScreen> {
   void _showMore() {
     AppHaptics.tap();
     setState(() => _limit += CommunityService.pageSize);
+  }
+
+  /// The post screen can come back saying the reader just blocked its author.
+  /// The stream itself does not change — blocking is local — so the list has
+  /// to be told to rebuild, and the reader told what happened, here.
+  Future<void> _openPost(CommunityPost post) async {
+    final result = await Navigator.push(
+      context,
+      appPageRoute(child: CommunityPostScreen(post: post)),
+    );
+    if (!mounted || result != kAuthorBlocked) return;
+    setState(() {});
+    showAppSnack(
+      context,
+      'لن تظهر لك مشاركات هذا الكاتب على هذا الجهاز',
+      tone: SnackTone.neutral,
+    );
   }
 
   @override
@@ -128,18 +149,35 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
               // Ordering and bounding both happen on the server now, so
               // what arrives is already the page to draw.
-              final posts = snapshot.data!;
-              final canShowMore = posts.length >= _limit;
+              final fetched = snapshot.data!;
+              // Measured before hiding anyone: "is there another page" is a
+              // fact about the query, not about this reader's block list, and
+              // filtering first would make the button vanish the moment a
+              // blocked author happened to sit in the page.
+              final canShowMore = fetched.length >= _limit;
+
+              final posts = fetched
+                  .where((p) => !_moderation.isBlocked(p.authorName))
+                  .toList();
 
               if (posts.isEmpty) {
-                return AppEmptyState(
-                  icon: Icons.forum_outlined,
-                  title: 'لا توجد مشاركات بعد',
-                  subtitle:
-                      'كن أول من يشارك خاطرة أو تأملاً مربوطاً بحديث نبوي شريف، واجعلها سبباً في نشر الخير.',
-                  actionLabel: 'شارك أول رسالة',
-                  onAction: _openAddMessage,
-                );
+                return fetched.isEmpty
+                    ? AppEmptyState(
+                        icon: Icons.forum_outlined,
+                        title: 'لا توجد مشاركات بعد',
+                        subtitle:
+                            'كن أول من يشارك خاطرة أو تأملاً مربوطاً بحديث نبوي شريف، واجعلها سبباً في نشر الخير.',
+                        actionLabel: 'شارك أول رسالة',
+                        onAction: _openAddMessage,
+                      )
+                    : AppEmptyState(
+                        icon: Icons.visibility_off_outlined,
+                        title: 'كل المشاركات هنا من كُتّاب أخفيتهم',
+                        subtitle:
+                            'يمكنك إظهارهم مرة أخرى من الإعدادات، أو تشارك أنت خاطرة جديدة.',
+                        actionLabel: 'شارك رسالة',
+                        onAction: _openAddMessage,
+                      );
               }
 
               // One plain vertical list, every post the same size — no
@@ -168,10 +206,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   return _CommunityPostCard(
                     post: post,
                     rank: index + 1,
-                    onTap: () => Navigator.push(
-                      context,
-                      appPageRoute(child: CommunityPostScreen(post: post)),
-                    ),
+                    onTap: () => _openPost(post),
                   );
                 },
               );

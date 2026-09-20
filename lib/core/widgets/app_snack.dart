@@ -66,7 +66,18 @@ void showAppSnack(
     ..showSnackBar(
       SnackBar(
         backgroundColor: background,
-        duration: duration ?? const Duration(seconds: 3),
+        // Flutter resolves `persist` as `persist ?? action != null`, so every
+        // snack carrying an undo silently became permanent: it ignored its
+        // own duration and stayed until the reader tapped «تراجع» — which
+        // undoes the thing they had just chosen to do. The only way to
+        // dismiss it was to reverse it. Nothing in this app wants a snackbar
+        // that outlives its message, so this is pinned off for all of them.
+        persist: false,
+        // An undo needs longer than a plain acknowledgement: the reader has
+        // to notice it, read it, and decide, not just register that
+        // something happened.
+        duration: duration ??
+            Duration(seconds: action != null ? 5 : 3),
         // Overrides the theme's own shape/behaviour so a toned snack can't
         // half-inherit the old green one.
         behavior: SnackBarBehavior.floating,

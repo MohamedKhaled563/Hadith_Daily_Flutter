@@ -14,11 +14,13 @@ import '../../core/widgets/tap_target.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
 import '../../data/services/feedback_service.dart';
+import '../../data/services/moderation_service.dart';
 import '../../data/services/notification_scheduler.dart';
 import '../../core/auth/sign_in_gate.dart';
 import '../../core/legal/legal_documents.dart';
 import '../auth/login_screen.dart';
 import '../community/my_submissions_screen.dart';
+import '../community/report_sheet.dart';
 import '../legal/legal_document_screen.dart';
 import 'delete_account_sheet.dart';
 
@@ -32,6 +34,7 @@ class SettingsDrawer extends StatefulWidget {
 class _SettingsDrawerState extends State<SettingsDrawer> {
   final AppStateController _state = AppStateController();
   final HadithRepository _repo = HadithRepository();
+  final ModerationService _moderation = ModerationService();
 
   String _formatTime(TimeOfDay time) {
     final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
@@ -449,6 +452,23 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                             title: 'تواصل معنا واقترح فكرة',
                             onTap: _showFeedbackSheet,
                           ),
+                          // Only when there is something to manage. An
+                          // always-present row would ask most readers to
+                          // reason about a list they have never added to,
+                          // and the feed's empty state links here by name
+                          // exactly when it is not empty.
+                          if (_moderation.blockedAuthors.isNotEmpty) ...[
+                            _Divider(),
+                            _NavTile(
+                              icon: Icons.visibility_off_outlined,
+                              title: 'الكُتّاب المخفيون '
+                                  '(${toArabicDigits(_moderation.blockedAuthors.length)})',
+                              onTap: () async {
+                                await showBlockedAuthorsSheet(context);
+                                if (mounted) setState(() {});
+                              },
+                            ),
+                          ],
                           _Divider(),
                           // Both stores expect a reachable privacy policy,
                           // and sign-up asks the reader to agree to these two

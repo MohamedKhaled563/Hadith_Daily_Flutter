@@ -1,11 +1,16 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:hadith_app/core/theme/app_theme.dart';
+import 'package:hadith_app/core/widgets/tap_target.dart';
 import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/data/services/daily_tip_service.dart';
+import 'package:hadith_app/features/favorites/favorites_screen.dart';
 
 /// A message saved from «مجتمع الحديث» has to land in the same Favourites
 /// list as one saved from «رسائل اليوم». The repository always supported
@@ -124,5 +129,50 @@ void main() {
     expect(insight.sourceCollection, 'communityMessages');
     expect(insight.category, 'مشاركة مجتمعية');
     expect(insight.id, 'post-1');
+  });
+
+  testWidgets('a saved message opens when the card itself is tapped',
+      (tester) async {
+    // The card carried its own text, its own pill and three glyphs, and was
+    // the one thing on the screen that did nothing when you touched it —
+    // opening the message needed a 20px fullscreen icon between two others.
+    repo.toggleFavoriteInsight(post().toInsight());
+
+    await tester.binding.setSurfaceSize(const Size(400, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: const Scaffold(body: FavoritesScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining(post().message), findsOneWidget);
+
+    final card = find.ancestor(
+      of: find.textContaining(post().message),
+      matching: find.byType(PressableSurface),
+    );
+    expect(card, findsOneWidget,
+        reason: 'the whole card has to be the tap target, not one glyph');
+    expect(
+      tester.widget<PressableSurface>(card).onTap,
+      isNotNull,
+      reason: 'a PressableSurface with a null onTap renders its child bare, '
+          'which is the old do-nothing card again',
+    );
+
+    // The glyph it replaces must be gone, or there are two controls for one
+    // action sitting on the same card.
+    expect(find.byIcon(Icons.fullscreen_rounded), findsNothing);
   });
 }

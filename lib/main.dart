@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/app_state_controller.dart';
 import 'core/widgets/smooth_page_route.dart';
 import 'data/repositories/hadith_repository.dart';
+import 'data/services/moderation_service.dart';
 import 'data/services/daily_tip_service.dart';
 import 'data/services/notification_scheduler.dart';
 import 'features/messages/daily_message_screen.dart';
@@ -36,6 +37,9 @@ void main() async {
   await Future.wait([
     HadithRepository().load(),
     AppStateController().init(),
+    // The community feed filters on this synchronously while building, so
+    // it has to be in memory before the first frame.
+    ModerationService().load(),
   ]);
   NotificationScheduler.notificationTapped.addListener(_openTodayMessage);
   runApp(const HadithApp());
