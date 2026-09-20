@@ -67,4 +67,23 @@ class CommunityPost {
     this.likes = 0,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  /// The same conversion [DailyTip.toInsight] does, so a community message
+  /// saved from the community tab and the *same* message met later as a daily
+  /// message are one favourite rather than two.
+  ///
+  /// HadithRepository keys a favourite on `hadithNumber::message` — not on id
+  /// or collection — so the two paths collide on purpose.
+  ///
+  /// The author's name is not carried: [Insight] has nowhere to put it, and
+  /// inventing a field to hold it would change what every other screen means
+  /// by an insight. The category pill says where it came from instead.
+  Insight toInsight() => Insight(
+        hadithNumber: hadithNumber,
+        arabic: message,
+        english: '',
+        category: 'مشاركة مجتمعية',
+        id: id,
+        sourceCollection: 'communityMessages',
+      );
 }

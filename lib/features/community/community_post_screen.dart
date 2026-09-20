@@ -4,6 +4,7 @@ import '../../core/share/share_sheet.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
@@ -41,6 +42,25 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
   bool? _optimisticLiked;
   bool _isToggling = false;
 
+  /// Saving a community reflection was impossible: the whole community flow
+  /// had share and like and no bookmark anywhere, so a reader could only keep
+  /// a message that reached them as a *daily* message. HadithRepository
+  /// already stored community-sourced insights correctly — nothing ever
+  /// called it from here.
+  bool get _isBookmarked => _repo.isInsightFavorite(widget.post.toInsight());
+
+  void _toggleBookmark() {
+    AppHaptics.toggle();
+    setState(() => _repo.toggleFavoriteInsight(widget.post.toInsight()));
+
+    showAppSnack(
+      context,
+      _isBookmarked ? 'تم حفظ المشاركة في المفضلة' : 'تمت الإزالة من المفضلة',
+      tone: _isBookmarked ? SnackTone.success : SnackTone.neutral,
+      action: _isBookmarked ? null : undoAction(context, _toggleBookmark),
+    );
+  }
+
   Future<void> _handleLike(bool serverLiked) async {
     if (_isToggling) return;
     final next = !(_optimisticLiked ?? serverLiked);
@@ -74,7 +94,6 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
       child: Column(
         children: [
           const SizedBox(height: 8),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -110,27 +129,42 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                     ),
                   ),
                 ),
-                CircleIconButton(
-                  icon: Icons.ios_share_rounded,
-                  semanticLabel: 'مشاركة المشاركة كصورة',
-                  onTap: () => showShareSheet(
-                    context: context,
-                    message: widget.post.message,
-                    hadithTitle: hadith?.title,
-                    hadithNumber: toArabicDigits(widget.post.hadithNumber),
-                    attribution: widget.post.authorName,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleIconButton(
+                      icon: _isBookmarked
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      semanticLabel: 'حفظ المشاركة في المفضلة',
+                      toggled: _isBookmarked,
+                      onTap: _toggleBookmark,
+                    ),
+                    const SizedBox(width: 6),
+                    CircleIconButton(
+                      icon: Icons.ios_share_rounded,
+                      semanticLabel: 'مشاركة المشاركة كصورة',
+                      onTap: () => showShareSheet(
+                        context: context,
+                        message: widget.post.message,
+                        hadithTitle: hadith?.title,
+                        hadithNumber: toArabicDigits(widget.post.hadithNumber),
+                        attribution: widget.post.authorName,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 16),
-
           Expanded(
             child: ListView(
               padding: EdgeInsets.fromLTRB(
-                20, 0, 20, 24 + MediaQuery.viewPaddingOf(context).bottom,
+                20,
+                0,
+                20,
+                24 + MediaQuery.viewPaddingOf(context).bottom,
               ),
               children: [
                 ParchmentCard(
@@ -191,9 +225,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 20),
-
                       Center(
                         child: AssetHelper.assetOrFallback(
                           assetPath: 'assets/images/golden_divider.png',
@@ -206,9 +238,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
                       Text(
                         '« ${widget.post.message} »',
                         textAlign: TextAlign.center,
@@ -220,7 +250,6 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                           color: palette.bodyText,
                         ),
                       ),
-
                       if (hadith != null) ...[
                         const SizedBox(height: 24),
                         TapTarget(
@@ -281,9 +310,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 Center(
                   child: StreamBuilder<bool>(
                     stream: _service.likeStatus(widget.post.id),
@@ -298,8 +325,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                         });
                       }
                       final isLiked = _optimisticLiked ?? serverLiked;
-                      final displayedLikes =
-                          widget.post.likes +
+                      final displayedLikes = widget.post.likes +
                           (_optimisticLiked != null &&
                                   _optimisticLiked != serverLiked
                               ? (_optimisticLiked! ? 1 : -1)
