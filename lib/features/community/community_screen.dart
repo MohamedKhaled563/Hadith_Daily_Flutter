@@ -102,6 +102,17 @@ class _CommunityScreenState extends State<CommunityScreen> {
     setState(() => _limit += CommunityService.pageSize);
   }
 
+  /// Opened from a feed card's overflow, and run here rather than in the card
+  /// on purpose: hiding a writer notifies [ModerationService], this screen
+  /// rebuilds, and the card that launched the sheet is already gone by the
+  /// time the sheet's future completes. A card confirming its own disappearance
+  /// would find itself unmounted and say nothing at all.
+  Future<void> _reportPost(CommunityPost post) async {
+    final outcome = await showReportSheet(context, post);
+    if (!mounted) return;
+    showModerationOutcome(context, outcome);
+  }
+
   /// The post screen can come back saying the reader just blocked its author.
   /// The rebuild is the listener's job — this only has to say what happened,
   /// which the screen that closed itself is no longer around to say.
@@ -288,6 +299,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       post: post,
                       rank: index + 1,
                       onTap: () => _openPost(post),
+                      onReport: () => _reportPost(post),
                     );
                   },
                 ),
@@ -457,11 +469,15 @@ class _CommunityPostCard extends StatefulWidget {
     required this.post,
     required this.rank,
     required this.onTap,
+    required this.onReport,
   });
 
   final CommunityPost post;
   final int rank;
   final VoidCallback onTap;
+
+  /// Runs on the screen, not here — see [_CommunityScreenState._reportPost].
+  final VoidCallback onReport;
 
   @override
   State<_CommunityPostCard> createState() => _CommunityPostCardState();
@@ -570,28 +586,34 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
               ),
               Align(
                 alignment: AlignmentDirectional.centerEnd,
-                child: TapTarget(
-                  onTap: () => showShareSheet(
-                    context: context,
-                    message: widget.post.message,
-                    hadithTitle: hadith?.title,
-                    hadithNumber: toArabicDigits(widget.post.hadithNumber),
-                    attribution: widget.post.authorName,
-                  ),
-                  semanticLabel: 'مشاركة المشاركة كصورة',
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: palette.surface,
-                      border: Border.all(color: palette.cardBorder, width: 1.1),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _CardCircleAction(
+                      icon: Icons.ios_share_rounded,
+                      semanticLabel: 'مشاركة المشاركة كصورة',
+                      onTap: () => showShareSheet(
+                        context: context,
+                        message: widget.post.message,
+                        hadithTitle: hadith?.title,
+                        hadithNumber: toArabicDigits(widget.post.hadithNumber),
+                        attribution: widget.post.authorName,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.ios_share_rounded,
-                      size: 17,
-                      color: palette.goldText,
+                    const SizedBox(width: 6),
+                    // Furthest into the corner, matching the post screen.
+                    // A reader scrolling past something they object to should
+                    // not have to open it in order to stop seeing it — that
+                    // is the one moment they least want a closer look. Its
+                    // own hit test is opaque, so it wins the gesture arena
+                    // ahead of the card's own tap.
+                    _CardCircleAction(
+                      icon: Icons.more_horiz_rounded,
+                      semanticLabel:
+                          'خيارات أخرى: الإبلاغ أو إخفاء الكاتب',
+                      onTap: widget.onReport,
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],
@@ -640,6 +662,41 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
           ],
           const _BrandSignature(label: 'طيّب قلبك • مشاركات المجتمع'),
         ],
+      ),
+    );
+  }
+}
+
+/// The small bordered circle the feed card uses for its corner actions.
+///
+/// Extracted when the card grew a second one: two copies of the same
+/// eight-line Container is how the padding on one of them quietly drifts.
+class _CardCircleAction extends StatelessWidget {
+  const _CardCircleAction({
+    required this.icon,
+    required this.semanticLabel,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String semanticLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return TapTarget(
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: palette.surface,
+          border: Border.all(color: palette.cardBorder, width: 1.1),
+        ),
+        child: Icon(icon, size: 17, color: palette.goldText),
       ),
     );
   }
