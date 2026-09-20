@@ -15,27 +15,45 @@
     android:height="108dp"
     android:viewportWidth="512"
     android:viewportHeight="512">
-    <!-- Heart contour: one continuous closed stroke, even weight. -->
-    <path
-        android:strokeColor="#D9B44A"
-        android:strokeWidth="30"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M256,176 C226,120 152,112 118,156 C88,196 102,252 142,294 C178,332 222,368 256,398 C290,368 334,332 370,294 C410,252 424,196 394,156 C360,112 286,120 256,176 Z"/>
-    <!-- Central stem. -->
-    <path
-        android:strokeColor="#D9B44A"
-        android:strokeWidth="20"
-        android:strokeLineCap="round"
-        android:pathData="M256,384 C256,328 258,266 256,212"/>
-    <!-- Three leaves, solid so they survive a 48dp mask. -->
-    <path
-        android:fillColor="#D9B44A"
-        android:pathData="M250,326 C210,314 174,280 164,238 C206,246 240,278 250,326 Z"/>
-    <path
-        android:fillColor="#D9B44A"
-        android:pathData="M262,290 C302,278 338,244 348,202 C306,210 272,242 262,290 Z"/>
-    <path
-        android:fillColor="#D9B44A"
-        android:pathData="M256,214 C238,188 240,154 256,134 C272,154 274,188 256,214 Z"/>
+    <!-- The art is wrapped in a scaling group rather than redrawn smaller, so
+         the path data stays identical to design/logo-proposal/emblem_glyph.svg
+         and to the legacy and iOS icons.
+
+         Why it is needed: an adaptive icon's two layers are 108dp, but the
+         launcher only shows the central 72dp and guarantees just the inner
+         66dp — so the system effectively zooms in by 108/72. Art drawn at the
+         glyph's natural ~62% of the canvas came out at ~93% of the visible
+         area and MIUI's rounded-square mask cut the heart's lobes and point
+         clean off. Verified on device: at 0.72 the whole mark clears the mask
+         with room to spare. -->
+    <group
+        android:pivotX="256"
+        android:pivotY="256"
+        android:scaleX="0.72"
+        android:scaleY="0.72">
+
+        <!-- Heart contour: one continuous closed stroke, even weight. -->
+        <path
+            android:strokeColor="#D9B44A"
+            android:strokeWidth="30"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M256,176 C226,120 152,112 118,156 C88,196 102,252 142,294 C178,332 222,368 256,398 C290,368 334,332 370,294 C410,252 424,196 394,156 C360,112 286,120 256,176 Z"/>
+        <!-- Central stem. -->
+        <path
+            android:strokeColor="#D9B44A"
+            android:strokeWidth="20"
+            android:strokeLineCap="round"
+            android:pathData="M256,384 C256,328 258,266 256,212"/>
+        <!-- Three leaves, solid so they survive a 48dp mask. -->
+        <path
+            android:fillColor="#D9B44A"
+            android:pathData="M250,326 C210,314 174,280 164,238 C206,246 240,278 250,326 Z"/>
+        <path
+            android:fillColor="#D9B44A"
+            android:pathData="M262,290 C302,278 338,244 348,202 C306,210 272,242 262,290 Z"/>
+        <path
+            android:fillColor="#D9B44A"
+            android:pathData="M256,214 C238,188 240,154 256,134 C272,154 274,188 256,214 Z"/>
+    </group>
 </vector>
