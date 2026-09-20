@@ -546,6 +546,7 @@ class _SignUpScreenState extends State<SignUpScreen>
 
 class ProviderButton extends StatelessWidget {
   const ProviderButton({
+    super.key,
     required this.label,
     required this.icon,
     required this.onTap,
@@ -611,7 +612,7 @@ class ProviderButton extends StatelessWidget {
 /// ship. This is a placeholder to be replaced when `google_sign_in` is wired
 /// up with the official asset.
 class GoogleMark extends StatelessWidget {
-  const GoogleMark();
+  const GoogleMark({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -637,7 +638,7 @@ class GoogleMark extends StatelessWidget {
 }
 
 class OrDivider extends StatelessWidget {
-  const OrDivider();
+  const OrDivider({super.key});
 
   @override
   Widget build(BuildContext context) {

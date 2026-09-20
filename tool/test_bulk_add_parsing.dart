@@ -6,6 +6,11 @@
 // logic can't silently drift away from what this test verifies.
 //
 // Run with: dart run tool/test_bulk_add_parsing.dart
+//
+// It is a command-line script, not app code: `print` *is* its output, and it
+// imports the module under test by path because `tool/` is outside the
+// package's own lib. Both lints are correct about app code and wrong here.
+// ignore_for_file: avoid_print, avoid_relative_lib_imports
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as xls;
