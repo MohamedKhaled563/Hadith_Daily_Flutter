@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
@@ -151,7 +152,10 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                   ? const BouncingScrollPhysics()
                   : const NeverScrollableScrollPhysics(),
               itemCount: widget.entries.length,
-              onPageChanged: (i) => setState(() => _index = i),
+              onPageChanged: (i) {
+                AppHaptics.selection();
+                setState(() => _index = i);
+              },
               itemBuilder: (context, i) => _MessagePage(
                 key: ValueKey(
                   '${widget.entries[i].insight.sourceCollection}/'
@@ -190,7 +194,7 @@ class _PageIndicator extends StatelessWidget {
             children: [
               for (var i = 0; i < count; i++)
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
+                  duration: context.motion(const Duration(milliseconds: 220)),
                   curve: Curves.easeOut,
                   margin: const EdgeInsets.symmetric(horizontal: 3),
                   width: i == index ? 16 : 6,
@@ -261,6 +265,7 @@ class _MessagePageState extends State<_MessagePage> {
   }
 
   void _toggleBookmark() {
+    AppHaptics.toggle();
     setState(() {
       _isBookmarked = !_isBookmarked;
       _repo.toggleFavoriteInsight(_insight);
@@ -430,7 +435,7 @@ class _MessagePageState extends State<_MessagePage> {
               hadith: _hadith!,
               onTap: () => Navigator.push(
                 context,
-                SmoothPageRoute(child: HadithDetailScreen(hadith: _hadith!)),
+                appPageRoute(child: HadithDetailScreen(hadith: _hadith!)),
               ),
             ),
             const SizedBox(height: 18),

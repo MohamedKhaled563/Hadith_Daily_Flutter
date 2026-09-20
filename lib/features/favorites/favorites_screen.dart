@@ -226,7 +226,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     TapTarget(
                       onTap: () => Navigator.push(
                         context,
-                        SmoothPageRoute(
+                        appPageRoute(
                           child: HadithDetailScreen(hadith: hadith),
                         ),
                       ),
@@ -273,8 +273,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       TapTarget(
                         onTap: () => Navigator.push(
                           context,
-                          SeamlessMessagePageRoute(
-                            child: DailyMessageScreen(
+                          appMessageRoute(child: DailyMessageScreen(
                               insight: insight,
                               hadith: hadith,
                             ),
@@ -336,7 +335,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           showWatermark: false,
           onTap: () => Navigator.push(
             context,
-            SmoothPageRoute(child: HadithDetailScreen(hadith: hadith)),
+            appPageRoute(child: HadithDetailScreen(hadith: hadith)),
           ),
           semanticLabel: 'الحديث ${toArabicDigits(hadith.number)}: ${hadith.title}',
           child: Row(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_empty_state.dart';
@@ -204,7 +205,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
                         onTap: () async {
                           await Navigator.push(
                             context,
-                            SmoothPageRoute(
+                            appPageRoute(
                               child: HadithDetailScreen(hadith: hadith),
                             ),
                           );
@@ -290,7 +291,10 @@ class _HadithListCard extends StatelessWidget {
               // Now an actual control: previously a bare Icon, so there was no
               // way to unfavourite from the list at all.
               TapTarget(
-                onTap: onToggleFavorite,
+                onTap: () {
+                  AppHaptics.toggle();
+                  onToggleFavorite();
+                },
                 semanticLabel: 'حفظ الحديث في المفضلة',
                 toggled: isFavorite,
                 child: Icon(

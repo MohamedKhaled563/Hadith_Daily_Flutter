@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_palette.dart';
+import '../utils/app_motion.dart';
 import '../theme/app_text_styles.dart';
 import '../utils/arabic_numerals.dart';
 import 'tap_target.dart';
@@ -32,7 +33,10 @@ class LikeCounter extends StatelessWidget {
     final liked = palette.danger;
 
     return TapTarget(
-      onTap: onTap,
+      onTap: () {
+        AppHaptics.toggle();
+        onTap();
+      },
       semanticLabel: 'إعجاب — $likes إعجاباً',
       toggled: isLiked,
       child: Container(
@@ -50,7 +54,7 @@ class LikeCounter extends StatelessWidget {
           children: [
             AnimatedScale(
               scale: isLiked ? 1.2 : 1.0,
-              duration: const Duration(milliseconds: 160),
+              duration: context.motion(const Duration(milliseconds: 160)),
               curve: Curves.easeOutBack,
               child: Icon(
                 isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,

@@ -11,6 +11,7 @@ import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../core/theme/app_state_controller.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/utils/notification_reliability_tip.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/daily_tip_service.dart';
@@ -29,15 +30,37 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   int _currentTabIndex = 0;
+
+  /// Drives the arriving tab's fade-through. IndexedStack swaps its child in
+  /// a single frame, which is correct for keeping every tab's state alive but
+  /// reads as a hard cut on the app's most frequent transition. This plays
+  /// the incoming half of a Material fade-through over the top of that swap —
+  /// the new body arrives rather than simply being there.
+  late final AnimationController _tabFade = AnimationController(
+    vsync: this,
+    duration: AppDurations.content,
+    value: 1,
+  );
+
+  @override
+  void dispose() {
+    _tabFade.dispose();
+    super.dispose();
+  }
   final HadithRepository _repo = HadithRepository();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _loadingDailyTip = false;
 
   void _openDrawer() => _scaffoldKey.currentState?.openDrawer();
 
-  void _goToTab(int index) => setState(() => _currentTabIndex = index);
+  void _goToTab(int index) {
+    if (index == _currentTabIndex) return;
+    setState(() => _currentTabIndex = index);
+    if (!context.reduceMotion) _tabFade.forward(from: 0);
+  }
 
   Future<void> _openDailyMessage() async {
     setState(() => _loadingDailyTip = true);
@@ -54,8 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     Navigator.push(
       context,
-      SeamlessMessagePageRoute(
-        child: DailyMessageScreen.forDay(
+      appMessageRoute(child: DailyMessageScreen.forDay(
           entries: [
             for (final tip in tips)
               DailyMessageEntry(
@@ -94,29 +116,33 @@ class _HomeScreenState extends State<HomeScreen> {
             // BottomNavigation.reservedHeight(context) reserve the bar's
             // real measured height instead of a hand-computed estimate.
             child: BottomNavigation.scope(
-              child: IndexedStack(
-                index: _currentTabIndex,
-                children: [
-                  // TickerMode pauses the home screen's ambient animations while
-                  // another tab is showing — IndexedStack does not do this for us.
-                  TickerMode(
-                    enabled: _currentTabIndex == 0,
-                    child: _HomeMainView(
-                      onOpenDrawer: _openDrawer,
-                      onOpenAllHadiths: () => Navigator.push(
-                        context,
-                        SmoothPageRoute(child: const HadithListScreen()),
+              child: _TabFadeThrough(
+                animation: _tabFade,
+                child: IndexedStack(
+                  index: _currentTabIndex,
+                    children: [
+                    // TickerMode pauses the home screen's ambient animations
+                    // while another tab is showing — IndexedStack does not do
+                    // this for us.
+                    TickerMode(
+                      enabled: _currentTabIndex == 0,
+                      child: _HomeMainView(
+                        onOpenDrawer: _openDrawer,
+                        onOpenAllHadiths: () => Navigator.push(
+                          context,
+                          appPageRoute(child: const HadithListScreen()),
+                        ),
+                        onHeartClick: _openDailyMessage,
                       ),
-                      onHeartClick: _openDailyMessage,
                     ),
-                  ),
-                  FavoritesScreen(onOpenDrawer: _openDrawer),
-                  CommunityScreen(
-                    onOpenDrawer: _openDrawer,
-                    onSwitchToShareTab: () => _goToTab(3),
-                  ),
-                  AddMessageScreen(onPostCreated: () => _goToTab(2)),
-                ],
+                    FavoritesScreen(onOpenDrawer: _openDrawer),
+                    CommunityScreen(
+                      onOpenDrawer: _openDrawer,
+                      onSwitchToShareTab: () => _goToTab(3),
+                    ),
+                    AddMessageScreen(onPostCreated: () => _goToTab(2)),
+                  ],
+                ),
               ),
             ),
           ),
@@ -126,6 +152,42 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: _goToTab,
         ),
       ),
+    );
+  }
+}
+
+/// Fades and lifts the arriving tab body.
+///
+/// Sits *outside* the IndexedStack rather than around each child, so it costs
+/// one repaint boundary rather than four and never disturbs the fact that
+/// every tab stays mounted.
+class _TabFadeThrough extends StatelessWidget {
+  const _TabFadeThrough({required this.animation, required this.child});
+
+  final Animation<double> animation;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (context.reduceMotion) return child;
+
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: AppDurations.curve,
+    );
+
+    return AnimatedBuilder(
+      animation: curved,
+      builder: (context, child) => Opacity(
+        opacity: curved.value,
+        child: Transform.scale(
+          // A small rise from 97% reads as arriving; any more and the whole
+          // app looks like it is zooming on every tap.
+          scale: 0.97 + 0.03 * curved.value,
+          child: child,
+        ),
+      ),
+      child: child,
     );
   }
 }
@@ -502,6 +564,7 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
   void _handleTap() {
     // Navigate immediately. The press animation is feedback, not a gate — it
     // used to delay navigation by 220ms on the app's primary call to action.
+    AppHaptics.tap();
     widget.onTap();
     _press.forward(from: 0);
   }

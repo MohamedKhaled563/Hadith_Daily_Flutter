@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_text_styles.dart';
+import '../utils/app_motion.dart';
 import 'tap_target.dart';
 
 /// The bar's real on-screen height, measured after every layout rather than
@@ -179,7 +180,12 @@ class _BottomNavigationState extends State<BottomNavigation> {
                     activeIcon: _items[i].activeIcon,
                     label: _items[i].label,
                     isSelected: widget.currentIndex == i,
-                    onTap: () => widget.onTap(i),
+                    onTap: () {
+                      // Only on an actual change — re-tapping the tab you are
+                      // already on should not buzz.
+                      if (widget.currentIndex != i) AppHaptics.selection();
+                      widget.onTap(i);
+                    },
                   ),
                 ),
             ],
@@ -189,6 +195,15 @@ class _BottomNavigationState extends State<BottomNavigation> {
     );
   }
 }
+
+/// Height reserved for the active dot whether or not it is showing.
+///
+/// The dot and its spacer used to be *added to* the column only when
+/// selected — 6.5dp of extra height inside a centre-aligned 72dp box — so on
+/// every tab change the newly selected icon and label jumped up 3.25dp and
+/// the old one dropped back down. Reserving the space unconditionally is what
+/// makes the selection animate instead of jolt.
+const double _activeDotSlot = 6.5;
 
 class _NavItem extends StatelessWidget {
   const _NavItem({
@@ -226,25 +241,39 @@ class _NavItem extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              if (isSelected)
-                const ExcludeSemantics(
-                  child: IgnorePointer(child: _GoldenHalo()),
+              // Always built, faded rather than inserted — an appearing halo
+              // is what a selection should look like, not a flash.
+              ExcludeSemantics(
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: isSelected ? 1 : 0,
+                    duration: context.motion(AppDurations.control),
+                    curve: AppDurations.curve,
+                    child: const _GoldenHalo(),
+                  ),
                 ),
+              ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    isSelected ? activeIcon : icon,
-                    color: isSelected ? Colors.white : _inactive,
-                    size: 24,
+                  // The glyph swaps outline -> filled, so it cross-fades
+                  // rather than popping.
+                  AnimatedSwitcher(
+                    duration: context.motion(AppDurations.control),
+                    switchInCurve: AppDurations.curve,
+                    child: Icon(
+                      isSelected ? activeIcon : icon,
+                      key: ValueKey(isSelected),
+                      color: isSelected ? Colors.white : _inactive,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(height: 3),
                   Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: AnimatedDefaultTextStyle(
+                      duration: context.motion(AppDurations.control),
+                      curve: AppDurations.curve,
                       style: TextStyle(
                         fontFamily: kSans,
                         fontSize: 12.5,
@@ -253,12 +282,25 @@ class _NavItem extends StatelessWidget {
                             isSelected ? FontWeight.w700 : FontWeight.w500,
                         color: isSelected ? Colors.white : _inactive,
                       ),
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
-                  if (isSelected) ...[
-                    const SizedBox(height: 2),
-                    const _ActiveDot(),
-                  ],
+                  // Reserved whether or not it shows — see _activeDotSlot.
+                  SizedBox(
+                    height: _activeDotSlot,
+                    child: Center(
+                      child: AnimatedScale(
+                        scale: isSelected ? 1 : 0,
+                        duration: context.motion(AppDurations.control),
+                        curve: Curves.easeOutBack,
+                        child: const _ActiveDot(),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ],

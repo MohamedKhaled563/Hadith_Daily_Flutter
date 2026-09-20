@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/app_motion.dart';
+
 /// Standard press feedback for the app: a gentle scale-down.
 ///
 /// Two magnitudes only — [cardScale] for large surfaces, [iconScale] for
@@ -76,7 +78,7 @@ class _TapTargetState extends State<TapTarget> {
           },
           child: AnimatedScale(
             scale: _pressed ? widget.pressScale : 1.0,
-            duration: AppPress.duration,
+            duration: context.motion(AppPress.duration),
             curve: AppPress.curve,
             child: ConstrainedBox(
               constraints: BoxConstraints(
@@ -140,7 +142,7 @@ class _PressableSurfaceState extends State<PressableSurface> {
         },
         child: AnimatedScale(
           scale: _pressed ? widget.pressScale : 1.0,
-          duration: AppPress.duration,
+          duration: context.motion(AppPress.duration),
           curve: AppPress.curve,
           child: widget.child,
         ),

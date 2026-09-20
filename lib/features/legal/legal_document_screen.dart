@@ -31,7 +31,7 @@ class LegalDocumentScreen extends StatelessWidget {
   /// Pushes the privacy policy.
   static Future<void> openPrivacy(BuildContext context) => Navigator.push(
         context,
-        SmoothPageRoute(
+        appPageRoute(
           child: const LegalDocumentScreen(
             title: LegalDocuments.privacyTitle,
             body: LegalDocuments.privacy,
@@ -42,7 +42,7 @@ class LegalDocumentScreen extends StatelessWidget {
   /// Pushes the terms of use.
   static Future<void> openTerms(BuildContext context) => Navigator.push(
         context,
-        SmoothPageRoute(
+        appPageRoute(
           child: const LegalDocumentScreen(
             title: LegalDocuments.termsTitle,
             body: LegalDocuments.terms,

@@ -5,6 +5,7 @@ import '../../core/widgets/bottom_navigation.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_state_controller.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_loading_overlay.dart';
@@ -138,6 +139,7 @@ class _AddMessageScreenState extends State<AddMessageScreen>
     }
 
     if (hasError) {
+      AppHaptics.warning();
       setState(() {});
       return;
     }
@@ -174,6 +176,10 @@ class _AddMessageScreenState extends State<AddMessageScreen>
 
     if (!mounted) return;
     setState(() => _submitting = false);
+
+    // A real outcome landed — the one place in this screen that earns more
+    // than a selection tick.
+    AppHaptics.success();
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

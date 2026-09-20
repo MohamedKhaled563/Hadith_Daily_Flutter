@@ -147,7 +147,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                     rank: index + 1,
                     onTap: () => Navigator.push(
                       context,
-                      SmoothPageRoute(child: CommunityPostScreen(post: post)),
+                      appPageRoute(child: CommunityPostScreen(post: post)),
                     ),
                   );
                 },

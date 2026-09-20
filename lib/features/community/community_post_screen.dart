@@ -226,7 +226,7 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                         TapTarget(
                           onTap: () => Navigator.push(
                             context,
-                            SmoothPageRoute(
+                            appPageRoute(
                               child: HadithDetailScreen(hadith: hadith),
                             ),
                           ),

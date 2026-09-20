@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_text_styles.dart';
+import '../utils/app_motion.dart';
 import 'asset_helper.dart';
 
 /// Full-screen loading notice in the app's own botanical language, for any
@@ -94,7 +95,21 @@ class _LoadingScrimState extends State<_LoadingScrim>
   late final AnimationController _haloRotate = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 9),
-  )..repeat();
+  );
+
+  bool _ambientStarted = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reduce-motion was honoured in exactly one widget before this pass, and
+    // an overlay that can sit on screen for a whole network round trip is
+    // the last place a looping ring belongs when the reader asked for none.
+    if (_ambientStarted || context.reduceMotion) return;
+    _ambientStarted = true;
+    _haloRotate.repeat();
+    _heartbeat.repeat();
+  }
 
   // Lub-dub heartbeat curve, matching the splash screen's emblem pulse
   // rather than a plain sine ease — this is meant to read as a heartbeat,
@@ -102,7 +117,7 @@ class _LoadingScrimState extends State<_LoadingScrim>
   late final AnimationController _heartbeat = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
-  )..repeat();
+  );
 
   late final Animation<double> _beat = TweenSequence<double>([
     TweenSequenceItem(

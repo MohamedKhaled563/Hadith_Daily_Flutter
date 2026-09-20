@@ -83,7 +83,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
 
     // Same as sign-out: there is nothing behind this screen to come back to.
     Navigator.of(context).pushAndRemoveUntil(
-      SmoothPageRoute(child: const LoginScreen()),
+      appPageRoute(child: const LoginScreen()),
       (route) => false,
     );
   }
@@ -103,7 +103,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
 
     // Drop the whole stack: there is nothing to come back to once signed out.
     Navigator.of(context).pushAndRemoveUntil(
-      SmoothPageRoute(child: const LoginScreen()),
+      appPageRoute(child: const LoginScreen()),
       (route) => false,
     );
   }
@@ -745,7 +745,7 @@ class _ProfileHeader extends StatelessWidget {
                       label: 'مشاركاتي',
                       onTap: () => Navigator.push(
                         context,
-                        SmoothPageRoute(child: const MySubmissionsScreen()),
+                        appPageRoute(child: const MySubmissionsScreen()),
                       ),
                     ),
                   ),

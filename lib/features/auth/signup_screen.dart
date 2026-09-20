@@ -271,7 +271,7 @@ class _SignUpScreenState extends State<SignUpScreen>
     // has nothing behind it worth going back to.
     Navigator.pushAndRemoveUntil(
       context,
-      SmoothPageRoute(child: const HomeScreen()),
+      appPageRoute(child: const HomeScreen()),
       (route) => false,
     );
   }

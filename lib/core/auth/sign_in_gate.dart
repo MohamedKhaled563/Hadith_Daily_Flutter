@@ -56,7 +56,7 @@ class _SignInPrompt extends StatelessWidget {
     Future<void> go(Widget screen) async {
       final result = await Navigator.push<bool>(
         context,
-        SmoothPageRoute(child: screen),
+        appPageRoute(child: screen),
       );
       if (!context.mounted) return;
       Navigator.pop(context, result ?? AppStateController().isLoggedIn);

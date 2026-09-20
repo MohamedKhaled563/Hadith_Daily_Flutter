@@ -54,8 +54,7 @@ void _openTodayMessage() async {
   final navState = navigatorKey.currentState;
   if (navState == null) return;
   navState.push(
-    SeamlessMessagePageRoute(
-      child: DailyMessageScreen.forDay(
+    appMessageRoute(child: DailyMessageScreen.forDay(
         entries: [
           for (final tip in tips)
             DailyMessageEntry(

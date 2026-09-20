@@ -1,11 +1,42 @@
-import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+
+/// Whether this build should use Cupertino page transitions.
+///
+/// Both of the app's custom routes are [PageRouteBuilder]s, which means they
+/// bypass `pageTransitionsTheme` *and* the interactive pop gesture that comes
+/// with [CupertinoRouteTransitionMixin] — so on iOS the edge-swipe back, which
+/// is how iOS users navigate, did not work anywhere in the app.
+///
+/// A conditional mixin is not a thing in Dart, so the choice is made per route
+/// instead: iOS gets a real Cupertino route (native slide, native swipe-back),
+/// everything else keeps the app's own fade-and-rise. Guarded against the web
+/// build, where `Platform` throws.
+bool get _useCupertino =>
+    !kIsWeb && (Platform.isIOS || Platform.isMacOS);
+
+/// A page route that behaves like the platform expects.
+///
+/// Use this rather than constructing either class below directly.
+PageRoute<T> appPageRoute<T>({required Widget child}) => _useCupertino
+    ? CupertinoPageRoute<T>(builder: (_) => child)
+    : _SmoothPageRoute<T>(child: child);
+
+/// The message card's route, which carries a Hero flight from the home
+/// circle. Same platform split, for the same reason.
+PageRoute<T> appMessageRoute<T>({required Widget child}) => _useCupertino
+    ? CupertinoPageRoute<T>(builder: (_) => child)
+    : _SeamlessMessagePageRoute<T>(child: child);
+
 
 /// Ultra-smooth, professional page route that transitions gracefully
 /// with scale, fade, and elevation without any background bleed-through or overlaps.
-class SeamlessMessagePageRoute<T> extends PageRouteBuilder<T> {
+class _SeamlessMessagePageRoute<T> extends PageRouteBuilder<T> {
   final Widget child;
 
-  SeamlessMessagePageRoute({required this.child})
+  _SeamlessMessagePageRoute({required this.child})
       : super(
           opaque: true, // Guarantees crisp rendering with zero background double-render or text overlap
           transitionDuration: const Duration(milliseconds: 360),
@@ -58,10 +89,10 @@ class SeamlessMessagePageRoute<T> extends PageRouteBuilder<T> {
 }
 
 /// General purpose smooth page route with seamless curves
-class SmoothPageRoute<T> extends PageRouteBuilder<T> {
+class _SmoothPageRoute<T> extends PageRouteBuilder<T> {
   final Widget child;
 
-  SmoothPageRoute({required this.child})
+  _SmoothPageRoute({required this.child})
       : super(
           pageBuilder: (context, animation, secondaryAnimation) => child,
           transitionDuration: const Duration(milliseconds: 320),

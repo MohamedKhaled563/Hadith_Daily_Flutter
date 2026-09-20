@@ -490,7 +490,7 @@ class _ExplanationTeaserCard extends StatelessWidget {
           TapTarget(
             onTap: () => Navigator.push(
               context,
-              SmoothPageRoute(
+              appPageRoute(
                 child: HadithExplanationScreen(hadith: hadith),
               ),
             ),

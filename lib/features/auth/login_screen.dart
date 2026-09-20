@@ -167,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen>
     }
     Navigator.pushReplacement(
       context,
-      SmoothPageRoute(child: const HomeScreen()),
+      appPageRoute(child: const HomeScreen()),
     );
   }
 
@@ -320,7 +320,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     ? null
                                     : () => Navigator.push(
                                           context,
-                                          SmoothPageRoute(
+                                          appPageRoute(
                                             child: SignUpScreen(
                                               returnOnSuccess:
                                                   widget.returnOnSuccess,

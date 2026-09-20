@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/smooth_page_route.dart';
@@ -71,11 +73,13 @@ class _SplashScreenState extends State<SplashScreen>
       // showing the splash screen, just skip the notification deep link.
     });
 
-    // Rhythmic Heartbeat pulse (Lub-Dub organic curve)
+    // Rhythmic Heartbeat pulse (Lub-Dub organic curve). Started in
+    // didChangeDependencies rather than here — whether it should run at all
+    // depends on MediaQuery, which is not available yet in initState.
     _heartPulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
-    )..repeat();
+    );
 
     _heartPulseAnimation = TweenSequence<double>([
       TweenSequenceItem(
@@ -108,7 +112,7 @@ class _SplashScreenState extends State<SplashScreen>
     _haloRotateController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 12),
-    )..repeat();
+    );
 
     // Quote Fade In/Out
     _quoteFadeController = AnimationController(
@@ -116,20 +120,13 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 600),
     )..forward();
 
-    // Cycle quotes
-    _quoteTimer = Timer.periodic(const Duration(milliseconds: 2200), (timer) {
-      if (mounted) {
-        _quoteFadeController.reverse().then((_) {
-          if (mounted) {
-            setState(() {
-              _currentQuoteIndex =
-                  (_currentQuoteIndex + 1) % _inspirationalQuotes.length;
-            });
-            _quoteFadeController.forward();
-          }
-        });
-      }
-    });
+    // One quote, chosen at random, held for the whole splash.
+    //
+    // It used to cycle every 2.2s inside a 2.8s window, so the reader got one
+    // quote, a 600ms cross-fade, and 0.6s of a second quote before the screen
+    // was replaced — which reads as a glitch, not a rotation. The four quotes
+    // still earn their place: which one you get varies between launches.
+    _currentQuoteIndex = math.Random().nextInt(_inspirationalQuotes.length);
 
     // Auto-navigate after 2.8 seconds. Held so it can be cancelled when the
     // reader taps to skip, or the screen is disposed first.
@@ -152,7 +149,7 @@ class _SplashScreenState extends State<SplashScreen>
     // for at the three points that genuinely need it (see requireSignIn).
     Navigator.pushReplacement(
       context,
-      SmoothPageRoute(child: const HomeScreen()),
+      appPageRoute(child: const HomeScreen()),
     );
 
     // Cold-started by tapping a reminder: land on Home first (above) so the
@@ -163,11 +160,25 @@ class _SplashScreenState extends State<SplashScreen>
     if (entries != null && entries.isNotEmpty) {
       Navigator.push(
         context,
-        SeamlessMessagePageRoute(
-          child: DailyMessageScreen.forDay(entries: entries),
+        appMessageRoute(child: DailyMessageScreen.forDay(entries: entries),
         ),
       );
     }
+  }
+
+  bool _ambientStarted = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Honour the reader's reduce-motion preference: hold the emblem still
+    // rather than looping two controllers behind a screen that is about to
+    // be replaced anyway. The quote still fades in, since that is a single
+    // 600ms transition rather than ambient motion.
+    if (_ambientStarted || context.reduceMotion) return;
+    _ambientStarted = true;
+    _heartPulseController.repeat();
+    _haloRotateController.repeat();
   }
 
   @override
