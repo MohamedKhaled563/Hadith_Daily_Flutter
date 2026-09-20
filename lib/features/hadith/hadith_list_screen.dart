@@ -138,11 +138,21 @@ class _HadithListScreenState extends State<HadithListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
               constraints: const BoxConstraints(minHeight: 52),
-              padding: const EdgeInsetsDirectional.only(start: 14, end: 4),
+              padding: const EdgeInsetsDirectional.only(start: 16, end: 4),
+              // A pill, not a 20px rounded rectangle. It used to be the
+              // card's own shape, fill and hairline — and in dark mode
+              // surfaceSunken and the card gradient sit within a few points
+              // of each other — so the one control on this screen that wants
+              // to be typed in looked like the things below it that want to
+              // be read. The pill is already this app's shape for a control
+              // (the sort toggle, the category pills); the cards keep 20px.
               decoration: BoxDecoration(
                 color: palette.surfaceSunken,
-                borderRadius: BorderRadius.circular(AppRadii.listItem),
-                border: Border.all(color: palette.cardBorder, width: 1.2),
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+                border: Border.all(
+                  color: palette.cardBorderStrong,
+                  width: 1.2,
+                ),
               ),
               child: Row(
                 children: [

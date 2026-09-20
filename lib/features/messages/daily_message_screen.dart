@@ -153,8 +153,12 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
           Expanded(
             child: PageView.builder(
               controller: _pageController,
+              // null, not BouncingScrollPhysics: PageView supplies
+              // PageScrollPhysics over the platform's own behaviour, and
+              // hardcoding the bounce here is the same iOS idiom that came
+              // out of the nine list views. This file was missed then.
               physics: _isMultiple
-                  ? const BouncingScrollPhysics()
+                  ? null
                   : const NeverScrollableScrollPhysics(),
               itemCount: widget.entries.length,
               onPageChanged: (i) {
@@ -167,6 +171,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                   '${widget.entries[i].insight.id}#$i',
                 ),
                 entry: widget.entries[i],
+                pageIndex: i,
               ),
             ),
           ),
@@ -232,9 +237,16 @@ class _PageIndicator extends StatelessWidget {
 /// Bookmark state is per-message, which is why this is its own stateful
 /// widget rather than something the screen tracks centrally.
 class _MessagePage extends StatefulWidget {
-  const _MessagePage({super.key, required this.entry});
+  const _MessagePage({
+    super.key,
+    required this.entry,
+    required this.pageIndex,
+  });
 
   final DailyMessageEntry entry;
+
+  /// Only page 0 carries the shared Hero tag; see [_MessagePageState._heroTag].
+  final int pageIndex;
 
   @override
   State<_MessagePage> createState() => _MessagePageState();
@@ -242,6 +254,19 @@ class _MessagePage extends StatefulWidget {
 
 class _MessagePageState extends State<_MessagePage> {
   final HadithRepository _repo = HadithRepository();
+
+  /// `heart_leaf_emblem_hero` is shared with the home circle and the login
+  /// screen, and every page of this pager was using it too. Mid-swipe two
+  /// pages are alive at once, so two Heroes held one tag in one route
+  /// subtree — an assertion failure, and a crash rather than a glitch, if a
+  /// route transition began inside that window.
+  ///
+  /// Page 0 keeps the shared tag because it is the page on screen when this
+  /// route is pushed, so the flight from home still matches. Every other page
+  /// gets its own, which is enough: two Heroes never share a tag again.
+  String get _heroTag => widget.pageIndex == 0
+      ? 'heart_leaf_emblem_hero'
+      : 'heart_leaf_emblem_hero#${widget.pageIndex}';
 
   late bool _isBookmarked;
 
@@ -354,7 +379,7 @@ class _MessagePageState extends State<_MessagePage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Hero(
-            tag: 'heart_leaf_emblem_hero',
+            tag: _heroTag,
             child: Container(
               width: 56,
               height: 56,
