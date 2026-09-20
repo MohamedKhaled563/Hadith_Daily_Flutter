@@ -126,7 +126,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               children: [
                 Expanded(
                   child: _CategoryTab(
-                    title: 'رسائل اليوم (${toArabicDigits(favoriteInsights.length)})',
+                    // Not "رسائل اليوم": this list holds community
+                    // reflections as well now, and calling them today's
+                    // messages was only accurate while they were the only
+                    // thing that could be saved.
+                    title: 'الرسائل (${toArabicDigits(favoriteInsights.length)})',
                     icon: Icons.auto_awesome_rounded,
                     isSelected: selected == 0,
                     onTap: () => setState(() => _selectedCategory = 0),
@@ -161,7 +165,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       return const AppEmptyState(
         title: 'لا توجد رسائل محفوظة بعد',
         subtitle:
-            'اضغط على أيقونة الإشارة المرجعية أعلى أي رسالة يومية لحفظها في قائمتك المفضلة للرجوع إليها دائماً.',
+            'اضغط على أيقونة الإشارة المرجعية في أي رسالة — من رسائل اليوم '
+            'أو من مجتمع الحديث — لتحفظها هنا وترجع إليها متى شئت.',
       );
     }
 
