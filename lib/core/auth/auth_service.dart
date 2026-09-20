@@ -67,7 +67,7 @@ class AuthService {
       email: email,
       password: password,
     );
-    await _ensureUserDoc(credential.user!);
+    await _mirrorUserDocBestEffort(credential.user!);
     return credential;
   }
 
@@ -153,8 +153,32 @@ class AuthService {
     final idToken = account.authentication.idToken;
     final credential = GoogleAuthProvider.credential(idToken: idToken);
     final userCredential = await _auth.signInWithCredential(credential);
-    await _ensureUserDoc(userCredential.user!);
+    await _mirrorUserDocBestEffort(userCredential.user!);
     return userCredential;
+  }
+
+  /// [_ensureUserDoc], but never fatal — for the two *sign-in* paths, where
+  /// FirebaseAuth has already accepted the reader by the time this runs.
+  ///
+  /// Letting the mirror throw used to abort a sign-in that had in fact
+  /// succeeded: the reader saw a generic failure and stayed on the login
+  /// screen while FirebaseAuth quietly kept the session, so the very next
+  /// app start dropped them into Home as if nothing had happened. Any
+  /// Firestore hiccup — an unreachable backend, a transient rules error —
+  /// was enough to trigger it. The mirror is pure bookkeeping (displayName
+  /// and email for the dashboard's user list), so a failure is logged and
+  /// retried on the reader's next sign-in instead.
+  ///
+  /// Sign-*up* deliberately keeps the strict [_ensureUserDoc]: a brand-new
+  /// account with no users/ doc and no claimed display name is worth rolling
+  /// back rather than half-creating.
+  Future<void> _mirrorUserDocBestEffort(User user) async {
+    try {
+      await _ensureUserDoc(user);
+    } catch (error, stackTrace) {
+      debugPrint('users/${user.uid} mirror failed after sign-in: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   /// Mirrors the signed-in user into `users/{uid}` — see firestore.rules
