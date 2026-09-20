@@ -41,25 +41,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _openDailyMessage() async {
     setState(() => _loadingDailyTip = true);
-    final tip = await DailyTipService().getTodayTip();
+    final tips = await DailyTipService().getTodayTips();
     if (!mounted) return;
     setState(() => _loadingDailyTip = false);
 
-    if (tip == null) {
+    if (tips.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('لم يتم تحميل الرسائل بعد، حاول مجدداً')),
       );
       return;
     }
 
-    final insight = tip.toInsight();
-    final hadith = _repo.getByNumber(insight.hadithNumber);
     Navigator.push(
       context,
       SeamlessMessagePageRoute(
-        child: DailyMessageScreen(
-          insight: insight,
-          hadith: hadith,
+        child: DailyMessageScreen.forDay(
+          entries: [
+            for (final tip in tips)
+              DailyMessageEntry(
+                insight: tip.toInsight(),
+                hadith: _repo.getByNumber(tip.hadithNumber),
+              ),
+          ],
           onTabSelected: (index) {
             Navigator.pop(context);
             _goToTab(index);

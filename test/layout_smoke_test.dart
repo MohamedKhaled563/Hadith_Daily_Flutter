@@ -136,6 +136,43 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  // A day can carry several messages now
+  // (settings/dailyMessageConfig.messagesPerDay) — the card lives in a pager
+  // and swiping must not disturb the layout the test above guards.
+  testWidgets('Daily message pager swipes through a multi-message day',
+      (tester) async {
+    final repo = HadithRepository();
+    final insights = repo.insights.take(3).toList();
+    expect(insights, hasLength(3), reason: 'insights.json should be bundled');
+
+    await _pumpAt(
+      tester,
+      DailyMessageScreen.forDay(
+        entries: [
+          for (final insight in insights)
+            DailyMessageEntry(
+              insight: insight,
+              hadith: repo.getByNumber(insight.hadithNumber),
+            ),
+        ],
+      ),
+      const Size(360, 640),
+    );
+
+    expect(find.text('رسائل اليوم'), findsOneWidget);
+    expect(find.text('١ / ٣'), findsOneWidget);
+    expect(find.textContaining(insights.first.message), findsOneWidget);
+
+    // RTL: the next message sits to the LEFT, so a drag towards the right
+    // edge is what advances the pager.
+    await tester.drag(find.byType(PageView), const Offset(300, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text('٢ / ٣'), findsOneWidget);
+    expect(find.textContaining(insights[1].message), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   test('bundled content loaded from the workbook export', () {
     final repo = HadithRepository();
 

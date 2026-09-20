@@ -20,16 +20,37 @@ import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/message_like_service.dart';
 import '../hadith/hadith_detail_screen.dart';
 
-class DailyMessageScreen extends StatefulWidget {
-  const DailyMessageScreen({
-    super.key,
-    required this.insight,
-    this.hadith,
-    this.onTabSelected,
-  });
+/// One card in a day's set: the message plus the hadith it hangs off, if
+/// that hadith resolved locally.
+@immutable
+class DailyMessageEntry {
+  const DailyMessageEntry({required this.insight, this.hadith});
 
   final Insight insight;
   final Hadith? hadith;
+}
+
+/// The full-screen message card. A day can now carry several messages (see
+/// DailyTipService and `settings/dailyMessageConfig.messagesPerDay`), so the
+/// card lives inside a horizontal pager — swipe right-to-left in RTL to move
+/// through the day. With a single entry the pager is inert and the screen
+/// looks exactly as it always did, which is what the favourites list and the
+/// notification deep links rely on.
+class DailyMessageScreen extends StatefulWidget {
+  DailyMessageScreen({
+    super.key,
+    required Insight insight,
+    Hadith? hadith,
+    this.onTabSelected,
+  }) : entries = [DailyMessageEntry(insight: insight, hadith: hadith)];
+
+  const DailyMessageScreen.forDay({
+    super.key,
+    required this.entries,
+    this.onTabSelected,
+  });
+
+  final List<DailyMessageEntry> entries;
   final ValueChanged<int>? onTabSelected;
 
   @override
@@ -37,57 +58,15 @@ class DailyMessageScreen extends StatefulWidget {
 }
 
 class _DailyMessageScreenState extends State<DailyMessageScreen> {
-  final HadithRepository _repo = HadithRepository();
+  late final PageController _pageController = PageController();
+  int _index = 0;
 
-  late bool _isBookmarked;
+  bool get _isMultiple => widget.entries.length > 1;
 
   @override
-  void initState() {
-    super.initState();
-    _isBookmarked = _repo.isInsightFavorite(widget.insight);
-  }
-
-  String get _shareText {
-    final link = AppLinks.storeLink;
-    return '« ${widget.insight.message} »\n\n'
-        '📌 المرتبط بـ: ${widget.hadith?.title ?? 'حديث نبوي شريف'}\n'
-        '🌿 من تطبيق: طيّب قلبك - هدي النبوة'
-        '${link == null ? '' : '\n$link'}';
-  }
-
-  void _copyMessageText() {
-    Clipboard.setData(ClipboardData(text: _shareText));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نسخ نص الرسالة بنجاح 🌿')),
-    );
-  }
-
-  void _toggleBookmark() {
-    setState(() {
-      _isBookmarked = !_isBookmarked;
-      _repo.toggleFavoriteInsight(widget.insight);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isBookmarked
-              ? 'تم حفظ الرسالة في المفضلة 🌿'
-              : 'تمت الإزالة من المفضلة',
-        ),
-      ),
-    );
-  }
-
-  void _showSharePreview() {
-    showShareSheet(
-      context: context,
-      message: widget.insight.message,
-      hadithTitle: widget.hadith?.title,
-      hadithNumber:
-          widget.hadith == null ? null : toArabicDigits(widget.hadith!.number),
-      category: widget.insight.category,
-    );
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -126,7 +105,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'رسالة اليوم',
+                          _isMultiple ? 'رسائل اليوم' : 'رسالة اليوم',
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w900,
                           ),
@@ -154,58 +133,208 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
               ],
             ),
           ),
+          if (_isMultiple)
+            _PageIndicator(count: widget.entries.length, index: _index),
           const SizedBox(height: 6),
-          // The card scrolls/centers on its own — a short message centers
-          // vertically in the remaining space, a long one scrolls — but the
-          // toolbar below is a fixed sibling outside that area (see the
-          // Padding right after this Expanded), so its position never shifts
-          // with how tall any given message happens to be.
+          // Each page owns the same two-part layout the screen used to have
+          // directly: the card scrolls/centers on its own — a short message
+          // centers vertically in the remaining space, a long one scrolls —
+          // while the toolbar is a fixed sibling below it, so its position
+          // never shifts with how tall any given message happens to be. That
+          // also means swiping carries each message's own toolbar (its own
+          // like count and bookmark state) along with it.
           Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: (constraints.maxHeight - 16).clamp(
-                        0,
-                        double.infinity,
-                      ),
-                    ),
-                    child: Center(child: _buildCard()),
-                  ),
-                );
-              },
+            child: PageView.builder(
+              controller: _pageController,
+              physics: _isMultiple
+                  ? const BouncingScrollPhysics()
+                  : const NeverScrollableScrollPhysics(),
+              itemCount: widget.entries.length,
+              onPageChanged: (i) => setState(() => _index = i),
+              itemBuilder: (context, i) => _MessagePage(
+                key: ValueKey(
+                  '${widget.entries[i].insight.sourceCollection}/'
+                  '${widget.entries[i].insight.id}#$i',
+                ),
+                entry: widget.entries[i],
+              ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              0,
-              20,
-              8 + BottomNavigation.reservedHeight(context),
-            ),
-            child: widget.insight.isLikeable
-                ? _LiveMessageToolbar(
-                    insight: widget.insight,
-                    isBookmarked: _isBookmarked,
-                    onBookmark: _toggleBookmark,
-                    onShare: _showSharePreview,
-                    onCopy: _copyMessageText,
-                  )
-                : _MessageToolbar(
-                    isBookmarked: _isBookmarked,
-                    likes: null,
-                    isLiked: false,
-                    onBookmark: _toggleBookmark,
-                    onShare: _showSharePreview,
-                    onCopy: _copyMessageText,
-                    onLike: null,
-                  ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Which message of the day is showing — dots plus an Arabic-numeral
+/// counter, since a set can run to ten and ten dots alone stop being
+/// countable at a glance.
+class _PageIndicator extends StatelessWidget {
+  const _PageIndicator({required this.count, required this.index});
+
+  final int count;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Semantics(
+        label: 'الرسالة ${index + 1} من $count',
+        child: ExcludeSemantics(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < count; i++)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: i == index ? 16 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: i == index ? palette.goldText : palette.cardBorder,
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                  ),
+                ),
+              const SizedBox(width: 10),
+              Text(
+                '${toArabicDigits(index + 1)} / ${toArabicDigits(count)}',
+                style: TextStyle(
+                  fontFamily: kSans,
+                  fontSize: 12,
+                  height: AppLeading.chrome,
+                  fontWeight: FontWeight.w700,
+                  color: palette.goldText,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A single message in the day's set: the card itself plus its own toolbar.
+/// Bookmark state is per-message, which is why this is its own stateful
+/// widget rather than something the screen tracks centrally.
+class _MessagePage extends StatefulWidget {
+  const _MessagePage({super.key, required this.entry});
+
+  final DailyMessageEntry entry;
+
+  @override
+  State<_MessagePage> createState() => _MessagePageState();
+}
+
+class _MessagePageState extends State<_MessagePage> {
+  final HadithRepository _repo = HadithRepository();
+
+  late bool _isBookmarked;
+
+  Insight get _insight => widget.entry.insight;
+  Hadith? get _hadith => widget.entry.hadith;
+
+  @override
+  void initState() {
+    super.initState();
+    _isBookmarked = _repo.isInsightFavorite(_insight);
+  }
+
+  String get _shareText {
+    final link = AppLinks.storeLink;
+    return '« ${_insight.message} »\n\n'
+        '📌 المرتبط بـ: ${_hadith?.title ?? 'حديث نبوي شريف'}\n'
+        '🌿 من تطبيق: طيّب قلبك - هدي النبوة'
+        '${link == null ? '' : '\n$link'}';
+  }
+
+  void _copyMessageText() {
+    Clipboard.setData(ClipboardData(text: _shareText));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم نسخ نص الرسالة بنجاح 🌿')),
+    );
+  }
+
+  void _toggleBookmark() {
+    setState(() {
+      _isBookmarked = !_isBookmarked;
+      _repo.toggleFavoriteInsight(_insight);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isBookmarked
+              ? 'تم حفظ الرسالة في المفضلة 🌿'
+              : 'تمت الإزالة من المفضلة',
+        ),
+      ),
+    );
+  }
+
+  void _showSharePreview() {
+    showShareSheet(
+      context: context,
+      message: _insight.message,
+      hadithTitle: _hadith?.title,
+      hadithNumber: _hadith == null ? null : toArabicDigits(_hadith!.number),
+      category: _insight.category,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: (constraints.maxHeight - 16).clamp(
+                      0,
+                      double.infinity,
+                    ),
+                  ),
+                  child: Center(child: _buildCard()),
+                ),
+              );
+            },
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            0,
+            20,
+            8 + BottomNavigation.reservedHeight(context),
+          ),
+          child: _insight.isLikeable
+              ? _LiveMessageToolbar(
+                  insight: _insight,
+                  isBookmarked: _isBookmarked,
+                  onBookmark: _toggleBookmark,
+                  onShare: _showSharePreview,
+                  onCopy: _copyMessageText,
+                )
+              : _MessageToolbar(
+                  isBookmarked: _isBookmarked,
+                  likes: null,
+                  isLiked: false,
+                  onBookmark: _toggleBookmark,
+                  onShare: _showSharePreview,
+                  onCopy: _copyMessageText,
+                  onLike: null,
+                ),
+        ),
+      ],
     );
   }
 
@@ -269,7 +398,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  widget.insight.category,
+                  _insight.category,
                   style: TextStyle(
                     fontFamily: kSans,
                     fontSize: 12.5,
@@ -283,7 +412,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
           ),
           const _GoldDivider(),
           Text(
-            '« ${widget.insight.message} »',
+            '« ${_insight.message} »',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: kSans,
@@ -295,14 +424,12 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
           ),
           const _GoldDivider(),
           const SizedBox(height: 2),
-          if (widget.hadith != null) ...[
+          if (_hadith != null) ...[
             _HadithLinkPill(
-              hadith: widget.hadith!,
+              hadith: _hadith!,
               onTap: () => Navigator.push(
                 context,
-                SmoothPageRoute(
-                  child: HadithDetailScreen(hadith: widget.hadith!),
-                ),
+                SmoothPageRoute(child: HadithDetailScreen(hadith: _hadith!)),
               ),
             ),
             const SizedBox(height: 18),

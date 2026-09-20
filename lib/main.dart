@@ -41,21 +41,29 @@ void main() async {
   runApp(const HadithApp());
 }
 
-/// Tapping a reminder always opens today's actual daily/community message
+/// Tapping a reminder always opens today's actual daily/community messages
 /// (the same content the home screen's heart button shows) — never the
 /// reminder pool's own generic text, which the reader never associated
-/// with a specific "message" in the first place.
+/// with a specific "message" in the first place. A day can hold several
+/// messages now; the tap lands on the first and the rest are a swipe away.
 void _openTodayMessage() async {
-  final tip = await DailyTipService().getTodayTip();
-  if (tip == null) return;
-  final insight = tip.toInsight();
-  final hadith = HadithRepository().getByNumber(insight.hadithNumber);
+  final tips = await DailyTipService().getTodayTips();
+  if (tips.isEmpty) return;
+  final repo = HadithRepository();
 
   final navState = navigatorKey.currentState;
   if (navState == null) return;
   navState.push(
     SeamlessMessagePageRoute(
-      child: DailyMessageScreen(insight: insight, hadith: hadith),
+      child: DailyMessageScreen.forDay(
+        entries: [
+          for (final tip in tips)
+            DailyMessageEntry(
+              insight: tip.toInsight(),
+              hadith: repo.getByNumber(tip.hadithNumber),
+            ),
+        ],
+      ),
     ),
   );
 }

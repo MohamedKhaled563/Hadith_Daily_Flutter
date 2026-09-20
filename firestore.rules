@@ -178,11 +178,30 @@ service cloud.firestore {
     }
 
     // Public read; a moderator/admin is the only client allowed to write —
-    // covers both the notification-mode flag and dailyMessageSchedule's
-    // per-date pins (DailyMessageSchedulePage).
+    // covers the notification-mode flag, dailyMessageConfig's
+    // messagesPerDay (how many messages a day carries), and
+    // dailyMessageSchedule's per-date pins — the last two both set from
+    // DailyMessageSchedulePage.
+    //
+    // dailyMessageConfig is the one doc here whose value every device acts
+    // on numerically, so it gets a range check rather than trusting each
+    // client to clamp it (DailyTipService.maxMessagesPerDay does clamp, but
+    // that is a client-side guard, not an authorization one). The other
+    // settings docs are unvalidated as before. Note create/update carry the
+    // check while delete cannot — request.resource is null on a delete, so
+    // the condition would error out and deny it outright.
+    function validDailyMessageConfig() {
+      return request.resource.data.messagesPerDay is int
+          && request.resource.data.messagesPerDay >= 1
+          && request.resource.data.messagesPerDay <= 10;
+    }
+
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isModerator();
+      allow create, update: if isModerator()
+                  && (settingId != 'dailyMessageConfig'
+                      || validDailyMessageConfig());
+      allow delete: if isModerator();
     }
 
     // Phase 4: one doc per signed-in user, id = their uid. Phase 11 lets an

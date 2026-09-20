@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../data/services/daily_tip_service.dart';
+
 /// One row in the delivery pool — either a dailyMessages doc ("رسائل
 /// اليوم", added by staff) or an approved communityMessages doc
 /// ("مشاركات المجتمع", submitted by app users and approved from the
@@ -29,14 +31,20 @@ enum _SourceFilter { all, daily, community }
 String _dateKey(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-/// Lets an admin pin a specific message to a specific calendar date — see
-/// `settings/dailyMessageSchedule`'s `days` map, keyed by that same
-/// yyyy-MM-dd string. DailyTipService checks that map for *today's* key
-/// before falling back to its normal random pick, so scheduling today's
-/// date takes effect immediately for every device, and a future date just
-/// waits its turn — no explicit "manual vs random" mode needed any more,
-/// and nothing to revert afterwards since an expired date simply stops
-/// matching "today".
+/// Controls both halves of daily delivery.
+///
+/// **How many** messages a day carries lives in
+/// `settings/dailyMessageConfig.messagesPerDay` and is set from the card at
+/// the top of this page. Every device reads it (DailyTipService) and draws
+/// that many messages once per local day, keeping them frozen for the rest
+/// of the day.
+///
+/// **Which** messages, optionally: `settings/dailyMessageSchedule`'s `days`
+/// map, keyed by yyyy-MM-dd, holds a list of up to `messagesPerDay` pins per
+/// date. Pinning fewer than the full count is normal — the unpinned slots
+/// are filled randomly per device. Scheduling today's date takes effect
+/// immediately, a future date just waits its turn, and an expired date
+/// simply stops matching "today", so there is nothing to revert.
 class DailyMessageSchedulePage extends StatefulWidget {
   const DailyMessageSchedulePage({super.key});
 
@@ -56,6 +64,12 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage> {
 
   final _deletingPaths = <String>{};
   final _schedulingPaths = <String>{};
+
+  DocumentReference<Map<String, dynamic>> get _scheduleRef =>
+      _db.collection('settings').doc('dailyMessageSchedule');
+
+  DocumentReference<Map<String, dynamic>> get _configRef =>
+      _db.collection('settings').doc('dailyMessageConfig');
 
   @override
   void dispose() {
@@ -154,6 +168,31 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage> {
     }
   }
 
+  /// The configured count, or 1 when the doc hasn't been written yet — the
+  /// same default DailyTipService falls back to.
+  Future<int> _messagesPerDay() async {
+    final snap = await _configRef.get();
+    final value = (snap.data()?['messagesPerDay'] as num?)?.toInt();
+    if (value == null || value < 1) return 1;
+    return value > DailyTipService.maxMessagesPerDay
+        ? DailyTipService.maxMessagesPerDay
+        : value;
+  }
+
+  Future<void> _setMessagesPerDay(int value) async {
+    try {
+      await _configRef.set({
+        'messagesPerDay': value,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر حفظ العدد: $e')),
+      );
+    }
+  }
+
   Future<void> _scheduleMessage(_PoolEntry entry) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -168,61 +207,76 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage> {
     );
     if (picked == null || !mounted) return;
     final dateKey = _dateKey(picked);
-    final scheduleRef = _db.collection('settings').doc('dailyMessageSchedule');
 
-    // Warn before silently overwriting whatever was already pinned to that
-    // date, rather than letting an admin clobber a colleague's choice by
-    // accident.
-    final existingSnap = await scheduleRef.get();
-    final existingDays = existingSnap.data()?['days'] as Map<String, dynamic>?;
-    final existing = existingDays?[dateKey] as Map<String, dynamic>?;
-    if (existing != null) {
-      if (!mounted) return;
-      final existingText = existing['text'] as String? ?? '';
-      final confirmed = await showDialog<bool>(
+    // Validate against what's already pinned before touching anything, so a
+    // full day or a duplicate is explained rather than silently dropped by
+    // the transaction below.
+    final perDay = await _messagesPerDay();
+    final scheduleSnap = await _scheduleRef.get();
+    final days = scheduleSnap.data()?['days'] as Map<String, dynamic>?;
+    final existing = DailyTipService.normaliseScheduledDay(days?[dateKey]);
+    if (!mounted) return;
+
+    if (existing.any((e) => e['messageId'] == entry.ref.id)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('هذه الرسالة محددة بالفعل ليوم $dateKey')),
+      );
+      return;
+    }
+
+    if (existing.length >= perDay) {
+      await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('استبدال رسالة $dateKey؟'),
+          title: Text('يوم $dateKey مكتمل'),
           content: Text(
-            existingText.length > 140
-                ? '${existingText.substring(0, 140)}…'
-                : existingText,
+            'محدَّد لهذا اليوم ${existing.length} من $perDay رسائل. '
+            'أزل إحدى الرسائل المحددة، أو ارفع "عدد رسائل اليوم" من أعلى '
+            'الصفحة، ثم أعد المحاولة.',
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('إلغاء'),
-            ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('استبدال'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('حسناً'),
             ),
           ],
         ),
       );
-      if (confirmed != true) return;
+      return;
     }
 
     setState(() => _schedulingPaths.add(entry.ref.path));
     try {
-      await scheduleRef.set({
-        'days': {
-          dateKey: {
-            'sourceCollection': entry.source,
-            'messageId': entry.ref.id,
-            'text': entry.text,
-            'hadithNumber': entry.hadithNumber,
-            'setAt': FieldValue.serverTimestamp(),
-          },
-        },
-      }, SetOptions(merge: true));
+      await _db.runTransaction((tx) async {
+        final snap = await tx.get(_scheduleRef);
+        final liveDays = snap.data()?['days'] as Map<String, dynamic>?;
+        final current = DailyTipService.normaliseScheduledDay(
+          liveDays?[dateKey],
+        );
+        if (current.any((e) => e['messageId'] == entry.ref.id)) return;
+
+        current.add({
+          'sourceCollection': entry.source,
+          'messageId': entry.ref.id,
+          'text': entry.text,
+          'hadithNumber': entry.hadithNumber,
+          // Not serverTimestamp(): Firestore rejects the sentinel inside an
+          // array value, and the pin order is what actually matters here.
+          'setAt': Timestamp.now(),
+        });
+
+        tx.set(_scheduleRef, {
+          'days': {dateKey: current},
+        }, SetOptions(merge: true));
+      });
       if (!mounted) return;
+      final slot = existing.length + 1;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             dateKey == _dateKey(today)
-                ? 'تم تحديدها كرسالة اليوم — ستظهر للمستخدمين الآن'
-                : 'تم تحديدها لرسالة يوم $dateKey',
+                ? 'تمت إضافتها لرسائل اليوم ($slot من $perDay) — ستظهر للمستخدمين الآن'
+                : 'تمت إضافتها ليوم $dateKey ($slot من $perDay)',
           ),
         ),
       );
@@ -236,10 +290,23 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage> {
     }
   }
 
-  Future<void> _removeScheduled(String dateKey) async {
+  /// Drops one pin from a day, leaving the rest in place; a day left with no
+  /// pins loses its key entirely so it goes back to a fully random draw.
+  Future<void> _removeScheduled(String dateKey, String messageId) async {
     try {
-      await _db.collection('settings').doc('dailyMessageSchedule').update({
-        'days.$dateKey': FieldValue.delete(),
+      await _db.runTransaction((tx) async {
+        final snap = await tx.get(_scheduleRef);
+        final days = snap.data()?['days'] as Map<String, dynamic>?;
+        final current = DailyTipService.normaliseScheduledDay(days?[dateKey])
+          ..removeWhere((e) => e['messageId'] == messageId);
+
+        if (current.isEmpty) {
+          tx.update(_scheduleRef, {'days.$dateKey': FieldValue.delete()});
+        } else {
+          tx.set(_scheduleRef, {
+            'days': {dateKey: current},
+          }, SetOptions(merge: true));
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -253,7 +320,10 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _ScheduleSummary(onRemove: _removeScheduled),
+        _ScheduleSummary(
+          onRemove: _removeScheduled,
+          onCountChanged: _setMessagesPerDay,
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
           child: Row(
@@ -352,14 +422,22 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage> {
   }
 }
 
+/// The card above the pool list: how many messages a day carries, plus every
+/// upcoming date that has pins, grouped by date so it reads as "this day has
+/// 2 of 3 chosen".
 class _ScheduleSummary extends StatelessWidget {
-  const _ScheduleSummary({required this.onRemove});
+  const _ScheduleSummary({
+    required this.onRemove,
+    required this.onCountChanged,
+  });
 
-  final ValueChanged<String> onRemove;
+  final void Function(String dateKey, String messageId) onRemove;
+  final ValueChanged<int> onCountChanged;
 
   @override
   Widget build(BuildContext context) {
     final today = _dateKey(DateTime.now());
+    final db = FirebaseFirestore.instance;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -367,56 +445,104 @@ class _ScheduleSummary extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-            stream: FirebaseFirestore.instance
-                .collection('settings')
-                .doc('dailyMessageSchedule')
-                .snapshots(),
-            builder: (context, snapshot) {
-              final days = snapshot.data?.data()?['days'] as Map<String, dynamic>?;
-              final upcoming = <MapEntry<String, dynamic>>[
-                if (days != null)
-                  for (final entry in days.entries)
-                    if (entry.key.compareTo(today) >= 0) entry,
-              ]..sort((a, b) => a.key.compareTo(b.key));
+            stream:
+                db.collection('settings').doc('dailyMessageConfig').snapshots(),
+            builder: (context, configSnapshot) {
+              final rawCount =
+                  (configSnapshot.data?.data()?['messagesPerDay'] as num?)
+                      ?.toInt();
+              final perDay = (rawCount == null || rawCount < 1)
+                  ? 1
+                  : (rawCount > DailyTipService.maxMessagesPerDay
+                      ? DailyTipService.maxMessagesPerDay
+                      : rawCount);
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
+              return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                stream: db
+                    .collection('settings')
+                    .doc('dailyMessageSchedule')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  final days =
+                      snapshot.data?.data()?['days'] as Map<String, dynamic>?;
+                  final upcoming = <MapEntry<String, dynamic>>[
+                    if (days != null)
+                      for (final entry in days.entries)
+                        if (entry.key.compareTo(today) >= 0) entry,
+                  ]..sort((a, b) => a.key.compareTo(b.key));
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.event_available_rounded),
-                      SizedBox(width: 8),
-                      Text(
-                        'رسائل اليوم المجدولة',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'اضغط أيقونة "تحديد ليوم" على أي رسالة أدناه لتظهر في يوم معيّن — إن كان اليوم هو نفسه فستظهر للمستخدمين فوراً؛ وإن كان في المستقبل فستظهر تلقائياً عند حلول ذلك اليوم. الأيام التي لا تحمل رسالة محددة تُعرض فيها رسالة عشوائية كالمعتاد.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  if (upcoming.isEmpty)
-                    const Text('لا توجد رسائل مجدولة قادمة')
-                  else
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final entry in upcoming)
-                          _ScheduledChip(
-                            dateKey: entry.key,
-                            isToday: entry.key == today,
-                            text: (entry.value as Map<String, dynamic>)['text']
-                                    as String? ??
-                                '',
-                            onRemove: () => onRemove(entry.key),
+                      Row(
+                        children: [
+                          const Icon(Icons.event_available_rounded),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'رسائل اليوم المجدولة',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
                           ),
-                      ],
-                    ),
-                ],
+                          const Text('عدد رسائل اليوم:'),
+                          const SizedBox(width: 8),
+                          DropdownButton<int>(
+                            value: perDay,
+                            onChanged: (v) {
+                              if (v != null) onCountChanged(v);
+                            },
+                            items: [
+                              for (var i = 1;
+                                  i <= DailyTipService.maxMessagesPerDay;
+                                  i++)
+                                DropdownMenuItem(value: i, child: Text('$i')),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'يعرض التطبيق $perDay ${perDay == 1 ? 'رسالة' : 'رسائل'} لكل يوم، '
+                        'تُختار مرة واحدة في اليوم وتبقى ثابتة حتى اليوم التالي. '
+                        'اضغط أيقونة "تحديد ليوم" على أي رسالة أدناه لتثبيتها في يوم معيّن — '
+                        'يمكنك تثبيت حتى $perDay ${perDay == 1 ? 'رسالة' : 'رسائل'} لليوم الواحد، '
+                        'والخانات التي تتركها فارغة تُملأ برسائل عشوائية. '
+                        'رفع العدد أثناء اليوم يضيف رسائل فوراً، وخفضه يبدأ من اليوم التالي '
+                        'حتى لا تُسحب رسالة قرأها المستخدم بالفعل.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+                      if (upcoming.isEmpty)
+                        const Text('لا توجد رسائل مجدولة قادمة')
+                      else
+                        // A year of pinned days would otherwise push the
+                        // pool list itself off the page — this card keeps a
+                        // fixed share of the height and scrolls inside it.
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 220),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (final day in upcoming)
+                                  _ScheduledDay(
+                                    dateKey: day.key,
+                                    isToday: day.key == today,
+                                    perDay: perDay,
+                                    pins:
+                                        DailyTipService.normaliseScheduledDay(
+                                      day.value,
+                                    ),
+                                    onRemove: (messageId) =>
+                                        onRemove(day.key, messageId),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               );
             },
           ),
@@ -426,16 +552,91 @@ class _ScheduleSummary extends StatelessWidget {
   }
 }
 
-class _ScheduledChip extends StatelessWidget {
-  const _ScheduledChip({
+/// Every pin on one date, with an "n of N" header — so an admin can see at a
+/// glance which days are fully chosen and which still have random slots.
+class _ScheduledDay extends StatelessWidget {
+  const _ScheduledDay({
     required this.dateKey,
     required this.isToday,
-    required this.text,
+    required this.perDay,
+    required this.pins,
     required this.onRemove,
   });
 
   final String dateKey;
   final bool isToday;
+  final int perDay;
+  final List<Map<String, dynamic>> pins;
+  final ValueChanged<String> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    // A day can hold more pins than the current count if the count was
+    // lowered after they were set — the extras are simply ignored by the
+    // app, so say so rather than letting an admin wonder.
+    final overflowing = pins.length > perDay;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                isToday ? 'اليوم ($dateKey)' : dateKey,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(width: 8),
+              Chip(
+                visualDensity: VisualDensity.compact,
+                label: Text('${pins.length} من $perDay محددة'),
+                backgroundColor: isToday
+                    ? Colors.green.withValues(alpha: 0.15)
+                    : Colors.blueGrey.withValues(alpha: 0.10),
+              ),
+              if (overflowing) ...[
+                const SizedBox(width: 8),
+                Tooltip(
+                  message:
+                      'الزائد عن $perDay لن يُعرض — احذف رسالة أو ارفع العدد',
+                  child: Icon(Icons.warning_amber_rounded,
+                      size: 18, color: Colors.orange[800]),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var i = 0; i < pins.length; i++)
+                _ScheduledChip(
+                  slot: i + 1,
+                  ignored: i >= perDay,
+                  text: pins[i]['text'] as String? ?? '',
+                  onRemove: () =>
+                      onRemove(pins[i]['messageId'] as String? ?? ''),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScheduledChip extends StatelessWidget {
+  const _ScheduledChip({
+    required this.slot,
+    required this.ignored,
+    required this.text,
+    required this.onRemove,
+  });
+
+  final int slot;
+  final bool ignored;
   final String text;
   final VoidCallback onRemove;
 
@@ -445,9 +646,9 @@ class _ScheduledChip extends StatelessWidget {
     return Tooltip(
       message: text,
       child: InputChip(
-        label: Text('${isToday ? 'اليوم' : dateKey} — $snippet'),
-        backgroundColor: isToday
-            ? Colors.green.withValues(alpha: 0.15)
+        label: Text('$slot — $snippet'),
+        backgroundColor: ignored
+            ? Colors.orange.withValues(alpha: 0.15)
             : Colors.blueGrey.withValues(alpha: 0.10),
         onDeleted: onRemove,
         deleteIconColor: Colors.red[700],
