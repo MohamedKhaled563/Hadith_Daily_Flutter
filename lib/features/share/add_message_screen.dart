@@ -24,26 +24,49 @@ class AddMessageScreen extends StatefulWidget {
   State<AddMessageScreen> createState() => _AddMessageScreenState();
 }
 
-class _AddMessageScreenState extends State<AddMessageScreen> {
+class _AddMessageScreenState extends State<AddMessageScreen>
+    with WidgetsBindingObserver {
   final HadithRepository _repo = HadithRepository();
   final AppStateController _state = AppStateController();
   final _messageController = TextEditingController();
   final _authorController = TextEditingController();
-  // This screen sits inside the home Scaffold's body, and Scaffold strips
-  // the keyboard's inset out of the MediaQuery it hands to its body (it's
-  // already accounted for via resizing) — so MediaQuery.viewInsets.bottom
-  // reads 0 here even while the keyboard is up. Tracking focus directly is
-  // what actually tells this screen a field's keyboard is showing.
-  final _authorFocusNode = FocusNode();
-  final _messageFocusNode = FocusNode();
-
   Hadith? _selectedHadith;
   String? _messageError;
   String? _hadithError;
   bool _submitting = false;
 
-  bool get _keyboardLikelyOpen =>
-      _authorFocusNode.hasFocus || _messageFocusNode.hasFocus;
+  /// How far the keyboard currently covers the bottom of the window, in
+  /// logical pixels — 0 when it is closed, floating or split.
+  ///
+  /// Read from the [View] rather than from [MediaQuery]: this screen sits in
+  /// the home Scaffold's body, and Scaffold strips viewInsets out of the
+  /// MediaQuery it hands its body (it has already resized for them), so
+  /// `MediaQuery.viewInsetsOf(context).bottom` reads 0 here even with the
+  /// keyboard up. [didChangeMetrics] is what rebuilds on change — depending on
+  /// the View alone would not, since the view object itself never changes.
+  double get _keyboardInset {
+    final view = View.of(context);
+    return view.viewInsets.bottom / view.devicePixelRatio;
+  }
+
+  /// Space to leave under the submit button so it clears whatever is covering
+  /// the bottom of the window.
+  ///
+  /// The host Scaffold has `extendBody: true` plus a bottom nav bar, and its
+  /// layout treats those two obstructions as a step rather than a sum (see
+  /// `_ScaffoldLayout.performLayout`): while the keyboard is shorter than the
+  /// bar the body runs full height *behind* the bar, so the bar is what the
+  /// button has to clear; once the keyboard is taller, the body stops at the
+  /// keyboard's top edge and the bar is hidden behind the keyboard, so the
+  /// button needs no clearance of its own. Reserving both at once is what used
+  /// to leave a band of background art between the button and the keyboard.
+  ///
+  /// The two branches meet at the same on-screen position when the insets are
+  /// equal, so the button slides with the keyboard instead of jumping.
+  double get _bottomClearance {
+    final barHeight = BottomNavigation.reservedHeight(context);
+    return _keyboardInset <= barHeight ? barHeight : 0;
+  }
 
   @override
   void initState() {
@@ -53,18 +76,29 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
     if (_state.isLoggedIn && _state.userName.isNotEmpty) {
       _authorController.text = _state.userName;
     }
-    _authorFocusNode.addListener(_onFocusChanged);
-    _messageFocusNode.addListener(_onFocusChanged);
+    WidgetsBinding.instance.addObserver(this);
   }
 
-  void _onFocusChanged() => setState(() {});
+  /// Fires whenever the keyboard's inset changes, including on each frame of
+  /// its open/close animation. Rebuilding from this — rather than from field
+  /// focus, as this screen used to — is what keeps the button glued to the
+  /// keyboard's edge.
+  ///
+  /// Focus was never the same question: a floating or split keyboard insets
+  /// nothing while a field is focused, focus flips instantly where the
+  /// keyboard animates, and dismissing the keyboard with the back gesture
+  /// leaves the field focused — which stranded the button underneath the nav
+  /// bar until something else happened to take focus.
+  @override
+  void didChangeMetrics() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
     _messageController.dispose();
     _authorController.dispose();
-    _authorFocusNode.dispose();
-    _messageFocusNode.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -269,7 +303,6 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                 _FieldShell(
                   child: TextField(
                     controller: _authorController,
-                    focusNode: _authorFocusNode,
                     textInputAction: TextInputAction.next,
                     style: TextStyle(
                       fontFamily: kSans,
@@ -309,7 +342,6 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
                           : null,
                       child: TextField(
                         controller: _messageController,
-                        focusNode: _messageFocusNode,
                         minLines: 6,
                         maxLines: 12,
                         textAlignVertical: TextAlignVertical.top,
@@ -371,27 +403,26 @@ class _AddMessageScreenState extends State<AddMessageScreen> {
 
         // Pinned outside the scroll area so the submit button stays put
         // instead of travelling with the fields above it.
+        // Plain Padding, not AnimatedPadding: the inset this is computed from
+        // already animates with the keyboard, and the two branches of
+        // _bottomClearance meet at the same on-screen position, so the button
+        // tracks the keyboard exactly. An implicit animation on top would only
+        // make it lag behind.
         Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            8,
-            20,
-            // The bottom nav bar's own height only needs reserving when the
-            // bar is actually floating over the content, at the very bottom
-            // of the screen. Once a field is focused the keyboard covers the
-            // bar instead, and the Scaffold has already shifted this button
-            // up to sit right above the keyboard — adding the bar's height on
-            // top of that left a tall dead gap of background art between the
-            // button and the keyboard.
-            12 +
-                (_keyboardLikelyOpen
-                    ? 0
-                    : BottomNavigation.reservedHeight(context)),
-          ),
-          child: AppButton(
-            text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة 🌿',
-            icon: _submitting ? null : Icons.send_rounded,
-            onPressed: _submitting ? () {} : () => _submit(),
+          padding: EdgeInsets.fromLTRB(20, 10, 20, 16 + _bottomClearance),
+          child: DecoratedBox(
+            // The button is a stadium sitting on the background painting,
+            // directly above the equally dark nav pill — without a shadow the
+            // two greens merge into one slab and the button loses its edge.
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              boxShadow: AppElevation.card,
+            ),
+            child: AppButton(
+              text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة 🌿',
+              icon: _submitting ? null : Icons.send_rounded,
+              onPressed: _submitting ? () {} : () => _submit(),
+            ),
           ),
         ),
       ],
