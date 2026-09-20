@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="طيّب قلبك">
+  <!-- Full lockup: splash, hero circle, share card. Art box 96..416 (62.5%). -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Heart contour: one continuous closed stroke, even weight -->
+    <path d="M256 172 C226 116 150 108 116 152 C84 194 98 252 140 296
+             C176 334 222 372 256 404 C290 372 336 334 372 296
+             C414 252 428 194 396 152 C362 108 286 116 256 172 Z"
+          stroke="#2F4A38" stroke-width="20"/>
+    <!-- Central stem -->
+    <path d="M256 394 C256 332 258 264 256 208" stroke="#2F4A38" stroke-width="13"/>
+  </g>
+
+  <!-- Left leaf -->
+  <path d="M254 322 C214 312 178 280 168 240 C208 246 242 276 254 322 Z"
+        fill="#6F8D76" stroke="#2F4A38" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M254 322 C218 292 186 262 168 240" fill="none" stroke="#A8C0AE" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Right leaf -->
+  <path d="M258 288 C298 278 334 246 344 206 C304 212 270 242 258 288 Z"
+        fill="#5E7C65" stroke="#2F4A38" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M258 288 C294 258 326 228 344 206" fill="none" stroke="#96B09D" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Top bud: closes the cleft the old floating dot left open -->
+  <path d="M256 208 C240 184 242 152 256 134 C270 152 272 184 256 208 Z"
+        fill="#5E7C65" stroke="#2F4A38" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Gold root cluster, kept inside the heart's own width -->
+  <g fill="#C2A257">
+    <path d="M256 410 C250 422 250 436 256 448 C262 436 262 422 256 410 Z"/>
+    <circle cx="222" cy="438" r="5"/>
+    <circle cx="290" cy="438" r="5"/>
+  </g>
+  <g fill="#D3B87F">
+    <path d="M250 416 C236 414 226 420 224 430 C236 432 246 426 250 416 Z"/>
+    <path d="M262 416 C276 414 286 420 288 430 C276 432 266 426 262 416 Z"/>
+  </g>
+  <g fill="none" stroke="#C2A257" stroke-width="5" stroke-linecap="round">
+    <path d="M216 434 C196 430 176 428 156 432"/>
+    <path d="M296 434 C316 430 336 428 356 432"/>
+  </g>
+</svg>

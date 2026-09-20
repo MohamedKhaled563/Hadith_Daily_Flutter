@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="طيّب قلبك">
+  <!-- In-app badge mark: same silhouette, ornament removed so it survives 32-64px. -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 172 C226 116 150 108 116 152 C84 194 98 252 140 296
+             C176 334 222 372 256 404 C290 372 336 334 372 296
+             C414 252 428 194 396 152 C362 108 286 116 256 172 Z"
+          stroke="#2F4A38" stroke-width="24"/>
+    <path d="M256 390 C256 330 258 264 256 208" stroke="#2F4A38" stroke-width="15"/>
+  </g>
+  <path d="M252 324 C212 314 176 282 166 242 C206 248 240 278 252 324 Z"
+        fill="#6F8D76" stroke="#2F4A38" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M260 288 C300 278 336 246 346 206 C306 212 272 242 260 288 Z"
+        fill="#5E7C65" stroke="#2F4A38" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M256 210 C240 186 242 154 256 136 C270 154 272 186 256 210 Z"
+        fill="#5E7C65" stroke="#2F4A38" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M256 412 C250 424 250 438 256 450 C262 438 262 424 256 412 Z" fill="#C2A257"/>
+</svg>

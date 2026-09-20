@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="طيّب قلبك">
+  <!-- Single-colour glyph: launcher foreground, Android 13 monochrome layer,
+       notification small icon, favicon. currentColor so one file serves every tint. -->
+  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 176 C226 120 152 112 118 156 C88 196 102 252 142 294
+             C178 332 222 368 256 398 C290 368 334 332 370 294
+             C410 252 424 196 394 156 C360 112 286 120 256 176 Z"
+          stroke-width="30"/>
+    <path d="M256 384 C256 328 258 266 256 212" stroke-width="20"/>
+  </g>
+  <g fill="currentColor">
+    <path d="M250 326 C210 314 174 280 164 238 C206 246 240 278 250 326 Z"/>
+    <path d="M262 290 C302 278 338 244 348 202 C306 210 272 242 262 290 Z"/>
+    <path d="M256 214 C238 188 240 154 256 134 C272 154 274 188 256 214 Z"/>
+  </g>
+</svg>
