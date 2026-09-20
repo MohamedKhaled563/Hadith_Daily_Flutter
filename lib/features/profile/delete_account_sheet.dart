@@ -23,31 +23,59 @@ import '../auth/auth_error_messages.dart';
 /// Returns true when the account was deleted, so the caller can drop the
 /// navigation stack.
 Future<bool> showDeleteAccountSheet(BuildContext context) async {
+  final service = AccountDeletionService();
+
   final result = await showBotanicalSheet<bool>(
     context: context,
     title: 'حذف الحساب',
     subtitle: 'إجراء نهائي لا يمكن التراجع عنه',
-    child: const _DeleteAccountForm(),
+    child: DeleteAccountForm(
+      method: service.reauthMethod,
+      onConfirm: (password, onProgress) async {
+        await service.reauthenticate(password: password);
+        await service.deleteAccount(onProgress: onProgress);
+      },
+    ),
   );
   return result ?? false;
 }
 
-class _DeleteAccountForm extends StatefulWidget {
-  const _DeleteAccountForm();
+/// The sheet's body, with the account work behind a callback.
+///
+/// Public and Firebase-free on purpose: the typed-confirmation gate is the
+/// only thing standing in front of the one irreversible action in the app, so
+/// it is worth a test, and a form that reached for `FirebaseAuth.instance`
+/// itself could not be pumped in one.
+@visibleForTesting
+class DeleteAccountForm extends StatefulWidget {
+  const DeleteAccountForm({
+    super.key,
+    required this.method,
+    required this.onConfirm,
+  });
+
+  /// Which credential the account re-authenticates with, which decides
+  /// whether the password field is shown at all.
+  final ReauthMethod method;
+
+  /// Re-authenticates and deletes. Throws to report failure; the sheet turns
+  /// that into an inline message rather than a half-finished delete.
+  final Future<void> Function(
+    String? password,
+    void Function(String step) onProgress,
+  ) onConfirm;
 
   @override
-  State<_DeleteAccountForm> createState() => _DeleteAccountFormState();
+  State<DeleteAccountForm> createState() => _DeleteAccountFormState();
 }
 
-class _DeleteAccountFormState extends State<_DeleteAccountForm> {
+class _DeleteAccountFormState extends State<DeleteAccountForm> {
   /// What the reader has to type. Short, unambiguous, and not a word they
   /// would produce by accident.
   static const _confirmWord = 'حذف';
 
   final _confirmController = TextEditingController();
   final _passwordController = TextEditingController();
-
-  final _service = AccountDeletionService();
 
   bool _obscurePassword = true;
   bool _busy = false;
@@ -56,8 +84,7 @@ class _DeleteAccountFormState extends State<_DeleteAccountForm> {
   bool get _confirmed =>
       _confirmController.text.trim() == _confirmWord;
 
-  bool get _needsPassword =>
-      _service.reauthMethod == ReauthMethod.password;
+  bool get _needsPassword => widget.method == ReauthMethod.password;
 
   @override
   void dispose() {
@@ -90,12 +117,9 @@ class _DeleteAccountFormState extends State<_DeleteAccountForm> {
     showAppLoadingOverlay(pageContext, message: 'جارٍ تأكيد هويتك…');
 
     try {
-      await _service.reauthenticate(
-        password: _needsPassword ? _passwordController.text : null,
-      );
-
-      await _service.deleteAccount(
-        onProgress: (step) {
+      await widget.onConfirm(
+        _needsPassword ? _passwordController.text : null,
+        (step) {
           hideAppLoadingOverlay();
           showAppLoadingOverlay(pageContext, message: step);
         },
@@ -256,7 +280,7 @@ class _DeleteAccountFormState extends State<_DeleteAccountForm> {
               ),
             ),
           ),
-        ] else if (_service.reauthMethod == ReauthMethod.google) ...[
+        ] else if (widget.method == ReauthMethod.google) ...[
           const SizedBox(height: 12),
           Text(
             'سيُطلب منك تأكيد هويتك عبر Google قبل الحذف.',
