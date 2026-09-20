@@ -4,13 +4,16 @@
          show — NotificationScheduler requests it the first time a reminder
          is switched on (lib/data/services/notification_scheduler.dart). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <!-- Android 12+ (API 31+) gates *exact*-time alarms behind this special
-         permission; without it every reminder is scheduled "inexact" and the
-         OS is free to batch/delay delivery by minutes to hours to save
-         battery — which is what made reminders appear to never fire.
-         User-grantable like POST_NOTIFICATIONS, requested from
-         NotificationScheduler.requestPermission(). -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <!-- SCHEDULE_EXACT_ALARM is deliberately NOT declared. Google Play
+         restricts it to apps whose core function is an alarm clock, timer or
+         calendar; a daily reminder does not qualify, and declaring it invites
+         a policy rejection at review. NotificationScheduler already handles
+         its absence: canScheduleExactNotifications() returns false and every
+         reminder is scheduled inexactAllowWhileIdle, which the OS may batch
+         into a maintenance window. For an 08:30 spiritual reminder that
+         window is not something a reader would notice, and it is the same
+         path the app already took on any device where the grant was
+         declined. -->
     <!-- Lets ScheduledNotificationBootReceiver re-arm reminders after a
          device reboot (the ones AlarmManager drops on power-off). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>

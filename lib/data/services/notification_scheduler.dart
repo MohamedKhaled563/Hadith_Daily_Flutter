@@ -49,13 +49,17 @@ class NotificationScheduleResult {
 /// background execution beyond what the OS already does for a scheduled
 /// local notification.
 ///
-/// On Android 12+ an *inexact* alarm (the previous, only mode this class
-/// used) is not delivered at its requested time — the OS batches it into a
-/// maintenance window that can be minutes to hours later depending on the
-/// app's standby bucket, which is why a reminder set "one minute from now"
-/// can appear to never fire. [reschedule] now asks for the exact-alarm
-/// permission and uses `exactAllowWhileIdle` whenever it has been granted,
-/// falling back to the inexact mode only when it hasn't.
+/// On Android 12+ an *inexact* alarm is not delivered at its requested time
+/// — the OS batches it into a maintenance window that can be minutes to
+/// hours later depending on the app's standby bucket. [reschedule] uses
+/// `exactAllowWhileIdle` where the platform reports exact alarms are
+/// available and `inexactAllowWhileIdle` otherwise.
+///
+/// The app does NOT declare SCHEDULE_EXACT_ALARM: Google Play restricts that
+/// permission to alarm-clock/timer/calendar apps, so declaring it invites a
+/// policy rejection. In practice that means the inexact path is the one
+/// taken on Android 12+, which is what a reader on a device that declined
+/// the grant was already getting.
 class NotificationScheduler {
   NotificationScheduler._internal({
     FlutterLocalNotificationsPlugin? plugin,
@@ -175,18 +179,19 @@ class NotificationScheduler {
           AndroidFlutterLocalNotificationsPlugin>();
 
   /// Android 13+/iOS need an explicit runtime grant before any notification
-  /// can show, and Android 12+ separately gates *exact* alarms behind their
-  /// own grant — call this once, e.g. the first time a reminder is enabled.
-  /// Returns whether the notification permission itself was granted; exact
-  /// alarms are best-effort (checked again in [reschedule]) since some
-  /// OEMs/OS versions don't support requesting them at all.
+  /// can show — call this once, e.g. the first time a reminder is enabled.
+  /// Returns whether the notification permission was granted.
+  ///
+  /// This used to also call `requestExactAlarmsPermission()`. It no longer
+  /// does: the app does not declare SCHEDULE_EXACT_ALARM (see the class doc
+  /// and AndroidManifest.xml), so that request had nothing to grant, and
+  /// asking for a permission the manifest doesn't declare is exactly the
+  /// signal a Play policy review looks for.
   Future<bool> requestPermission() async {
     await _ensureInitialized();
     final android = _android;
     if (android != null) {
-      final granted = await android.requestNotificationsPermission() ?? false;
-      await android.requestExactAlarmsPermission();
-      return granted;
+      return await android.requestNotificationsPermission() ?? false;
     }
     final ios = _plugin.resolvePlatformSpecificImplementation<
         IOSFlutterLocalNotificationsPlugin>();

@@ -421,7 +421,7 @@ class _AddMessageScreenState extends State<AddMessageScreen>
             child: AppButton(
               text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة 🌿',
               icon: _submitting ? null : Icons.send_rounded,
-              onPressed: _submitting ? () {} : () => _submit(),
+              onPressed: _submitting ? null : () => _submit(),
             ),
           ),
         ),

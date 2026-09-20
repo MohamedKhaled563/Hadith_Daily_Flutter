@@ -14,7 +14,13 @@ class AppButton extends StatelessWidget {
   });
 
   final String text;
-  final VoidCallback onPressed;
+
+  /// Nullable on purpose. It used to be non-null, so a screen with no way to
+  /// say "disabled" passed `() {}` while submitting — the button stayed fully
+  /// lit and simply did nothing when tapped. Passing null lets
+  /// [ElevatedButton] render its own disabled state, which is the whole
+  /// point of the control.
+  final VoidCallback? onPressed;
   final bool isSecondary;
   final IconData? icon;
   final bool expand;

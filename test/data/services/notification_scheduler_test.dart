@@ -453,7 +453,8 @@ void main() {
   });
 
   group('NotificationScheduler.requestPermission', () {
-    test('requests both the notification and exact-alarm permissions',
+    test(
+        'requests the notification permission, and never the exact-alarm one',
         () async {
       final scheduler = NotificationScheduler.test(
         plugin: plugin,
@@ -464,7 +465,13 @@ void main() {
 
       expect(granted, isTrue);
       verify(() => androidPlugin.requestNotificationsPermission()).called(1);
-      verify(() => androidPlugin.requestExactAlarmsPermission()).called(1);
+      // The app no longer declares SCHEDULE_EXACT_ALARM — Google Play
+      // restricts it to alarm-clock/timer/calendar apps, and asking for a
+      // permission the manifest doesn't declare is exactly what a policy
+      // review looks for. Scheduling still checks
+      // canScheduleExactNotifications() and falls back to inexact, which is
+      // covered by the reschedule tests above.
+      verifyNever(() => androidPlugin.requestExactAlarmsPermission());
     });
 
     test('reports ungranted when the notification permission is denied',

@@ -12,8 +12,11 @@ import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
 import '../../data/services/feedback_service.dart';
 import '../../data/services/notification_scheduler.dart';
+import '../../core/legal/legal_documents.dart';
 import '../auth/login_screen.dart';
 import '../community/my_submissions_screen.dart';
+import '../legal/legal_document_screen.dart';
+import 'delete_account_sheet.dart';
 
 class SettingsDrawer extends StatefulWidget {
   const SettingsDrawer({super.key});
@@ -66,6 +69,20 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Account deletion, required in-app by Play's Data Deletion policy and
+  /// App Store 5.1.1(v). The sheet owns the confirmation, the
+  /// re-authentication and the progress; this only reacts to it succeeding.
+  Future<void> _confirmDeleteAccount() async {
+    final deleted = await showDeleteAccountSheet(context);
+    if (!deleted || !mounted) return;
+
+    // Same as sign-out: there is nothing behind this screen to come back to.
+    Navigator.of(context).pushAndRemoveUntil(
+      SmoothPageRoute(child: const LoginScreen()),
+      (route) => false,
     );
   }
 
@@ -416,6 +433,23 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                             title: 'تواصل معنا واقترح فكرة',
                             onTap: _showFeedbackSheet,
                           ),
+                          _Divider(),
+                          // Both stores expect a reachable privacy policy,
+                          // and sign-up asks the reader to agree to these two
+                          // before they have anywhere to read them.
+                          _NavTile(
+                            icon: Icons.shield_outlined,
+                            title: LegalDocuments.privacyTitle,
+                            onTap: () =>
+                                LegalDocumentScreen.openPrivacy(context),
+                          ),
+                          _Divider(),
+                          _NavTile(
+                            icon: Icons.gavel_rounded,
+                            title: LegalDocuments.termsTitle,
+                            onTap: () =>
+                                LegalDocumentScreen.openTerms(context),
+                          ),
                         ],
                       ),
 
@@ -431,6 +465,13 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                             icon: Icons.logout_rounded,
                             title: 'تسجيل الخروج',
                             onTap: _confirmLogout,
+                            destructive: true,
+                          ),
+                          _Divider(),
+                          _NavTile(
+                            icon: Icons.delete_outline_rounded,
+                            title: 'حذف الحساب نهائياً',
+                            onTap: _confirmDeleteAccount,
                             destructive: true,
                           ),
                         ],

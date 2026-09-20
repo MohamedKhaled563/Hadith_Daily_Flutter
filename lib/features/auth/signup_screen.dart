@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/legal/legal_documents.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -13,6 +15,7 @@ import '../../core/widgets/glass_panel.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../home/home_screen.dart';
+import '../legal/legal_document_screen.dart';
 import 'auth_error_messages.dart';
 
 /// Real sign-up screen: email/password creates a Firebase account; Google
@@ -458,7 +461,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 icon: _submitting
                                     ? null
                                     : Icons.person_add_alt_rounded,
-                                onPressed: _submitting ? () {} : _submit,
+                                onPressed: _submitting ? null : _submit,
                               ),
                               const SizedBox(height: 10),
                               TextButton(
@@ -651,7 +654,7 @@ class _TermsCheck extends StatelessWidget {
 
     return Semantics(
       checked: value,
-      label: 'أوافق على شروط الاستخدام وسياسة الخصوصية',
+      label: 'أوافق على ${LegalDocuments.termsTitle} و${LegalDocuments.privacyTitle}',
       child: ExcludeSemantics(
         child: InkWell(
           onTap: () => onChanged(!value),
@@ -669,7 +672,7 @@ class _TermsCheck extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: value
                         ? AppColors.primaryGreen
-                        : Colors.white.withValues(alpha: 0.55),
+                        : palette.surface,
                     borderRadius: BorderRadius.circular(7),
                     border: Border.all(
                       color:
@@ -683,9 +686,42 @@ class _TermsCheck extends StatelessWidget {
                       : null,
                 ),
                 const SizedBox(width: 10),
+                // The two document names are the only tappable things inside
+                // this row; the rest of it still toggles the box. Until now
+                // the whole sentence was plain text, so sign-up blocked on
+                // agreeing to two documents the app never showed anywhere.
                 Expanded(
-                  child: Text(
-                    'أوافق على شروط الاستخدام وسياسة الخصوصية',
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(text: 'أوافق على '),
+                        TextSpan(
+                          text: LegalDocuments.termsTitle,
+                          style: TextStyle(
+                            color: palette.goldText,
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
+                            decorationColor: palette.goldText,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () =>
+                                LegalDocumentScreen.openTerms(context),
+                        ),
+                        const TextSpan(text: ' و'),
+                        TextSpan(
+                          text: LegalDocuments.privacyTitle,
+                          style: TextStyle(
+                            color: palette.goldText,
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
+                            decorationColor: palette.goldText,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () =>
+                                LegalDocumentScreen.openPrivacy(context),
+                        ),
+                      ],
+                    ),
                     style: TextStyle(
                       fontFamily: kSans,
                       fontSize: 12.5,

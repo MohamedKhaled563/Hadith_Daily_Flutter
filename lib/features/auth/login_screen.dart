@@ -289,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen>
                               AppButton(
                                 text: _submitting ? 'جارٍ الدخول…' : 'دخول',
                                 icon: _submitting ? null : Icons.login_rounded,
-                                onPressed: _submitting ? () {} : _submit,
+                                onPressed: _submitting ? null : _submit,
                               ),
                               const SizedBox(height: 18),
                               const OrDivider(),

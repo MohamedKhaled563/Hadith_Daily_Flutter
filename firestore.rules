@@ -245,7 +245,18 @@ service cloud.firestore {
       // still sign in afterward, just as a plain 'user' (roleOf() falls
       // back to 'user' when this doc is missing), and the create rule
       // above lets them recreate this doc the ordinary way if they do.
-      allow delete: if isAdmin() && uid != request.auth.uid;
+      // Two cases, so an OR:
+      //   1. an admin removing someone ELSE's record from the dashboard —
+      //      the original clause, with its uid != request.auth.uid guard so
+      //      an admin can't lock themselves out with nobody around to undo
+      //      it.
+      //   2. the account owner, as part of deleting their own account
+      //      (AccountDeletionService). Play's Data Deletion policy and App
+      //      Store 5.1.1(v) both require this to be possible from inside the
+      //      app, and with no Cloud Functions on the Spark plan the client
+      //      is the only thing that can do it.
+      allow delete: if (isAdmin() && uid != request.auth.uid)
+                  || request.auth.uid == uid;
     }
 
     // Phase 13: normalized-display-name uniqueness registry. Doc id is the
@@ -265,7 +276,16 @@ service cloud.firestore {
       allow create: if request.auth != null
                   && request.resource.data.keys().hasOnly(['uid'])
                   && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if false;
+      // Update stays closed — that is what makes the create-only claim a
+      // race-free lock (see above). Delete is open to the account that holds
+      // the name, and only to it: deleting an account has to release its
+      // display name, or the name stays claimed forever by a user who no
+      // longer exists. The `resource.data.uid == request.auth.uid` guard is
+      // what keeps this from becoming a way to steal a name someone else
+      // holds.
+      allow update: if false;
+      allow delete: if request.auth != null
+                  && resource.data.uid == request.auth.uid;
     }
 
     match /communityMessages/{messageId} {
@@ -361,8 +381,18 @@ service cloud.firestore {
                       && request.resource.data.timesShown
                            == resource.data.get('timesShown', 0) + 1);
 
-      allow delete: if (request.auth.uid == resource.data.authorUid
-                        && resource.data.status == 'pending')
+      // Was pending-only for the author. Widened to any status: an author
+      // may withdraw their own contribution, and account deletion has to be
+      // able to remove everything they ever posted — which is the option
+      // chosen for this app over anonymising in place.
+      //
+      // Note what this does NOT reach: the likes/ subcollection under a
+      // deleted post. Firestore does not cascade, and the rule below only
+      // lets a like's own owner delete it, so other readers' like docs are
+      // orphaned rather than removed. They carry no data about the deleted
+      // author — the doc id is the *liker's* uid — so this is a tidiness
+      // problem for a moderator, not a privacy one.
+      allow delete: if request.auth.uid == resource.data.authorUid
                   || isModerator();
 
       // Phase 7: one doc per user who has liked this message, id = their
@@ -386,7 +416,12 @@ service cloud.firestore {
     // mailbox, not a community feed, so only the reviewing side needs
     // access to it.
     match /feedbackMessages/{messageId} {
-      allow read: if isModerator();
+      // Moderators read the mailbox; an author can read only their own, which
+      // is what lets AccountDeletionService query for them by authorUid
+      // before deleting them.
+      allow read: if isModerator()
+                || (request.auth != null
+                    && resource.data.authorUid == request.auth.uid);
       allow create: if request.auth != null
                   && request.resource.data.authorUid == request.auth.uid
                   && request.resource.data.message is string
@@ -403,7 +438,12 @@ service cloud.firestore {
       allow update: if isModerator()
                   && request.resource.data.diff(resource.data)
                        .affectedKeys().hasOnly(['read']);
-      allow delete: if isModerator();
+      // A moderator clearing the mailbox, or the author removing their own
+      // message as part of deleting their account — the feedback doc carries
+      // their name and email, so it cannot survive the account.
+      allow delete: if isModerator()
+                  || (request.auth != null
+                      && resource.data.authorUid == request.auth.uid);
     }
 
     // Everything else stays fully locked until a later phase explicitly
