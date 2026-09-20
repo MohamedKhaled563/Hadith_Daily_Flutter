@@ -56,7 +56,13 @@ Future<T?> showBotanicalSheet<T>({
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ExcludeSemantics(
+                // Material's own showDragHandle would draw this, but it
+                // paints on the sheet's background colour — which is
+                // transparent here so the parchment can show through — so it
+                // lands as a grab handle on nothing. Hand-drawn stays;
+                // announcing it is what was actually missing.
+                Semantics(
+                  label: 'اسحب للإغلاق',
                   child: Container(
                     width: 44,
                     height: 4,

@@ -88,7 +88,6 @@ class MySubmissionsScreen extends StatelessWidget {
                         );
                       }
                       return ListView.separated(
-                        physics: const BouncingScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                         itemCount: docs.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 14),

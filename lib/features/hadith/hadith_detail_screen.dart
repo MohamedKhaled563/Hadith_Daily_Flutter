@@ -12,13 +12,43 @@ import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
+import '../../core/utils/app_motion.dart';
 import '../../data/models/hadith.dart';
+import '../../data/repositories/hadith_repository.dart';
 import 'hadith_explanation_screen.dart';
 
-class HadithDetailScreen extends StatelessWidget {
+/// Stateful only so the bookmark can toggle in place.
+///
+/// The list had a bookmark on every row and this screen had none, so the
+/// deeper screen offered fewer affordances than the shallower one — a reader
+/// who opened a hadith to read it properly then had to go back to save it.
+class HadithDetailScreen extends StatefulWidget {
   const HadithDetailScreen({super.key, required this.hadith});
 
   final Hadith hadith;
+
+  @override
+  State<HadithDetailScreen> createState() => _HadithDetailScreenState();
+}
+
+class _HadithDetailScreenState extends State<HadithDetailScreen> {
+  final HadithRepository _repo = HadithRepository();
+
+  Hadith get hadith => widget.hadith;
+
+  bool get _isBookmarked => _repo.isHadithFavorite(hadith.number);
+
+  void _toggleBookmark() {
+    AppHaptics.toggle();
+    setState(() => _repo.toggleFavoriteHadith(hadith.number));
+
+    showAppSnack(
+      context,
+      _isBookmarked ? 'تم حفظ الحديث في المفضلة' : 'تمت الإزالة من المفضلة',
+      tone: _isBookmarked ? SnackTone.success : SnackTone.neutral,
+      action: _isBookmarked ? null : undoAction(context, _toggleBookmark),
+    );
+  }
 
   void _copyHadith(BuildContext context) {
     final buffer = StringBuffer()..writeln('« ${hadith.title} »');
@@ -99,6 +129,15 @@ class HadithDetailScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       CircleIconButton(
+                        icon: _isBookmarked
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
+                        semanticLabel: 'حفظ الحديث في المفضلة',
+                        toggled: _isBookmarked,
+                        onTap: _toggleBookmark,
+                      ),
+                      const SizedBox(width: 6),
+                      CircleIconButton(
                         icon: Icons.copy_rounded,
                         semanticLabel: 'نسخ النص الكامل مع الشرح والفوائد',
                         onTap: () => _copyHadith(context),
@@ -149,7 +188,6 @@ class HadithDetailScreen extends StatelessWidget {
           const SizedBox(height: 14),
           Expanded(
             child: ListView(
-              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
                 20,
                 6,

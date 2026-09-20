@@ -300,7 +300,6 @@ class _MessagePageState extends State<_MessagePage> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(

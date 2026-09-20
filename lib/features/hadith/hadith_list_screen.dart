@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
@@ -28,8 +30,21 @@ class _HadithListScreenState extends State<HadithListScreen> {
   bool _showOnlyFavorites = false;
   String _searchQuery = '';
 
+  /// Typing rebuilt the whole list on every keystroke. Fine over 42 bundled
+  /// hadiths, wrong the moment the corpus grows, and it also means the
+  /// result count flickers while the reader is mid-word.
+  Timer? _searchDebounce;
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 180), () {
+      if (mounted) setState(() => _searchQuery = value);
+    });
+  }
+
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -37,6 +52,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
   void _clearSearch() {
     // Clear the field as well as the filter — previously only the filter reset,
     // leaving the typed text stranded in the box.
+    _searchDebounce?.cancel();
     _searchController.clear();
     setState(() => _searchQuery = '');
     FocusScope.of(context).unfocus();
@@ -135,8 +151,16 @@ class _HadithListScreenState extends State<HadithListScreen> {
                   Expanded(
                     child: TextField(
                       controller: _searchController,
-                      onChanged: (val) => setState(() => _searchQuery = val),
+                      onChanged: _onSearchChanged,
                       textInputAction: TextInputAction.search,
+                      // The keyboard's search key used to dismiss and do
+                      // nothing; now it commits immediately rather than
+                      // waiting out the debounce.
+                      onSubmitted: (value) {
+                        _searchDebounce?.cancel();
+                        setState(() => _searchQuery = value);
+                        FocusScope.of(context).unfocus();
+                      },
                       style: TextStyle(
                         fontFamily: kSans,
                         fontSize: 13.5,
@@ -169,6 +193,18 @@ class _HadithListScreenState extends State<HadithListScreen> {
             ),
           ),
 
+          if (_searchQuery.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              displayed.isEmpty
+                  ? 'لا نتائج'
+                  : '${toArabicDigits(displayed.length)} من '
+                      '${toArabicDigits(_repo.getAll().length)}',
+              textAlign: TextAlign.center,
+              style: textTheme.bodySmall?.copyWith(color: palette.goldText),
+            ),
+          ],
+
           const SizedBox(height: 10),
 
           Expanded(
@@ -188,7 +224,6 @@ class _HadithListScreenState extends State<HadithListScreen> {
                     actionIcon: Icons.refresh_rounded,
                   )
                 : ListView.separated(
-                    physics: const BouncingScrollPhysics(),
                     padding: EdgeInsets.fromLTRB(
                       20, 4, 20, 16 + MediaQuery.viewPaddingOf(context).bottom,
                     ),

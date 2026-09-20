@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_state_controller.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/utils/notification_reliability_tip.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_button.dart';
@@ -384,17 +385,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                       _SectionHeader('المظهر والقراءة'),
                       _SettingsCard(
                         children: [
-                          _SwitchTile(
-                            icon: isDark
-                                ? Icons.dark_mode_rounded
-                                : Icons.light_mode_rounded,
-                            title: 'الوضع الليلي',
-                            subtitle: isDark
-                                ? 'مفعل — مريح للعين'
-                                : 'الوضع الفاتح مفعّل',
-                            value: isDark,
-                            onChanged: (_) => _state.toggleTheme(),
-                          ),
+                          _ThemeModeTile(state: _state),
                           _Divider(),
                           // The reading-size control this app was missing: the
                           // state existed but nothing exposed or consumed it.
@@ -873,42 +864,148 @@ class _Divider extends StatelessWidget {
   }
 }
 
-class _SwitchTile extends StatelessWidget {
-  const _SwitchTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
+/// Light / dark / follow-the-phone.
+///
+/// Was a two-state switch, so [ThemeMode.system] — which is what most readers
+/// expect an app to do — could not be chosen at all. Built from the same
+/// segmented shape the reading-size control below already uses, so the two
+/// settings look like siblings instead of two different ideas.
+class _ThemeModeTile extends StatelessWidget {
+  const _ThemeModeTile({required this.state});
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
+  final AppStateController state;
+
+  static const _options = <(ThemeMode, String, IconData)>[
+    (ThemeMode.light, 'فاتح', Icons.light_mode_rounded),
+    (ThemeMode.dark, 'ليلي', Icons.dark_mode_rounded),
+    // "تلقائي" rather than "حسب الجهاز": the segment is a third of the
+    // control's width and the longer phrase ellipsised to "حسب الجهـ" on a
+    // 1080p phone. The handset icon carries the "follows your device" half.
+    (ThemeMode.system, 'تلقائي', Icons.smartphone_rounded),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
 
-    return SwitchListTile.adaptive(
-      value: value,
-      onChanged: onChanged,
-      activeThumbColor: AppColors.primaryGreen,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      secondary: Icon(icon, color: palette.goldText, size: 22),
-      title: Text(
-        title,
-        style: textTheme.bodyMedium?.copyWith(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                context.isDarkMode
+                    ? Icons.dark_mode_rounded
+                    : Icons.light_mode_rounded,
+                color: palette.goldText,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'المظهر',
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: palette.surfaceSunken,
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              border: Border.all(color: palette.cardBorder),
+            ),
+            child: Row(
+              children: [
+                for (final (mode, label, icon) in _options)
+                  Expanded(
+                    child: _ThemeModeOption(
+                      label: label,
+                      icon: icon,
+                      selected: state.themeMode == mode,
+                      onTap: () {
+                        AppHaptics.selection();
+                        state.setThemeMode(mode);
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
-      subtitle: Text(
-        subtitle,
-        style: textTheme.bodySmall?.copyWith(fontSize: 11.5),
+    );
+  }
+}
+
+class _ThemeModeOption extends StatelessWidget {
+  const _ThemeModeOption({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return TapTarget(
+      onTap: onTap,
+      semanticLabel: label,
+      selected: selected,
+      minSize: 40,
+      pressScale: AppPress.cardScale,
+      child: AnimatedContainer(
+        duration: context.motion(AppDurations.control),
+        curve: AppDurations.curve,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? palette.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+          border: Border.all(
+            color: selected ? palette.cardBorderStrong : Colors.transparent,
+            width: 1.1,
+          ),
+          boxShadow: selected ? AppElevation.card : const [],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: selected ? palette.goldText : palette.mutedText,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 11.5,
+                height: AppLeading.chrome,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                color: selected ? palette.goldText : palette.mutedText,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

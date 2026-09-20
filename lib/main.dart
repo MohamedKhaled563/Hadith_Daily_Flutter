@@ -67,8 +67,33 @@ void _openTodayMessage() async {
   );
 }
 
-class HadithApp extends StatelessWidget {
+class HadithApp extends StatefulWidget {
   const HadithApp({super.key});
+
+  @override
+  State<HadithApp> createState() => _HadithAppState();
+}
+
+class _HadithAppState extends State<HadithApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// The OS flipped light/dark. MaterialApp resolves ThemeMode.system on its
+  /// own, but AppStateController.isDarkMode — which code outside the tree
+  /// reads — does not, so anything watching it needs a rebuild.
+  @override
+  void didChangePlatformBrightness() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {

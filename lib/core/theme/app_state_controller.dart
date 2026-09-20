@@ -1,3 +1,5 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,7 +10,13 @@ class AppStateController extends ChangeNotifier {
   factory AppStateController() => _instance;
   AppStateController._internal();
 
+  /// Legacy key: a bool, from when the app only knew light and dark. Read
+  /// once at startup to carry an existing reader's choice over, then never
+  /// written again — see [_keyThemeMode].
   static const _keyDarkMode = 'settings.darkMode';
+
+  /// 'light' | 'dark' | 'system'.
+  static const _keyThemeMode = 'settings.themeMode';
   static const _keyFontSizeScale = 'settings.fontSizeScale';
   static const _keyMorningReminderEnabled = 'settings.morningReminderEnabled';
   static const _keyMorningReminderHour = 'settings.morningReminderHour';
@@ -27,9 +35,7 @@ class AppStateController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _prefs = prefs;
 
-    _themeMode = (prefs.getBool(_keyDarkMode) ?? false)
-        ? ThemeMode.dark
-        : ThemeMode.light;
+    _themeMode = _readThemeMode(prefs);
     _fontSizeScale = prefs.getDouble(_keyFontSizeScale) ?? _fontSizeScale;
     _morningReminderEnabled =
         prefs.getBool(_keyMorningReminderEnabled) ?? _morningReminderEnabled;
@@ -59,18 +65,50 @@ class AppStateController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Theme state
-  ThemeMode _themeMode = ThemeMode.light;
-  ThemeMode get themeMode => _themeMode;
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
+  // ------------------------------------------------------------- theme ----
 
-  void toggleTheme() => setThemeMode(
-        _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light,
-      );
+  /// Dark mode used to be a bool, so "follow the phone" was unreachable — the
+  /// app either overrode the reader's system setting or matched it by luck.
+  /// It is also what forced the Android launch window to be branded rather
+  /// than themed: `values-night/` tracks the *system* setting, so an app
+  /// carrying its own independent choice can never line up with it. Offering
+  /// system is the honest fix for both.
+  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode get themeMode => _themeMode;
+
+  /// Whether the app is *currently* rendering dark.
+  ///
+  /// Only meaningful for code with no [BuildContext] — anything inside the
+  /// widget tree should ask `context.isDarkMode`, which reads the theme that
+  /// actually resolved rather than second-guessing the platform here.
+  bool get isDarkMode => switch (_themeMode) {
+        ThemeMode.dark => true,
+        ThemeMode.light => false,
+        ThemeMode.system =>
+          PlatformDispatcher.instance.platformBrightness == Brightness.dark,
+      };
+
+  static ThemeMode _readThemeMode(SharedPreferences prefs) {
+    final stored = prefs.getString(_keyThemeMode);
+    if (stored != null) {
+      return switch (stored) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      };
+    }
+    // No explicit choice recorded. Carry over the old bool if there is one —
+    // someone who had chosen dark should not be silently moved onto system on
+    // upgrade — and default a fresh install to following the phone.
+    final legacy = prefs.getBool(_keyDarkMode);
+    if (legacy == null) return ThemeMode.system;
+    return legacy ? ThemeMode.dark : ThemeMode.light;
+  }
 
   void setThemeMode(ThemeMode mode) {
+    if (mode == _themeMode) return;
     _themeMode = mode;
-    _prefs?.setBool(_keyDarkMode, mode == ThemeMode.dark);
+    _prefs?.setString(_keyThemeMode, mode.name);
     notifyListeners();
   }
 
@@ -102,12 +140,6 @@ class AppStateController extends ChangeNotifier {
     }
     notifyListeners();
   }
-
-  int _savedHadithsCount = 5;
-  int get savedHadithsCount => _savedHadithsCount;
-
-  int _myContributionsCount = 2;
-  int get myContributionsCount => _myContributionsCount;
 
   void logout() {
     // Fire-and-forget: the authStateChanges listener applies the signed-out

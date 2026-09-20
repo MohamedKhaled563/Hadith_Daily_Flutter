@@ -32,7 +32,16 @@ class FavoritesScreen extends StatefulWidget {
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final HadithRepository _repo = HadithRepository();
-  int _selectedCategory = 0;
+  /// Which list is showing. Deliberately not just 0: the screen used to open
+  /// on "today's messages" whether or not it had any, so a reader with three
+  /// saved hadiths and no saved messages landed on an empty tab.
+  int? _selectedCategory;
+
+  int _resolvedCategory(int insights, int hadiths) {
+    final chosen = _selectedCategory;
+    if (chosen != null) return chosen;
+    return insights == 0 && hadiths > 0 ? 1 : 0;
+  }
 
   void _copyText(String text) {
     Clipboard.setData(ClipboardData(text: text));
@@ -46,6 +55,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     final favoriteInsights = _repo.getFavoriteInsights();
     final favoriteHadiths = _repo.getFavoriteHadiths();
+    final selected =
+        _resolvedCategory(favoriteInsights.length, favoriteHadiths.length);
 
     return Column(
       children: [
@@ -117,7 +128,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   child: _CategoryTab(
                     title: 'رسائل اليوم (${toArabicDigits(favoriteInsights.length)})',
                     icon: Icons.auto_awesome_rounded,
-                    isSelected: _selectedCategory == 0,
+                    isSelected: selected == 0,
                     onTap: () => setState(() => _selectedCategory = 0),
                   ),
                 ),
@@ -125,7 +136,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   child: _CategoryTab(
                     title: 'الأحاديث (${toArabicDigits(favoriteHadiths.length)})',
                     icon: Icons.menu_book_rounded,
-                    isSelected: _selectedCategory == 1,
+                    isSelected: selected == 1,
                     onTap: () => setState(() => _selectedCategory = 1),
                   ),
                 ),
@@ -137,7 +148,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         const SizedBox(height: 16),
 
         Expanded(
-          child: _selectedCategory == 0
+          child: selected == 0
               ? _buildInsightsList(favoriteInsights)
               : _buildHadithsList(favoriteHadiths),
         ),
@@ -155,7 +166,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     return ListView.separated(
-      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
         20, 4, 20, 30 + BottomNavigation.reservedHeight(context),
       ),
@@ -327,7 +337,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     return ListView.separated(
-      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
         20, 4, 20, 30 + BottomNavigation.reservedHeight(context),
       ),

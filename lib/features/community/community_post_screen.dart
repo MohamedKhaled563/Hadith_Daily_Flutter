@@ -129,7 +129,6 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
 
           Expanded(
             child: ListView(
-              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
                 20, 0, 20, 24 + MediaQuery.viewPaddingOf(context).bottom,
               ),

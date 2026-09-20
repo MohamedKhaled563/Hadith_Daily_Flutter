@@ -18,6 +18,18 @@ class HadithExplanationScreen extends StatelessWidget {
 
   final Hadith hadith;
 
+  /// Blank-line-separated paragraphs, falling back to the whole text when the
+  /// source has no breaks in it — some entries in the workbook are a single
+  /// run, and an empty list would render a blank card.
+  static List<String> _paragraphs(String text) {
+    final parts = text
+        .split(RegExp(r'\n\s*\n'))
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+    return parts.isEmpty ? [text.trim()] : parts;
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
@@ -74,7 +86,6 @@ class HadithExplanationScreen extends StatelessWidget {
           const SizedBox(height: 14),
           Expanded(
             child: ListView(
-              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
                 20,
                 6,
@@ -84,15 +95,35 @@ class HadithExplanationScreen extends StatelessWidget {
               children: [
                 ParchmentCard(
                   elevated: true,
-                  child: Text(
-                    hadith.explanation,
-                    textAlign: TextAlign.start,
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      fontSize: 15.5,
-                      height: AppLeading.body,
-                      color: palette.bodyText,
-                    ),
+                  // Split on blank lines rather than set as one slab. This is
+                  // the deepest reading surface in the app and it was getting
+                  // the least typographic care of any screen: several
+                  // paragraphs of scholarly commentary run together with no
+                  // space between them.
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final paragraph in _paragraphs(hadith.explanation))
+                        Padding(
+                          padding: EdgeInsets.only(
+                            bottom: paragraph == _paragraphs(
+                                      hadith.explanation,
+                                    ).last
+                                ? 0
+                                : 16,
+                          ),
+                          child: Text(
+                            paragraph,
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                              fontFamily: kSans,
+                              fontSize: 15.5,
+                              height: AppLeading.body,
+                              color: palette.bodyText,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],

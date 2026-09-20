@@ -108,7 +108,6 @@ class LegalDocumentScreen extends StatelessWidget {
           const SizedBox(height: 14),
           Expanded(
             child: ListView(
-              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
                 20,
                 6,

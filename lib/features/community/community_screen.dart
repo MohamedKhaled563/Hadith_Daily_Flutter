@@ -150,7 +150,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
               // "شارك رسالة" tab — so this list doesn't need its own second
               // call to action.
               return ListView.separated(
-                physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(
                   20,
                   4,

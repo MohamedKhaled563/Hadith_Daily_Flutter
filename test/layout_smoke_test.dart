@@ -237,7 +237,7 @@ void main() {
 
     final lightColour = titleColour();
 
-    state.toggleTheme();
+    state.setThemeMode(ThemeMode.dark);
     await tester.pumpAndSettle();
 
     // Colour must actually change: the screen used to read isDarkMode off the
