@@ -6,6 +6,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/notification_reliability_tip.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/botanical_sheet.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
@@ -37,10 +38,8 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
     return '$hour:${time.minute.toString().padLeft(2, '0')} $period';
   }
 
-  void _toast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  void _toast(String message, {SnackTone tone = SnackTone.neutral}) {
+    showAppSnack(context, message, tone: tone);
   }
 
   // ------------------------------------------------------------- account ----

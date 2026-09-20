@@ -8,6 +8,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/tap_target.dart';
@@ -166,10 +167,10 @@ class _AddMessageScreenState extends State<AddMessageScreen>
     } catch (_) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تعذّر إرسال رسالتك، تحقق من اتصالك بالإنترنت وحاول مرة أخرى 🌿'),
-        ),
+      showAppSnack(
+        context,
+        'تعذّر إرسال رسالتك، تحقق من اتصالك بالإنترنت وحاول مرة أخرى',
+        tone: SnackTone.danger,
       );
       return;
     }
@@ -181,10 +182,10 @@ class _AddMessageScreenState extends State<AddMessageScreen>
     // than a selection tick.
     AppHaptics.success();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم إرسال رسالتك للمراجعة، وستظهر بعد موافقة المشرفين 🌿'),
-      ),
+    showAppSnack(
+      context,
+      'تم إرسال رسالتك للمراجعة، وستظهر بعد موافقة المشرفين',
+      tone: SnackTone.success,
     );
 
     _messageController.clear();

@@ -32,13 +32,34 @@ class CommunityService {
     );
   }
 
-  /// Live query of every approved message, newest first. Rebuilds
-  /// automatically the moment a moderator approves something new.
-  Stream<List<CommunityPost>> approvedMessages() {
+  /// How many approved messages the feed asks for at a time.
+  static const pageSize = 10;
+
+  /// Live query of approved messages, ordered and bounded on the server.
+  ///
+  /// This used to fetch *every* approved message with no limit, order it on
+  /// the client, and then show `take(3)`. Two bugs in one line: the feed was
+  /// capped at three posts with no way to see more, and every visit re-read
+  /// the whole collection — a cost that grows with the app's own success, on
+  /// a free-tier project.
+  ///
+  /// Still a stream, because the comment it replaces was right about why that
+  /// matters: the feed rebuilds the moment a moderator approves something.
+  /// Paging grows [limit] and re-subscribes, which keeps that property; a
+  /// cursor-paged `get()` would trade it away for a saving that does not
+  /// matter at ten documents.
+  ///
+  /// [byLikes] needs the status+likeCount composite index (see
+  /// firestore.indexes.json) exactly as `createdAt` already did.
+  Stream<List<CommunityPost>> approvedMessages({
+    int limit = pageSize,
+    bool byLikes = false,
+  }) {
     return _db
         .collection(_collection)
         .where('status', isEqualTo: 'approved')
-        .orderBy('createdAt', descending: true)
+        .orderBy(byLikes ? 'likeCount' : 'createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snapshot) => snapshot.docs.map(_fromDoc).toList());
   }

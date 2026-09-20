@@ -4,6 +4,7 @@ import '../../core/app_links.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
 import '../../core/theme/app_palette.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
@@ -57,8 +58,10 @@ class HadithDetailScreen extends StatelessWidget {
     }
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نسخ نص الحديث وشرحه بالكامل 🌿')),
+    showAppSnack(
+      context,
+      'تم نسخ نص الحديث وشرحه بالكامل',
+      tone: SnackTone.success,
     );
   }
 

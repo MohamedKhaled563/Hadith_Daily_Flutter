@@ -142,7 +142,17 @@ service cloud.firestore {
     // workflow of its own (unlike communityMessages' pending queue), so
     // there's nothing legitimate for a moderator to update or delete here.
     match /notificationMessages/{messageId} {
-      allow read: if request.auth != null;
+      // Public read, matching dailyMessages and settings above.
+      //
+      // This was `request.auth != null`, which was fine while the app had a
+      // sign-in wall. It no longer does, and logcat on a guest device shows
+      // exactly what that costs: the scheduler's query fails
+      // PERMISSION_DENIED and every guest falls back to the small bundled
+      // reminder pool instead of the curated one a moderator maintains.
+      //
+      // Nothing here is sensitive — it is a handful of short, admin-written
+      // nudges that get shown to everyone anyway, as notifications.
+      allow read: if true;
       allow create: if isModerator()
                   && request.resource.data.text is string
                   && request.resource.data.text.size() > 0

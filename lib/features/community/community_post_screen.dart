@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
 import '../../core/theme/app_palette.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
@@ -52,10 +53,10 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
     } catch (_) {
       if (mounted) {
         setState(() => _optimisticLiked = null);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت'),
-          ),
+        showAppSnack(
+          context,
+          'تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت',
+          tone: SnackTone.danger,
         );
       }
     } finally {

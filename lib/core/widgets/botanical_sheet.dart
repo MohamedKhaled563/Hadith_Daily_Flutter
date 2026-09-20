@@ -7,6 +7,14 @@ import '../theme/app_palette.dart';
 /// Both previous sheets hand-rolled a Container with a grab handle, hardcoded
 /// their colours, and omitted `useSafeArea` — so on a gesture-navigation device
 /// their content could sit under the home indicator.
+///
+/// It is now actually botanical, which the name always claimed: the parchment
+/// gradient and the gold rim the rest of the app uses, rather than a flat
+/// `colorScheme.surface` rectangle. The app had three unrelated surface
+/// languages — ParchmentCard everywhere, GlassPanel on the auth screens, and
+/// this — so which one a reader got depended on where they happened to be.
+/// Parchment is the one that carries the identity and was already everywhere,
+/// so it wins.
 Future<T?> showBotanicalSheet<T>({
   required BuildContext context,
   required String title,
@@ -30,11 +38,18 @@ Future<T?> showBotanicalSheet<T>({
         ),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Theme.of(sheetContext).colorScheme.surface,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [palette.parchmentTop, palette.parchmentMid],
+            ),
             borderRadius: const BorderRadius.vertical(
               top: Radius.circular(AppRadii.sheet),
             ),
-            border: Border.all(color: palette.cardBorder),
+            // Uniform on purpose: Flutter refuses a per-side colour on a
+            // border that also has a radius, and the sheet is top-rounded.
+            // Same hairline the parchment cards carry, which is the point.
+            border: Border.all(color: palette.cardBorder, width: 1.2),
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),

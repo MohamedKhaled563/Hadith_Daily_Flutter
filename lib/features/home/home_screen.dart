@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/bottom_navigation.dart';
@@ -69,8 +70,10 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() => _loadingDailyTip = false);
 
     if (tips.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لم يتم تحميل الرسائل بعد، حاول مجدداً')),
+      showAppSnack(
+        context,
+        'لم يتم تحميل الرسائل بعد، حاول مجدداً',
+        tone: SnackTone.warning,
       );
       return;
     }

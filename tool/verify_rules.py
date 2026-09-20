@@ -798,6 +798,22 @@ def main() -> int:
     else:
         check("delete your own feedback (setup failed)", False, True)
 
+    # -- notificationMessages: readable without an account -------------------
+    # The app lost its sign-in wall, and the scheduler needs this pool on a
+    # guest device or every guest silently falls back to the bundled one.
+    resp = requests.get(
+        f"{FIRESTORE_URL}/notificationMessages", headers=rest_headers(None)
+    )
+    check("read the notification pool while signed out", resp.status_code == 200, True)
+
+    # Writing it is still staff-only, which is the half that matters.
+    resp = create_doc(
+        "notificationMessages",
+        {"text": "محاولة", "order": 0, "active": True},
+        token_a,
+    )
+    check("non-moderator creates a notification message", resp.status_code == 200, False)
+
     # -- users/{uid}: delete your own profile doc, never someone else's -----
     # Done last for uid_a, because roleOf() reads this doc and every check
     # above depends on it existing.

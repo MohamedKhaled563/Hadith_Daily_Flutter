@@ -9,6 +9,14 @@
       ]
     },
     {
+      "collectionGroup": "communityMessages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "likeCount", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "bulkChangeRequests",
       "queryScope": "COLLECTION",
       "fields": [

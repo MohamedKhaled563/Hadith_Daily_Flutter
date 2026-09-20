@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/auth/sign_in_gate.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/theme/app_palette.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_empty_state.dart';
@@ -38,7 +40,24 @@ class CommunityScreen extends StatefulWidget {
 class _CommunityScreenState extends State<CommunityScreen> {
   bool _sortByLikes = true;
 
+  /// Grows when the reader asks for more. Reset on a sort change, because the
+  /// order changing makes "the next ten" mean something different.
+  int _limit = CommunityService.pageSize;
+
   void _openAddMessage() => widget.onSwitchToShareTab?.call();
+
+  void _setSort(bool byLikes) {
+    if (byLikes == _sortByLikes) return;
+    setState(() {
+      _sortByLikes = byLikes;
+      _limit = CommunityService.pageSize;
+    });
+  }
+
+  void _showMore() {
+    AppHaptics.tap();
+    setState(() => _limit += CommunityService.pageSize);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,14 +102,17 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
         _SortToggle(
           sortByLikes: _sortByLikes,
-          onChanged: (value) => setState(() => _sortByLikes = value),
+          onChanged: _setSort,
         ),
 
         const SizedBox(height: 12),
 
         Expanded(
           child: StreamBuilder<List<CommunityPost>>(
-            stream: CommunityService().approvedMessages(),
+            stream: CommunityService().approvedMessages(
+              limit: _limit,
+              byLikes: _sortByLikes,
+            ),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return AppEmptyState(
@@ -104,13 +126,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              final sorted = List<CommunityPost>.from(snapshot.data!)
-                ..sort(
-                  _sortByLikes
-                      ? (a, b) => b.likes.compareTo(a.likes)
-                      : (a, b) => b.createdAt.compareTo(a.createdAt),
-                );
-              final posts = sorted.take(3).toList();
+              // Ordering and bounding both happen on the server now, so
+              // what arrives is already the page to draw.
+              final posts = snapshot.data!;
+              final canShowMore = posts.length >= _limit;
 
               if (posts.isEmpty) {
                 return AppEmptyState(
@@ -138,9 +157,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   20,
                   12 + BottomNavigation.reservedHeight(context),
                 ),
-                itemCount: posts.length,
+                // One extra slot for the "show more" button, when there is
+                // plausibly more to show.
+                itemCount: posts.length + (canShowMore ? 1 : 0),
                 separatorBuilder: (_, __) => const SizedBox(height: 18),
                 itemBuilder: (context, index) {
+                  if (index == posts.length) {
+                    return _ShowMoreButton(onTap: _showMore);
+                  }
                   final post = posts[index];
                   return _CommunityPostCard(
                     post: post,
@@ -156,6 +180,60 @@ class _CommunityScreenState extends State<CommunityScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Asks for the next page.
+///
+/// A plain button rather than infinite scroll on purpose: this is a feed of
+/// reflections to sit with, not one to fall down, and an endless list quietly
+/// invites the opposite.
+class _ShowMoreButton extends StatelessWidget {
+  const _ShowMoreButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Center(
+      child: TapTarget(
+        onTap: onTap,
+        semanticLabel: 'عرض المزيد من المشاركات',
+        pressScale: AppPress.cardScale,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(AppRadii.pill),
+            border: Border.all(color: palette.cardBorder, width: 1.2),
+            boxShadow: AppElevation.card,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.expand_more_rounded,
+                size: 18,
+                color: palette.goldText,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'عرض المزيد',
+                style: TextStyle(
+                  fontFamily: kSans,
+                  fontSize: 13,
+                  height: AppLeading.chrome,
+                  fontWeight: FontWeight.w700,
+                  color: palette.goldText,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -303,10 +381,10 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
     } catch (_) {
       if (mounted) {
         setState(() => _optimisticLiked = null);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت'),
-          ),
+        showAppSnack(
+          context,
+          'تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت',
+          tone: SnackTone.danger,
         );
       }
     } finally {

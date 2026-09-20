@@ -9,6 +9,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/circle_icon_button.dart';
@@ -77,7 +78,11 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
 
     return AppScreen(
       bottomNavigationBar: BottomNavigation(
-        currentIndex: 0,
+        // Not 0. This is a pushed route, not the Home tab, and lighting Home
+        // up told the reader something untrue about where they were — then
+        // popped instead of navigating when they acted on it. -1 selects
+        // nothing, which is the honest answer.
+        currentIndex: -1,
         onTap: (index) {
           if (widget.onTabSelected != null) {
             widget.onTabSelected!(index);
@@ -259,9 +264,7 @@ class _MessagePageState extends State<_MessagePage> {
 
   void _copyMessageText() {
     Clipboard.setData(ClipboardData(text: _shareText));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نسخ نص الرسالة بنجاح 🌿')),
-    );
+    showAppSnack(context, 'تم نسخ نص الرسالة', tone: SnackTone.success);
   }
 
   void _toggleBookmark() {
@@ -271,14 +274,11 @@ class _MessagePageState extends State<_MessagePage> {
       _repo.toggleFavoriteInsight(_insight);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isBookmarked
-              ? 'تم حفظ الرسالة في المفضلة 🌿'
-              : 'تمت الإزالة من المفضلة',
-        ),
-      ),
+    showAppSnack(
+      context,
+      _isBookmarked ? 'تم حفظ الرسالة في المفضلة' : 'تمت الإزالة من المفضلة',
+      tone: _isBookmarked ? SnackTone.success : SnackTone.neutral,
+      action: _isBookmarked ? null : undoAction(context, _toggleBookmark),
     );
   }
 
@@ -528,8 +528,10 @@ class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
     } catch (_) {
       if (mounted) {
         setState(() => _optimisticLiked = null);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذّر تسجيل الإعجاب، حاول مجدداً')),
+        showAppSnack(
+          context,
+          'تعذّر تسجيل الإعجاب، حاول مجدداً',
+          tone: SnackTone.danger,
         );
       }
     } finally {

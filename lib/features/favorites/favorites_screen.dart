@@ -4,8 +4,10 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_empty_state.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/parchment_card.dart';
@@ -34,9 +36,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   void _copyText(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نسخ النص بنجاح 🌿')),
-    );
+    showAppSnack(context, 'تم نسخ النص', tone: SnackTone.success);
   }
 
   @override
@@ -179,14 +179,22 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   _CategoryPill(label: insight.category),
                   TapTarget(
                     onTap: () {
+                      AppHaptics.toggle();
                       setState(
                         () => _repo.toggleFavoriteInsight(insight),
                       );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('تمت الإزالة من المحفوظات'),
-                          duration: Duration(seconds: 1),
-                        ),
+                      // Removing something the reader deliberately saved is
+                      // the one place in this screen worth an undo: it used
+                      // to fire a one-second snack with nothing on it, and
+                      // the only way back was to find the message again.
+                      showAppSnack(
+                        context,
+                        'تمت الإزالة من المحفوظات',
+                        action: undoAction(context, () {
+                          setState(
+                            () => _repo.toggleFavoriteInsight(insight),
+                          );
+                        }),
                       );
                     },
                     semanticLabel: 'إزالة الرسالة من المحفوظات',
