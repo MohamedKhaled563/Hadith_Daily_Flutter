@@ -25,7 +25,12 @@ class AppColors {
   static const goldTextDark = Color(0xFFD9B44A);
 
   static const primaryText = Color(0xFF26352C);
-  static const secondaryText = Color(0xFF5A7061);
+
+  /// Raised from #5A7061, which cleared AA on the scaffold ground (4.84:1) but
+  /// failed on every parchment surface it actually landed on — 4.20:1 on card
+  /// mid, 3.93:1 on card bottom. This clears AA on all of them: 5.18:1 at the
+  /// worst (parchment bottom #E5DCCB), 6.95:1 on card #FFFDFC.
+  static const secondaryText = Color(0xFF4A5D52);
 
   /// Raised from #9E9D97 (2.52:1). Clears AA on every surface it lands on:
   /// 5.41:1 on cream #FAF6EE, 4.79:1 on search #EFE8DC, 5.75:1 on card #FFFDFC.

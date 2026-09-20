@@ -175,38 +175,61 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    // Was one hardcoded colour per status on a 12%-alpha wash of itself, with
+    // no dark variant: 2.02:1 at the worst. Now the semantic roles, which
+    // carry a legible pair per theme. The leading icon is there so status
+    // does not rest on hue alone.
     late final Color bg;
     late final Color fg;
+    late final IconData icon;
     late final String label;
 
     switch (status) {
       case 'approved':
-        bg = const Color(0x1F3E8E5C);
-        fg = const Color(0xFF3E8E5C);
+        bg = palette.successWash;
+        fg = palette.success;
+        icon = Icons.check_circle_outline_rounded;
         label = 'مقبولة';
         break;
       case 'rejected':
-        bg = const Color(0x1FB4453A);
-        fg = const Color(0xFFB4453A);
+        bg = palette.dangerWash;
+        fg = palette.danger;
+        icon = Icons.cancel_outlined;
         label = 'غير مقبولة';
         break;
       default:
-        bg = const Color(0x1FC79A3A);
-        fg = const Color(0xFFC79A3A);
+        bg = palette.warningWash;
+        fg = palette.warning;
+        icon = Icons.hourglass_empty_rounded;
         label = 'قيد المراجعة';
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: kSans,
-          fontSize: 11.5,
-          fontWeight: FontWeight.w700,
-          color: fg,
-        ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        // The wash alone is close in luminance to the card behind it; the rim
+        // is what makes the badge read as its own object.
+        border: Border.all(color: fg.withValues(alpha: 0.35), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: fg),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: fg,
+            ),
+          ),
+        ],
       ),
     );
   }

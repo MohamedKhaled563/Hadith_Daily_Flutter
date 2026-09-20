@@ -40,37 +40,40 @@ class AppBackground extends StatelessWidget {
             ),
           ),
 
-          // Harmonising tint that keeps the night scene serene.
-          if (isDark)
-            ExcludeSemantics(
-              child: IgnorePointer(
-                child: ColoredBox(
-                  color: Colors.black.withValues(alpha: 0.42),
-                ),
-              ),
-            ),
-
           child,
         ],
       ),
     );
   }
 
+  /// Dark mode used to paint the *daytime* painting at 45% opacity over
+  /// [AppColors.backgroundDark] and then lay a 42% black scrim on top. Because
+  /// the top two thirds of that artwork is near-white cream, the composite
+  /// landed around #4A4F47 — a desaturated mid-grey, lighter than the parchment
+  /// cards sitting on it, so every card read as a hole punched in the page
+  /// rather than a surface raised off it.
+  ///
+  /// These are proper night variants instead: the same painting, luminance
+  /// remapped into the app's dark range (see tool/make_night_backgrounds.py),
+  /// drawn at full opacity with no scrim. The ground now sits below the cards
+  /// everywhere — 99th-percentile ground luminance 0.023 against the card's
+  /// 0.032 — and the scene keeps its emerald rather than going grey.
   Widget _buildHomeImage(bool isDark) => _background(
-        'assets/images/home_background.png',
-        opacity: isDark ? 0.45 : 1.0,
+        isDark
+            ? 'assets/images/home_background_night.png'
+            : 'assets/images/home_background.png',
       );
 
   Widget _buildInnerImage(bool isDark) => _background(
-        'assets/images/background_empty.png',
-        opacity: isDark ? 0.35 : 1.0,
+        isDark
+            ? 'assets/images/background_empty_night.png'
+            : 'assets/images/background_empty.png',
       );
 
-  Widget _background(String path, {required double opacity}) {
+  Widget _background(String path) {
     return Image.asset(
       path,
       fit: BoxFit.cover,
-      opacity: AlwaysStoppedAnimation(opacity),
       errorBuilder: (context, error, stackTrace) {
         return AssetHelper.assetOrFallback(
           assetPath: path.replaceAll('.png', '.svg'),

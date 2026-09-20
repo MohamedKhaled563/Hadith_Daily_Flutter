@@ -22,12 +22,14 @@ class LikeCounter extends StatelessWidget {
   final bool isLiked;
   final VoidCallback onTap;
 
-  static const _liked = Color(0xFFC73E3E);
-
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final isDark = context.isDarkMode;
+
+    // Was a single #C73E3E in both themes on a hand-picked wash: 4.27:1 in
+    // light and 2.92:1 in dark, both under AA for a 12.5px count. The danger
+    // role carries a value per theme — 6.13:1 and 6.88:1 on its own wash.
+    final liked = palette.danger;
 
     return TapTarget(
       onTap: onTap,
@@ -36,12 +38,10 @@ class LikeCounter extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
         decoration: BoxDecoration(
-          color: isLiked
-              ? (isDark ? const Color(0xFF382323) : const Color(0xFFFDE8E8))
-              : palette.surface,
+          color: isLiked ? palette.dangerWash : palette.surface,
           borderRadius: BorderRadius.circular(AppRadii.pill),
           border: Border.all(
-            color: isLiked ? _liked.withValues(alpha: 0.6) : palette.cardBorder,
+            color: isLiked ? liked.withValues(alpha: 0.6) : palette.cardBorder,
             width: 1.1,
           ),
         ),
@@ -55,7 +55,7 @@ class LikeCounter extends StatelessWidget {
               child: Icon(
                 isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                 size: 18,
-                color: isLiked ? _liked : palette.mutedText,
+                color: isLiked ? liked : palette.mutedText,
               ),
             ),
             const SizedBox(width: 5),
@@ -66,7 +66,7 @@ class LikeCounter extends StatelessWidget {
                 fontSize: 12.5,
                 height: AppLeading.chrome,
                 fontWeight: FontWeight.w700,
-                color: isLiked ? _liked : palette.bodyText,
+                color: isLiked ? liked : palette.bodyText,
               ),
             ),
           ],

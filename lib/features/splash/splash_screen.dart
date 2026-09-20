@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/asset_helper.dart';
@@ -181,6 +182,13 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    // This screen used to hardcode nine light-mode literals, so in dark mode
+    // the app name rendered at 1.54:1 and the tagline at 1.57:1 - the first
+    // thing every reader sees, effectively invisible. Everything below now
+    // comes from the theme like the rest of the app.
+    final palette = context.palette;
+    final isDark = context.isDarkMode;
+
     return Scaffold(
       body: GestureDetector(
         onTap: _navigateToHome,
@@ -257,10 +265,19 @@ class _SplashScreenState extends State<SplashScreen>
                                     height: size,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: const Color(0x20D1BE93),
+                                      // A 12.5% gold fill reads as a soft
+                                      // bloom over parchment, but as a flat
+                                      // opaque grey disc over the night
+                                      // ground. On dark the blur does the
+                                      // work and the fill nearly disappears.
+                                      color: Color(
+                                        isDark ? 0x0CD1BE93 : 0x20D1BE93,
+                                      ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: const Color(0x30E0CEB0),
+                                          color: Color(
+                                            isDark ? 0x1FE0CEB0 : 0x30E0CEB0,
+                                          ),
                                           blurRadius:
                                               36 * _heartPulseAnimation.value,
                                           spreadRadius: 8,
@@ -280,17 +297,27 @@ class _SplashScreenState extends State<SplashScreen>
                                   padding: EdgeInsets.all(22 * scale),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    gradient: const LinearGradient(
+                                    // A cream disc on a night scene reads as
+                                    // a blown-out white blob; in dark mode the
+                                    // disc takes the same parchment the cards
+                                    // use and the gold rim carries the shape.
+                                    gradient: LinearGradient(
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
-                                      colors: [
-                                        Color(0xFFFFFDFC),
-                                        Color(0xFFFAF5EB),
-                                        Color(0xFFF1E6D3),
-                                      ],
+                                      colors: isDark
+                                          ? [
+                                              palette.parchmentTop,
+                                              palette.parchmentMid,
+                                              palette.parchmentBottom,
+                                            ]
+                                          : const [
+                                              Color(0xFFFFFDFC),
+                                              Color(0xFFFAF5EB),
+                                              Color(0xFFF1E6D3),
+                                            ],
                                     ),
                                     border: Border.all(
-                                      color: const Color(0xFFD6BE88),
+                                      color: palette.cardBorderStrong,
                                       width: 3.5,
                                     ),
                                     boxShadow: const [
@@ -308,7 +335,9 @@ class _SplashScreenState extends State<SplashScreen>
                                     height: 80 * scale,
                                     fallback: Icon(
                                       Icons.favorite_rounded,
-                                      color: AppColors.primaryGreen,
+                                      color: isDark
+                                          ? AppColors.primaryGreenDark
+                                          : AppColors.primaryGreen,
                                       size: 58 * scale,
                                     ),
                                   ),
@@ -321,14 +350,18 @@ class _SplashScreenState extends State<SplashScreen>
                         const SizedBox(height: 32),
 
                         // App Name
-                        const Text(
+                        Text(
                           'طيّب قلبك',
                           style: TextStyle(
                             fontSize: 34,
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF26352C),
+                            color: palette.bodyText,
                             fontFamily: kSans,
-                            letterSpacing: -0.5,
+                            // Arabic is a connected script - negative tracking
+                            // breaks the joins between glyphs. Every other
+                            // style in the app leaves this at zero on purpose
+                            // (see AppTextStyles); this one had drifted.
+                            letterSpacing: 0,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -341,17 +374,17 @@ class _SplashScreenState extends State<SplashScreen>
                           fallback: Container(
                             width: 70,
                             height: 2,
-                            color: const Color(0xFFD6BE88),
+                            color: palette.cardBorderStrong,
                           ),
                         ),
                         const SizedBox(height: 10),
 
-                        const Text(
+                        Text(
                           'أحاديث نبوية وهدايات قلبية',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF5A7061),
+                            color: palette.mutedText,
                             fontFamily: kSans,
                           ),
                         ),
@@ -366,19 +399,17 @@ class _SplashScreenState extends State<SplashScreen>
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0x99FAF6EE),
+                              color: palette.surface.withValues(alpha: 0.92),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0x40D1BE93),
-                              ),
+                              border: Border.all(color: palette.cardBorder),
                             ),
                             child: Text(
                               _inspirationalQuotes[_currentQuoteIndex],
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF385240),
+                                color: palette.bodyText,
                                 fontFamily: kSans,
                                 height: 1.5,
                               ),
@@ -392,32 +423,11 @@ class _SplashScreenState extends State<SplashScreen>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(0xFF94815B),
-                              ),
-                            ),
+                            _Dot(color: palette.ornamentGold, size: 6),
                             const SizedBox(width: 8),
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(0xFF385240),
-                              ),
-                            ),
+                            _Dot(color: palette.goldText, size: 8),
                             const SizedBox(width: 8),
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(0xFF94815B),
-                              ),
-                            ),
+                            _Dot(color: palette.ornamentGold, size: 6),
                           ],
                         ),
 
@@ -431,6 +441,24 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ),
       ),
+    );
+  }
+}
+
+/// One of the three resting dots under the quote. Extracted only so the three
+/// call sites cannot drift apart again.
+class _Dot extends StatelessWidget {
+  const _Dot({required this.color, required this.size});
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 }

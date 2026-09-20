@@ -184,6 +184,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
                         : 'جرّب كلمة أخرى، أو ابحث برقم الحديث من ١ إلى ٤٢.',
                     actionLabel: _searchQuery.isNotEmpty ? 'مسح البحث' : null,
                     onAction: _searchQuery.isNotEmpty ? _clearSearch : null,
+                    actionIcon: Icons.refresh_rounded,
                   )
                 : ListView.separated(
                     physics: const BouncingScrollPhysics(),

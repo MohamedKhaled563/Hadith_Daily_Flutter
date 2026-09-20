@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
-</layer-list>
+<!-- The window the system paints from the moment the launcher icon is tapped,
+     before any app code runs. It used to be @android:color/white, which meant
+     a reader who had chosen dark inside the app got a full-screen white flash
+     for the whole of a cold start - over a second on a mid-range phone.
+
+     The app carries its own light/dark preference rather than following the
+     OS, and this window is chosen by resource qualifier (values-night follows
+     the *system* setting), so it cannot be made to match. A branded launch is
+     the honest answer: the same deep emerald the launcher icon already uses as
+     its own background, so the window continues the icon the reader just
+     tapped and resolves into either theme without a flash of the wrong one.
+
+     A <shape> is used rather than a layer-list item because AAPT accepts an
+     inline colour literal for android:color but rejects one for a layer-list
+     item's android:drawable, which needs a real drawable reference. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#FF15362B" />
+</shape>

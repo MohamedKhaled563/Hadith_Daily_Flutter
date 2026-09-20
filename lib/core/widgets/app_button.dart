@@ -22,15 +22,21 @@ class AppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final scheme = Theme.of(context).colorScheme;
     final green = context.isDarkMode
         ? AppColors.primaryGreenDark
         : AppColors.primaryGreen;
 
+    // The ink on a filled button comes from the scheme, not a white literal.
+    // In dark mode the fill is the pale sage #6F9B7C, and white on it is
+    // 3.16:1 — under AA, on every primary call to action in the app. The
+    // scheme already declares the right answer (onPrimary is backgroundDark
+    // there, 5.61:1); this just stops ignoring it.
     final button = ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: isSecondary ? palette.surface : green,
-        foregroundColor: isSecondary ? green : Colors.white,
+        foregroundColor: isSecondary ? green : scheme.onPrimary,
         elevation: 0,
         // 54 tall, comfortably above the 48dp minimum target.
         minimumSize: Size(expand ? double.infinity : 0, 54),

@@ -18,6 +18,7 @@ class AppEmptyState extends StatelessWidget {
     this.icon,
     this.actionLabel,
     this.onAction,
+    this.actionIcon,
   });
 
   final String title;
@@ -25,6 +26,11 @@ class AppEmptyState extends StatelessWidget {
   final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// Defaults to the "write something" pencil, which is right for Community's
+  /// "share the first message" but wrong for the hadith list's "clear the
+  /// search" — that one was showing an edit pencil for a reset action.
+  final IconData? actionIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -81,11 +87,15 @@ class AppEmptyState extends StatelessWidget {
               const SizedBox(height: 22),
               ElevatedButton.icon(
                 onPressed: onAction,
-                icon: const Icon(Icons.edit_note_rounded, size: 20),
+                icon: Icon(actionIcon ?? Icons.edit_note_rounded, size: 20),
                 label: Text(actionLabel!),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
+                  // Same fill and ink as AppButton, from the scheme rather
+                  // than a white literal — see app_button.dart.
+                  backgroundColor: context.isDarkMode
+                      ? AppColors.primaryGreenDark
+                      : AppColors.primaryGreen,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   textStyle: AppTextStyles.buttonText.copyWith(fontSize: 14),
                   // Comfortably clears the 48dp minimum target.
                   minimumSize: const Size(0, 50),
