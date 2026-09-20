@@ -236,6 +236,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 keyboardType: TextInputType.emailAddress,
                                 textInputAction: TextInputAction.next,
                                 enabled: !_submitting,
+                                autofillHints: const [AutofillHints.username],
                                 onSubmitted: (_) =>
                                     _passwordFocus.requestFocus(),
                                 onChanged: _clearError,
@@ -253,6 +254,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 obscureText: _obscurePassword,
                                 textInputAction: TextInputAction.done,
                                 enabled: !_submitting,
+                                autofillHints: const [AutofillHints.password],
                                 onSubmitted: (_) => _submit(),
                                 onChanged: _clearError,
                                 trailing: TapTarget(
@@ -396,6 +398,7 @@ class _LoginScreenState extends State<LoginScreen>
                     controller: emailCtrl,
                     enabled: !sending && success == null,
                     keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.username],
                     textDirection: TextDirection.ltr,
                     textAlign: TextAlign.left,
                     onChanged: (_) {
@@ -580,6 +583,7 @@ class _Field extends StatelessWidget {
     this.onSubmitted,
     this.onChanged,
     this.trailing,
+    this.autofillHints,
   });
 
   final TextEditingController controller;
@@ -594,6 +598,12 @@ class _Field extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final ValueChanged<String>? onChanged;
   final Widget? trailing;
+
+  /// What the password manager should offer here. Without it the keyboard's
+  /// autofill bar has nothing to put in, so a returning reader retypes an
+  /// address and a password they already have saved — on a phone, in Latin
+  /// characters, on an RTL keyboard layout.
+  final List<String>? autofillHints;
 
   @override
   Widget build(BuildContext context) {
@@ -644,6 +654,7 @@ class _Field extends StatelessWidget {
                   keyboardType: keyboardType,
                   onSubmitted: onSubmitted,
                   onChanged: onChanged,
+                  autofillHints: enabled ? autofillHints : null,
                   // Credentials are Latin; force LTR so the caret and text sit
                   // correctly inside an otherwise RTL layout.
                   textDirection: TextDirection.ltr,

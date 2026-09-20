@@ -64,6 +64,32 @@ class CommunityService {
         .map((snapshot) => snapshot.docs.map(_fromDoc).toList());
   }
 
+  /// What pull-to-refresh actually does on a live feed.
+  ///
+  /// [approvedMessages] is a snapshot stream, so in the normal case there is
+  /// nothing to fetch — new posts already arrive on their own. The case worth
+  /// serving is the other one: the reader is offline, or the listener died,
+  /// and the feed they are looking at is stale with no way to say so.
+  ///
+  /// So this forces a round trip to the *server* rather than the local cache.
+  /// Succeeding proves the connection and refreshes the cache the stream
+  /// reads from; throwing is the honest answer to the gesture, and the caller
+  /// turns it into a message. Deliberately not a timer behind a spinner,
+  /// which is what a refresh that cannot fail would amount to.
+  Future<void> refresh({bool byLikes = false}) async {
+    await _db
+        .collection(_collection)
+        .where('status', isEqualTo: 'approved')
+        .orderBy(byLikes ? 'likeCount' : 'createdAt', descending: true)
+        .limit(1)
+        .get(const GetOptions(source: Source.server))
+        // Firestore queues a server read behind its own retry logic rather
+        // than failing the moment the network is gone, so without a deadline
+        // the refresh spinner can sit there indefinitely on a phone that has
+        // simply lost signal — the exact case this gesture exists to answer.
+        .timeout(const Duration(seconds: 12));
+  }
+
   /// Throws if nobody is signed in — every screen that calls this already
   /// sits behind the app's sign-in gate at splash, so that should never
   /// actually happen in practice.

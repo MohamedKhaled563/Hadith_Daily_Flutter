@@ -213,10 +213,20 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
                         Text(
                           hadith.isnad,
                           textAlign: TextAlign.start,
+                          // No italic. Arabic script has no italic form, and
+                          // no oblique Amiri is bundled — so `FontStyle.italic`
+                          // made the engine synthesise a slant by shearing the
+                          // glyphs, which is a Latin convention applied to a
+                          // script that does not take it. The chain of
+                          // narration is set apart by size and colour instead,
+                          // which is how Arabic typography does this.
+                          //
+                          // mutedText rather than bodyText at 70%: it is the
+                          // token that was measured against these surfaces,
+                          // and an arbitrary alpha was not.
                           style: AppTextStyles.hadithText.copyWith(
                             fontSize: 15,
-                            fontStyle: FontStyle.italic,
-                            color: palette.bodyText.withValues(alpha: 0.7),
+                            color: palette.mutedText,
                           ),
                         ),
                         const SizedBox(height: 10),

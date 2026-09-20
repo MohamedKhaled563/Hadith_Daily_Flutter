@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/app_info.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_state_controller.dart';
@@ -532,7 +533,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'إصدار 1.0.0 — الأربعين النووية',
+                              'إصدار ${AppInfo.version} — الأربعين النووية',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall

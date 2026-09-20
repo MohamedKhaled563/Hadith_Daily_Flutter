@@ -67,6 +67,26 @@ class _CommunityScreenState extends State<CommunityScreen> {
     if (mounted) setState(() {});
   }
 
+  /// The gesture every reader tries on a feed, which did nothing here at all.
+  ///
+  /// What it can honestly do is bounded by the feed being a live stream: new
+  /// posts already arrive without asking. So this goes to the server rather
+  /// than the cache, which makes the one case that matters — a stale feed
+  /// behind a dead connection — say so instead of silently sitting there.
+  Future<void> _refresh() async {
+    AppHaptics.tap();
+    try {
+      await CommunityService().refresh(byLikes: _sortByLikes);
+    } catch (_) {
+      if (!mounted) return;
+      showAppSnack(
+        context,
+        'تعذّر التحديث، تحقق من اتصالك بالإنترنت',
+        tone: SnackTone.danger,
+      );
+    }
+  }
+
   void _openAddMessage() => widget.onSwitchToShareTab?.call();
 
   void _setSort(bool byLikes) {
@@ -95,6 +115,30 @@ class _CommunityScreenState extends State<CommunityScreen> {
       context,
       'لن تظهر لك مشاركات هذا الكاتب على هذا الجهاز',
       tone: SnackTone.neutral,
+    );
+  }
+
+  /// Makes a state that is not a list still answer the pull gesture.
+  ///
+  /// An empty state is a `Center`, which does not scroll, so the drag never
+  /// reaches a [RefreshIndicator] above it. Giving it a scrollable that is
+  /// forced to accept the drag and sized to the viewport keeps the state
+  /// centred and makes the gesture work — which matters most exactly here,
+  /// since "couldn't load" is the screen a reader most wants to retry.
+  Widget _refreshable(Widget child) {
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      color: context.palette.goldText,
+      backgroundColor: context.palette.surface,
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: child,
+          ),
+        ),
+      ),
     );
   }
 
@@ -154,10 +198,15 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return AppEmptyState(
-                  icon: Icons.wifi_off_rounded,
-                  title: 'تعذّر تحميل المشاركات',
-                  subtitle: 'تحقق من الاتصال بالإنترنت وحاول مرة أخرى.',
+                // Refreshable, because "try again" with nothing to try it
+                // with is the same defect as a message with no way out of it.
+                return _refreshable(
+                  AppEmptyState(
+                    icon: Icons.wifi_off_rounded,
+                    title: 'تعذّر تحميل المشاركات',
+                    subtitle: 'اسحب للأسفل للمحاولة مرة أخرى، بعد التحقق من '
+                        'اتصالك بالإنترنت.',
+                  ),
                 );
               }
 
@@ -179,7 +228,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   .toList();
 
               if (posts.isEmpty) {
-                return fetched.isEmpty
+                return _refreshable(
+                  fetched.isEmpty
                     ? AppEmptyState(
                         icon: Icons.forum_outlined,
                         title: 'لا توجد مشاركات بعد',
@@ -195,7 +245,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
                             'يمكنك إظهارهم مرة أخرى من الإعدادات، أو تشارك أنت خاطرة جديدة.',
                         actionLabel: 'شارك رسالة',
                         onAction: _openAddMessage,
-                      );
+                      ),
+                );
               }
 
               // One plain vertical list, every post the same size — no
@@ -205,28 +256,41 @@ class _CommunityScreenState extends State<CommunityScreen> {
               // Sharing already has a standing entry point — the bottom-nav
               // "شارك رسالة" tab — so this list doesn't need its own second
               // call to action.
-              return ListView.separated(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  4,
-                  20,
-                  12 + BottomNavigation.reservedHeight(context),
+              return RefreshIndicator(
+                onRefresh: _refresh,
+                color: context.palette.goldText,
+                backgroundColor: context.palette.surface,
+                child: ListView.separated(
+                  // Without this a feed shorter than the screen does not
+                  // scroll at all, so the pull never reaches the indicator
+                  // above — which is exactly the state a new or filtered feed
+                  // is in. AlwaysScrollable only forces the list to accept the
+                  // drag; the feel still comes from the platform's
+                  // ScrollBehavior, so this does not bring back the hardcoded
+                  // iOS bounce that was removed everywhere else.
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    4,
+                    20,
+                    12 + BottomNavigation.reservedHeight(context),
+                  ),
+                  // One extra slot for the "show more" button, when there is
+                  // plausibly more to show.
+                  itemCount: posts.length + (canShowMore ? 1 : 0),
+                  separatorBuilder: (_, __) => const SizedBox(height: 18),
+                  itemBuilder: (context, index) {
+                    if (index == posts.length) {
+                      return _ShowMoreButton(onTap: _showMore);
+                    }
+                    final post = posts[index];
+                    return _CommunityPostCard(
+                      post: post,
+                      rank: index + 1,
+                      onTap: () => _openPost(post),
+                    );
+                  },
                 ),
-                // One extra slot for the "show more" button, when there is
-                // plausibly more to show.
-                itemCount: posts.length + (canShowMore ? 1 : 0),
-                separatorBuilder: (_, __) => const SizedBox(height: 18),
-                itemBuilder: (context, index) {
-                  if (index == posts.length) {
-                    return _ShowMoreButton(onTap: _showMore);
-                  }
-                  final post = posts[index];
-                  return _CommunityPostCard(
-                    post: post,
-                    rank: index + 1,
-                    onTap: () => _openPost(post),
-                  );
-                },
               );
             },
           ),

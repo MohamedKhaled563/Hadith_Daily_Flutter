@@ -293,8 +293,15 @@ class _HadithListCard extends StatelessWidget {
                   gradient: const LinearGradient(
                     colors: [Color(0xFFEADBBE), Color(0xFFC7A566)],
                   ),
+                  // The badge itself is a fixed gold seal in both themes,
+                  // deliberately. Its rim is not: a white ring separates the
+                  // seal from parchment, but on a night card the seal is
+                  // already the brightest thing there and a white rim reads
+                  // as a halo around it rather than an edge to it.
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: context.isDarkMode
+                        ? palette.cardBorderStrong
+                        : Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
                 child: Text(

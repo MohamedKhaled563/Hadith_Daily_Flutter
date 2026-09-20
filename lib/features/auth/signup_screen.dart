@@ -395,6 +395,9 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   textInputAction: TextInputAction.next,
                                   onChanged: _clearError,
                                   keyboardType: TextInputType.emailAddress,
+                                  autofillHints: const [
+                                    AutofillHints.newUsername,
+                                  ],
                                   // Email reads LTR inside the otherwise RTL
                                   // layout.
                                   textDirection: TextDirection.ltr,
@@ -442,6 +445,13 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   enabled: !_submitting,
                                   obscureText: _obscurePassword,
                                   textInputAction: TextInputAction.done,
+                                  // newPassword, not password: this tells a
+                                  // manager to *offer to generate and save*
+                                  // one rather than to fill an existing one
+                                  // into a field that is creating an account.
+                                  autofillHints: const [
+                                    AutofillHints.newPassword,
+                                  ],
                                   onChanged: _clearError,
                                   onSubmitted: (_) => _submit(),
                                   textDirection: TextDirection.ltr,
