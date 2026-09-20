@@ -74,7 +74,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   onTap: widget.onOpenDrawer!,
                 )
               else
-                const SizedBox(width: 48),
+                const SizedBox(width: CircleIconButton.slot),
 
               Flexible(
                 child: Semantics(
@@ -106,7 +106,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ),
               ),
 
-              const SizedBox(width: 48),
+              const SizedBox(width: CircleIconButton.slot),
             ],
           ),
         ),

@@ -38,7 +38,7 @@ class MySubmissionsScreen extends StatelessWidget {
                   onTap: () => Navigator.maybePop(context),
                 ),
                 Text('مشاركاتي', style: textTheme.titleMedium?.copyWith(fontSize: 18)),
-                const SizedBox(width: 44),
+                const SizedBox(width: CircleIconButton.slot),
               ],
             ),
           ),

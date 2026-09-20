@@ -33,6 +33,14 @@ class CircleIconButton extends StatelessWidget {
   /// read as the primary action (e.g. opening the drawer).
   final bool emphasised;
 
+  /// The width this button actually occupies in a row.
+  ///
+  /// The circle it paints is 44, but [TapTarget] grows the *target* to the
+  /// 48dp minimum — so a header balancing this button with a 44-wide spacer
+  /// pushed its title 4px off centre. Every such spacer reads this instead of
+  /// repeating a number that was already wrong once.
+  static const slot = AppPress.minTouchTarget;
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;

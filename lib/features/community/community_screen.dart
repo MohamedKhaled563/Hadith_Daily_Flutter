@@ -163,14 +163,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   onTap: widget.onOpenDrawer!,
                 )
               else
-                const SizedBox(width: 44),
+                const SizedBox(width: CircleIconButton.slot),
 
               const EmblemBadge(),
 
               // Balances the menu button so the emblem stays centred. Writing
               // a post already has a standing entry point — the bottom-nav
               // "شارك رسالة" tab — so this header does not need its own.
-              const SizedBox(width: 44),
+              const SizedBox(width: CircleIconButton.slot),
             ],
           ),
         ),

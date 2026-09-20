@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -62,6 +63,17 @@ void showAppLoadingOverlay(
   BuildContext context, {
   String message = 'جارٍ التحميل…',
   Object key = _defaultOverlayKey,
+
+  /// How long the overlay may stay up before it removes itself.
+  ///
+  /// This is a dead-man's switch, not a timeout for the work. The doc above
+  /// says an overlay left showing past its screen's lifetime is a bug — but
+  /// as written the consequence of that bug was a full-screen, tap-absorbing
+  /// scrim with no way out, on a phone, with the app apparently frozen. Any
+  /// path that throws before reaching [hideAppLoadingOverlay] does exactly
+  /// that. The reader gets their app back either way; the bug still needs
+  /// fixing, it just stops being unrecoverable.
+  Duration maxDuration = const Duration(seconds: 30),
 }) {
   hideAppLoadingOverlay(key: key);
   final overlayState = Overlay.of(context, rootOverlay: true);
@@ -69,17 +81,31 @@ void showAppLoadingOverlay(
     builder: (_) => _LoadingScrim(message: message),
   );
   _activeOverlays[key] = entry;
+  _overlayDeadlines[key] = Timer(maxDuration, () {
+    // Only if this same overlay is still the one showing — a later
+    // show/hide cycle under the same key must not be torn down by an old
+    // timer that outlived it.
+    if (_activeOverlays[key] == entry) {
+      debugPrint(
+        'AppLoadingOverlay: removed after $maxDuration — whoever called '
+        'showAppLoadingOverlay(key: $key) never called hide.',
+      );
+      hideAppLoadingOverlay(key: key);
+    }
+  });
   overlayState.insert(entry);
 }
 
 /// Removes the overlay started by [showAppLoadingOverlay] with the same
 /// [key]. Safe to call even if nothing is showing.
 void hideAppLoadingOverlay({Object key = _defaultOverlayKey}) {
+  _overlayDeadlines.remove(key)?.cancel();
   _activeOverlays.remove(key)?.remove();
 }
 
 const _defaultOverlayKey = #appLoadingOverlay;
 final Map<Object, OverlayEntry> _activeOverlays = {};
+final Map<Object, Timer> _overlayDeadlines = {};
 
 class _LoadingScrim extends StatefulWidget {
   const _LoadingScrim({required this.message});

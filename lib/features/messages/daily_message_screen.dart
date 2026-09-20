@@ -136,7 +136,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                 // Balances the back button so the title stays centred. The
                 // bookmark action now lives on the card itself, alongside
                 // copy and share.
-                const SizedBox(width: 44),
+                const SizedBox(width: CircleIconButton.slot),
               ],
             ),
           ),

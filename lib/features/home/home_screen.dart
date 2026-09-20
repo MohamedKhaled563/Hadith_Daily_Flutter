@@ -261,7 +261,7 @@ class _HomeMainView extends StatelessWidget {
                       // Matches the leading button's width so the pill stays
                       // centred. Favorites already has its own bottom-nav tab —
                       // this header used to duplicate it with a second control.
-                      const SizedBox(width: 44),
+                      const SizedBox(width: CircleIconButton.slot),
                     ],
                   ),
                 ),
