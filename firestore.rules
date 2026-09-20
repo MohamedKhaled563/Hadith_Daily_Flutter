@@ -51,7 +51,11 @@ rules_version = '2';
 // template entirely (for both roles) — BulkAddPage now only ever produces
 // create writes (BulkAddPage._collect*Creates), so the update/delete rules
 // below are exercised only by each collection's own per-item edit path,
-// never by the bulk tool.
+// never by the bulk tool. The settings/deliveryMode toggle that phases 5
+// and 6 above introduced is gone — per-date scheduling
+// (settings/dailyMessageSchedule) replaced it, and tool/
+// set_delivery_mode.py went with it — so settings/{settingId} below now
+// covers only notificationMode and dailyMessageSchedule.
 service cloud.firestore {
   match /databases/{database}/documents {
 
