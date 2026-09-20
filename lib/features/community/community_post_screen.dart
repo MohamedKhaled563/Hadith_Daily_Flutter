@@ -111,6 +111,13 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
+            // One control on each side, so spaceBetween genuinely centres the
+            // title — which matters here because it carries a decorative
+            // divider beneath it, and that is what a reader reads the centre
+            // line off. Bookmark and share used to sit here too; three
+            // circles against one pushed the title sideways, and padding it
+            // back to centre left it 75dp on a 427dp phone. They belong with
+            // the message anyway — see the toolbar under the card.
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -144,30 +151,19 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                     ),
                   ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircleIconButton(
-                      icon: _isBookmarked
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                      semanticLabel: 'حفظ المشاركة في المفضلة',
-                      toggled: _isBookmarked,
-                      onTap: _toggleBookmark,
-                    ),
-                    const SizedBox(width: 6),
-                    CircleIconButton(
-                      icon: Icons.ios_share_rounded,
-                      semanticLabel: 'مشاركة المشاركة كصورة',
-                      onTap: () => showShareSheet(
-                        context: context,
-                        message: widget.post.message,
-                        hadithTitle: hadith?.title,
-                        hadithNumber: toArabicDigits(widget.post.hadithNumber),
-                        attribution: widget.post.authorName,
-                      ),
-                    ),
-                  ],
+                // Where every reader already looks for this. It started as a
+                // quiet flag link under the message, which read well but sat
+                // below the fold on a shorter phone — always reachable, never
+                // reliably discoverable, and discoverability is the whole
+                // point. Overflow rather than a permanent flag icon: a flag
+                // beside the other controls would say reporting is one of the
+                // things you come here to do, and it is not. The sheet behind
+                // it already carries both remedies, so this opens it directly
+                // rather than nesting a menu inside a menu.
+                CircleIconButton(
+                  icon: Icons.more_horiz_rounded,
+                  semanticLabel: 'خيارات أخرى: الإبلاغ أو إخفاء الكاتب',
+                  onTap: _report,
                 ),
               ],
             ),
@@ -326,62 +322,59 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Center(
-                  child: StreamBuilder<bool>(
-                    stream: _service.likeStatus(widget.post.id),
-                    builder: (context, snapshot) {
-                      final serverLiked = snapshot.data ?? false;
-                      if (_optimisticLiked != null &&
-                          _optimisticLiked == serverLiked) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted && _optimisticLiked == serverLiked) {
-                            setState(() => _optimisticLiked = null);
-                          }
-                        });
-                      }
-                      final isLiked = _optimisticLiked ?? serverLiked;
-                      final displayedLikes = widget.post.likes +
-                          (_optimisticLiked != null &&
-                                  _optimisticLiked != serverLiked
-                              ? (_optimisticLiked! ? 1 : -1)
-                              : 0);
-                      return LikeCounter(
-                        likes: displayedLikes,
-                        isLiked: isLiked,
-                        onTap: () => _handleLike(serverLiked),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 28),
-                // Deliberately quiet, and deliberately present. It sits below
-                // the message rather than beside the bookmark and share
-                // buttons because reporting is not one of the things a reader
-                // is here to do — but when they need it, it has to be on the
-                // content itself, not buried in settings.
-                Center(
-                  child: TextButton.icon(
-                    onPressed: _report,
-                    icon: Icon(
-                      Icons.flag_outlined,
-                      size: 16,
-                      color: palette.mutedText,
+                // The message's own actions, beside the count they belong
+                // with — the arrangement the daily message screen already
+                // uses for the same kind of object.
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    StreamBuilder<bool>(
+                      stream: _service.likeStatus(widget.post.id),
+                      builder: (context, snapshot) {
+                        final serverLiked = snapshot.data ?? false;
+                        if (_optimisticLiked != null &&
+                            _optimisticLiked == serverLiked) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted && _optimisticLiked == serverLiked) {
+                              setState(() => _optimisticLiked = null);
+                            }
+                          });
+                        }
+                        final isLiked = _optimisticLiked ?? serverLiked;
+                        final displayedLikes = widget.post.likes +
+                            (_optimisticLiked != null &&
+                                    _optimisticLiked != serverLiked
+                                ? (_optimisticLiked! ? 1 : -1)
+                                : 0);
+                        return LikeCounter(
+                          likes: displayedLikes,
+                          isLiked: isLiked,
+                          onTap: () => _handleLike(serverLiked),
+                        );
+                      },
                     ),
-                    label: Text(
-                      'الإبلاغ عن هذه المشاركة',
-                      style: TextStyle(
-                        fontFamily: kSans,
-                        fontSize: 12.5,
-                        height: AppLeading.chrome,
-                        fontWeight: FontWeight.w600,
-                        color: palette.mutedText,
+                    const SizedBox(width: 10),
+                    CircleIconButton(
+                      icon: _isBookmarked
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      semanticLabel: 'حفظ المشاركة في المفضلة',
+                      toggled: _isBookmarked,
+                      onTap: _toggleBookmark,
+                    ),
+                    const SizedBox(width: 6),
+                    CircleIconButton(
+                      icon: Icons.ios_share_rounded,
+                      semanticLabel: 'مشاركة المشاركة كصورة',
+                      onTap: () => showShareSheet(
+                        context: context,
+                        message: widget.post.message,
+                        hadithTitle: hadith?.title,
+                        hadithNumber: toArabicDigits(widget.post.hadithNumber),
+                        attribution: widget.post.authorName,
                       ),
                     ),
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(0, 48),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                    ),
-                  ),
+                  ],
                 ),
               ],
             ),

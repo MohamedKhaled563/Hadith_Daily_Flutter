@@ -133,6 +133,23 @@ def _encode_fields(fields: dict) -> dict:
     return {k: _encode_value(v) for k, v in fields.items()}
 
 
+def sweep_test_messages() -> None:
+    """Removes anything a previous interrupted run left in communityMessages."""
+    resp = requests.get(
+        f"{FIRESTORE_URL}/communityMessages",
+        params={"pageSize": 300},
+        headers=admin_headers(),
+    )
+    if resp.status_code != 200:
+        return
+    for doc in resp.json().get("documents", []):
+        author = doc.get("fields", {}).get("authorName", {}).get("stringValue")
+        if author == "Rules Test":
+            doc_id = doc["name"].rsplit("/", 1)[-1]
+            admin_delete("communityMessages", doc_id)
+            print(f"  (swept a leftover test message: {doc_id})")
+
+
 def main() -> int:
     uid_a = f"rules-test-a-{uuid.uuid4().hex[:8]}"
     uid_b = f"rules-test-b-{uuid.uuid4().hex[:8]}"
@@ -389,6 +406,13 @@ def main() -> int:
     admin_update("users", uid_a, {"role": "user"})
 
     print("\n== communityMessages create ==")
+
+    # An interrupted run leaves its pending submission behind, and it
+    # then sits in the real moderation queue looking like a real
+    # submission. The happy path still deletes it below; this makes a
+    # crashed run heal itself on the next one rather than needing
+    # someone to notice it in the dashboard.
+    sweep_test_messages()
 
     # Valid pending submission by its own author — should be allowed.
     resp = create_doc(
