@@ -24,8 +24,6 @@ class AppStateController extends ChangeNotifier {
   static const _keyEveningReminderEnabled = 'settings.eveningReminderEnabled';
   static const _keyEveningReminderHour = 'settings.eveningReminderHour';
   static const _keyEveningReminderMinute = 'settings.eveningReminderMinute';
-  static const _keySoundEnabled = 'settings.soundEnabled';
-  static const _keyVibrationEnabled = 'settings.vibrationEnabled';
 
   SharedPreferences? _prefs;
 
@@ -41,9 +39,6 @@ class AppStateController extends ChangeNotifier {
         prefs.getBool(_keyMorningReminderEnabled) ?? _morningReminderEnabled;
     _eveningReminderEnabled =
         prefs.getBool(_keyEveningReminderEnabled) ?? _eveningReminderEnabled;
-    _soundEnabled = prefs.getBool(_keySoundEnabled) ?? _soundEnabled;
-    _vibrationEnabled =
-        prefs.getBool(_keyVibrationEnabled) ?? _vibrationEnabled;
 
     final morningHour = prefs.getInt(_keyMorningReminderHour);
     final morningMinute = prefs.getInt(_keyMorningReminderMinute);
@@ -167,11 +162,14 @@ class AppStateController extends ChangeNotifier {
   TimeOfDay _eveningReminderTime = const TimeOfDay(hour: 20, minute: 0);
   TimeOfDay get eveningReminderTime => _eveningReminderTime;
 
-  bool _soundEnabled = true;
-  bool get soundEnabled => _soundEnabled;
-
-  bool _vibrationEnabled = true;
-  bool get vibrationEnabled => _vibrationEnabled;
+  // There were `soundEnabled`/`vibrationEnabled` flags here, persisted on
+  // every launch and read by nothing: no settings tile ever exposed them and
+  // the notification details never consulted them — the same "state existed
+  // but nothing consumed it" gap the reading-size control had. Deliberately
+  // deleted rather than wired up: an Android notification channel fixes its
+  // sound and vibration at creation time, so honouring a later toggle needs
+  // a fresh channel id per combination, which is a feature decision rather
+  // than something to smuggle in behind a dead field.
 
   void toggleMorningReminder(bool value) {
     _morningReminderEnabled = value;
@@ -196,18 +194,6 @@ class AppStateController extends ChangeNotifier {
     _eveningReminderTime = time;
     _prefs?.setInt(_keyEveningReminderHour, time.hour);
     _prefs?.setInt(_keyEveningReminderMinute, time.minute);
-    notifyListeners();
-  }
-
-  void toggleSound(bool value) {
-    _soundEnabled = value;
-    _prefs?.setBool(_keySoundEnabled, value);
-    notifyListeners();
-  }
-
-  void toggleVibration(bool value) {
-    _vibrationEnabled = value;
-    _prefs?.setBool(_keyVibrationEnabled, value);
     notifyListeners();
   }
 

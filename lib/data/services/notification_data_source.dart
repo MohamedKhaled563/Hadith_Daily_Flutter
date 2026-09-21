@@ -11,10 +11,11 @@ abstract class NotificationDataSource {
   /// defaulting to 'random' when the doc is missing or unreadable.
   Future<String> loadMode();
 
-  /// A single `notificationMessages` doc by id, or null if it's missing or
-  /// unreadable (e.g. deleted since the reminder carrying this id was
-  /// scheduled) — used to resolve a tapped notification back to its message.
-  Future<Map<String, dynamic>?> loadMessageById(String id);
+  // There was a `loadMessageById` here, for resolving a tapped notification
+  // back to the notificationMessages doc its payload named. Nothing has
+  // called it since tapping a reminder was changed to open *today's actual
+  // message* instead — see NotificationScheduler.notificationTapped — so it
+  // was an unused Firestore read path kept alive only by this interface.
 }
 
 class FirestoreNotificationDataSource implements NotificationDataSource {
@@ -49,16 +50,6 @@ class FirestoreNotificationDataSource implements NotificationDataSource {
       return doc.data()?['mode'] == 'manual' ? 'manual' : 'random';
     } catch (_) {
       return 'random';
-    }
-  }
-
-  @override
-  Future<Map<String, dynamic>?> loadMessageById(String id) async {
-    try {
-      final doc = await _db.collection('notificationMessages').doc(id).get();
-      return doc.data();
-    } catch (_) {
-      return null;
     }
   }
 }

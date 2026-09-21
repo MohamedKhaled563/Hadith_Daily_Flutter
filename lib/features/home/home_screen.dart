@@ -16,7 +16,6 @@ import '../../core/utils/app_motion.dart';
 import '../../core/utils/notification_reliability_tip.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/daily_tip_service.dart';
-import '../../data/services/notification_scheduler.dart';
 import '../messages/daily_message_screen.dart';
 import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
@@ -442,21 +441,16 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
   void initState() {
     super.initState();
 
-    // Fire-and-forget: refreshes the rolling notification window on every
-    // app start (also re-run whenever a reminder setting changes, from the
-    // settings drawer) — never blocks the home screen on a Firestore round
-    // trip or a permission dialog.
+    // Rescheduling itself no longer happens here. It used to be a
+    // fire-and-forget call in this widget's initState — a decorative heart
+    // animation owning the app's notification window — which also meant it
+    // ran exactly once per cold start and never on resume.
+    // NotificationLifecycleRefresher (started from main.dart) owns it now.
+    // What stays is the reliability tip, which genuinely needs a
+    // BuildContext and a mounted screen to show itself on.
     final state = AppStateController();
     final anyReminderEnabled =
         state.morningReminderEnabled || state.eveningReminderEnabled;
-    if (anyReminderEnabled) {
-      NotificationScheduler.instance.reschedule(
-        morningEnabled: state.morningReminderEnabled,
-        morningTime: state.morningReminderTime,
-        eveningEnabled: state.eveningReminderEnabled,
-        eveningTime: state.eveningReminderTime,
-      );
-    }
 
     // A granted permission only means the OS *will* show a notification if
     // asked to — MIUI and several other OEMs (plus iOS Focus/Do Not

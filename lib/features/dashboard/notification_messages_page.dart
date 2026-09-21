@@ -42,8 +42,31 @@ class _MsgEntry {
   bool active;
 }
 
+/// The cap firestore.rules enforces on `notificationMessages.text` (create
+/// and update alike). Mirrored here so an over-long message is caught with a
+/// message the moderator can act on, instead of failing the write with
+/// PERMISSION_DENIED as an unhandled async error and no UI feedback at all.
+const kNotificationTextMaxLength = 300;
+
+/// Why [text] cannot be saved, or null if it can. Pure, so the rule mirror
+/// is testable without a Firestore round trip.
+String? validateNotificationText(String text) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty) return 'النص فارغ';
+  if (trimmed.length > kNotificationTextMaxLength) {
+    return 'النص طويل جداً (${trimmed.length}/$kNotificationTextMaxLength حرف)';
+  }
+  return null;
+}
+
 class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
   final _db = FirebaseFirestore.instance;
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
   late Future<List<_MsgEntry>> _messagesFuture = _loadMessages();
   List<_MsgEntry>? _messages;
   bool _orderDirty = false;
@@ -74,46 +97,75 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
     });
   }
 
-  Future<void> _setMode(String mode) {
-    return _db.collection('settings').doc('notificationMode').set({'mode': mode});
+  Future<void> _setMode(String mode) async {
+    try {
+      await _db
+          .collection('settings')
+          .doc('notificationMode')
+          .set({'mode': mode});
+    } catch (error) {
+      _snack('تعذّر تغيير طريقة الاختيار: $error');
+    }
   }
 
   Future<void> _addMessage() async {
     final controller = TextEditingController();
-    final text = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('رسالة تنبيه جديدة'),
-        content: TextField(
-          controller: controller,
-          maxLines: 3,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'نص قصير يظهر في إشعار الجهاز',
-            border: OutlineInputBorder(),
+    final String? text;
+    try {
+      text = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('رسالة تنبيه جديدة'),
+          content: TextField(
+            controller: controller,
+            maxLines: 3,
+            autofocus: true,
+            maxLength: kNotificationTextMaxLength,
+            decoration: const InputDecoration(
+              hintText: 'نص قصير يظهر في إشعار الجهاز',
+              border: OutlineInputBorder(),
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('إضافة'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('إضافة'),
-          ),
-        ],
-      ),
-    );
-    if (text == null || text.isEmpty) return;
+      );
+    } finally {
+      controller.dispose();
+    }
+    if (text == null) return;
 
-    final order = _messages?.length ?? 0;
-    await _db.collection('notificationMessages').add({
-      'text': text,
-      'order': order,
-      'active': true,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    final problem = validateNotificationText(text);
+    if (problem != null) {
+      _snack(problem);
+      return;
+    }
+
+    // `_messages?.length ?? 0` handed every message added before the list
+    // finished loading the same order 0.
+    final loaded = _messages;
+    final order = loaded == null
+        ? 0
+        : loaded.fold<int>(-1, (max, m) => m.order > max ? m.order : max) + 1;
+    try {
+      await _db.collection('notificationMessages').add({
+        'text': text.trim(),
+        'order': order,
+        'active': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (error) {
+      _snack('تعذّر إضافة الرسالة: $error');
+      return;
+    }
     _reload();
   }
 
@@ -145,31 +197,39 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
           _orderDirty = false;
           _savingOrder = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حفظ الترتيب')),
-        );
+        _snack('تم حفظ الترتيب');
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         setState(() => _savingOrder = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذّر حفظ الترتيب')),
-        );
+        _snack('تعذّر حفظ الترتيب: $error');
       }
     }
   }
 
   Future<void> _saveText(_MsgEntry entry, String text) async {
-    if (text.isEmpty) return;
-    await entry.ref.update({'text': text});
-    entry.text = text;
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم الحفظ')));
+    final problem = validateNotificationText(text);
+    if (problem != null) {
+      _snack(problem);
+      return;
     }
+    try {
+      await entry.ref.update({'text': text.trim()});
+    } catch (error) {
+      _snack('تعذّر الحفظ: $error');
+      return;
+    }
+    entry.text = text.trim();
+    _snack('تم الحفظ');
   }
 
   Future<void> _toggleActive(_MsgEntry entry, bool value) async {
-    await entry.ref.update({'active': value});
+    try {
+      await entry.ref.update({'active': value});
+    } catch (error) {
+      _snack('تعذّر تغيير الحالة: $error');
+      return;
+    }
     if (mounted) setState(() => entry.active = value);
   }
 
@@ -193,7 +253,12 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
       ),
     );
     if (confirmed != true) return;
-    await entry.ref.delete();
+    try {
+      await entry.ref.delete();
+    } catch (error) {
+      _snack('تعذّر الحذف: $error');
+      return;
+    }
     if (mounted) {
       setState(() => _messages?.remove(entry));
     }

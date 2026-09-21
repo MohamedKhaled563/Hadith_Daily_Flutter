@@ -26,9 +26,18 @@ PageRoute<T> appPageRoute<T>({required Widget child}) => _useCupertino
 
 /// The message card's route, which carries a Hero flight from the home
 /// circle. Same platform split, for the same reason.
-PageRoute<T> appMessageRoute<T>({required Widget child}) => _useCupertino
-    ? CupertinoPageRoute<T>(builder: (_) => child)
-    : _SeamlessMessagePageRoute<T>(child: child);
+///
+/// [settings] is optional and only used where a caller needs to recognise
+/// its own route later — main.dart names the tapped-reminder message route
+/// so a second notification tap can tell it is already open rather than
+/// stacking a duplicate.
+PageRoute<T> appMessageRoute<T>({
+  required Widget child,
+  RouteSettings? settings,
+}) =>
+    _useCupertino
+        ? CupertinoPageRoute<T>(builder: (_) => child, settings: settings)
+        : _SeamlessMessagePageRoute<T>(child: child, settings: settings);
 
 
 /// Ultra-smooth, professional page route that transitions gracefully
@@ -36,7 +45,7 @@ PageRoute<T> appMessageRoute<T>({required Widget child}) => _useCupertino
 class _SeamlessMessagePageRoute<T> extends PageRouteBuilder<T> {
   final Widget child;
 
-  _SeamlessMessagePageRoute({required this.child})
+  _SeamlessMessagePageRoute({required this.child, super.settings})
       : super(
           opaque: true, // Guarantees crisp rendering with zero background double-render or text overlap
           transitionDuration: const Duration(milliseconds: 360),

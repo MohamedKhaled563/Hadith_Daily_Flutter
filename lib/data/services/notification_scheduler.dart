@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -17,11 +18,25 @@ class NotificationScheduleResult {
   const NotificationScheduleResult({
     required this.scheduledCount,
     required this.usedExactAlarms,
+    this.permissionGranted = true,
+    this.superseded = false,
     this.error,
   });
 
   final int scheduledCount;
   final bool usedExactAlarms;
+
+  /// Whether the OS will actually display any of what was just scheduled.
+  /// Without this a denied POST_NOTIFICATIONS grant still reports a healthy
+  /// `scheduledCount: 28, succeeded: true` — 28 notifications the OS drops
+  /// on the floor, with nothing anywhere in the app able to tell.
+  final bool permissionGranted;
+
+  /// Whether a newer [NotificationScheduler.reschedule] started while this
+  /// one was still in flight, so this run deliberately stopped rather than
+  /// writing its now-stale settings over the newer ones.
+  final bool superseded;
+
   final Object? error;
 
   bool get succeeded => error == null;
@@ -64,8 +79,10 @@ class NotificationScheduler {
   NotificationScheduler._internal({
     FlutterLocalNotificationsPlugin? plugin,
     NotificationDataSource? dataSource,
+    DateTime Function()? clock,
   })  : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
-        _dataSource = dataSource ?? FirestoreNotificationDataSource();
+        _dataSource = dataSource ?? FirestoreNotificationDataSource(),
+        _clock = clock ?? DateTime.now;
 
   static final NotificationScheduler instance = NotificationScheduler._internal();
   factory NotificationScheduler() => instance;
@@ -73,16 +90,44 @@ class NotificationScheduler {
   /// Test-only seam: build an isolated instance with fakes instead of the
   /// real plugin/Firestore, so unit tests never touch a platform channel or
   /// a live project.
+  ///
+  /// [clock] pins what this instance believes "now" is. Without it every
+  /// assertion about how many slots get scheduled depends on the wall clock
+  /// at the moment the suite runs — "23:59 is still ahead unless it happens
+  /// to execute at 23:59" — which is a test that quietly changes meaning
+  /// overnight rather than one that fails honestly.
   @visibleForTesting
   factory NotificationScheduler.test({
     required FlutterLocalNotificationsPlugin plugin,
     required NotificationDataSource dataSource,
+    DateTime Function()? clock,
   }) =>
-      NotificationScheduler._internal(plugin: plugin, dataSource: dataSource);
+      NotificationScheduler._internal(
+        plugin: plugin,
+        dataSource: dataSource,
+        clock: clock,
+      );
 
   static const _daysAhead = 14;
   static const _randomSeedKey = 'notificationScheduler.randomSeed';
   static const _cachedPoolKey = 'notificationScheduler.cachedPool';
+
+  /// iOS/macOS init settings, named rather than inline so a test can assert
+  /// on them — see the notification suite's "iOS initialization settings"
+  /// group.
+  ///
+  /// All three request flags are off *on purpose*. They default to true,
+  /// which makes `initialize()` itself fire the iOS system permission
+  /// prompt — and since initialization is lazy (first [_ensureInitialized]),
+  /// that lands on the very first frame of Home on a new install, before the
+  /// reader has seen a single hadith. That is exactly the ambush
+  /// NotificationReliabilityTip was already changed to avoid. Asking is
+  /// [requestPermission]'s job, which every caller reaches deliberately.
+  static const darwinInitSettings = DarwinInitializationSettings(
+    requestAlertPermission: false,
+    requestSoundPermission: false,
+    requestBadgePermission: false,
+  );
 
   /// Used only when the live Firestore fetch fails *and* there's no cached
   /// pool yet — a first-ever launch with no connectivity at all, which the
@@ -110,6 +155,7 @@ class NotificationScheduler {
 
   final FlutterLocalNotificationsPlugin _plugin;
   final NotificationDataSource _dataSource;
+  final DateTime Function() _clock;
   Future<void>? _initFuture;
 
   /// Fires whenever the reader taps a reminder while the app is running
@@ -158,9 +204,11 @@ class NotificationScheduler {
     // shade either renders it as a blank white/gray block or forces its own
     // fallback glyph instead — see drawable/ic_stat_notify.xml.
     const androidInit = AndroidInitializationSettings('@drawable/ic_stat_notify');
-    const iosInit = DarwinInitializationSettings();
     await _plugin.initialize(
-      const InitializationSettings(android: androidInit, iOS: iosInit),
+      const InitializationSettings(
+        android: androidInit,
+        iOS: darwinInitSettings,
+      ),
       onDidReceiveNotificationResponse: _onNotificationResponse,
     );
   }
@@ -207,15 +255,14 @@ class NotificationScheduler {
   /// needed — e.g. on every app start and every time a reminder setting
   /// changes.
   ///
-  /// Deliberately never touches a slot whose time has already passed today
-  /// (see [_syncOne]): an earlier version called `_plugin.cancelAll()`
-  /// up front, which on Android also dismisses whatever is *currently
-  /// showing* in the notification shade, not just pending alarms — so
-  /// opening the app shortly after a reminder fired (e.g. to check whether
-  /// it arrived) would silently wipe it out again via this same rolling
-  /// reschedule. That is what made reminders look like they fired
-  /// "randomly": they fired every time, but reopening the app right after
-  /// often erased the evidence.
+  /// Deliberately never touches a slot that has already *fired* today (see
+  /// [_syncOne]): an earlier version called `_plugin.cancelAll()` up front,
+  /// which on Android also dismisses whatever is *currently showing* in the
+  /// notification shade, not just pending alarms — so opening the app
+  /// shortly after a reminder fired (e.g. to check whether it arrived) would
+  /// silently wipe it out again via this same rolling reschedule. That is
+  /// what made reminders look like they fired "randomly": they fired every
+  /// time, but reopening the app right after often erased the evidence.
   ///
   /// Never throws: a Firestore/plugin failure is reported through the
   /// returned [NotificationScheduleResult] instead, so a transient offline
@@ -227,9 +274,18 @@ class NotificationScheduler {
     required bool eveningEnabled,
     required TimeOfDay eveningTime,
   }) async {
+    final myGeneration = ++_rescheduleGeneration;
+    bool superseded() => _rescheduleGeneration != myGeneration;
+    const supersededResult = NotificationScheduleResult(
+      scheduledCount: 0,
+      usedExactAlarms: false,
+      superseded: true,
+    );
+
     try {
       await _ensureInitialized();
 
+      var permissionGranted = true;
       if (morningEnabled || eveningEnabled) {
         // Reminders default to enabled, so the very first reschedule() call
         // (HomeScreen's initState, on the reader's first-ever app launch)
@@ -245,22 +301,21 @@ class NotificationScheduler {
         // must not abort scheduling outright and get blamed on connectivity
         // by the generic catch below, when it has nothing to do with it.
         try {
-          await requestPermission();
+          permissionGranted = await requestPermission();
         } catch (error) {
           debugPrint('NotificationScheduler.requestPermission threw: $error');
         }
       }
 
       final pool = await _loadPool();
-      if (pool.isEmpty) {
-        return const NotificationScheduleResult(
-          scheduledCount: 0,
-          usedExactAlarms: false,
-        );
-      }
-
       final mode = await _dataSource.loadMode();
       final seed = await _deviceSeed();
+      // A newer reschedule() overtook this one while it was waiting on the
+      // permission prompt / Firestore / prefs above. Its settings are the
+      // reader's actual latest choice, so stopping here is what keeps this
+      // run's now-stale `morningEnabled`/`eveningEnabled` from being written
+      // over them — see [NotificationScheduleResult.superseded].
+      if (superseded()) return supersededResult;
       // Deliberately the device's own local clock, not
       // tz.TZDateTime.now(a named IANA zone): the `timezone` package's
       // bundled IANA data has repeatedly lagged Egypt's actual
@@ -278,7 +333,7 @@ class NotificationScheduler {
       // depends on which real-world zone the device is in or whether its
       // clock is zone-synced or set manually: it only ever asks the OS what
       // time it is right now, which is also all the reader is looking at.
-      final now = DateTime.now();
+      final now = _clock();
       bool useExact;
       try {
         useExact = (await _android?.canScheduleExactNotifications()) ?? false;
@@ -293,22 +348,46 @@ class NotificationScheduler {
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
 
+      // Which ids still have an alarm queued. A pending id has by definition
+      // not fired yet, which is what lets [_syncOne] tell a stale alarm it
+      // must clear apart from a delivered notification it must not touch.
+      // Read once per run rather than per slot — it's a platform round trip.
+      final pending = await _pendingIds();
+      if (superseded()) return supersededResult;
+
       var scheduledCount = 0;
       for (var offset = 0; offset < _daysAhead; offset++) {
+        if (superseded()) return supersededResult;
+
         final day = DateTime(now.year, now.month, now.day)
             .add(Duration(days: offset));
-        final message = pickMessageForDay(pool, day, mode, seed);
+        // Two independent picks, one per slot: passing the *same* message to
+        // both meant the evening reminder repeated the morning's text
+        // verbatim, every single day.
+        //
+        // A pool this far down should never be empty (_loadPool falls back
+        // to the bundled messages), but if it somehow were, indexing into it
+        // would throw — and an exception here would abort the run *and* the
+        // cancellation pass with it, which is the shape of the bug this
+        // whole loop was moved out from behind. Cancel-only instead.
+        final morning = pool.isEmpty
+            ? null
+            : pickMessageForDay(pool, day, mode, seed, slot: 0);
+        final evening = pool.isEmpty
+            ? null
+            : pickMessageForDay(pool, day, mode, seed, slot: 1);
 
         final morningScheduled = await _syncOne(
           id: offset * 2,
           day: day,
           time: morningTime,
-          enabled: morningEnabled,
+          enabled: morningEnabled && morning != null,
           title: 'رسالة الصباح',
-          body: message.text,
-          payload: message.id,
+          body: morning?.text ?? '',
+          payload: morning?.id ?? '',
           now: now,
           scheduleMode: scheduleMode,
+          pending: pending,
         );
         if (morningScheduled) scheduledCount++;
 
@@ -316,12 +395,13 @@ class NotificationScheduler {
           id: offset * 2 + 1,
           day: day,
           time: eveningTime,
-          enabled: eveningEnabled,
+          enabled: eveningEnabled && evening != null,
           title: 'تأمل المساء',
-          body: message.text,
-          payload: message.id,
+          body: evening?.text ?? '',
+          payload: evening?.id ?? '',
           now: now,
           scheduleMode: scheduleMode,
+          pending: pending,
         );
         if (eveningScheduled) scheduledCount++;
       }
@@ -329,6 +409,7 @@ class NotificationScheduler {
       return NotificationScheduleResult(
         scheduledCount: scheduledCount,
         usedExactAlarms: useExact,
+        permissionGranted: permissionGranted,
       );
     } catch (error) {
       return NotificationScheduleResult(
@@ -339,15 +420,47 @@ class NotificationScheduler {
     }
   }
 
+  /// Monotonic run counter behind [NotificationScheduleResult.superseded].
+  ///
+  /// `reschedule()` is called from app start (fire-and-forget) and from every
+  /// settings change, with nothing serialising them. Two runs interleaving
+  /// their ~56 platform calls over the same ids means the *older* one's
+  /// writes can land last — re-arming reminders the reader just switched
+  /// off. Rather than serialise (which would make the newer, correct run
+  /// wait on the stale one), the older run notices it has been overtaken and
+  /// stops.
+  int _rescheduleGeneration = 0;
+
+  Future<Set<int>> _pendingIds() async {
+    try {
+      final requests = await _plugin.pendingNotificationRequests();
+      return requests.map((r) => r.id).toSet();
+    } catch (error) {
+      // Treated as "nothing pending", which preserves the old, more
+      // conservative behaviour: past slots are left alone.
+      debugPrint('pendingNotificationRequests threw: $error');
+      return const <int>{};
+    }
+  }
+
   /// Brings a single day/slot id in line with the current settings, and
   /// reports whether it ended up scheduled.
   ///
-  /// A slot whose time has already passed today is left completely alone —
-  /// no cancel, no reschedule — specifically so a reminder that already
-  /// fired (and may still be sitting in the notification shade) survives
-  /// the next [reschedule] call instead of being wiped by it. Every other
-  /// slot is cancelled first (clearing any stale alarm/shown notification
-  /// for that id) and then re-scheduled only if [enabled].
+  /// A slot whose time has already passed today *and* has nothing queued
+  /// under its id is left completely alone — no cancel, no reschedule —
+  /// specifically so a reminder that already fired (and may still be sitting
+  /// in the notification shade) survives the next [reschedule] call instead
+  /// of being wiped by it. Every other slot is cancelled first (clearing any
+  /// stale alarm/shown notification for that id) and then re-scheduled only
+  /// if [enabled].
+  ///
+  /// The "nothing queued" half of that condition is load-bearing. Skipping
+  /// on time alone left a real hole: move the morning reminder from 21:00 to
+  /// 07:00 at 09:00, and the new time is in the past, so this returned
+  /// before cancelling — leaving the old 21:00 alarm armed to fire tonight,
+  /// at a time the reader had just changed away from. A *pending* id has not
+  /// fired yet, so cancelling it cannot dismiss anything from the shade;
+  /// a delivered one is no longer pending, so it still stays untouched.
   Future<bool> _syncOne({
     required int id,
     required DateTime day,
@@ -358,9 +471,15 @@ class NotificationScheduler {
     required String payload,
     required DateTime now,
     required AndroidScheduleMode scheduleMode,
+    required Set<int> pending,
   }) async {
     final scheduled = resolveScheduledTime(day, time);
-    if (isInPast(scheduled, now)) return false;
+    if (isInPast(scheduled, now)) {
+      if (!pending.contains(id)) return false;
+      // Stale alarm from a previous, later time for this same slot.
+      await _plugin.cancel(id);
+      return false;
+    }
 
     await _plugin.cancel(id);
     if (!enabled) return false;
@@ -426,19 +545,45 @@ class NotificationScheduler {
               .map((m) => {'id': m.id, 'text': m.text, 'order': m.order})
               .toList()),
         );
+        return pool;
       }
-      return pool;
+      // A successful fetch that came back empty (every message deactivated
+      // from the dashboard, say) used to return the empty pool as-is, which
+      // stopped reminders dead with `succeeded: true` and no way for anyone
+      // to notice. Treated the same as a failed fetch instead: the reader's
+      // reminders are theirs to switch off, not something an empty
+      // collection should silently do for them.
+      return _cachedOrBundledPool(prefs);
     } catch (_) {
-      final cached = prefs.getString(_cachedPoolKey);
-      if (cached == null) return _bundledFallbackPool;
+      return _cachedOrBundledPool(prefs);
+    }
+  }
+
+  /// The last successfully fetched pool, or the bundled one.
+  ///
+  /// The decode is guarded: a truncated or otherwise corrupt cache value
+  /// used to throw straight out of the `catch` that called this, past the
+  /// bundled fallback entirely, and surface to the reader as
+  /// "تعذّر جدولة التذكيرات: FormatException" — the exact dead end the
+  /// fallback exists to prevent.
+  List<PoolMessage> _cachedOrBundledPool(SharedPreferences prefs) {
+    final cached = prefs.getString(_cachedPoolKey);
+    if (cached == null) return _bundledFallbackPool;
+    try {
       final decoded = jsonDecode(cached) as List;
-      return decoded
+      final pool = decoded
           .map((e) => PoolMessage(
                 id: (e as Map)['id'] as String? ?? '',
                 text: e['text'] as String? ?? '',
                 order: (e['order'] as num?)?.toInt() ?? 0,
               ))
+          .where((m) => m.text.isNotEmpty)
           .toList();
+      return pool.isEmpty ? _bundledFallbackPool : pool;
+    } catch (error) {
+      debugPrint('NotificationScheduler: dropping corrupt cached pool: $error');
+      unawaited(prefs.remove(_cachedPoolKey));
+      return _bundledFallbackPool;
     }
   }
 
@@ -543,16 +688,39 @@ bool isInPast(DateTime scheduled, DateTime now) => scheduled.isBefore(now);
 /// Which pool message a given calendar day resolves to under 'manual' or
 /// 'random' mode — pulled out of the class so it can be unit tested without
 /// any platform/Firestore dependency.
+/// [slot] distinguishes the day's two reminders (0 = morning, 1 = evening).
+/// Both used to be handed the single message this returned, so the evening
+/// reminder repeated the morning's text word for word every day. Slot 0 is
+/// deliberately a no-op on both branches, so an existing day's morning pick
+/// is exactly what it always was.
 PoolMessage pickMessageForDay(
   List<PoolMessage> pool,
   DateTime day,
   String mode,
-  int deviceSeed,
-) {
-  final daysSinceEpoch = day.millisecondsSinceEpoch ~/ (1000 * 60 * 60 * 24);
+  int deviceSeed, {
+  int slot = 0,
+}) {
+  final daysSinceEpoch = calendarDayNumber(day);
   if (mode == 'manual') {
-    return pool[daysSinceEpoch % pool.length];
+    return pool[(daysSinceEpoch + slot) % pool.length];
   }
-  final random = Random(deviceSeed ^ daysSinceEpoch);
+  // 0x9E3779B9 (the golden-ratio constant used by hash mixers) only to keep
+  // the two slots' seeds far apart; `slot: 0` leaves the seed untouched.
+  final random = Random(deviceSeed ^ daysSinceEpoch ^ (slot * 0x9E3779B9));
   return pool[random.nextInt(pool.length)];
 }
+
+/// [day]'s calendar date as a day number, read from its *calendar fields*
+/// rather than its instant.
+///
+/// [NotificationScheduler.reschedule] builds each day as a local midnight,
+/// whose `millisecondsSinceEpoch` lands on the previous UTC day anywhere
+/// east of Greenwich. Dividing that raw value by a day — which this used to
+/// do — therefore gave a reader in Cairo a different index than one in New
+/// York for the very same date, quietly breaking the one guarantee 'manual'
+/// mode exists to provide: that everybody sees the same message on the same
+/// day. Re-anchoring the same y/m/d in UTC removes the offset entirely, and
+/// makes the result independent of what time of day [day] happens to carry.
+int calendarDayNumber(DateTime day) =>
+    DateTime.utc(day.year, day.month, day.day).millisecondsSinceEpoch ~/
+        Duration.millisecondsPerDay;

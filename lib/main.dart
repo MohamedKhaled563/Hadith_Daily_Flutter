@@ -8,6 +8,7 @@ import 'core/widgets/smooth_page_route.dart';
 import 'data/repositories/hadith_repository.dart';
 import 'data/services/moderation_service.dart';
 import 'data/services/daily_tip_service.dart';
+import 'data/services/notification_lifecycle_refresher.dart';
 import 'data/services/notification_scheduler.dart';
 import 'features/messages/daily_message_screen.dart';
 import 'features/splash/splash_screen.dart';
@@ -45,30 +46,59 @@ void main() async {
   runApp(const HadithApp());
 }
 
+/// Route name for the tapped-reminder message screen, so a second tap can
+/// tell that one is already open instead of stacking another copy.
+const _todayMessageRouteName = 'today-message';
+
+/// Guards against a tap landing while a previous one is still fetching.
+bool _openingTodayMessage = false;
+
 /// Tapping a reminder always opens today's actual daily/community messages
 /// (the same content the home screen's heart button shows) — never the
 /// reminder pool's own generic text, which the reader never associated
 /// with a specific "message" in the first place. A day can hold several
 /// messages now; the tap lands on the first and the rest are a swipe away.
+///
+/// Tapping two reminders in a row (or the same one twice) used to push a
+/// second identical screen on top of the first, so the reader had to back
+/// out of the same message twice. Both the in-flight flag and the top-route
+/// check below are needed: the former covers two taps during one fetch, the
+/// latter a tap while the screen is already open.
 void _openTodayMessage() async {
-  final tips = await DailyTipService().getTodayTips();
-  if (tips.isEmpty) return;
-  final repo = HadithRepository();
+  if (_openingTodayMessage) return;
+  _openingTodayMessage = true;
+  try {
+    final navState = navigatorKey.currentState;
+    if (navState == null) return;
 
-  final navState = navigatorKey.currentState;
-  if (navState == null) return;
-  navState.push(
-    appMessageRoute(child: DailyMessageScreen.forDay(
-        entries: [
-          for (final tip in tips)
-            DailyMessageEntry(
-              insight: tip.toInsight(),
-              hadith: repo.getByNumber(tip.hadithNumber),
-            ),
-        ],
+    var alreadyOpen = false;
+    navState.popUntil((route) {
+      alreadyOpen = route.settings.name == _todayMessageRouteName;
+      return true; // inspect the top route only, pop nothing
+    });
+    if (alreadyOpen) return;
+
+    final tips = await DailyTipService().getTodayTips();
+    if (tips.isEmpty) return;
+    final repo = HadithRepository();
+
+    navState.push(
+      appMessageRoute(
+        settings: const RouteSettings(name: _todayMessageRouteName),
+        child: DailyMessageScreen.forDay(
+          entries: [
+            for (final tip in tips)
+              DailyMessageEntry(
+                insight: tip.toInsight(),
+                hadith: repo.getByNumber(tip.hadithNumber),
+              ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  } finally {
+    _openingTodayMessage = false;
+  }
 }
 
 class HadithApp extends StatefulWidget {
@@ -79,14 +109,22 @@ class HadithApp extends StatefulWidget {
 }
 
 class _HadithAppState extends State<HadithApp> with WidgetsBindingObserver {
+  /// Owns the rolling reminder window for the whole life of the app. This
+  /// used to be a fire-and-forget call in a decorative home-screen widget's
+  /// initState, which meant it ran once per cold start and never again —
+  /// see [NotificationLifecycleRefresher] for what that cost.
+  final _reminders = NotificationLifecycleRefresher();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _reminders.start();
   }
 
   @override
   void dispose() {
+    _reminders.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

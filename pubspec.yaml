@@ -47,6 +47,14 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # This machine's Application Control policy blocks flutter_tester.exe, so
+  # `flutter test` cannot run on the host at all. integration_test runs the
+  # very same Dart test files inside a real app process on a real device
+  # instead (`flutter test integration_test/... -d <device>`), which is both
+  # the available path here and a stronger signal for a feature whose whole
+  # job is platform-channel work — see integration_test/README.md.
+  integration_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
   mocktail: ^1.0.5
   # Widget-test-only: HomeScreen keeps every tab mounted (IndexedStack, so

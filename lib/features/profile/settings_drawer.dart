@@ -1,3 +1,4 @@
+import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
 import '../../core/app_info.dart';
 import '../../core/theme/app_colors.dart';
@@ -312,11 +313,9 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
   Future<void> _toggleReminder(bool isMorning, bool value) async {
     final myGen = isMorning ? ++_morningToggleGen : ++_eveningToggleGen;
 
+    var granted = true;
     if (value) {
-      final granted = await NotificationScheduler.instance.requestPermission();
-      if (!granted && mounted) {
-        _toast('يحتاج التذكير إلى إذن الإشعارات من إعدادات الجهاز');
-      }
+      granted = await NotificationScheduler.instance.requestPermission();
     }
 
     if (!mounted) return;
@@ -325,21 +324,73 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
     final currentGen = isMorning ? _morningToggleGen : _eveningToggleGen;
     if (currentGen != myGen) return;
 
+    // Switching on without the OS permission used to still persist the
+    // setting as enabled: the switch sat there looking on, nothing could
+    // ever be delivered, and a transient toast was the only hint. A reminder
+    // the OS will never show is not an enabled reminder, so the toggle goes
+    // back to off and the reader is pointed at the one place that can fix
+    // it. Turning a reminder *off* never needs a permission.
+    final effective = value && granted;
     isMorning
-        ? _state.toggleMorningReminder(value)
-        : _state.toggleEveningReminder(value);
+        ? _state.toggleMorningReminder(effective)
+        : _state.toggleEveningReminder(effective);
+    setState(() {});
     _syncNotifications();
+
+    if (value && !granted) {
+      _promptForNotificationPermission();
+      return;
+    }
 
     // Switching a reminder on is the one moment the reliability advice is
     // about something the reader just did, so it skips the launch-count wait
     // that keeps it off a new install's first screen. Still once ever.
-    if (value && mounted) {
+    if (effective && mounted) {
       NotificationReliabilityTip.maybeShow(
         context,
         anyReminderEnabled: true,
         force: true,
       );
     }
+  }
+
+  /// A refused notification permission can only be undone from the OS's own
+  /// settings — on Android 13+ a second `requestNotificationsPermission()`
+  /// after two refusals returns false without even showing a prompt — so a
+  /// toast the reader cannot act on is a dead end. This offers the one
+  /// action that actually resolves it.
+  void _promptForNotificationPermission() {
+    showBotanicalSheet<void>(
+      context: context,
+      title: 'الإشعارات معطّلة',
+      subtitle: 'لا يمكن تفعيل التذكير بدون إذن الإشعارات',
+      child: Builder(
+        builder: (sheetContext) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'أذونات الإشعارات لهذا التطبيق مرفوضة من نظام الجهاز، '
+              'ولا يمكن تفعيلها من داخل التطبيق. افتح إعدادات الإشعارات '
+              'وفعّلها، ثم عد لتشغيل التذكير.',
+            ),
+            const SizedBox(height: 20),
+            AppButton(
+              text: 'فتح إعدادات الإشعارات',
+              onPressed: () => AppSettings.openAppSettings(
+                type: AppSettingsType.notification,
+              ),
+            ),
+            const SizedBox(height: 8),
+            AppButton(
+              text: 'ليس الآن',
+              isSecondary: true,
+              onPressed: () => Navigator.maybePop(sheetContext),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _syncNotifications() async {
@@ -350,6 +401,16 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
       eveningEnabled: _state.eveningReminderEnabled,
       eveningTime: _state.eveningReminderTime,
     );
+    // A run that was overtaken by a newer one reports nothing of its own —
+    // the newer one owns the outcome, including any error worth showing.
+    if (result.superseded) return;
+    // Scheduling can "succeed" into a void: without the OS permission every
+    // one of these is dropped silently. Worth saying so rather than letting
+    // the reader wait for a reminder that cannot arrive.
+    if (enabled && result.succeeded && !result.permissionGranted && mounted) {
+      _toast('التذكيرات مجدولة، لكن إذن الإشعارات مرفوض من إعدادات الجهاز');
+      return;
+    }
     if (enabled && !result.succeeded && mounted) {
       // The bundled fallback pool means a content-fetch failure alone
       // should no longer ever reach here — so if this does still fire,

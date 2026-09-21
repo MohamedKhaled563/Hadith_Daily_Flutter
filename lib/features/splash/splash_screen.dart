@@ -33,15 +33,34 @@ class _SplashScreenState extends State<SplashScreen>
   Timer? _quoteTimer;
   Timer? _autoAdvanceTimer;
 
-  // Started immediately so it's very likely already resolved by the time
-  // _navigateToHome runs (2.8s later, or sooner on a tap-to-skip) — a cold
-  // start from tapping a reminder notification never fires
+  // Started immediately, and *awaited* (briefly) in _navigateToHome rather
+  // than read as a field that may or may not have been filled in yet — a
+  // cold start from tapping a reminder notification never fires
   // NotificationScheduler.notificationTapped (that's only for a live tap
-  // while the app is already running), so this is checked separately, once.
+  // while the app is already running), so this is the only path for it.
+  //
+  // It used to assign into a plain field and hope: on wifi the fetch beat
+  // the 2.8s timer comfortably, but on a cold cellular start — or any
+  // tap-to-skip, which can land 300ms in — the field was still null and the
+  // tap silently dropped the reader on Home with no message at all. Holding
+  // the future instead lets the navigation wait the short remainder out.
+  //
   // Resolves to today's actual daily/community messages (DailyTipService) —
   // the same content the home screen's heart button opens — never the
   // reminder pool's own generic notification text.
-  List<DailyMessageEntry>? _pendingNotificationEntries;
+  Future<List<DailyMessageEntry>>? _launchEntries;
+
+  /// How long _navigateToHome is willing to hold the splash open waiting for
+  /// the message behind a notification tap. Long enough to cover a slow
+  /// fetch, short enough that a genuinely broken network still lands the
+  /// reader on Home promptly.
+  static const _launchEntriesTimeout = Duration(seconds: 3);
+
+  // Both the 2.8s timer and the tap-to-skip gesture call _navigateToHome,
+  // and `mounted` stays true throughout pushReplacement's transition — so a
+  // quick double tap could push two HomeScreens (and, with a notification
+  // tap, two message screens on top).
+  bool _navigated = false;
 
   final List<String> _inspirationalQuotes = [
     'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ',
@@ -54,24 +73,7 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    NotificationScheduler.instance
-        .wasLaunchedByNotification()
-        .then((launched) async {
-      if (!launched) return;
-      final tips = await DailyTipService().getTodayTips();
-      if (tips.isEmpty) return;
-      final repo = HadithRepository();
-      _pendingNotificationEntries = [
-        for (final tip in tips)
-          DailyMessageEntry(
-            insight: tip.toInsight(),
-            hadith: repo.getByNumber(tip.hadithNumber),
-          ),
-      ];
-    }).catchError((_) {
-      // Best-effort: a platform-channel hiccup here should never block
-      // showing the splash screen, just skip the notification deep link.
-    });
+    _launchEntries = _resolveLaunchEntries();
 
     // Rhythmic Heartbeat pulse (Lub-Dub organic curve). Started in
     // didChangeDependencies rather than here — whether it should run at all
@@ -136,10 +138,44 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  void _navigateToHome() {
-    if (!mounted) return;
+  /// Today's messages if this launch came from tapping a reminder, or an
+  /// empty list otherwise. Never throws: a platform-channel hiccup or an
+  /// offline tip fetch should skip the deep link, not block the splash.
+  Future<List<DailyMessageEntry>> _resolveLaunchEntries() async {
+    try {
+      final launched =
+          await NotificationScheduler.instance.wasLaunchedByNotification();
+      if (!launched) return const [];
+      final tips = await DailyTipService().getTodayTips();
+      if (tips.isEmpty) return const [];
+      final repo = HadithRepository();
+      return [
+        for (final tip in tips)
+          DailyMessageEntry(
+            insight: tip.toInsight(),
+            hadith: repo.getByNumber(tip.hadithNumber),
+          ),
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> _navigateToHome() async {
+    if (!mounted || _navigated) return;
+    _navigated = true;
     _quoteTimer?.cancel();
     _autoAdvanceTimer?.cancel();
+
+    // Give a still-in-flight notification lookup the short remainder of its
+    // budget before deciding there's nothing to deep-link to. Resolves
+    // immediately in the overwhelmingly common case (no notification tap, or
+    // the fetch already finished during the 2.8s splash).
+    final entries = await (_launchEntries
+            ?.timeout(_launchEntriesTimeout, onTimeout: () => const [])
+            .catchError((_) => const <DailyMessageEntry>[]) ??
+        Future.value(const <DailyMessageEntry>[]));
+    if (!mounted) return;
 
     // Always Home. The app used to send anyone without an account to the
     // login screen from here, so a new install's first experience was a form
@@ -156,8 +192,7 @@ class _SplashScreenState extends State<SplashScreen>
     // back button behaves normally, then stack the tapped message on top of
     // it — same two calls as the live-tap listener in main.dart, just
     // sequenced instead of racing a Navigator that doesn't exist yet.
-    final entries = _pendingNotificationEntries;
-    if (entries != null && entries.isNotEmpty) {
+    if (entries.isNotEmpty) {
       Navigator.push(
         context,
         appMessageRoute(child: DailyMessageScreen.forDay(entries: entries),
