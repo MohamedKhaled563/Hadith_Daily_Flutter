@@ -64,3 +64,11 @@ android/.gradle/
 # Kept locally so they can be diffed against the next run; far too heavy to
 # carry in history.
 /.qa_screens/
+
+# Android release signing. The keystore IS the app's identity on Play: lose it
+# and you can never update this listing again, leak it and someone else can
+# publish as you. Keep both the key and its passwords out of the repo, and
+# back the .jks up somewhere that is not this machine.
+/android/key.properties
+*.jks
+*.keystore

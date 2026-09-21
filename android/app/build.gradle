@@ -19,6 +19,18 @@ if (flutterVersionCode == null) {
     flutterVersionCode = "1"
 }
 
+// Release signing. The keystore and its passwords live in
+// android/key.properties, which is gitignored and never committed — see the
+// launch checklist in the audit report for how to generate one.
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+def hasKeystore = keystorePropertiesFile.exists()
+if (hasKeystore) {
+    keystorePropertiesFile.withReader("UTF-8") { reader ->
+        keystoreProperties.load(reader)
+    }
+}
+
 def flutterVersionName = localProperties.getProperty("flutter.versionName")
 if (flutterVersionName == null) {
     flutterVersionName = "1.0"
@@ -49,11 +61,52 @@ android {
         versionName = flutterVersionName
     }
 
+    signingConfigs {
+        release {
+            if (hasKeystore) {
+                keyAlias = keystoreProperties["keyAlias"]
+                keyPassword = keystoreProperties["keyPassword"]
+                storeFile = file(keystoreProperties["storeFile"])
+                storePassword = keystoreProperties["storePassword"]
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
+            // Falls back to the debug key rather than failing, so a local
+            // --release build still runs on a phone. Play rejects a
+            // debug-signed upload anyway; the warning is so that is a
+            // surprise here rather than in the Play Console.
+            // A release APK still falls back to the debug key so it can be
+            // built and side-loaded for testing without a keystore. The
+            // *bundle* cannot -- see the guard below. A logger.warn here was
+            // tried first, and Flutter's gradle output filter swallows it, so
+            // it protected nothing.
+            signingConfig = hasKeystore ? signingConfigs.release : signingConfigs.debug
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
+    }
+}
+
+// The one build that must never leave here unsigned. `flutter build appbundle`
+// produces the .aab uploaded to Play, and the debug key is public: every
+// Flutter project on earth shares it, so a build signed with it is not signed
+// in any meaningful sense. Play rejects it either way; finding that out in the
+// Play Console after an upload is a worse place to learn it than here.
+gradle.taskGraph.whenReady { graph ->
+    // Exactly this task, not a prefix match: AGP also creates
+    // bundleReleaseClasses, bundleReleaseResources and friends, which a
+    // `contains` caught -- so the first version of this guard failed the
+    // release APK build too.
+    def buildingBundle = graph.allTasks.any { it.name == "bundleRelease" }
+    if (buildingBundle && !hasKeystore) {
+        throw new GradleException(
+            "\n\nandroid/key.properties not found, so this bundle would be " +
+            "signed with the PUBLIC Android debug key.\n" +
+            "Google Play will reject it. Generate a keystore and create " +
+            "android/key.properties first:\n" +
+            "the launch checklist in the audit report has the exact commands.\n")
     }
 }
 
