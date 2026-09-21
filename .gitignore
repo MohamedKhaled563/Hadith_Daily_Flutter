@@ -72,3 +72,8 @@ android/.gradle/
 /android/key.properties
 *.jks
 *.keystore
+
+# Machine-generated, and it churns: gradle rewrites flutter.buildMode on every
+# build, so it turns up in `git status` after anything. It also carries this
+# machine's absolute SDK paths, which mean nothing on anyone else's.
+/android/local.properties
