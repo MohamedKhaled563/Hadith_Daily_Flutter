@@ -55,18 +55,49 @@ grants again, so re-run that command per session (or drive the dialog).
 
 ## Xiaomi / MIUI devices
 
-MIUI gates USB installs behind **Settings → Additional settings → Developer
-options → Install via USB**, which needs a signed-in Xiaomi account and
-cannot be toggled over adb. When it is off, every install path fails with:
+Two separate things bite here, and they produce the *same* error message:
 
 ```
 Failure [INSTALL_FAILED_USER_RESTRICTED: Install canceled by user]
 ```
 
-`adb install`, `pm install` from `/data/local/tmp`, and a staged
-`install-create`/`install-write`/`install-commit` session all hit the same
-gate — it is enforced at commit time by MIUI's own security service. Turn
-that setting on physically before running the device tests on such a phone.
+**1. "Install via USB" turned off.** Settings → Additional settings →
+Developer options → **Install via USB** (التثبيت عبر USB). Needs a
+signed-in Xiaomi account and cannot be toggled over adb, so turn it on
+physically. While there, also enable **USB debugging (Security settings)**,
+which is what lets a test run grant permissions and simulate input.
+
+**2. The per-install confirmation dialog** — this is the one that bites on
+every run, and it is easy to misdiagnose as (1). Even with "Install via USB"
+on, MIUI raises
+`com.miui.securitycenter/.permcenter.install.AdbInstallActivity` for every
+adb install, and the countdown sits on its **reject** button ("رفض (٨)").
+Ignoring it does not mean "ask me later"; it refuses the install about eight
+seconds later with the message above. `flutter test integration_test`
+reinstalls once per test file, so an unattended run fails on the second file.
+
+Two details make it awkward to automate:
+
+* The dialog never becomes `mCurrentFocus`. It shows up only in the full
+  `dumpsys window windows` list, so focus-based detection never sees it.
+* Its "تذكر اختياري" (remember my choice) checkbox does **not** persist an
+  *accept* for adb installs on MIUI 12.5 — verified by ticking it and watching
+  the dialog return on the very next install. There is no one-time setting to
+  flip.
+
+**Do not tick "تذكر اختياري".** The box applies to whichever outcome the
+dialog ends on, and this dialog ends on *reject* by itself. Tick it and lose
+that race once and MIUI stores a permanent deny: every later install then
+fails instantly with `INSTALL_FAILED_USER_RESTRICTED` and no visible dialog.
+To recover, toggle **Install via USB** off and back on in Developer options.
+
+So run the watcher in a second terminal for the duration of a device run:
+
+```bash
+pwsh tool/miui_auto_accept_install.ps1 -Serial <device-id>
+```
+
+With that running, the full suite passes unattended on the phone.
 
 ## Time-dependent tests
 
