@@ -1,4 +1,4 @@
-# Auto-accepts MIUI's "تثبيت هذا التطبيق عبر USB؟" dialog so unattended adb
+﻿# Auto-accepts MIUI's "تثبيت هذا التطبيق عبر USB؟" dialog so unattended adb
 # installs (notably `flutter test integration_test`, which reinstalls the app
 # once per test file) do not fail.
 #
@@ -20,6 +20,12 @@
 #   * Its "تذكر اختياري" (remember my choice) checkbox does not persist for
 #     adb installs on MIUI 12.5 (verified: the dialog returns on the very next
 #     install), so there is no one-time setting to flip instead of this.
+#
+# KEEP THIS FILE UTF-8 **WITH BOM**. Windows PowerShell 5.1 decodes a
+# BOM-less .ps1 as ANSI, which mangles the Arabic button text below — the
+# watcher then runs, finds the dialog, matches nothing, and exits silently
+# having accepted no installs. If you edit this file with a tool that strips
+# the BOM, put it back.
 #
 # Usage
 # -----

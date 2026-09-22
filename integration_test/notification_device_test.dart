@@ -191,6 +191,40 @@ void main() {
   }, skip: inLastMinuteOfDay);
 
   testWidgets(
+      'real plugin: the status-bar icon resource resolves — a missing or '
+      'misnamed drawable fails the show() outright', (tester) async {
+    if (!Platform.isAndroid) return;
+
+    // NotificationScheduler.initialize() installs '@drawable/ic_stat_notify'
+    // as the default small icon. If that drawable did not exist, or had been
+    // pointed at something Android will not accept as a status-bar icon, the
+    // plugin's Android side raises `invalid_icon` ("The resource %s could not
+    // be found...") and this show() throws rather than returning.
+    //
+    // That makes a clean show() a real assertion about the icon, which is the
+    // most a Dart test can say here: ActiveNotification does not expose the
+    // small icon, so *which* drawable was used has to be confirmed out of
+    // band. See integration_test/README.md for the adb one-liner that reads
+    // the resource id back out of `dumpsys notification` and resolves it.
+    await scheduler.requestPermission();
+    await plugin.show(
+      9002,
+      'رسالة الصباح',
+      'التحقق من أيقونة الإشعار',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'daily_reminders',
+          'تذكيرات يومية',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    await plugin.cancel(9002);
+  });
+
+  testWidgets(
       'real plugin: a notification actually renders in the shade with the '
       'app\'s status-bar icon', (tester) async {
     if (!Platform.isAndroid) return;

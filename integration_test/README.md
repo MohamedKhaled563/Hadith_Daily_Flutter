@@ -99,6 +99,34 @@ pwsh tool/miui_auto_accept_install.ps1 -Serial <device-id>
 
 With that running, the full suite passes unattended on the phone.
 
+## Verifying the notification's status-bar icon
+
+`ActiveNotification` does not expose the small icon, so the suite can only
+assert that the drawable *resolves* (a missing one makes `show()` throw
+`invalid_icon`). To confirm *which* drawable Android actually used, read it
+back from the system while a notification is showing:
+
+```bash
+adb -s <device-id> shell dumpsys notification --noredact | grep -A18 tayebqalbak | grep icon
+```
+
+That prints something like:
+
+```
+icon=Icon(typ=RESOURCE pkg=com.prodktstudio.tayebqalbak id=0x7f080082)
+```
+
+Resolve the id against the built APK:
+
+```bash
+aapt2 dump resources build/app/outputs/flutter-apk/app-debug.apk | grep 0x7f080082
+```
+
+It must come back as `drawable/ic_stat_notify` — the dedicated white
+silhouette. If it ever resolves to `mipmap/ic_launcher`, the adaptive
+launcher icon is being used as the small icon again and Android will render
+it as a white or grey block in the status bar.
+
 ## Time-dependent tests
 
 The scheduler takes an injectable clock (`NotificationScheduler.test(clock:)`)
