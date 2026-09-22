@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Resources the release build's shrinker must not remove.
+
+  ic_stat_notify is the notification's status-bar icon. Nothing in Java, XML
+  or the manifest mentions it: its only reference is the *string*
+  '@drawable/ic_stat_notify' handed to AndroidInitializationSettings from
+  Dart (NotificationScheduler._doInitialize). The resource shrinker cannot
+  see a reference that exists only as text inside Dart code, so it treated
+  the drawable as unused and stripped it out of the release APK.
+
+  What that cost: every reschedule threw
+  PlatformException(invalid_icon, "The resource @drawable/ic_stat_notify
+  could not be found...") before scheduling anything, so a release build
+  armed zero reminders. Debug builds do not shrink resources, so the entire
+  test suite (including every on device run) passed against a build where
+  the icon was still present. Only a real release install surfaced it.
+
+  To verify after touching this file, build a release APK and confirm the
+  drawable is still in it:
+
+    aapt2 dump resources build/app/outputs/flutter-apk/app-release.apk
+
+  It must list `drawable/ic_stat_notify`.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_notify" />
