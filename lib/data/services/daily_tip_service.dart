@@ -103,6 +103,13 @@ class DailyTipService {
   static const _pickedOnDateKey = 'dailyTip.pickedOnDate';
   static const _messagesPerDayKey = 'dailyTip.messagesPerDay';
 
+  // How far into today's set the reader has actually opened. Separate from
+  // _todaySetKey because the two answer different questions: that one is
+  // which messages today holds, this one is how many of them have been
+  // revealed. Dated, so a new day starts back at one message shown.
+  static const _revealedCountKey = 'dailyTip.revealedCount';
+  static const _revealedOnDateKey = 'dailyTip.revealedOnDate';
+
   // Superseded by the single JSON list in _todaySetKey. Still read once, so
   // an install upgrading mid-day keeps the message it was already showing,
   // then cleared on the first write of the new format.
@@ -112,7 +119,16 @@ class DailyTipService {
   static const _legacyTodayHadithNumberKey = 'dailyTip.todayHadithNumber';
   static const _legacyTodayCategoryKey = 'dailyTip.todayCategory';
 
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  // Resolved lazily rather than at construction, the same way
+  // FirestoreNotificationDataSource does it and for the same reason: merely
+  // touching this singleton must not require Firebase to be up.
+  //
+  // Not all of this service needs a backend. revealedCount/saveRevealedCount
+  // are pure SharedPreferences, and the message screen calls them on every
+  // reveal — with an eagerly initialised field, that tap threw
+  // [core/no-app] anywhere Firebase had not been initialised, which is every
+  // widget test of the screen.
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
   final Random _random = Random();
 
   /// Today's messages, in display order — the same set on every call within
@@ -141,6 +157,32 @@ class DailyTipService {
   Future<DailyTip?> getTodayTip() async {
     final tips = await getTodayTips();
     return tips.isEmpty ? null : tips.first;
+  }
+
+  /// How many of today's messages the reader has opened so far, at least 1.
+  ///
+  /// The message screen reveals one card at a time rather than letting the
+  /// reader swipe through the whole set, so this is what lets it pick up
+  /// where they left off: close the app on the third of five and it reopens
+  /// on the third, not back at the first and not at "you're done". Resets
+  /// with the day, like the set itself.
+  Future<int> revealedCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_revealedOnDateKey) != _todayString()) return 1;
+    final stored = prefs.getInt(_revealedCountKey) ?? 1;
+    return stored < 1 ? 1 : stored;
+  }
+
+  /// Records that [count] of today's messages have now been revealed. Only
+  /// ever moves forward within a day — a caller re-entering the screen and
+  /// reporting a smaller number must not un-reveal what was already read.
+  Future<void> saveRevealedCount(int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isToday = prefs.getString(_revealedOnDateKey) == _todayString();
+    final previous = isToday ? (prefs.getInt(_revealedCountKey) ?? 1) : 0;
+    if (count <= previous) return;
+    await prefs.setString(_revealedOnDateKey, _todayString());
+    await prefs.setInt(_revealedCountKey, count);
   }
 
   /// How many messages today should carry. Falls back to the last value this

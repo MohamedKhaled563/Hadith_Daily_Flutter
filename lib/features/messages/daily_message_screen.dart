@@ -9,6 +9,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
+import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/bottom_navigation.dart';
@@ -20,6 +21,7 @@ import '../../core/widgets/tap_target.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/daily_tip_service.dart';
 import '../../data/services/message_like_service.dart';
 import '../hadith/hadith_detail_screen.dart';
 
@@ -33,27 +35,51 @@ class DailyMessageEntry {
   final Hadith? hadith;
 }
 
-/// The full-screen message card. A day can now carry several messages (see
-/// DailyTipService and `settings/dailyMessageConfig.messagesPerDay`), so the
-/// card lives inside a horizontal pager — swipe right-to-left in RTL to move
-/// through the day. With a single entry the pager is inert and the screen
-/// looks exactly as it always did, which is what the favourites list and the
-/// notification deep links rely on.
+/// The full-screen message card.
+///
+/// A day can carry several messages (see DailyTipService and
+/// `settings/dailyMessageConfig.messagesPerDay`). Those used to sit in a
+/// horizontal pager, so opening the day handed the reader a swipeable stack
+/// and the whole set at once. It now works the way a tip-of-the-day app
+/// does: one message, and an explicit "رسالة أخرى" to ask for the next, up
+/// to the day's limit — after which the day closes off with a note to come
+/// back tomorrow rather than silently having nothing more to swipe to.
+///
+/// Reading one at a time is the point. A set of five swiped through in ten
+/// seconds is five messages skimmed; the same five asked for one by one are
+/// five messages each of which the reader chose to see.
+///
+/// [DailyMessageScreen.new] (a single message, from favourites) keeps none
+/// of that: one card, no reveal control, no day framing.
 class DailyMessageScreen extends StatefulWidget {
   DailyMessageScreen({
     super.key,
     required Insight insight,
     Hadith? hadith,
     this.onTabSelected,
-  }) : entries = [DailyMessageEntry(insight: insight, hadith: hadith)];
+  })  : entries = [DailyMessageEntry(insight: insight, hadith: hadith)],
+        initialRevealed = 1,
+        isDaySet = false;
 
+  /// [initialRevealed] is how many of [entries] the reader has already opened
+  /// today (DailyTipService.revealedCount). Passed in rather than read here
+  /// so the correct card is on screen for the very first frame — loading it
+  /// inside would show message one and then jump, under the Hero flight in
+  /// from the home screen's emblem.
   const DailyMessageScreen.forDay({
     super.key,
     required this.entries,
+    this.initialRevealed = 1,
     this.onTabSelected,
-  });
+  })  : isDaySet = true;
 
   final List<DailyMessageEntry> entries;
+  final int initialRevealed;
+
+  /// Whether this is today's set (reveal one at a time, show the day's
+  /// progress and its ending) or a single message opened on its own.
+  final bool isDaySet;
+
   final ValueChanged<int>? onTabSelected;
 
   @override
@@ -61,16 +87,47 @@ class DailyMessageScreen extends StatefulWidget {
 }
 
 class _DailyMessageScreenState extends State<DailyMessageScreen> {
-  late final PageController _pageController = PageController();
-  int _index = 0;
-
-  bool get _isMultiple => widget.entries.length > 1;
+  /// How many of the day's messages have been revealed, 1-based. The card on
+  /// screen is always the most recently revealed one.
+  late int _revealed = widget.initialRevealed.clamp(1, widget.entries.length);
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  void didUpdateWidget(covariant DailyMessageScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Rebuilt in place with different data — a longer set because the admin
+    // raised messagesPerDay mid-session, or a later resume point. Take the
+    // furthest of the two and re-clamp: progress within a session must never
+    // run backwards, and a set that shrank must not leave the index past its
+    // last message.
+    final resumed = widget.initialRevealed;
+    _revealed = (_revealed > resumed ? _revealed : resumed)
+        .clamp(1, widget.entries.length);
   }
+
+  bool get _showsDayControls => widget.isDaySet && widget.entries.length > 1;
+  bool get _dayComplete => _revealed >= widget.entries.length;
+  int get _remaining => widget.entries.length - _revealed;
+
+  void _revealNext() {
+    if (_dayComplete) return;
+    AppHaptics.selection();
+    setState(() => _revealed++);
+    // Fire and forget: losing this write costs the reader a repeat of a
+    // message they already saw, which is not worth blocking the reveal on.
+    DailyTipService().saveRevealedCount(_revealed);
+  }
+
+  /// The share tab in the home shell's IndexedStack — home, favourites,
+  /// community, share.
+  static const _shareTabIndex = 3;
+
+  /// Only offered when this screen was opened from the home shell, which is
+  /// the only caller that can actually switch tabs. A notification deep link
+  /// pushes this route with no tab handler, and a button that quietly did
+  /// nothing would be worse than no button.
+  VoidCallback? get _onShareOwnMessage => widget.onTabSelected == null
+      ? null
+      : () => widget.onTabSelected!(_shareTabIndex);
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +169,7 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _isMultiple ? 'رسائل اليوم' : 'رسالة اليوم',
+                          _showsDayControls ? 'رسائل اليوم' : 'رسالة اليوم',
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w900,
                           ),
@@ -140,38 +197,56 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
               ],
             ),
           ),
-          if (_isMultiple)
-            _PageIndicator(count: widget.entries.length, index: _index),
+          if (_showsDayControls)
+            _RevealProgress(
+              total: widget.entries.length,
+              revealed: _revealed,
+            ),
           const SizedBox(height: 6),
-          // Each page owns the same two-part layout the screen used to have
-          // directly: the card scrolls/centers on its own — a short message
-          // centers vertically in the remaining space, a long one scrolls —
-          // while the toolbar is a fixed sibling below it, so its position
-          // never shifts with how tall any given message happens to be. That
-          // also means swiping carries each message's own toolbar (its own
-          // like count and bookmark state) along with it.
+          // The card owns its own scroll: a short message centres in the
+          // space left, a long one scrolls. The day's footer (reveal button
+          // or closing note) rides inside that same scroll view rather than
+          // being pinned below it, so a long message plus a footer stays
+          // reachable instead of the footer covering the last lines.
           Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              // null, not BouncingScrollPhysics: PageView supplies
-              // PageScrollPhysics over the platform's own behaviour, and
-              // hardcoding the bounce here is the same iOS idiom that came
-              // out of the nine list views. This file was missed then.
-              physics: _isMultiple
-                  ? null
-                  : const NeverScrollableScrollPhysics(),
-              itemCount: widget.entries.length,
-              onPageChanged: (i) {
-                AppHaptics.selection();
-                setState(() => _index = i);
+            child: AnimatedSwitcher(
+              duration: context.motion(AppDurations.content),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              // Fade with a small rise — the new message *arrives*, it does
+              // not slide in from the side. A horizontal slide would say
+              // "you moved along a row", which is exactly the swipeable
+              // stack this screen replaced.
+              transitionBuilder: (child, animation) {
+                final curved = CurvedAnimation(
+                  parent: animation,
+                  curve: AppDurations.curve,
+                );
+                return FadeTransition(
+                  opacity: curved,
+                  child: SlideTransition(
+                    position: Tween(
+                      begin: const Offset(0, 0.04),
+                      end: Offset.zero,
+                    ).animate(curved),
+                    child: child,
+                  ),
+                );
               },
-              itemBuilder: (context, i) => _MessagePage(
+              child: _MessagePage(
                 key: ValueKey(
-                  '${widget.entries[i].insight.sourceCollection}/'
-                  '${widget.entries[i].insight.id}#$i',
+                  '${_currentEntry.insight.sourceCollection}/'
+                  '${_currentEntry.insight.id}#${_revealed - 1}',
                 ),
-                entry: widget.entries[i],
-                pageIndex: i,
+                entry: _currentEntry,
+                pageIndex: _revealed - 1,
+                footer: _buildFooter(),
+                // The closing panel is taller than the reveal button and the
+                // card above it is already most of the screen, so on a phone
+                // it lands below the fold. Rather than leave the reader to
+                // discover it by scrolling, the page brings it up itself
+                // once the day is done.
+                revealFooterOnOpen: _showsDayControls && _dayComplete,
               ),
             ),
           ),
@@ -179,44 +254,80 @@ class _DailyMessageScreenState extends State<DailyMessageScreen> {
       ),
     );
   }
+
+  DailyMessageEntry get _currentEntry => widget.entries[_revealed - 1];
+
+  Widget? _buildFooter() {
+    if (!_showsDayControls) return null;
+    if (!_dayComplete) {
+      return _RevealMoreFooter(remaining: _remaining, onReveal: _revealNext);
+    }
+    return _DayCompleteFooter(
+      total: widget.entries.length,
+      onShareOwnMessage: _onShareOwnMessage,
+    );
+  }
 }
 
-/// Which message of the day is showing — dots plus an Arabic-numeral
-/// counter, since a set can run to ten and ten dots alone stop being
-/// countable at a glance.
-class _PageIndicator extends StatelessWidget {
-  const _PageIndicator({required this.count, required this.index});
+/// "بقيت لك رسالتان اليوم" and friends. Arabic counts a pair differently
+/// from both one and many, and 3–10 take the plural noun, so this is three
+/// forms rather than the usual two.
+String remainingMessagesLabel(int remaining) {
+  if (remaining <= 0) return 'لم يتبقَّ شيء لليوم';
+  if (remaining == 1) return 'بقيت لك رسالة واحدة اليوم';
+  if (remaining == 2) return 'بقيت لك رسالتان اليوم';
+  return 'بقيت لك ${toArabicDigits(remaining)} رسائل اليوم';
+}
 
-  final int count;
-  final int index;
+/// How far into the day's set the reader has come, drawn as a strand of
+/// beads on a thread rather than the usual row of pager dots.
+///
+/// The form is doing work: pager dots say "there are five panels, you are on
+/// the second, swipe for the rest" — which is the browsing model this screen
+/// deliberately left behind. A strand that fills bead by bead says "you have
+/// taken two, three remain", which is what is actually true here, and it
+/// carries a quiet echo of a misbaha without dressing anything up as one.
+class _RevealProgress extends StatelessWidget {
+  const _RevealProgress({required this.total, required this.revealed});
+
+  final int total;
+  final int revealed;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final duration = context.motion(AppDurations.control);
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: 10, bottom: 2),
       child: Semantics(
-        label: 'الرسالة ${index + 1} من $count',
+        label: 'قرأت $revealed من $total رسائل اليوم',
         child: ExcludeSemantics(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              for (var i = 0; i < count; i++)
-                AnimatedContainer(
-                  duration: context.motion(const Duration(milliseconds: 220)),
-                  curve: Curves.easeOut,
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: i == index ? 16 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: i == index ? palette.goldText : palette.cardBorder,
-                    borderRadius: BorderRadius.circular(AppRadii.pill),
+              for (var i = 0; i < total; i++) ...[
+                if (i > 0)
+                  // The thread between beads, lit only as far as the reader
+                  // has come.
+                  AnimatedContainer(
+                    duration: duration,
+                    curve: AppDurations.curve,
+                    width: 12,
+                    height: 1,
+                    color: i < revealed
+                        ? palette.ornamentGold
+                        : palette.cardBorder,
                   ),
+                _Bead(
+                  filled: i < revealed,
+                  isCurrent: i == revealed - 1,
+                  duration: duration,
                 ),
-              const SizedBox(width: 10),
+              ],
+              const SizedBox(width: 12),
               Text(
-                '${toArabicDigits(index + 1)} / ${toArabicDigits(count)}',
+                '${toArabicDigits(revealed)} / ${toArabicDigits(total)}',
                 style: TextStyle(
                   fontFamily: kSans,
                   fontSize: 12,
@@ -233,6 +344,332 @@ class _PageIndicator extends StatelessWidget {
   }
 }
 
+class _Bead extends StatelessWidget {
+  const _Bead({
+    required this.filled,
+    required this.isCurrent,
+    required this.duration,
+  });
+
+  final bool filled;
+  final bool isCurrent;
+  final Duration duration;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final size = isCurrent ? 11.0 : 7.0;
+
+    return AnimatedContainer(
+      duration: duration,
+      curve: AppDurations.curve,
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: filled ? palette.goldText : Colors.transparent,
+        border: Border.all(
+          color: filled ? palette.goldText : palette.cardBorder,
+          width: 1.2,
+        ),
+        // Only the bead just taken carries a halo, so the eye lands on where
+        // the reader is without the whole strand glowing.
+        boxShadow: isCurrent && filled
+            ? [
+                BoxShadow(
+                  color: palette.ornamentGold.withValues(alpha: 0.55),
+                  blurRadius: 7,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
+      ),
+    );
+  }
+}
+
+/// The day's invitation to go on: one more message, and how many are left.
+///
+/// The button gives a short halo pulse as it arrives and then rests. It is
+/// deliberately *finite*: a glow that breathes forever stops being an
+/// invitation and becomes wallpaper, it keeps a ticker running for as long
+/// as the screen is open, and it means the screen never reaches a settled
+/// state — which is also what an infinite pulse did to the first version of
+/// this widget's tests.
+class _RevealMoreFooter extends StatefulWidget {
+  const _RevealMoreFooter({required this.remaining, required this.onReveal});
+
+  final int remaining;
+  final VoidCallback onReveal;
+
+  @override
+  State<_RevealMoreFooter> createState() => _RevealMoreFooterState();
+}
+
+class _RevealMoreFooterState extends State<_RevealMoreFooter>
+    with SingleTickerProviderStateMixin {
+  static const _pulseCount = 2;
+
+  late final AnimationController _breath = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  );
+
+  bool _breathStarted = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_breathStarted || context.reduceMotion) return;
+    _breathStarted = true;
+    _playPulse();
+  }
+
+  Future<void> _playPulse() async {
+    try {
+      for (var i = 0; i < _pulseCount; i++) {
+        await _breath.forward().orCancel;
+        await _breath.reverse().orCancel;
+      }
+    } on TickerCanceled {
+      // The reader moved on mid-pulse; nothing to finish.
+    }
+  }
+
+  @override
+  void dispose() {
+    _breath.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return _FooterEntrance(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _HairlineOrnament(),
+          const SizedBox(height: 16),
+          AnimatedBuilder(
+            animation: _breath,
+            builder: (context, child) => Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+                boxShadow: [
+                  BoxShadow(
+                    color: palette.ornamentGold.withValues(
+                      alpha: 0.10 + 0.14 * _breath.value,
+                    ),
+                    blurRadius: 16 + 8 * _breath.value,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: child,
+            ),
+            child: AppButton(
+              text: 'رسالة أخرى',
+              icon: Icons.auto_awesome_rounded,
+              expand: false,
+              onPressed: widget.onReveal,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            remainingMessagesLabel(widget.remaining),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 12.5,
+              height: AppLeading.chrome,
+              fontWeight: FontWeight.w600,
+              color: palette.mutedText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The end of the day's set: the reader has taken everything today had.
+///
+/// Framed as a closing rather than an absence — the crescent says "come back
+/// tomorrow" in a single glyph, and the one action offered turns a reader
+/// who has run out into someone who writes the next one.
+class _DayCompleteFooter extends StatelessWidget {
+  const _DayCompleteFooter({
+    required this.total,
+    required this.onShareOwnMessage,
+  });
+
+  final int total;
+  final VoidCallback? onShareOwnMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return _FooterEntrance(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _HairlineOrnament(),
+          const SizedBox(height: 18),
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: palette.surface,
+              border: Border.all(color: palette.cardBorderStrong, width: 1.4),
+            ),
+            child: Icon(
+              Icons.nightlight_round,
+              size: 22,
+              color: palette.goldText,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'انتهت رسائل اليوم',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 16,
+              height: AppLeading.chrome,
+              fontWeight: FontWeight.w900,
+              color: palette.bodyText,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'قرأت ${toArabicDigits(total)} من رسائل اليوم.\n'
+            'عُد غداً — في انتظارك رسائل جديدة بإذن الله.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 13,
+              height: AppLeading.body,
+              fontWeight: FontWeight.w600,
+              color: palette.mutedText,
+            ),
+          ),
+          if (onShareOwnMessage != null) ...[
+            const SizedBox(height: 18),
+            AppButton(
+              text: 'شارك رسالة من عندك',
+              icon: Icons.edit_note_rounded,
+              isSecondary: true,
+              expand: false,
+              onPressed: onShareOwnMessage,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// One fade-and-rise as a footer first appears, on its own parchment ground.
+///
+/// The panel is not decoration. The day's controls sit below the card, over
+/// the screen's landscape illustration, and the caption under the button is
+/// small muted text — on that background it was very nearly unreadable.
+/// Giving the block a surface of its own both fixes the contrast and groups
+/// the button with the line that explains it, instead of leaving two loose
+/// elements floating over a photograph.
+class _FooterEntrance extends StatelessWidget {
+  const _FooterEntrance({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: context.motion(AppDurations.content),
+      curve: AppDurations.curve,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(offset: Offset(0, 10 * (1 - t)), child: child),
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+        decoration: BoxDecoration(
+          // Not fully opaque: the landscape still shows through enough that
+          // the panel reads as resting on the scene rather than punched out
+          // of it.
+          color: palette.surface.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          border: Border.all(color: palette.cardBorder),
+          boxShadow: AppElevation.card,
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// A slim gold hairline that tapers at both ends — the divider used between
+/// the message and the day's controls. Lighter than the full golden_divider
+/// ornament the card itself uses, so the card stays the loudest thing.
+class _HairlineOrnament extends StatelessWidget {
+  const _HairlineOrnament();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return SizedBox(
+      width: 120,
+      height: 9,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.transparent, palette.ornamentGold],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Transform.rotate(
+            angle: 0.785398, // 45°, so the square reads as a small lozenge
+            child: Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                color: palette.goldText,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [palette.ornamentGold, Colors.transparent],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// A single message in the day's set: the card itself plus its own toolbar.
 /// Bookmark state is per-message, which is why this is its own stateful
 /// widget rather than something the screen tracks centrally.
@@ -241,12 +678,24 @@ class _MessagePage extends StatefulWidget {
     super.key,
     required this.entry,
     required this.pageIndex,
+    this.footer,
+    this.revealFooterOnOpen = false,
   });
 
   final DailyMessageEntry entry;
 
   /// Only page 0 carries the shared Hero tag; see [_MessagePageState._heroTag].
   final int pageIndex;
+
+  /// The day's controls, shown under this message's toolbar. Inside the
+  /// card's own scroll view rather than pinned to the screen, so a long
+  /// message and its footer stay reachable together.
+  final Widget? footer;
+
+  /// Scroll the footer into view shortly after this page appears. Used for
+  /// the day's closing panel, which is too tall to share a phone screen with
+  /// a full message card.
+  final bool revealFooterOnOpen;
 
   @override
   State<_MessagePage> createState() => _MessagePageState();
@@ -270,6 +719,8 @@ class _MessagePageState extends State<_MessagePage> {
 
   late bool _isBookmarked;
 
+  final ScrollController _scrollController = ScrollController();
+
   Insight get _insight => widget.entry.insight;
   Hadith? get _hadith => widget.entry.hadith;
 
@@ -277,6 +728,29 @@ class _MessagePageState extends State<_MessagePage> {
   void initState() {
     super.initState();
     _isBookmarked = _repo.isInsightFavorite(_insight);
+    if (widget.revealFooterOnOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _bringFooterIntoView());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Holds on the message for a beat first — the reader should register the
+  /// last message of the day before the screen tells them it was the last.
+  Future<void> _bringFooterIntoView() async {
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (!mounted || !_scrollController.hasClients) return;
+    final max = _scrollController.position.maxScrollExtent;
+    if (max <= 0) return; // Already all on screen; nothing to bring up.
+    await _scrollController.animateTo(
+      max,
+      duration: context.motion(const Duration(milliseconds: 560)),
+      curve: AppDurations.curve,
+    );
   }
 
   String get _shareText {
@@ -358,6 +832,7 @@ class _MessagePageState extends State<_MessagePage> {
         final vertical = 16 + navReserved;
 
         return SingleChildScrollView(
+          controller: _scrollController,
           padding: EdgeInsets.fromLTRB(20, 8, 20, 8 + navReserved),
           child: ConstrainedBox(
             constraints: BoxConstraints(
@@ -373,6 +848,10 @@ class _MessagePageState extends State<_MessagePage> {
                   _buildCard(),
                   const SizedBox(height: 14),
                   _toolbar,
+                  if (widget.footer != null) ...[
+                    const SizedBox(height: 22),
+                    widget.footer!,
+                  ],
                 ],
               ),
             ),

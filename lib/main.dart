@@ -80,12 +80,14 @@ void _openTodayMessage() async {
 
     final tips = await DailyTipService().getTodayTips();
     if (tips.isEmpty) return;
+    final revealed = await DailyTipService().revealedCount();
     final repo = HadithRepository();
 
     navState.push(
       appMessageRoute(
         settings: const RouteSettings(name: _todayMessageRouteName),
         child: DailyMessageScreen.forDay(
+          initialRevealed: revealed,
           entries: [
             for (final tip in tips)
               DailyMessageEntry(

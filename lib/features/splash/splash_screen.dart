@@ -62,6 +62,9 @@ class _SplashScreenState extends State<SplashScreen>
   // tap, two message screens on top).
   bool _navigated = false;
 
+  /// Set by [_resolveLaunchEntries] before the entries it returns are used.
+  int _launchRevealed = 1;
+
   final List<String> _inspirationalQuotes = [
     'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ',
     'طِبْ نفساً واستبشر بنور النبوة',
@@ -148,6 +151,9 @@ class _SplashScreenState extends State<SplashScreen>
       if (!launched) return const [];
       final tips = await DailyTipService().getTodayTips();
       if (tips.isEmpty) return const [];
+      // How far into today's set the reader already was, so the deep link
+      // resumes rather than restarting the day at message one.
+      _launchRevealed = await DailyTipService().revealedCount();
       final repo = HadithRepository();
       return [
         for (final tip in tips)
@@ -195,7 +201,11 @@ class _SplashScreenState extends State<SplashScreen>
     if (entries.isNotEmpty) {
       Navigator.push(
         context,
-        appMessageRoute(child: DailyMessageScreen.forDay(entries: entries),
+        appMessageRoute(
+          child: DailyMessageScreen.forDay(
+            entries: entries,
+            initialRevealed: _launchRevealed,
+          ),
         ),
       );
     }

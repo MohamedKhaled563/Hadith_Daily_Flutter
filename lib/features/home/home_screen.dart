@@ -65,6 +65,10 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _openDailyMessage() async {
     setState(() => _loadingDailyTip = true);
     final tips = await DailyTipService().getTodayTips();
+    // Read alongside the set, not inside the screen: the card for the right
+    // message has to be there on the first frame, under the Hero flight from
+    // the emblem the reader just pressed.
+    final revealed = await DailyTipService().revealedCount();
     if (!mounted) return;
     setState(() => _loadingDailyTip = false);
 
@@ -87,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen>
                 hadith: _repo.getByNumber(tip.hadithNumber),
               ),
           ],
+          initialRevealed: revealed,
           onTabSelected: (index) {
             Navigator.pop(context);
             _goToTab(index);
