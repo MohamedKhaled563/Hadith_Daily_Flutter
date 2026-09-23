@@ -5,6 +5,8 @@ state of this repo rather than a generic checklist. Android only; iOS is not
 in scope yet.
 
 `android/app/build.gradle` refers to "the launch checklist" — this is it.
+Keep the two references in that file in step with this filename if it ever
+moves; they are what a failing release build points people at.
 
 ---
 
