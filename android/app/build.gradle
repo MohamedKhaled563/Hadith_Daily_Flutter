@@ -20,8 +20,8 @@ if (flutterVersionCode == null) {
 }
 
 // Release signing. The keystore and its passwords live in
-// android/key.properties, which is gitignored and never committed — see the
-// launch checklist in the audit report for how to generate one.
+// android/key.properties, which is gitignored and never committed — see
+// docs/PLAY_STORE_LAUNCH.md for how to generate one.
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file("key.properties")
 def hasKeystore = keystorePropertiesFile.exists()
@@ -106,7 +106,7 @@ gradle.taskGraph.whenReady { graph ->
             "signed with the PUBLIC Android debug key.\n" +
             "Google Play will reject it. Generate a keystore and create " +
             "android/key.properties first:\n" +
-            "the launch checklist in the audit report has the exact commands.\n")
+            "docs/PLAY_STORE_LAUNCH.md has the exact commands.\n")
     }
 }
 
