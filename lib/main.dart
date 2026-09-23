@@ -1,16 +1,13 @@
-import 'package:firebase_core/firebase_core.dart';
+﻿import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_state_controller.dart';
-import 'core/widgets/smooth_page_route.dart';
 import 'data/repositories/hadith_repository.dart';
 import 'data/services/moderation_service.dart';
-import 'data/services/daily_tip_service.dart';
 import 'data/services/notification_lifecycle_refresher.dart';
 import 'data/services/notification_scheduler.dart';
-import 'features/messages/daily_message_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'firebase_options.dart';
 
@@ -42,66 +39,14 @@ void main() async {
     // it has to be in memory before the first frame.
     ModerationService().load(),
   ]);
-  NotificationScheduler.notificationTapped.addListener(_openTodayMessage);
   runApp(const HadithApp());
 }
 
-/// Route name for the tapped-reminder message screen, so a second tap can
-/// tell that one is already open instead of stacking another copy.
-const _todayMessageRouteName = 'today-message';
-
-/// Guards against a tap landing while a previous one is still fetching.
-bool _openingTodayMessage = false;
-
-/// Tapping a reminder always opens today's actual daily/community messages
-/// (the same content the home screen's heart button shows) — never the
-/// reminder pool's own generic text, which the reader never associated
-/// with a specific "message" in the first place. A day can hold several
-/// messages now; the tap lands on the first and the rest are a swipe away.
-///
-/// Tapping two reminders in a row (or the same one twice) used to push a
-/// second identical screen on top of the first, so the reader had to back
-/// out of the same message twice. Both the in-flight flag and the top-route
-/// check below are needed: the former covers two taps during one fetch, the
-/// latter a tap while the screen is already open.
-void _openTodayMessage() async {
-  if (_openingTodayMessage) return;
-  _openingTodayMessage = true;
-  try {
-    final navState = navigatorKey.currentState;
-    if (navState == null) return;
-
-    var alreadyOpen = false;
-    navState.popUntil((route) {
-      alreadyOpen = route.settings.name == _todayMessageRouteName;
-      return true; // inspect the top route only, pop nothing
-    });
-    if (alreadyOpen) return;
-
-    final tips = await DailyTipService().getTodayTips();
-    if (tips.isEmpty) return;
-    final revealed = await DailyTipService().revealedCount();
-    final repo = HadithRepository();
-
-    navState.push(
-      appMessageRoute(
-        settings: const RouteSettings(name: _todayMessageRouteName),
-        child: DailyMessageScreen.forDay(
-          initialRevealed: revealed,
-          entries: [
-            for (final tip in tips)
-              DailyMessageEntry(
-                insight: tip.toInsight(),
-                hadith: repo.getByNumber(tip.hadithNumber),
-              ),
-          ],
-        ),
-      ),
-    );
-  } finally {
-    _openingTodayMessage = false;
-  }
-}
+// Tapping a reminder used to push a message screen from here. It no longer
+// does: today's message lives inline on the home tab and stays there once
+// opened, so there is one place a message is shown rather than two that can
+// drift apart. HomeScreen listens to NotificationScheduler.notificationTapped
+// directly and brings itself to the front.
 
 class HadithApp extends StatefulWidget {
   const HadithApp({super.key});

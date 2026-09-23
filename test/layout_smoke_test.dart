@@ -11,6 +11,7 @@ import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/home/home_screen.dart';
 import 'package:hadith_app/features/hadith/hadith_list_screen.dart';
 import 'package:hadith_app/features/hadith/hadith_detail_screen.dart';
+import 'package:hadith_app/features/messages/daily_message_card.dart';
 import 'package:hadith_app/features/messages/daily_message_screen.dart';
 
 /// Device sizes that previously broke the Home hero (F-07). 360x640 is the
@@ -136,40 +137,33 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  // A day can carry several messages now
-  // (settings/dailyMessageConfig.messagesPerDay) — the card lives in a pager
-  // and swiping must not disturb the layout the test above guards.
-  testWidgets('Daily message pager swipes through a multi-message day',
+  // The card also has to survive the day's controls sitting under it. That
+  // used to be a pager and a progress strand on this screen; today's message
+  // now lives inline on the home tab, so what is left here is one message
+  // with a footer beneath it — the shape favourites opens.
+  testWidgets('Daily message card lays out with a footer under it',
       (tester) async {
     final repo = HadithRepository();
-    final insights = repo.insights.take(3).toList();
-    expect(insights, hasLength(3), reason: 'insights.json should be bundled');
+    final insight = repo.insights.first;
 
     await _pumpAt(
       tester,
-      DailyMessageScreen.forDay(
-        entries: [
-          for (final insight in insights)
-            DailyMessageEntry(
+      Scaffold(
+        body: SingleChildScrollView(
+          child: DailyMessageCard(
+            entry: DailyMessageEntry(
               insight: insight,
               hadith: repo.getByNumber(insight.hadithNumber),
             ),
-        ],
+            footer: const Text('رسالة أخرى'),
+          ),
+        ),
       ),
       const Size(360, 640),
     );
 
-    expect(find.text('رسائل اليوم'), findsOneWidget);
-    expect(find.text('١ / ٣'), findsOneWidget);
-    expect(find.textContaining(insights.first.message), findsOneWidget);
-
-    // RTL: the next message sits to the LEFT, so a drag towards the right
-    // edge is what advances the pager.
-    await tester.drag(find.byType(PageView), const Offset(300, 0));
-    await tester.pumpAndSettle();
-
-    expect(find.text('٢ / ٣'), findsOneWidget);
-    expect(find.textContaining(insights[1].message), findsOneWidget);
+    expect(find.textContaining(insight.message), findsOneWidget);
+    expect(find.text('رسالة أخرى'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

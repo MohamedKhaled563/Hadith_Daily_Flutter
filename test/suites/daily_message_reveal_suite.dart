@@ -1,34 +1,60 @@
+import 'dart:convert';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/data/models/insight.dart';
+import 'package:hadith_app/data/repositories/hadith_repository.dart';
+import 'package:hadith_app/data/services/daily_tip_service.dart';
+import 'package:hadith_app/features/home/home_screen.dart';
 import 'package:hadith_app/features/messages/daily_message_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Covers the message screen's reveal model: one message at a time, an
-/// explicit ask for the next, and a closing state once the day is spent.
+/// Covers how the day's message is given out.
 ///
-/// The screen used to be a horizontal pager, so opening the day handed over
-/// the whole set at once and "finished" was indistinguishable from "stopped
-/// swiping". These tests pin the behaviour that replaced it.
+/// The shape here is the point, and it has changed twice. It was a
+/// horizontal pager over the whole set, then a pushed screen with a reveal
+/// button and a progress strand. It is now what a tip-of-the-day app does:
+/// press the emblem once, the message takes its place **on the home tab**,
+/// and it stays there for the rest of the day — across restarts — with no
+/// counter anywhere and no second screen to navigate to.
 ///
-/// Every insight here is built with an empty id, which makes
-/// [Insight.isLikeable] false and keeps the toolbar off Firestore — the
-/// screen can then be pumped without a backend.
-Insight _insight(String text) => Insight(
-      hadithNumber: 1,
-      arabic: text,
-      english: '',
-      category: 'تأمّل',
-      id: '',
-      sourceCollection: '',
-    );
+/// These tests pin that, because every one of those properties was got wrong
+/// at least once.
 
-List<DailyMessageEntry> _entries(int count) => [
+String _todayString() {
+  final now = DateTime.now();
+  final month = now.month.toString().padLeft(2, '0');
+  final day = now.day.toString().padLeft(2, '0');
+  return '${now.year}-$month-$day';
+}
+
+/// Seeds a day's set straight into the cache DailyTipService reads, so the
+/// home screen has a known set of messages.
+Map<String, Object> _seededDay(int count, {int? revealed}) {
+  final date = _todayString();
+  return {
+    'dailyTip.messagesPerDay': count,
+    'dailyTip.pickedOnDate': date,
+    'dailyTip.todaySet': jsonEncode([
       for (var i = 1; i <= count; i++)
-        DailyMessageEntry(insight: _insight('رسالة رقم $i')),
-    ];
+        {
+          'id': 'seed-$i',
+          'source': 'dailyMessages',
+          'text': 'رسالة رقم $i',
+          'hadithNumber': 1,
+          'category': 'تأمّل',
+        },
+    ]),
+    if (revealed != null) ...{
+      'dailyTip.revealedOnDate': date,
+      'dailyTip.revealedCount': revealed,
+    },
+  };
+}
 
 Widget _host(Widget child) => MaterialApp(
       theme: AppTheme.light,
@@ -42,172 +68,204 @@ Widget _host(Widget child) => MaterialApp(
       home: child,
     );
 
+/// Pumps until [until] matches, or a generous budget runs out.
+///
+/// `pumpAndSettle` is unusable here: home runs ambient animations that never
+/// stop. Waiting on a condition rather than a fixed number of frames,
+/// because what is being waited for includes real async work.
+Future<void> _settle(WidgetTester tester, {Finder? until}) async {
+  for (var i = 0; i < 40; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (until != null && until.evaluate().isNotEmpty) return;
+  }
+}
+
+/// Seeds the day, then pumps home with it.
+///
+/// The `getTodayTips()` call before pumping is not redundant. Resolving the
+/// day asks Firestore how many messages it carries, which on a networked
+/// device is a real round trip of unpredictable length; doing it here means
+/// the set is already settled and cached before home asks for it, instead of
+/// each test racing that call. Skipping this made four of these tests fail
+/// on a phone while passing everywhere else.
+Future<void> _pumpHome(
+  WidgetTester tester,
+  Map<String, Object> seed, {
+  Finder? until,
+}) async {
+  SharedPreferences.setMockInitialValues(seed);
+  await DailyTipService().getTodayTips();
+  await tester.pumpWidget(_host(const HomeScreen()));
+  await _settle(tester, until: until);
+}
+
 void dailyMessageRevealSuite() {
-  setUp(() {
-    SharedPreferences.setMockInitialValues({});
+  setUpAll(() async {
+    setupFirebaseCoreMocks();
+    await Firebase.initializeApp();
+    await HadithRepository().load();
   });
 
-  group('remainingMessagesLabel', () {
-    test('uses the dual form for two, which Arabic counts separately', () {
-      expect(remainingMessagesLabel(2), contains('رسالتان'));
+  group('DailyTipService — how much of today has been opened', () {
+    test('starts at zero: the emblem has not been pressed yet', () async {
+      SharedPreferences.setMockInitialValues({});
+      expect(await DailyTipService().revealedCount(), 0);
     });
 
-    test('uses the singular for one', () {
-      expect(remainingMessagesLabel(1), contains('رسالة واحدة'));
+    test('ensureOpenedToday opens it, and is idempotent', () async {
+      SharedPreferences.setMockInitialValues({});
+      expect(await DailyTipService().ensureOpenedToday(), 1);
+      expect(await DailyTipService().revealedCount(), 1);
+
+      // A second reminder tap must not advance past a message unread.
+      expect(await DailyTipService().ensureOpenedToday(), 1);
+      expect(await DailyTipService().revealedCount(), 1);
     });
 
-    test('uses the plural noun and an Arabic numeral from three up', () {
-      final label = remainingMessagesLabel(4);
-      expect(label, contains('رسائل'));
-      expect(label, contains('٤'));
+    test('remembers how far the reader got, across a restart', () async {
+      SharedPreferences.setMockInitialValues({});
+      await DailyTipService().saveRevealedCount(3);
+      expect(await DailyTipService().revealedCount(), 3);
     });
 
-    test('never promises anything once nothing is left', () {
-      expect(remainingMessagesLabel(0), isNot(contains('بقيت')));
+    test('never runs backwards within a day', () async {
+      SharedPreferences.setMockInitialValues({});
+      await DailyTipService().saveRevealedCount(3);
+      await DailyTipService().saveRevealedCount(1);
+      expect(await DailyTipService().revealedCount(), 3);
+    });
+
+    test('a new day starts closed again, whatever yesterday reached',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        'dailyTip.revealedOnDate': '2020-01-01',
+        'dailyTip.revealedCount': 5,
+      });
+      expect(await DailyTipService().revealedCount(), 0,
+          reason: 'the emblem is waiting to be pressed again');
     });
   });
 
-  group('DailyMessageScreen.forDay', () {
-    testWidgets('opens on one message, not the whole set', (tester) async {
-      await tester.pumpWidget(_host(
-        DailyMessageScreen.forDay(entries: _entries(3)),
-      ));
-      await tester.pumpAndSettle();
+  group('home — pressing the emblem', () {
+    testWidgets('shows the emblem while today has not been opened',
+        (tester) async {
+      await _pumpHome(tester, _seededDay(3),
+          until: find.textContaining('هل سمعت'));
 
-      expect(find.textContaining('رسالة رقم ١'), findsNothing);
-      // The card renders the message wrapped in guillemets.
+      expect(find.textContaining('هل سمعت'), findsOneWidget);
+      expect(find.textContaining('رسالة رقم'), findsNothing);
+    });
+
+    testWidgets('puts the message in the emblem\'s place, without navigating',
+        (tester) async {
+      await _pumpHome(tester, _seededDay(3),
+          until: find.textContaining('هل سمعت'));
+
+      await tester.tap(find.textContaining('طيّب قلبك').first);
+      await _settle(tester, until: find.textContaining('رسالة رقم 1'));
+
       expect(find.textContaining('رسالة رقم 1'), findsOneWidget);
-      expect(find.textContaining('رسالة رقم 2'), findsNothing);
-      expect(find.textContaining('رسالة رقم 3'), findsNothing);
+      // The hero question is gone: the message replaced it on the same tab.
+      expect(find.textContaining('هل سمعت'), findsNothing);
+      // And nothing was pushed — home is still the only route.
+      expect(find.byType(DailyMessageScreen), findsNothing);
     });
 
-    testWidgets('offers the next message rather than a swipe', (tester) async {
-      await tester.pumpWidget(_host(
-        DailyMessageScreen.forDay(entries: _entries(3)),
-      ));
-      await tester.pumpAndSettle();
+    testWidgets('never shows a counter', (tester) async {
+      await _pumpHome(tester, _seededDay(4, revealed: 2),
+          until: find.textContaining('رسالة رقم 2'));
+
+      // The reader is being given a message, not shown a position in a queue.
+      expect(find.text('١ / ٤'), findsNothing);
+      expect(find.text('٢ / ٤'), findsNothing);
+      expect(find.textContaining(' / '), findsNothing);
+    });
+  });
+
+  group('home — the rest of the day', () {
+    testWidgets('comes back to the message, not the emblem', (tester) async {
+      // Opened earlier today and the app was closed since.
+      await _pumpHome(tester, _seededDay(3, revealed: 2),
+          until: find.textContaining('رسالة رقم 2'));
+
+      expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
+      expect(find.textContaining('هل سمعت'), findsNothing);
+    });
+
+    testWidgets('offers another message while the day has more',
+        (tester) async {
+      await _pumpHome(tester, _seededDay(3, revealed: 1),
+          until: find.text('رسالة أخرى'));
 
       expect(find.text('رسالة أخرى'), findsOneWidget);
-      expect(find.text('١ / ٣'), findsOneWidget);
-      expect(find.text(remainingMessagesLabel(2)), findsOneWidget);
-    });
-
-    testWidgets('reveals the next message on request', (tester) async {
-      await tester.pumpWidget(_host(
-        DailyMessageScreen.forDay(entries: _entries(3)),
-      ));
-      await tester.pumpAndSettle();
 
       await tester.tap(find.text('رسالة أخرى'));
-      await tester.pumpAndSettle();
+      // The card cross-fades, so the outgoing message is briefly still in the
+      // tree alongside the incoming one. Wait for the swap to *finish* before
+      // asserting the old one is gone, rather than the instant the new one
+      // appears.
+      await _settle(tester, until: find.textContaining('رسالة رقم 2'));
+      await _settle(tester);
 
       expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
       expect(find.textContaining('رسالة رقم 1'), findsNothing);
-      expect(find.text('٢ / ٣'), findsOneWidget);
     });
 
     testWidgets(
-        'closes the day off once the last message is taken, instead of '
-        'simply running out of things to swipe to', (tester) async {
-      await tester.pumpWidget(_host(
-        DailyMessageScreen.forDay(entries: _entries(2)),
-      ));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('رسالة أخرى'));
-      await tester.pumpAndSettle();
+        'closes the day with the last message rather than a panel of its own',
+        (tester) async {
+      await _pumpHome(tester, _seededDay(2, revealed: 2),
+          until: find.text('نلقاك غداً بإذن الله'));
 
       expect(find.text('رسالة أخرى'), findsNothing);
-      expect(find.text('انتهت رسائل اليوم'), findsOneWidget);
-      expect(find.textContaining('عُد غداً'), findsOneWidget);
+      expect(find.text('نلقاك غداً بإذن الله'), findsOneWidget);
+      // Shown *with* the message, not instead of it.
+      expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
     });
 
-    testWidgets('resumes where the reader left off today', (tester) async {
-      await tester.pumpWidget(_host(
-        DailyMessageScreen.forDay(entries: _entries(4), initialRevealed: 3),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('رسالة رقم 3'), findsOneWidget);
-      expect(find.text('٣ / ٤'), findsOneWidget);
-    });
-
-    testWidgets(
-        'a resumed position past the end still lands on a real message',
+    testWidgets('a one-message day closes as soon as it is opened',
         (tester) async {
-      // messagesPerDay lowered in the dashboard after the reader had already
-      // gone further than the new limit.
-      await tester.pumpWidget(_host(
-        DailyMessageScreen.forDay(entries: _entries(2), initialRevealed: 9),
-      ));
-      await tester.pumpAndSettle();
+      await _pumpHome(tester, _seededDay(1),
+          until: find.textContaining('هل سمعت'));
+
+      await tester.tap(find.textContaining('طيّب قلبك').first);
+      await _settle(tester, until: find.text('نلقاك غداً بإذن الله'));
+
+      expect(find.textContaining('رسالة رقم 1'), findsOneWidget);
+      expect(find.text('رسالة أخرى'), findsNothing);
+      expect(find.text('نلقاك غداً بإذن الله'), findsOneWidget);
+    });
+
+    testWidgets('a stored position past the end still lands on a real message',
+        (tester) async {
+      // messagesPerDay lowered after the reader had already gone further.
+      await _pumpHome(tester, _seededDay(2, revealed: 9),
+          until: find.text('نلقاك غداً بإذن الله'));
 
       expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
-      expect(find.text('انتهت رسائل اليوم'), findsOneWidget);
-    });
-
-    testWidgets('a one-message day shows no day controls at all',
-        (tester) async {
-      await tester.pumpWidget(_host(
-        DailyMessageScreen.forDay(entries: _entries(1)),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('رسالة أخرى'), findsNothing);
-      expect(find.text('انتهت رسائل اليوم'), findsNothing);
-      expect(find.text('رسالة اليوم'), findsOneWidget);
-    });
-
-    // Deliberately rebuilds the same widget type in place rather than using
-    // distinct keys, so it also covers didUpdateWidget: Flutter reuses the
-    // State across these pumps, and an earlier version kept the first pump's
-    // position for all three.
-    testWidgets('offers writing one only when tabs can actually be switched',
-        (tester) async {
-      await tester.pumpWidget(_host(
-        DailyMessageScreen.forDay(entries: _entries(1), initialRevealed: 1),
-      ));
-      await tester.pumpAndSettle();
-      // Single message: no footer, so nothing to offer.
-      expect(find.text('شارك رسالة من عندك'), findsNothing);
-
-      // A deep link pushes this route with no tab handler, so the share CTA
-      // must stay hidden rather than becoming a button that does nothing.
-      await tester.pumpWidget(_host(
-        DailyMessageScreen.forDay(entries: _entries(2), initialRevealed: 2),
-      ));
-      await tester.pumpAndSettle();
-      expect(find.text('انتهت رسائل اليوم'), findsOneWidget);
-      expect(find.text('شارك رسالة من عندك'), findsNothing);
-
-      var tapped = -1;
-      await tester.pumpWidget(_host(
-        DailyMessageScreen.forDay(
-          entries: _entries(2),
-          initialRevealed: 2,
-          onTabSelected: (i) => tapped = i,
-        ),
-      ));
-      await tester.pumpAndSettle();
-      expect(find.text('شارك رسالة من عندك'), findsOneWidget);
-
-      await tester.tap(find.text('شارك رسالة من عندك'));
-      await tester.pumpAndSettle();
-      expect(tapped, 3, reason: 'the share tab in the home shell');
+      expect(find.text('نلقاك غداً بإذن الله'), findsOneWidget);
     });
   });
 
-  group('DailyMessageScreen (single message, e.g. from favourites)', () {
+  group('DailyMessageScreen — a single saved message', () {
     testWidgets('carries none of the day framing', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+
       await tester.pumpWidget(_host(
-        DailyMessageScreen(insight: _insight('رسالة محفوظة')),
+        const DailyMessageScreen(
+          insight: Insight(
+            hadithNumber: 1,
+            arabic: 'رسالة محفوظة',
+            english: '',
+            category: 'تأمّل',
+          ),
+        ),
       ));
-      await tester.pumpAndSettle();
+      await _settle(tester, until: find.textContaining('رسالة محفوظة'));
 
       expect(find.textContaining('رسالة محفوظة'), findsOneWidget);
-      expect(find.text('رسالة اليوم'), findsOneWidget);
       expect(find.text('رسالة أخرى'), findsNothing);
-      expect(find.text('انتهت رسائل اليوم'), findsNothing);
+      expect(find.text('نلقاك غداً بإذن الله'), findsNothing);
     });
   });
 }

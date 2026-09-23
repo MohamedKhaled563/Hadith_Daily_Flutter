@@ -159,30 +159,46 @@ class DailyTipService {
     return tips.isEmpty ? null : tips.first;
   }
 
-  /// How many of today's messages the reader has opened so far, at least 1.
+  /// How many of today's messages the reader has opened so far.
   ///
-  /// The message screen reveals one card at a time rather than letting the
-  /// reader swipe through the whole set, so this is what lets it pick up
-  /// where they left off: close the app on the third of five and it reopens
-  /// on the third, not back at the first and not at "you're done". Resets
-  /// with the day, like the set itself.
+  /// **Zero means they have not opened today's message yet** — the home
+  /// screen is still showing the emblem waiting to be pressed. One or more
+  /// means the message is out, and home shows it instead of the emblem for
+  /// the rest of the day.
+  ///
+  /// That is the whole point of persisting it: pressing طيّب قلبك is a
+  /// once-a-day act. Having done it, closing the app and coming back must
+  /// return the reader to their message, not to an emblem that makes them
+  /// ask for it again. Resets with the day, like the set itself.
   Future<int> revealedCount() async {
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString(_revealedOnDateKey) != _todayString()) return 1;
-    final stored = prefs.getInt(_revealedCountKey) ?? 1;
-    return stored < 1 ? 1 : stored;
+    if (prefs.getString(_revealedOnDateKey) != _todayString()) return 0;
+    final stored = prefs.getInt(_revealedCountKey) ?? 0;
+    return stored < 0 ? 0 : stored;
   }
 
   /// Records that [count] of today's messages have now been revealed. Only
-  /// ever moves forward within a day — a caller re-entering the screen and
-  /// reporting a smaller number must not un-reveal what was already read.
+  /// ever moves forward within a day — a caller reporting a smaller number
+  /// must not un-reveal what was already read.
   Future<void> saveRevealedCount(int count) async {
     final prefs = await SharedPreferences.getInstance();
     final isToday = prefs.getString(_revealedOnDateKey) == _todayString();
-    final previous = isToday ? (prefs.getInt(_revealedCountKey) ?? 1) : 0;
+    final previous = isToday ? (prefs.getInt(_revealedCountKey) ?? 0) : 0;
     if (count <= previous) return;
     await prefs.setString(_revealedOnDateKey, _todayString());
     await prefs.setInt(_revealedCountKey, count);
+  }
+
+  /// Marks today's message as opened if it was not already, and reports how
+  /// many are now revealed. Used by the paths that arrive at the message
+  /// without the reader having pressed the emblem — tapping a reminder,
+  /// most obviously, which should land on the message rather than on an
+  /// emblem waiting to be asked.
+  Future<int> ensureOpenedToday() async {
+    final current = await revealedCount();
+    if (current >= 1) return current;
+    await saveRevealedCount(1);
+    return 1;
   }
 
   /// How many messages today should carry. Falls back to the last value this

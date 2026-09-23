@@ -5,6 +5,7 @@ import '../../core/theme/app_palette.dart';
 import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_background.dart';
+import '../../core/widgets/app_button.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/circle_icon_button.dart';
@@ -16,7 +17,8 @@ import '../../core/utils/app_motion.dart';
 import '../../core/utils/notification_reliability_tip.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/daily_tip_service.dart';
-import '../messages/daily_message_screen.dart';
+import '../../data/services/notification_scheduler.dart';
+import '../messages/daily_message_card.dart';
 import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
 import '../share/add_message_screen.dart';
@@ -45,14 +47,69 @@ class _HomeScreenState extends State<HomeScreen>
     value: 1,
   );
 
-  @override
-  void dispose() {
-    _tabFade.dispose();
-    super.dispose();
-  }
   final HadithRepository _repo = HadithRepository();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _loadingDailyTip = false;
+
+  /// Today's set, and how much of it the reader has asked for.
+  ///
+  /// `_revealed == 0` means they have not pressed the emblem yet today, so
+  /// home shows the emblem. Anything above that and home shows the message
+  /// instead — for the rest of the day, across restarts. Pressing طيّب قلبك
+  /// is a once-a-day act; coming back to the app should return the reader to
+  /// their message, not ask them for it again.
+  List<DailyMessageEntry> _todayEntries = const [];
+  int _revealed = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreToday();
+    // A reminder tapped while the app is running should land on the message,
+    // not on an emblem waiting to be pressed. Cold starts go through
+    // SplashScreen, which does the same thing before handing over.
+    NotificationScheduler.notificationTapped.addListener(_onReminderTapped);
+  }
+
+  @override
+  void dispose() {
+    NotificationScheduler.notificationTapped.removeListener(_onReminderTapped);
+    _tabFade.dispose();
+    super.dispose();
+  }
+
+  /// Reads back what the reader already opened today, without drawing a new
+  /// message. Silent: there is nothing to report if it has not been opened.
+  Future<void> _restoreToday() async {
+    final revealed = await DailyTipService().revealedCount();
+    if (!mounted || revealed < 1) return;
+    final entries = await _loadTodayEntries();
+    if (!mounted || entries.isEmpty) return;
+    setState(() {
+      _todayEntries = entries;
+      _revealed = revealed.clamp(1, entries.length);
+    });
+  }
+
+  Future<void> _onReminderTapped() async {
+    await DailyTipService().ensureOpenedToday();
+    if (!mounted) return;
+    // Back to the tab the message lives on, from wherever they were.
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (mounted) _goToTab(0);
+    await _restoreToday();
+  }
+
+  Future<List<DailyMessageEntry>> _loadTodayEntries() async {
+    final tips = await DailyTipService().getTodayTips();
+    return [
+      for (final tip in tips)
+        DailyMessageEntry(
+          insight: tip.toInsight(),
+          hadith: _repo.getByNumber(tip.hadithNumber),
+        ),
+    ];
+  }
 
   void _openDrawer() => _scaffoldKey.currentState?.openDrawer();
 
@@ -62,17 +119,20 @@ class _HomeScreenState extends State<HomeScreen>
     if (!context.reduceMotion) _tabFade.forward(from: 0);
   }
 
+  /// The emblem was pressed — draw today's message and keep it on screen.
+  ///
+  /// Deliberately no navigation. The message takes the emblem's place on
+  /// this tab and stays there for the rest of the day, so there is nothing
+  /// to go "back" from and nothing to re-open tomorrow except the emblem
+  /// itself.
   Future<void> _openDailyMessage() async {
+    if (_revealed >= 1) return; // Already out; the card is what they tapped.
     setState(() => _loadingDailyTip = true);
-    final tips = await DailyTipService().getTodayTips();
-    // Read alongside the set, not inside the screen: the card for the right
-    // message has to be there on the first frame, under the Hero flight from
-    // the emblem the reader just pressed.
-    final revealed = await DailyTipService().revealedCount();
+    final entries = await _loadTodayEntries();
     if (!mounted) return;
     setState(() => _loadingDailyTip = false);
 
-    if (tips.isEmpty) {
+    if (entries.isEmpty) {
       showAppSnack(
         context,
         'لم يتم تحميل الرسائل بعد، حاول مجدداً',
@@ -81,24 +141,21 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    Navigator.push(
-      context,
-      appMessageRoute(child: DailyMessageScreen.forDay(
-          entries: [
-            for (final tip in tips)
-              DailyMessageEntry(
-                insight: tip.toInsight(),
-                hadith: _repo.getByNumber(tip.hadithNumber),
-              ),
-          ],
-          initialRevealed: revealed,
-          onTabSelected: (index) {
-            Navigator.pop(context);
-            _goToTab(index);
-          },
-        ),
-      ),
-    );
+    AppHaptics.tap();
+    setState(() {
+      _todayEntries = entries;
+      _revealed = 1;
+    });
+    DailyTipService().saveRevealedCount(1);
+  }
+
+  /// "رسالة أخرى" — the next of today's set, if the day carries more than
+  /// one.
+  void _revealNextMessage() {
+    if (_revealed >= _todayEntries.length) return;
+    AppHaptics.tap();
+    setState(() => _revealed++);
+    DailyTipService().saveRevealedCount(_revealed);
   }
 
   @override
@@ -140,6 +197,11 @@ class _HomeScreenState extends State<HomeScreen>
                           appPageRoute(child: const HadithListScreen()),
                         ),
                         onHeartClick: _openDailyMessage,
+                        entry: _revealed >= 1 && _todayEntries.isNotEmpty
+                            ? _todayEntries[_revealed - 1]
+                            : null,
+                        hasMore: _revealed < _todayEntries.length,
+                        onRevealNext: _revealNextMessage,
                       ),
                     ),
                     FavoritesScreen(onOpenDrawer: _openDrawer),
@@ -204,11 +266,22 @@ class _HomeMainView extends StatelessWidget {
     required this.onOpenDrawer,
     required this.onOpenAllHadiths,
     required this.onHeartClick,
+    required this.entry,
+    required this.hasMore,
+    required this.onRevealNext,
   });
 
   final VoidCallback onOpenDrawer;
   final VoidCallback onOpenAllHadiths;
   final VoidCallback onHeartClick;
+
+  /// Today's message once it has been opened, or null while the emblem is
+  /// still waiting to be pressed.
+  final DailyMessageEntry? entry;
+
+  /// Whether today carries another message after this one.
+  final bool hasMore;
+  final VoidCallback onRevealNext;
 
   @override
   Widget build(BuildContext context) {
@@ -270,14 +343,26 @@ class _HomeMainView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _HeroTitle(titleColor: titleColor, isDark: isDark),
-                const SizedBox(height: 18),
-                _HeartbeatHadithCircle(
-                  cardDiameter: diameter,
-                  isDark: isDark,
-                  palette: palette,
-                  onTap: onHeartClick,
-                ),
+                // Two states, one tab. Before the emblem is pressed it is
+                // the hero and the question above it; afterwards the message
+                // takes its place and simply stays there — no second screen
+                // to open, nothing to navigate back from.
+                if (entry == null) ...[
+                  _HeroTitle(titleColor: titleColor, isDark: isDark),
+                  const SizedBox(height: 18),
+                  _HeartbeatHadithCircle(
+                    cardDiameter: diameter,
+                    isDark: isDark,
+                    palette: palette,
+                    onTap: onHeartClick,
+                  ),
+                ] else ...[
+                  _TodayMessage(
+                    entry: entry!,
+                    hasMore: hasMore,
+                    onRevealNext: onRevealNext,
+                  ),
+                ],
                 SizedBox(
                   height: 12 + BottomNavigation.reservedHeight(context),
                 ),
@@ -286,6 +371,111 @@ class _HomeMainView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Today's message, in the emblem's place on the home tab.
+///
+/// No counter, and no indication of how many the day holds. The reader is
+/// being given a message, not shown their position in a queue — a "١ / ٤"
+/// turns a quiet daily habit into a checklist with three items outstanding.
+/// "رسالة أخرى" simply stops being offered when the day is spent.
+class _TodayMessage extends StatelessWidget {
+  const _TodayMessage({
+    required this.entry,
+    required this.hasMore,
+    required this.onRevealNext,
+  });
+
+  final DailyMessageEntry entry;
+  final bool hasMore;
+  final VoidCallback onRevealNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: AnimatedSwitcher(
+        duration: context.motion(AppDurations.content),
+        switchInCurve: AppDurations.curve,
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween(
+              begin: const Offset(0, 0.03),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          ),
+        ),
+        child: Column(
+          key: ValueKey(
+            '${entry.insight.sourceCollection}/${entry.insight.id}'
+            '/${entry.insight.message.hashCode}',
+          ),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DailyMessageCard(
+              entry: entry,
+              // No Hero: the card is not flying in from anywhere, it is what
+              // the emblem became.
+              footer: hasMore
+                  ? AppButton(
+                      text: 'رسالة أخرى',
+                      isSecondary: true,
+                      expand: false,
+                      onPressed: onRevealNext,
+                    )
+                  : _TomorrowNote(palette: palette),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The close of the day, shown with the last message rather than as a panel
+/// of its own — the reader has finished, they have not hit a wall.
+class _TomorrowNote extends StatelessWidget {
+  const _TomorrowNote({required this.palette});
+
+  final BotanicalPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        // A pill, like the category and hadith chips on the card. Sitting on
+        // the landscape illustration, plain muted text on its own would be
+        // very close to unreadable.
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+        border: Border.all(color: palette.cardBorder, width: 1.1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.nightlight_round, size: 15, color: palette.goldText),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              'نلقاك غداً بإذن الله',
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 12.5,
+                height: AppLeading.chrome,
+                fontWeight: FontWeight.w700,
+                color: palette.goldText,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
