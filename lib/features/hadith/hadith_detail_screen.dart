@@ -125,58 +125,89 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Centred regardless of how wide the side clusters are —
-                // spaceBetween used to shift this toward whichever side had
-                // fewer/narrower buttons. Stack sizes itself to the tallest
-                // child (the emblem), so the 44dp buttons sit centred inside.
-                const EmblemBadge(),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  // chevron_right reads as "back" under RTL.
-                  child: CircleIconButton(
-                    icon: Icons.chevron_right_rounded,
-                    semanticLabel: 'رجوع',
-                    onTap: () => Navigator.maybePop(context),
-                  ),
-                ),
-                Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircleIconButton(
-                        icon: _isBookmarked
-                            ? Icons.bookmark_rounded
-                            : Icons.bookmark_border_rounded,
-                        semanticLabel: 'حفظ الحديث في المفضلة',
-                        toggled: _isBookmarked,
-                        onTap: _toggleBookmark,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // The three action buttons ran into the centred emblem on
+                // narrower phones (e.g. a 390pt iPhone). The buttons keep
+                // their 44dp size; the header adapts around them instead:
+                //   roomy   — 6dp gaps, full emblem
+                //   compact — no extra gaps (the 48dp slots still leave 4dp
+                //             between circles), smaller emblem
+                //   tight   — no emblem at all
+                const breathingRoom = 4.0;
+                const fullEmblem = 36.0;
+                const compactEmblem = 26.0;
+                bool fits(double gap, double emblem) {
+                  final cluster = CircleIconButton.slot * 3 + gap * 2;
+                  final emblemHalf = (emblem + 11) / 2;
+                  return constraints.maxWidth / 2 - emblemHalf >=
+                      cluster + breathingRoom;
+                }
+
+                final roomy = fits(6, fullEmblem);
+                final double gap = roomy ? 6 : 0;
+                final double? emblemSize = roomy
+                    ? fullEmblem
+                    : fits(0, compactEmblem)
+                        ? compactEmblem
+                        : null;
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Centred regardless of how wide the side clusters are —
+                    // spaceBetween used to shift this toward whichever side had
+                    // fewer/narrower buttons. Stack sizes itself to the tallest
+                    // child (the emblem), so the 44dp buttons sit centred inside.
+                    if (emblemSize != null)
+                      EmblemBadge(size: emblemSize)
+                    else
+                      const SizedBox(height: CircleIconButton.slot),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      // chevron_right reads as "back" under RTL.
+                      child: CircleIconButton(
+                        icon: Icons.chevron_right_rounded,
+                        semanticLabel: 'رجوع',
+                        onTap: () => Navigator.maybePop(context),
                       ),
-                      const SizedBox(width: 6),
-                      CircleIconButton(
-                        icon: Icons.copy_rounded,
-                        semanticLabel: 'نسخ النص الكامل مع الشرح والفوائد',
-                        onTap: () => _copyHadith(context),
+                    ),
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleIconButton(
+                            icon: _isBookmarked
+                                ? Icons.bookmark_rounded
+                                : Icons.bookmark_border_rounded,
+                            semanticLabel: 'حفظ الحديث في المفضلة',
+                            toggled: _isBookmarked,
+                            onTap: _toggleBookmark,
+                          ),
+                          SizedBox(width: gap),
+                          CircleIconButton(
+                            icon: Icons.copy_rounded,
+                            semanticLabel: 'نسخ النص الكامل مع الشرح والفوائد',
+                            onTap: () => _copyHadith(context),
+                          ),
+                          SizedBox(width: gap),
+                          CircleIconButton(
+                            icon: Icons.ios_share_rounded,
+                            semanticLabel: 'مشاركة الحديث كصورة',
+                            onTap: () => showShareSheet(
+                              context: context,
+                              message: hadith.text,
+                              hadithTitle: hadith.title,
+                              hadithNumber: toArabicDigits(hadith.number),
+                              category: hadith.reference,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 6),
-                      CircleIconButton(
-                        icon: Icons.ios_share_rounded,
-                        semanticLabel: 'مشاركة الحديث كصورة',
-                        onTap: () => showShareSheet(
-                          context: context,
-                          message: hadith.text,
-                          hadithTitle: hadith.title,
-                          hadithNumber: toArabicDigits(hadith.number),
-                          category: hadith.reference,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 12),

@@ -69,7 +69,11 @@ class CircleIconButton extends StatelessWidget {
 
 /// The brand emblem badge used at the centre of most screen headers.
 class EmblemBadge extends StatelessWidget {
-  const EmblemBadge({super.key});
+  const EmblemBadge({super.key, this.size = 36});
+
+  /// The emblem image's side; the badge adds 4dp padding and a 1.5dp border
+  /// around it, so it occupies [size] + 11.
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -85,8 +89,8 @@ class EmblemBadge extends StatelessWidget {
       ),
       child: AssetHelper.assetOrFallback(
         assetPath: 'assets/images/heart_leaf_emblem.png',
-        width: 36,
-        height: 36,
+        width: size,
+        height: size,
         fallback: const Icon(
           Icons.favorite_rounded,
           color: AppColors.primaryGreen,
