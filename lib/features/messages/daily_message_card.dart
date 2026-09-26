@@ -44,9 +44,21 @@ class DailyMessageCard extends StatefulWidget {
     required this.entry,
     this.heroTag,
     this.footer,
+    this.fillHeight = false,
   });
 
   final DailyMessageEntry entry;
+
+  /// Fill the height given instead of sizing to the message.
+  ///
+  /// This is what keeps the screen still. Sized to content, a short message
+  /// and a long one produce cards of very different heights, so the toolbar
+  /// and the day's button move up and down as the reader moves through the
+  /// day, and a long message pushes both off the bottom into a scroll. Told
+  /// to fill instead, the card takes all the room left over, the controls
+  /// sit at fixed positions under it, and the message text is fitted to the
+  /// space rather than the space to the text.
+  final bool fillHeight;
 
   /// Hero tag for the emblem at the top of the card, when this card is the
   /// destination of a flight. Null where there is no flight — notably the
@@ -145,14 +157,31 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.fillHeight) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildCard(),
+          const SizedBox(height: 14),
+          _toolbar,
+          if (widget.footer != null) ...[
+            const SizedBox(height: 16),
+            widget.footer!,
+          ],
+        ],
+      );
+    }
+
+    // The controls are laid out last and keep their own height, so whatever
+    // is left goes to the card. Their distance from the bottom of the screen
+    // is then the same on every message.
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        _buildCard(),
+        Expanded(child: _buildCard()),
         const SizedBox(height: 14),
         _toolbar,
         if (widget.footer != null) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           widget.footer!,
         ],
       ],
@@ -184,12 +213,21 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
       ),
     );
 
+    final messageStyle = TextStyle(
+      fontFamily: kSans,
+      fontSize: 20,
+      height: AppLeading.scripture,
+      fontWeight: FontWeight.w800,
+      color: palette.bodyText,
+    );
+
     return ParchmentCard(
       elevated: true,
       showBotanicals: true,
-      padding: const EdgeInsets.all(22),
+      padding: EdgeInsets.all(widget.fillHeight ? 18 : 22),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize:
+            widget.fillHeight ? MainAxisSize.max : MainAxisSize.min,
         children: [
           widget.heroTag == null
               ? emblem
@@ -229,19 +267,23 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
               ],
             ),
           ),
-          const GoldDivider(),
-          Text(
-            '« ${_insight.message} »',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: kSans,
-              fontSize: 20,
-              height: AppLeading.scripture,
-              fontWeight: FontWeight.w800,
-              color: palette.bodyText,
+          GoldDivider(compact: widget.fillHeight),
+          if (widget.fillHeight)
+            Expanded(
+              child: Center(
+                child: _FittedMessage(
+                  text: '« ${_insight.message} »',
+                  style: messageStyle,
+                ),
+              ),
+            )
+          else
+            Text(
+              '« ${_insight.message} »',
+              textAlign: TextAlign.center,
+              style: messageStyle,
             ),
-          ),
-          const GoldDivider(),
+          GoldDivider(compact: widget.fillHeight),
           const SizedBox(height: 2),
           if (_hadith != null) ...[
             _HadithLinkPill(
@@ -251,30 +293,8 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
                 appPageRoute(child: HadithDetailScreen(hadith: _hadith!)),
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 4),
           ],
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(width: 20, height: 1, color: palette.cardBorder),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  'طيّب قلبك • هدي النبوة',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 12,
-                    height: AppLeading.chrome,
-                    fontWeight: FontWeight.w700,
-                    color: palette.goldText,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(width: 20, height: 1, color: palette.cardBorder),
-            ],
-          ),
         ],
       ),
     );
@@ -510,14 +530,94 @@ class _CardActionIcon extends StatelessWidget {
   }
 }
 
+/// The message, at the largest size that still fits the space it is given.
+///
+/// The messages are reader-submitted and admin-curated, so their length is
+/// not controlled: some are a line, some are a short paragraph. At one fixed
+/// size the long ones either overflow or force the screen to scroll. Rather
+/// than scroll, this steps the size down until the text fits, which keeps
+/// every message on one screen and keeps short ones at their full size.
+///
+/// The floor matters as much as the ceiling — below it, fitting more words
+/// on screen stops being worth what it costs to read them, so a message that
+/// long is allowed to scroll inside the card instead.
+class _FittedMessage extends StatelessWidget {
+  const _FittedMessage({required this.text, required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  /// The size a message is set at when it has room to spare.
+  ///
+  /// Well above the 20 the card used to be fixed at, and that is the point:
+  /// with the card filling a set height, a one-line message set at 20 sat
+  /// marooned in a large empty parchment. Sized to the space it has, a short
+  /// message reads as a deliberate statement instead of an accident.
+  static const maxFontSize = 30.0;
+
+  /// Below this the text stops being comfortable to read, so a message that
+  /// still does not fit scrolls inside the card instead of shrinking on.
+  static const minFontSize = 14.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final direction = Directionality.of(context);
+    // The app composes its own reading-size preference on top of the OS one
+    // (see main.dart), so measuring has to use the same scaler Text will.
+    final scaler = MediaQuery.textScalerOf(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        var fontSize = maxFontSize;
+
+        double heightAt(double size) {
+          final painter = TextPainter(
+            text: TextSpan(text: text, style: style.copyWith(fontSize: size)),
+            textDirection: direction,
+            textAlign: TextAlign.center,
+            textScaler: scaler,
+          )..layout(maxWidth: constraints.maxWidth);
+          return painter.height;
+        }
+
+        if (constraints.maxHeight.isFinite) {
+          while (fontSize > minFontSize &&
+              heightAt(fontSize) > constraints.maxHeight) {
+            fontSize -= 0.5;
+          }
+        }
+
+        final fitted = Text(
+          text,
+          textAlign: TextAlign.center,
+          style: style.copyWith(fontSize: fontSize),
+        );
+
+        // Still too tall at the floor: a genuinely long message. Let it
+        // scroll within the card rather than shrink past readability or
+        // overflow the layout.
+        if (constraints.maxHeight.isFinite &&
+            heightAt(fontSize) > constraints.maxHeight) {
+          return SingleChildScrollView(child: fitted);
+        }
+        return fitted;
+      },
+    );
+  }
+}
+
 /// The gold flourish that separates the card's parts.
 class GoldDivider extends StatelessWidget {
-  const GoldDivider({super.key});
+  const GoldDivider({super.key, this.compact = false});
+
+  /// Tighter spacing where the card is filling a fixed height — the two
+  /// dividers otherwise cost 72px of the room the message could have used.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 18),
+      padding: EdgeInsets.symmetric(vertical: compact ? 12 : 18),
       child: AssetHelper.assetOrFallback(
         assetPath: 'assets/images/golden_divider.png',
         width: 120,

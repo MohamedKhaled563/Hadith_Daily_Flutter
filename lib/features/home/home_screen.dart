@@ -5,7 +5,6 @@ import '../../core/theme/app_palette.dart';
 import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_background.dart';
-import '../../core/widgets/app_button.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/circle_icon_button.dart';
@@ -310,6 +309,54 @@ class _HomeMainView extends StatelessWidget {
           ),
         );
 
+        final header = Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // First child sits at the START edge — the right, in RTL.
+              CircleIconButton(
+                icon: Icons.menu_rounded,
+                semanticLabel: 'فتح قائمة الإعدادات',
+                onTap: onOpenDrawer,
+                emphasised: true,
+              ),
+              Flexible(
+                child: _BrowseAllPill(
+                  onTap: onOpenAllHadiths,
+                  titleColor: titleColor,
+                ),
+              ),
+              // Matches the leading button's width so the pill stays
+              // centred. Favorites already has its own bottom-nav tab —
+              // this header used to duplicate it with a second control.
+              const SizedBox(width: CircleIconButton.slot),
+            ],
+          ),
+        );
+
+        // With the message out, the tab does not scroll at all. The card
+        // takes the space that is left and its controls sit at a fixed
+        // distance from the bottom, so nothing shifts between a one-line
+        // message and a long one.
+        if (entry != null) {
+          return Column(
+            children: [
+              const SizedBox(height: 6),
+              header,
+              const SizedBox(height: 10),
+              Expanded(
+                child: _TodayMessage(
+                  entry: entry!,
+                  hasMore: hasMore,
+                  onRevealNext: onRevealNext,
+                ),
+              ),
+              SizedBox(height: 10 + BottomNavigation.reservedHeight(context)),
+            ],
+          );
+        }
+
         return SingleChildScrollView(
           physics: const ClampingScrollPhysics(),
           child: ConstrainedBox(
@@ -317,52 +364,18 @@ class _HomeMainView extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 6),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // First child sits at the START edge — the right, in RTL.
-                      CircleIconButton(
-                        icon: Icons.menu_rounded,
-                        semanticLabel: 'فتح قائمة الإعدادات',
-                        onTap: onOpenDrawer,
-                        emphasised: true,
-                      ),
-                      Flexible(
-                        child: _BrowseAllPill(
-                          onTap: onOpenAllHadiths,
-                          titleColor: titleColor,
-                        ),
-                      ),
-                      // Matches the leading button's width so the pill stays
-                      // centred. Favorites already has its own bottom-nav tab —
-                      // this header used to duplicate it with a second control.
-                      const SizedBox(width: CircleIconButton.slot),
-                    ],
-                  ),
-                ),
+                header,
                 const SizedBox(height: 12),
-                // Two states, one tab. Before the emblem is pressed it is
-                // the hero and the question above it; afterwards the message
-                // takes its place and simply stays there — no second screen
-                // to open, nothing to navigate back from.
-                if (entry == null) ...[
-                  _HeroTitle(titleColor: titleColor, isDark: isDark),
-                  const SizedBox(height: 18),
-                  _HeartbeatHadithCircle(
-                    cardDiameter: diameter,
-                    isDark: isDark,
-                    palette: palette,
-                    onTap: onHeartClick,
-                  ),
-                ] else ...[
-                  _TodayMessage(
-                    entry: entry!,
-                    hasMore: hasMore,
-                    onRevealNext: onRevealNext,
-                  ),
-                ],
+                // The emblem state, still waiting to be pressed. The message
+                // state is handled above, without a scroll view.
+                _HeroTitle(titleColor: titleColor, isDark: isDark),
+                const SizedBox(height: 18),
+                _HeartbeatHadithCircle(
+                  cardDiameter: diameter,
+                  isDark: isDark,
+                  palette: palette,
+                  onTap: onHeartClick,
+                ),
                 SizedBox(
                   height: 12 + BottomNavigation.reservedHeight(context),
                 ),
@@ -397,7 +410,7 @@ class _TodayMessage extends StatelessWidget {
     final palette = context.palette;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
       child: AnimatedSwitcher(
         duration: context.motion(AppDurations.content),
         switchInCurve: AppDurations.curve,
@@ -411,25 +424,97 @@ class _TodayMessage extends StatelessWidget {
             child: child,
           ),
         ),
-        child: Column(
+        // The card is the switcher's child directly. Wrapping it in a Column
+        // broke the fill: a Column hands its children *unbounded* height, so
+        // the card's own Expanded had nothing to divide up.
+        child: DailyMessageCard(
           key: ValueKey(
             '${entry.insight.sourceCollection}/${entry.insight.id}'
             '/${entry.insight.message.hashCode}',
           ),
+          entry: entry,
+          fillHeight: true,
+          // No Hero: the card is not flying in from anywhere, it is what
+          // the emblem became.
+          footer: hasMore
+              ? _AnotherMessageButton(onTap: onRevealNext)
+              : _TomorrowNote(palette: palette),
+        ),
+      ),
+    );
+  }
+}
+
+/// "رسالة أخرى" — built from the app's own vocabulary rather than dropped in
+/// as a stock button.
+///
+/// A flat Material pill reads as a form control and belongs to no particular
+/// app. This is the deep green of the navigation bar, ringed in the same gold
+/// hairline the cards and chips use, with the emblem-sized badge that appears
+/// throughout: it looks like part of this app and like an invitation rather
+/// than a submit.
+class _AnotherMessageButton extends StatelessWidget {
+  const _AnotherMessageButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final isDark = context.isDarkMode;
+    final green =
+        isDark ? AppColors.primaryGreenDark : AppColors.primaryGreen;
+    final ink = Theme.of(context).colorScheme.onPrimary;
+
+    return TapTarget(
+      onTap: onTap,
+      semanticLabel: 'اعرض رسالة أخرى من رسائل اليوم',
+      child: Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(8, 8, 20, 8),
+        decoration: BoxDecoration(
+          color: green,
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+          border: Border.all(
+            color: palette.ornamentGold.withValues(alpha: 0.6),
+            width: 1.2,
+          ),
+          boxShadow: AppElevation.card,
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            DailyMessageCard(
-              entry: entry,
-              // No Hero: the card is not flying in from anywhere, it is what
-              // the emblem became.
-              footer: hasMore
-                  ? AppButton(
-                      text: 'رسالة أخرى',
-                      isSecondary: true,
-                      expand: false,
-                      onPressed: onRevealNext,
-                    )
-                  : _TomorrowNote(palette: palette),
+            // The emblem circle from the top of the card, shrunk: the same
+            // gold hairline ring around the same leaf. A visual rhyme with
+            // what the reader just pressed, rather than a stock glyph.
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: ink.withValues(alpha: 0.10),
+                border: Border.all(
+                  color: palette.ornamentGold.withValues(alpha: 0.55),
+                  width: 1,
+                ),
+              ),
+              child: AssetHelper.assetOrFallback(
+                assetPath: 'assets/images/leaf_accent.png',
+                width: 15,
+                height: 15,
+                fallback: Icon(Icons.eco_rounded, size: 15, color: ink),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'رسالة أخرى',
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 14.5,
+                height: AppLeading.chrome,
+                fontWeight: FontWeight.w800,
+                color: ink,
+              ),
             ),
           ],
         ),
@@ -949,7 +1034,10 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
               ),
               const SizedBox(height: 8),
               Text(
-                'لمسة قلبية بانتظارك الآن',
+                // Says what pressing does. The line here used to be
+                // "لمسة قلبية بانتظارك الآن", which is brochure copy: it
+                // promises a feeling and tells the reader nothing.
+                'اضغط لقراءة رسالة اليوم',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: kSans,

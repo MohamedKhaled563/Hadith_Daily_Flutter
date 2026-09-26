@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/insight.dart';
@@ -201,10 +202,23 @@ class DailyTipService {
     return 1;
   }
 
+  /// Test seam: pins how many messages a day carries.
+  ///
+  /// Without it a widget test that seeds a two-message day is not testing a
+  /// two-message day at all — [_messagesPerDay] asks Firestore first, and on
+  /// a device with a network that answer wins and the seeded day gets topped
+  /// up from the live pool. The test then passes or fails on whether the
+  /// machine happened to be online, which is how three of these tests came
+  /// to pass on a phone with no signal and fail on an emulator with one.
+  @visibleForTesting
+  static int? debugMessagesPerDay;
+
   /// How many messages today should carry. Falls back to the last value this
   /// device saw, then to 1, so a failed fetch never changes what the reader
   /// gets.
   Future<int> _messagesPerDay(SharedPreferences prefs) async {
+    final pinned = debugMessagesPerDay;
+    if (pinned != null) return pinned;
     try {
       final doc =
           await _db.collection('settings').doc('dailyMessageConfig').get();

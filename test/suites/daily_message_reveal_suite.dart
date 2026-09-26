@@ -90,9 +90,13 @@ Future<void> _settle(WidgetTester tester, {Finder? until}) async {
 /// on a phone while passing everywhere else.
 Future<void> _pumpHome(
   WidgetTester tester,
+  int count,
   Map<String, Object> seed, {
   Finder? until,
 }) async {
+  // Pin the day's size so a live Firestore read cannot top the seeded day up
+  // and turn a finished day back into an unfinished one.
+  DailyTipService.debugMessagesPerDay = count;
   SharedPreferences.setMockInitialValues(seed);
   await DailyTipService().getTodayTips();
   await tester.pumpWidget(_host(const HomeScreen()));
@@ -149,7 +153,7 @@ void dailyMessageRevealSuite() {
   group('home — pressing the emblem', () {
     testWidgets('shows the emblem while today has not been opened',
         (tester) async {
-      await _pumpHome(tester, _seededDay(3),
+      await _pumpHome(tester, 3, _seededDay(3),
           until: find.textContaining('هل سمعت'));
 
       expect(find.textContaining('هل سمعت'), findsOneWidget);
@@ -158,7 +162,7 @@ void dailyMessageRevealSuite() {
 
     testWidgets('puts the message in the emblem\'s place, without navigating',
         (tester) async {
-      await _pumpHome(tester, _seededDay(3),
+      await _pumpHome(tester, 3, _seededDay(3),
           until: find.textContaining('هل سمعت'));
 
       await tester.tap(find.textContaining('طيّب قلبك').first);
@@ -172,7 +176,7 @@ void dailyMessageRevealSuite() {
     });
 
     testWidgets('never shows a counter', (tester) async {
-      await _pumpHome(tester, _seededDay(4, revealed: 2),
+      await _pumpHome(tester, 4, _seededDay(4, revealed: 2),
           until: find.textContaining('رسالة رقم 2'));
 
       // The reader is being given a message, not shown a position in a queue.
@@ -185,7 +189,7 @@ void dailyMessageRevealSuite() {
   group('home — the rest of the day', () {
     testWidgets('comes back to the message, not the emblem', (tester) async {
       // Opened earlier today and the app was closed since.
-      await _pumpHome(tester, _seededDay(3, revealed: 2),
+      await _pumpHome(tester, 3, _seededDay(3, revealed: 2),
           until: find.textContaining('رسالة رقم 2'));
 
       expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
@@ -194,7 +198,7 @@ void dailyMessageRevealSuite() {
 
     testWidgets('offers another message while the day has more',
         (tester) async {
-      await _pumpHome(tester, _seededDay(3, revealed: 1),
+      await _pumpHome(tester, 3, _seededDay(3, revealed: 1),
           until: find.text('رسالة أخرى'));
 
       expect(find.text('رسالة أخرى'), findsOneWidget);
@@ -214,7 +218,7 @@ void dailyMessageRevealSuite() {
     testWidgets(
         'closes the day with the last message rather than a panel of its own',
         (tester) async {
-      await _pumpHome(tester, _seededDay(2, revealed: 2),
+      await _pumpHome(tester, 2, _seededDay(2, revealed: 2),
           until: find.text('نلقاك غداً بإذن الله'));
 
       expect(find.text('رسالة أخرى'), findsNothing);
@@ -225,7 +229,7 @@ void dailyMessageRevealSuite() {
 
     testWidgets('a one-message day closes as soon as it is opened',
         (tester) async {
-      await _pumpHome(tester, _seededDay(1),
+      await _pumpHome(tester, 1, _seededDay(1),
           until: find.textContaining('هل سمعت'));
 
       await tester.tap(find.textContaining('طيّب قلبك').first);
@@ -239,7 +243,7 @@ void dailyMessageRevealSuite() {
     testWidgets('a stored position past the end still lands on a real message',
         (tester) async {
       // messagesPerDay lowered after the reader had already gone further.
-      await _pumpHome(tester, _seededDay(2, revealed: 9),
+      await _pumpHome(tester, 2, _seededDay(2, revealed: 9),
           until: find.text('نلقاك غداً بإذن الله'));
 
       expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
