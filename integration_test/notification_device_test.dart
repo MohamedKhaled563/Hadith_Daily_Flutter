@@ -28,6 +28,9 @@ class _FixedPool implements NotificationDataSource {
         {'id': 'dev-2', 'text': 'رسالة اختبار ثانية', 'order': 1, 'active': true},
         {'id': 'dev-3', 'text': 'رسالة اختبار ثالثة', 'order': 2, 'active': true},
       ];
+
+  @override
+  Future<Map<String, dynamic>> loadSchedule() async => const {};
 }
 
 void main() {

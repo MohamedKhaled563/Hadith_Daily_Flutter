@@ -7,10 +7,17 @@ abstract class NotificationDataSource {
   /// Raw `notificationMessages` docs where `active == true`.
   Future<List<Map<String, dynamic>>> loadActiveMessages();
 
+  /// The raw `days` map of `settings/notificationSchedule` — the dashboard's
+  /// per-day morning/evening pins (see notification_schedule.dart). Empty
+  /// when nothing is scheduled. Throws on a failed read, so the caller can
+  /// tell "nothing pinned" apart from "couldn't check" and fall back to its
+  /// cached copy.
+  Future<Map<String, dynamic>> loadSchedule();
+
   // There was a `loadMode` here too, reading `settings/notificationMode`
-  // ('manual' | 'random'). The dashboard no longer offers that toggle — the
-  // day-by-day curation lives on the daily-message calendar instead — so
-  // reminders are always drawn at random; see pickMessageForDay.
+  // ('manual' | 'random'). That toggle is gone: pinning a message to a day
+  // (loadSchedule) is the manual control now, and every unpinned slot is
+  // drawn at random — see pickMessageForDay.
 
   // There was a `loadMessageById` here, for resolving a tapped notification
   // back to the notificationMessages doc its payload named. Nothing has
@@ -41,6 +48,13 @@ class FirestoreNotificationDataSource implements NotificationDataSource {
     // The doc id rides along as 'id' so a tapped notification's payload can
     // resolve back to this exact doc — the id isn't part of doc.data().
     return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> loadSchedule() async {
+    final doc =
+        await _db.collection('settings').doc('notificationSchedule').get();
+    return doc.data()?['days'] as Map<String, dynamic>? ?? const {};
   }
 
 }

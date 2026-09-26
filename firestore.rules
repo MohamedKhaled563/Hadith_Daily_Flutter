@@ -56,8 +56,9 @@ rules_version = '2';
 // (settings/dailyMessageSchedule) replaced it, and tool/
 // set_delivery_mode.py went with it. settings/notificationMode (the
 // reminder pool's random/manual toggle) went the same way once reminders
-// became always-random — so settings/{settingId} below now covers only
-// dailyMessageConfig and dailyMessageSchedule.
+// became random by default — so settings/{settingId} below now covers
+// dailyMessageConfig, dailyMessageSchedule and notificationSchedule (the
+// reminders' own per-day morning/evening pins).
 service cloud.firestore {
   match /databases/{database}/documents {
 

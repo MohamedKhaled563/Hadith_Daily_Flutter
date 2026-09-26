@@ -9,6 +9,7 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'notification_data_source.dart';
+import 'notification_schedule.dart';
 
 /// Outcome of a [NotificationScheduler.reschedule] call — lets callers (and
 /// tests) tell "nothing to schedule" apart from "tried and failed", which
@@ -50,10 +51,12 @@ class NotificationScheduleResult {
 /// rescheduling) while different devices likely diverge — acceptable
 /// per-device personalisation that still needs no server component.
 ///
-/// There used to be a dashboard-controlled 'manual' mode as well
-/// (`settings/notificationMode`), where every device walked the pool in
-/// `order`. It was dropped: curating what readers see on which day is the
-/// daily-message calendar's job, and this pool is only the reminder's body.
+/// On top of that, an admin can pin a message to a given day's morning or
+/// evening from the dashboard calendar (`settings/notificationSchedule`, see
+/// notification_schedule.dart). A pinned slot goes out to every device as
+/// chosen; only the unpinned ones are drawn at random — see
+/// [pickDayMessages]. This replaced a dashboard-wide 'manual' mode
+/// (`settings/notificationMode`) that walked the whole pool in `order`.
 ///
 /// Notifications are scheduled `_daysAhead` days out at a time and
 /// refreshed on every app start (and whenever the reminder settings
@@ -108,6 +111,7 @@ class NotificationScheduler {
   static const _daysAhead = 14;
   static const _randomSeedKey = 'notificationScheduler.randomSeed';
   static const _cachedPoolKey = 'notificationScheduler.cachedPool';
+  static const _cachedScheduleKey = 'notificationScheduler.cachedSchedule';
 
   /// iOS/macOS init settings, named rather than inline so a test can assert
   /// on them — see the notification suite's "iOS initialization settings"
@@ -305,6 +309,7 @@ class NotificationScheduler {
       }
 
       final pool = await _loadPool();
+      final schedule = await _loadSchedule();
       final seed = await _deviceSeed();
       // A newer reschedule() overtook this one while it was waiting on the
       // permission prompt / Firestore / prefs above. Its settings are the
@@ -357,21 +362,21 @@ class NotificationScheduler {
 
         final day = DateTime(now.year, now.month, now.day)
             .add(Duration(days: offset));
-        // Two independent picks, one per slot: passing the *same* message to
-        // both meant the evening reminder repeated the morning's text
-        // verbatim, every single day.
-        //
         // A pool this far down should never be empty (_loadPool falls back
         // to the bundled messages), but if it somehow were, indexing into it
         // would throw — and an exception here would abort the run *and* the
         // cancellation pass with it, which is the shape of the bug this
         // whole loop was moved out from behind. Cancel-only instead.
-        final morning = pool.isEmpty
+        final picks = pool.isEmpty
             ? null
-            : pickMessageForDay(pool, day, seed, slot: 0);
-        final evening = pool.isEmpty
-            ? null
-            : pickMessageForDay(pool, day, seed, slot: 1);
+            : pickDayMessages(
+                pool,
+                day,
+                seed,
+                schedule[notificationDateKey(day)],
+              );
+        final morning = picks?.morning;
+        final evening = picks?.evening;
 
         final morningScheduled = await _syncOne(
           id: offset * 2,
@@ -555,6 +560,28 @@ class NotificationScheduler {
     }
   }
 
+  /// The dashboard's per-day pins, parsed to dateKey → slot → messageId.
+  /// Cached like the pool, so an offline reschedule keeps honouring pins it
+  /// already knew about instead of quietly reverting those days to random.
+  Future<Map<String, Map<String, String>>> _loadSchedule() async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final schedule = parseNotificationSchedule(await _dataSource.loadSchedule());
+      await prefs.setString(_cachedScheduleKey, jsonEncode(schedule));
+      return schedule;
+    } catch (_) {
+      try {
+        return parseNotificationSchedule(
+          jsonDecode(prefs.getString(_cachedScheduleKey) ?? '{}'),
+        );
+      } catch (error) {
+        debugPrint('NotificationScheduler: dropping corrupt cached schedule: $error');
+        unawaited(prefs.remove(_cachedScheduleKey));
+        return const {};
+      }
+    }
+  }
+
   /// The last successfully fetched pool, or the bundled one.
   ///
   /// The decode is guarded: a truncated or otherwise corrupt cache value
@@ -702,6 +729,52 @@ PoolMessage pickMessageForDay(
   if (slot == 0 || pool.length == 1) return pool[first];
   final other = random.nextInt(pool.length - 1);
   return pool[other >= first ? other + 1 : other];
+}
+
+/// A day's two reminder bodies: whatever the dashboard pinned for [day]
+/// (`pins`, slot → messageId, from notification_schedule.dart), and a random
+/// pick from [pool] for each slot left unpinned.
+///
+/// A pin only counts while its message is in [pool] — i.e. still active. A
+/// message switched off (or deleted) after being pinned falls back to a
+/// random pick rather than going out anyway, which is what the dashboard's
+/// on/off switch promises.
+///
+/// When exactly one slot is pinned, the random other slot steps to the next
+/// pool entry if it happens to draw the same message, so a day never
+/// repeats itself unless an admin pinned the same message twice on purpose.
+({PoolMessage morning, PoolMessage evening}) pickDayMessages(
+  List<PoolMessage> pool,
+  DateTime day,
+  int deviceSeed,
+  Map<String, String>? pins,
+) {
+  PoolMessage? pinned(String slot) {
+    final id = pins?[slot];
+    if (id == null) return null;
+    for (final m in pool) {
+      if (m.id == id) return m;
+    }
+    return null;
+  }
+
+  PoolMessage nextAfter(PoolMessage m) =>
+      pool[(pool.indexOf(m) + 1) % pool.length];
+
+  final pinnedMorning = pinned('morning');
+  final pinnedEvening = pinned('evening');
+  var morning = pinnedMorning ?? pickMessageForDay(pool, day, deviceSeed);
+  var evening =
+      pinnedEvening ?? pickMessageForDay(pool, day, deviceSeed, slot: 1);
+
+  if (pool.length > 1 && identical(morning, evening)) {
+    if (pinnedEvening == null) {
+      evening = nextAfter(evening);
+    } else if (pinnedMorning == null) {
+      morning = nextAfter(morning);
+    }
+  }
+  return (morning: morning, evening: evening);
 }
 
 /// [day]'s calendar date as a day number, read from its *calendar fields*

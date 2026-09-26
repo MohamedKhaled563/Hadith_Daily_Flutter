@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/data/services/notification_data_source.dart';
+import 'package:hadith_app/data/services/notification_schedule.dart';
 import 'package:hadith_app/data/services/notification_scheduler.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,9 +36,13 @@ class _FakeDataSource implements NotificationDataSource {
   _FakeDataSource({
     this.messages = const [],
     this.messagesError,
+    this.schedule = const {},
+    this.scheduleError,
   });
 
   List<Map<String, dynamic>> messages;
+  Map<String, dynamic> schedule;
+  Object? scheduleError;
   Object? messagesError;
 
   /// When set, [loadActiveMessages] blocks on it. Lets a test park one `reschedule()`
@@ -52,6 +57,12 @@ class _FakeDataSource implements NotificationDataSource {
     if (gate != null) await gate.future;
     if (messagesError != null) throw messagesError!;
     return messages;
+  }
+
+  @override
+  Future<Map<String, dynamic>> loadSchedule() async {
+    if (scheduleError != null) throw scheduleError!;
+    return schedule;
   }
 }
 
@@ -238,6 +249,77 @@ void notificationSchedulerSuite() {
         pickMessageForDay(pool, midnight, 5),
         same(pickMessageForDay(pool, lateEvening, 5)),
       );
+    });
+  });
+
+  group('parseNotificationSchedule', () {
+    test('keeps well-formed pins and drops everything malformed', () {
+      final parsed = parseNotificationSchedule({
+        '2026-09-27': {
+          'morning': {'messageId': 'a', 'text': 'x'},
+          'evening': {'text': 'no id'},
+        },
+        '2026-09-28': 'not a map',
+        '2026-09-29': {'evening': {'messageId': ''}},
+      });
+
+      expect(parsed, {
+        '2026-09-27': {'morning': 'a'},
+      });
+    });
+
+    test('tolerates a missing or non-map doc', () {
+      expect(parseNotificationSchedule(null), isEmpty);
+      expect(parseNotificationSchedule('oops'), isEmpty);
+    });
+  });
+
+  group('pickDayMessages', () {
+    const pool = [
+      PoolMessage(id: 'a', text: 'أ', order: 0),
+      PoolMessage(id: 'b', text: 'ب', order: 1),
+      PoolMessage(id: 'c', text: 'ج', order: 2),
+    ];
+    final day = DateTime(2026, 9, 27);
+
+    test('with no pins, both slots are the plain random picks', () {
+      final picks = pickDayMessages(pool, day, 9, null);
+
+      expect(picks.morning, same(pickMessageForDay(pool, day, 9)));
+      expect(picks.evening, same(pickMessageForDay(pool, day, 9, slot: 1)));
+    });
+
+    test('a pinned slot goes out exactly as chosen, on every device', () {
+      for (var seed = 0; seed < 50; seed++) {
+        final picks = pickDayMessages(pool, day, seed, {'evening': 'c'});
+        expect(picks.evening.id, 'c', reason: 'seed $seed');
+      }
+    });
+
+    test('the random slot never repeats a pinned one', () {
+      for (var seed = 0; seed < 200; seed++) {
+        final m = pickDayMessages(pool, day, seed, {'morning': 'b'});
+        expect(m.morning.id, 'b');
+        expect(m.evening.id, isNot('b'), reason: 'seed $seed');
+
+        final e = pickDayMessages(pool, day, seed, {'evening': 'a'});
+        expect(e.evening.id, 'a');
+        expect(e.morning.id, isNot('a'), reason: 'seed $seed');
+      }
+    });
+
+    test('a pin whose message is no longer active falls back to random', () {
+      final picks = pickDayMessages(pool, day, 9, {'morning': 'gone'});
+
+      expect(picks.morning, same(pickMessageForDay(pool, day, 9)));
+    });
+
+    test('both slots pinned to the same message are honoured as-is', () {
+      final picks =
+          pickDayMessages(pool, day, 9, {'morning': 'a', 'evening': 'a'});
+
+      expect(picks.morning.id, 'a');
+      expect(picks.evening.id, 'a');
     });
   });
 
@@ -518,6 +600,69 @@ void notificationSchedulerSuite() {
     });
 
     // ---- Design observation: morning/evening shared one body -------------
+    test('a day pinned from the dashboard is scheduled with the pinned text',
+        () async {
+      const pinnedPool = [
+        {'id': 'm1', 'text': 'رسالة أولى', 'order': 0, 'active': true},
+        {'id': 'm2', 'text': 'رسالة ثانية', 'order': 1, 'active': true},
+        {'id': 'm3', 'text': 'رسالة ثالثة', 'order': 2, 'active': true},
+      ];
+      // pinnedNow is 2026-09-21, so offset 1 (ids 2 and 3) is the 22nd.
+      final scheduler = schedulerWith(_FakeDataSource(
+        messages: pinnedPool,
+        schedule: {
+          '2026-09-22': {
+            'morning': {'messageId': 'm3', 'text': 'رسالة ثالثة'},
+            'evening': {'messageId': 'm1', 'text': 'رسالة أولى'},
+          },
+        },
+      ));
+
+      await scheduler.reschedule(
+        morningEnabled: true,
+        morningTime: const TimeOfDay(hour: 8, minute: 0),
+        eveningEnabled: true,
+        eveningTime: const TimeOfDay(hour: 20, minute: 0),
+      );
+
+      final captured = verify(() => plugin.zonedSchedule(
+            captureAny(),
+            any(),
+            captureAny(),
+            any(),
+            any(),
+            androidScheduleMode: any(named: 'androidScheduleMode'),
+            uiLocalNotificationDateInterpretation:
+                any(named: 'uiLocalNotificationDateInterpretation'),
+            payload: any(named: 'payload'),
+          )).captured;
+      final byId = <int, String>{};
+      for (var i = 0; i < captured.length; i += 2) {
+        byId[captured[i] as int] = captured[i + 1] as String;
+      }
+
+      expect(byId[2], 'رسالة ثالثة');
+      expect(byId[3], 'رسالة أولى');
+    });
+
+    test('an unreadable schedule does not stop reminders from scheduling',
+        () async {
+      final scheduler = schedulerWith(_FakeDataSource(
+        messages: activePool,
+        scheduleError: Exception('offline'),
+      ));
+
+      final result = await scheduler.reschedule(
+        morningEnabled: true,
+        morningTime: const TimeOfDay(hour: 23, minute: 59),
+        eveningEnabled: false,
+        eveningTime: const TimeOfDay(hour: 20, minute: 0),
+      );
+
+      expect(result.succeeded, isTrue);
+      expect(result.scheduledCount, 14);
+    });
+
     test('the morning and evening slots carry different text on a given day',
         () async {
       final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
