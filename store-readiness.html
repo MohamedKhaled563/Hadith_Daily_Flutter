@@ -420,17 +420,19 @@ const ITEMS = [
   },
   {
     id: "ios-apple-signin", group: "ios-code", plat: "ios", sev: "blocker", verified: true,
-    title: "Decide on Sign in with Apple before you submit",
+    title: "Sign in with Apple",
     where: "lib/core/auth/auth_service.dart",
-    found: "AuthService offers Google sign-in and first-party email/password. There is no sign_in_with_apple dependency and no AppleAuthProvider usage anywhere in lib/.",
-    why: "<p><b>Guideline 4.8</b> says an app using a third-party login must also offer an alternative that (a) limits collection to name and email, (b) <b>lets the user keep their email address private</b>, and (c) does not collect interactions for advertising without consent.</p><p>Your email/password signup satisfies (a) and (c). It does not satisfy (b) — there is no hide-my-email equivalent. Reviewers apply this inconsistently: many apps ship with Google plus first-party email and pass. Some do not.</p><p>This is the single highest-variance item on the list, which is why it is marked a blocker even though it is a judgement call rather than a defect.</p>",
+    found: "Implemented on 26 Sep 2026: sign_in_with_apple 8.2.0, nonce replay protection, first-sign-in display-name capture, entitlement wired into all three Runner configs. flutter analyze clean, 182 tests pass.",
+    why: "<p><b>Guideline 4.8</b> requires an app offering a third-party login to also offer an equivalent option that limits collection to name and email and <b>lets the reader keep their address private</b>. Google is the third-party login; the app's own email/password account satisfies the first half but not the second.</p><p>Rather than argue the point in review notes and risk a cycle on a first submission, this is now closed in code. Two console steps remain, and the build will fail without them.</p>",
     steps: [
-      "<b>Recommended:</b> add <code>sign_in_with_apple</code>, enable the <b>Sign in with Apple</b> capability on the Runner target, enable Apple as a provider in Firebase Console → Authentication, and wire <code>AppleAuthProvider</code> into <code>AuthService</code> beside the Google path. Budget half a day including the Apple Developer portal side.",
-      "<b>Or gamble:</b> submit with Google plus email/password and argue 4.8 compliance in the review notes. A rejection costs one review cycle, not the listing.",
-      "If you add it: Apple requires the button to be <b>at least as prominent</b> as the Google button. Same size, same position in the stack, not below a fold."
+      "<b>Done in code.</b> The button sits above Google's, same widget and same 24pt mark box, which is the reading of the prominence rule that cannot be argued either way. It is hidden off iOS, where the web flow would open a browser to an Apple ID the reader is not signed into.",
+      "<b>Yours:</b> Apple Developer portal \u2192 your App ID \u2192 enable the <b>Sign in with Apple</b> capability. Automatic signing on Codemagic cannot provision the entitlement until this is done, and the build fails with a provisioning error if it is not.",
+      "<b>Yours:</b> Firebase Console \u2192 Authentication \u2192 Sign-in method \u2192 enable <b>Apple</b>. Without it Firebase rejects the credential with <code>operation-not-allowed</code>.",
+      "Test on real hardware \u2014 a first Apple authorization does not complete in the simulator."
     ],
-    code: [{ file: "pubspec.yaml", lang: "yaml", body:
-`  sign_in_with_apple: ^7.0.1` }],
+    code: [{ file: "pubspec.yaml \u2014 already added", lang: "yaml", body:
+`  sign_in_with_apple: ^8.2.0
+  crypto: ^3.0.7` }],
     verify: "Sign in with a fresh Apple ID using <b>Hide My Email</b>, then confirm the relay address lands in Firebase Auth and a <code>users/</code> document is mirrored for it."
   },
   {
@@ -656,70 +658,47 @@ keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab` }]
   {
     id: "web-dashboard-exposed", group: "hosting", plat: "both", sev: "blocker", verified: true,
     title: "Take the moderator dashboard off public hosting",
-    where: "https://hadithdaily-5fc06.web.app",
-    found: "Opened the live URL during this audit. The root serves the moderator dashboard login — page title «لوحة الإشراف — طيّب قلبك», subtitle «طيّب قلبك — للمشرفين والمحررين». This is the exact scenario docs/android-release-reminding-steps.md step 4 warns against.",
-    why: "<p>A previous <code>flutter build web</code> was run against <code>lib/main_dashboard.dart</code> rather than <code>lib/main.dart</code>, and the result was deployed to the project's public hosting. The moderation tools are now discoverable by anyone with the URL.</p><p>Firestore rules still protect the data, so this is not an open door — but it publishes the existence and shape of your moderation surface, and it means the domain you are about to hand both stores as your privacy-policy host currently serves an admin login.</p>",
+    where: "firebase.json",
+    found: "Confirmed live during the audit: the root served the dashboard login, title \u00ab\u0644\u0648\u062d\u0629 \u0627\u0644\u0625\u0634\u0631\u0627\u0641\u00bb. Fixed in the repo on 26 Sep 2026; not yet deployed.",
+    why: "<p>A previous <code>flutter build web</code> ran against <code>lib/main_dashboard.dart</code> and was deployed to the project's public hosting, putting the moderation tools at the URL about to be handed to both app stores. Firestore rules still gated the data, so nothing was open \u2014 but the surface was discoverable and the domain read as an admin tool.</p>",
     steps: [
-      "Decide where the dashboard should live. The cleanest answer is: not on the public hosting site at all — run it locally with <code>flutter run -d chrome -t lib/main_dashboard.dart</code> when you need it.",
-      "Rebuild the public site from the reader entrypoint, or from a minimal static site that only carries the legal pages.",
-      "Redeploy, then open the root URL in a private window and confirm the dashboard is gone.",
-      "If you do want a hosted dashboard, put it on a separate Firebase Hosting site (<code>firebase hosting:sites:create</code>) with its own URL you do not publish."
+      "<b>Done in the repo:</b> <code>firebase.json</code> now serves <code>site/</code>, a static directory holding only the legal pages and a landing page. The dashboard is no longer hosted at all.",
+      "<b>Correction worth knowing:</b> rebuilding with <code>-t lib/main.dart</code> does <em>not</em> fix this \u2014 which is what this page and <code>docs/android-release-reminding-steps.md</code> both said before. <code>-t</code> only picks the Dart entrypoint; <code>web/index.html</code> and <code>web/manifest.json</code> are copied verbatim and are both branded as the dashboard, so the build still produces a page titled \u00ab\u0644\u0648\u062d\u0629 \u0627\u0644\u0625\u0634\u0631\u0627\u0641\u00bb.",
+      "<b>Yours:</b> deploy, then check the root URL in a private window.",
+      "Run the dashboard locally when you need it: <code>flutter run -d chrome -t lib/main_dashboard.dart</code>."
     ],
     code: [{ file: "terminal", lang: "bash", body:
-`# Rebuild from the reader entrypoint, not the dashboard
-flutter build web -t lib/main.dart
-firebase deploy --only hosting`}],
+`firebase deploy --only hosting`}],
     verify: "Open <code>https://hadithdaily-5fc06.web.app</code> in a private window. You must not see «لوحة الإشراف»."
   },
   {
     id: "web-privacy", group: "hosting", plat: "both", sev: "blocker", verified: true,
     title: "Host the privacy policy and terms",
-    where: "docs/privacy-policy.html, docs/terms-of-use.html",
-    found: "Both files exist and are written. Requested https://hadithdaily-5fc06.web.app/privacy-policy.html during this audit — it does not exist; the SPA rewrite in firebase.json (\"source\": \"**\") swallows it and serves the dashboard instead. web/ contains only favicon.png, icons, index.html and manifest.json.",
-    why: "<p>Both stores require a publicly reachable privacy-policy URL before a listing can go live. Apple additionally shows it on the product page. The text is written; it simply has nowhere to live.</p><p>Note the rewrite trap: because <code>firebase.json</code> rewrites <code>**</code> to <code>/index.html</code>, a missing file does not 404 — it silently serves the app. So \"the URL loads\" is not proof the policy is there. Check the content.</p>",
+    where: "site/",
+    found: "Confirmed missing during the audit. Moved from docs/ to site/ on 26 Sep 2026 and the SPA rewrite removed; not yet deployed.",
+    why: "<p>Both stores require a publicly reachable privacy-policy URL before a listing can go live. The text was written; it had nowhere to live.</p><p>The <code>** \u2192 /index.html</code> rewrite is why this was invisible: a missing file never 404'd, it silently served the app shell. The URL \"loading\" was never evidence the page was there.</p>",
     steps: [
-      "Copy both HTML files into <code>web/</code> so Flutter's build carries them into <code>build/web</code>.",
-      "Rebuild from the reader entrypoint and deploy — same command as the item above, so do these two together.",
-      "Open each URL in a private window and confirm you see the policy text, not the app shell."
+      "<b>Done in the repo:</b> the pages moved from <code>docs/</code> to <code>site/</code>, which is what Hosting now serves \u2014 one copy rather than two that drift.",
+      "<b>Also fixed:</b> the SPA rewrite is gone, so a missing page returns a real 404 and the next gap is obvious immediately.",
+      "<b>Yours:</b> deploy, then open each URL in a private window and confirm you see the policy text."
     ],
-    code: [{ file: "terminal (PowerShell)", lang: "bash", body:
-`copy docs\\privacy-policy.html web\\
-copy docs\\terms-of-use.html web\\
-flutter build web -t lib/main.dart
-firebase deploy --only hosting`}],
+    code: [{ file: "terminal", lang: "bash", body:
+`firebase deploy --only hosting`}],
     verify: "<code>https://hadithdaily-5fc06.web.app/privacy-policy.html</code> shows the policy text in a private window. If you see the app, the file did not deploy."
   },
   {
     id: "web-delete-account", group: "hosting", plat: "both", sev: "blocker", verified: true,
     title: "Publish the account-deletion request page",
-    where: "docs/delete-account.html",
-    found: "The file does not exist. In-app deletion is implemented (delete_account_sheet.dart calling AccountDeletionService), which covers half the requirement.",
-    why: "<p>Google Play requires apps with account creation to offer <b>both</b> in-app deletion and a <b>web page</b> where someone can request deletion without installing the app. Apple requires the in-app path under Guideline 5.1.1(v); the web page satisfies Play's additional rule and does no harm on Apple's side.</p><p>You have the in-app half. The web half is missing, and Play asks for its URL explicitly in the Data safety section.</p>",
+    where: "site/delete-account.html",
+    found: "Written and committed on 26 Sep 2026. It ships with a deliberate visible placeholder, [\u0636\u0639 \u0647\u0646\u0627 \u0628\u0631\u064a\u062f \u0627\u0644\u062a\u0648\u0627\u0635\u0644], where the contact address belongs.",
+    why: "<p>Play requires apps with account creation to offer <b>both</b> in-app deletion and a <b>web page</b> for someone without the app installed. The in-app half was already done.</p><p>The page is written \u2014 what gets deleted, what survives, both request routes. It cannot ship as-is: Play rejects the page without a working contact, and whatever address goes there is published to anyone who opens it, which is a decision rather than a detail.</p>",
     steps: [
-      "Create <code>docs/delete-account.html</code> — a short static page stating what gets deleted, how long it takes, and a contact address.",
-      "Copy it into <code>web/</code> and deploy alongside the other two legal pages.",
-      "Give Play Console that URL in Data safety → Account deletion."
+      "<b>Yours, and blocking:</b> replace the placeholder in <code>site/delete-account.html</code> with a contact address you actually monitor. A dedicated support address beats a personal one \u2014 it is public the moment you deploy.",
+      "<b>Yours:</b> deploy with the other two.",
+      "Give Play Console that URL under Data safety \u2192 Account deletion."
     ],
-    code: [{ file: "docs/delete-account.html — starting point", lang: "html", body:
-`<!doctype html>
-<html lang="ar" dir="rtl">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>حذف الحساب — طيّب قلبك</title>
-<h1>طلب حذف الحساب</h1>
-<p>يمكنك حذف حسابك من داخل التطبيق مباشرة:
-   الإعدادات ← الحساب ← حذف الحساب.</p>
-<p>إن لم يكن التطبيق مثبتًا لديك، أرسل طلبًا من البريد المسجَّل
-   في حسابك إلى <strong>prodktstudio@gmail.com</strong>
-   وسيُحذف الحساب خلال 30 يومًا.</p>
-<h2>ما الذي يُحذف</h2>
-<ul>
-  <li>حسابك واسم العرض الخاص بك.</li>
-  <li>مشاركاتك وتعليقاتك في المجتمع.</li>
-  <li>قائمة المفضّلة وإعدادات التذكيرات.</li>
-</ul>
-<p>لا نحتفظ بأي نسخة من هذه البيانات بعد إتمام الحذف.</p>
-</html>`}],
+    code: [{ file: "site/delete-account.html", lang: "html", body:
+`<span class="addr">[\u0636\u0639 \u0647\u0646\u0627 \u0628\u0631\u064a\u062f \u0627\u0644\u062a\u0648\u0627\u0635\u0644]</span>`}],
     verify: "The page loads at its public URL in a private window and the email address on it is one you actually monitor."
   },
 
@@ -1165,7 +1144,7 @@ function restore() {
 // Ticked by the fix pass on 26 Sep 2026; a saved tick below overrides these.
 const ALREADY_DONE = ["ios-photo-add", "ios-photo-read", "ios-appdelegate",
   "ios-notif-timing", "ios-device-family", "ios-launch", "ios-encryption",
-  "ios-localization"];
+  "ios-localization", "ios-apple-signin"];
 ALREADY_DONE.forEach(id => { state.done[id] = true; });
 
 restore();
