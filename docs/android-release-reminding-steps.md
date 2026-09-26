@@ -25,7 +25,7 @@ Verified on 2026-09-23.
 | UGC safety | Reporting + per-device author blocking + moderator approval queue |
 | Admin dashboard | Separate entrypoint (`lib/main_dashboard.dart`), not in the phone app |
 | Firebase project | `hadithdaily-5fc06` |
-| Legal text | `site/` — privacy, terms and account deletion, served by Firebase Hosting |
+| Legal text | `web/` — privacy, terms and account deletion, deployed beside the dashboard |
 | Release signing | **Missing** — no `android/key.properties` |
 
 Two blockers: **signing** (step 1) and **hosting the privacy policy**
@@ -116,15 +116,18 @@ The owner must be you — **not** `CN=Android Debug`.
 ## 4. Host the legal pages
 
 Play requires a publicly reachable privacy-policy URL, and so does App
-Store Connect. The pages live in `site/`, which is what Firebase Hosting
+Store Connect. The pages live in `web/`:
+
+- `web/privacy-policy.html`
+- `web/terms-of-use.html`
+- `web/delete-account.html` (see step 5)
+
+Anything in `web/` is copied verbatim into `build/web` by a web build, so
+they deploy alongside the moderator dashboard, which is what this address
 serves:
 
-- `site/index.html` — a small landing page linking the other three
-- `site/privacy-policy.html`
-- `site/terms-of-use.html`
-- `site/delete-account.html` (see step 5)
-
 ```bash
+flutter build web -t lib/main_dashboard.dart
 firebase deploy --only hosting
 ```
 
@@ -134,29 +137,23 @@ They then live at:
 - `https://hadithdaily-5fc06.web.app/terms-of-use.html`
 - `https://hadithdaily-5fc06.web.app/delete-account.html`
 
-> **This used to serve the app, and that was a problem.** `firebase.json`
-> previously pointed `hosting.public` at `build/web` with a rewrite of
-> `**` to `/index.html`. Two things followed from that. A `flutter build
-> web` run against `lib/main_dashboard.dart` put the *moderator
-> dashboard's* login at the project's public root — the same URL handed
-> to both app stores. And because the rewrite caught every unmatched
-> path, a missing legal page never 404'd; it silently served the app
-> shell, so the URL looked alive while the file did not exist.
->
-> Both are fixed by serving `site/` as plain static files with no
-> rewrite. The dashboard is no longer hosted at all — run it locally:
->
-> ```bash
-> flutter run -d chrome -t lib/main_dashboard.dart
-> ```
->
-> Note that `flutter build web -t lib/main.dart` does **not** undo the
-> first problem on its own: `-t` only picks the Dart entrypoint, while
-> `web/index.html` and `web/manifest.json` are copied verbatim and are
-> both still branded as the dashboard.
+> **Always pass `-t lib/main_dashboard.dart`.** A bare `flutter build web`
+> uses `lib/main.dart` and would put the *reader app* at this address,
+> replacing the dashboard the moderators use. `build/` is gitignored, so
+> whatever was last built locally is what deploys — there is no record in
+> the repo of which entrypoint that was.
 
-Whichever host you use, open each URL in a private window and confirm
-you see the page itself — not the app.
+> **There is deliberately no `**` rewrite in `firebase.json`.** The
+> dashboard does not need one: it is a plain `MaterialApp` with no
+> `usePathUrlStrategy`, so Flutter keeps its routes after a `#` and the
+> server only ever sees `/`. The rewrite used to send every unmatched path
+> to `/index.html`, which meant a missing file returned the dashboard with
+> a 200 instead of a 404 — and that is precisely why these legal pages
+> appeared to work for weeks while they were not in the deploy at all. A
+> real 404 makes the next gap obvious immediately.
+
+Open each URL in a private window before moving on, and confirm you see
+the page itself rather than the dashboard.
 
 ## 5. Account deletion request page
 
@@ -164,11 +161,11 @@ Play requires apps with accounts to offer **both**:
 
 1. In-app deletion — done (`delete_account_sheet.dart`).
 2. A **web page** where someone can request deletion without installing
-   the app — `site/delete-account.html`.
+   the app — `web/delete-account.html`.
 
-The page is written and deploys with the rest of `site/`. Before you
-deploy it, replace the placeholder contact address in it: it ships with
-a visible `[ضع هنا بريد التواصل]` marker rather than a guessed address,
+The page is written and deploys with the rest of `web/`. Before you
+deploy it, replace the placeholder contact address in it: it ships with a
+visible `[ضع هنا بريد التواصل]` marker rather than a guessed address,
 because Play rejects the page without a working contact, and whatever
 address goes there is published to anyone who opens the page.
 
