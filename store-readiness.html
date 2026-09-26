@@ -1144,7 +1144,8 @@ function restore() {
 // Ticked by the fix pass on 26 Sep 2026; a saved tick below overrides these.
 const ALREADY_DONE = ["ios-photo-add", "ios-photo-read", "ios-appdelegate",
   "ios-notif-timing", "ios-device-family", "ios-launch", "ios-encryption",
-  "ios-localization", "ios-apple-signin"];
+  "ios-localization", "ios-apple-signin",
+  "web-privacy", "web-delete-account", "web-dashboard-exposed"];
 ALREADY_DONE.forEach(id => { state.done[id] = true; });
 
 restore();
