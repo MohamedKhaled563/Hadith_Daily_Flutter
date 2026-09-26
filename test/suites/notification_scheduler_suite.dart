@@ -29,36 +29,29 @@ class _MockPlugin extends Mock implements FlutterLocalNotificationsPlugin {}
 class _MockAndroidPlugin extends Mock
     implements AndroidFlutterLocalNotificationsPlugin {}
 
-/// In-memory stand-in for Firestore — lets tests control the pool/mode
+/// In-memory stand-in for Firestore — lets tests control the pool
 /// directly, and simulate a read failure, without a network dependency.
 class _FakeDataSource implements NotificationDataSource {
   _FakeDataSource({
     this.messages = const [],
-    this.mode = 'random',
     this.messagesError,
   });
 
   List<Map<String, dynamic>> messages;
-  String mode;
   Object? messagesError;
 
-  /// When set, [loadMode] blocks on it. Lets a test park one `reschedule()`
+  /// When set, [loadActiveMessages] blocks on it. Lets a test park one `reschedule()`
   /// mid-flight — deterministically, at a known point — and run a second one
   /// to completion behind it, which is how the concurrent-reschedule race is
   /// reproduced without depending on timing.
-  Completer<void>? modeGate;
+  Completer<void>? messagesGate;
 
   @override
   Future<List<Map<String, dynamic>>> loadActiveMessages() async {
+    final gate = messagesGate;
+    if (gate != null) await gate.future;
     if (messagesError != null) throw messagesError!;
     return messages;
-  }
-
-  @override
-  Future<String> loadMode() async {
-    final gate = modeGate;
-    if (gate != null) await gate.future;
-    return mode;
   }
 }
 
@@ -203,67 +196,47 @@ void notificationSchedulerSuite() {
     final pool = buildPool(activePool); // ['رسالة ثانية', 'رسالة أولى']
     final day = tz.TZDateTime.utc(2026, 1, 15);
 
-    test('manual mode is deterministic and ignores the device seed', () {
-      final a = pickMessageForDay(pool, day, 'manual', 111);
-      final b = pickMessageForDay(pool, day, 'manual', 999);
+    test('is stable for the same device seed and day', () {
+      final a = pickMessageForDay(pool, day, 42);
+      final b = pickMessageForDay(pool, day, 42);
 
       expect(a, b);
     });
 
-    test('manual mode picks by daysSinceEpoch, not insertion order', () {
-      final daysSinceEpoch = day.millisecondsSinceEpoch ~/ 86400000;
-      final expected = pool[daysSinceEpoch % pool.length];
-
-      expect(pickMessageForDay(pool, day, 'manual', 0), same(expected));
-    });
-
-    test('random mode is stable for the same device seed and day', () {
-      final a = pickMessageForDay(pool, day, 'random', 42);
-      final b = pickMessageForDay(pool, day, 'random', 42);
-
-      expect(a, b);
-    });
-
-    test('random mode can diverge for a different device seed', () {
+    test('can diverge for a different device seed', () {
       // Not a mathematical guarantee for every seed pair, but true for this
       // pinned pool/day/seed combination — pins the "different devices can
       // see different picks" behaviour the design relies on.
-      final a = pickMessageForDay(pool, day, 'random', 1);
-      final b = pickMessageForDay(pool, day, 'random', 2);
+      final a = pickMessageForDay(pool, day, 1);
+      final b = pickMessageForDay(pool, day, 2);
 
       expect(a == b, isFalse);
     });
 
-    // ---- Bug 7 -----------------------------------------------------------
-    test(
-        'manual mode resolves a calendar date identically in every timezone '
-        '— the documented "same message for everyone on the same day" '
-        'guarantee', () {
-      // `day` here is a *local* midnight, which is what reschedule() builds.
-      // East of UTC its epoch-ms lands on the previous UTC day, so a naive
-      // millisecondsSinceEpoch ~/ 86400000 gives a device in Cairo a
-      // different index than one in New York for the very same date.
-      final local = DateTime(2026, 1, 15);
-      final utc = DateTime.utc(2026, 1, 15);
-      final expected = pool[
-          (utc.millisecondsSinceEpoch ~/ 86400000) % pool.length];
-
-      expect(
-        pickMessageForDay(pool, local, 'manual', 0),
-        same(expected),
-        reason: 'a local midnight and the same calendar date in UTC must '
-            'resolve to the same pool entry, or devices in different '
-            'timezones disagree about "today\'s" message',
-      );
+    test('the evening never repeats the morning while the pool allows it', () {
+      for (var seed = 0; seed < 200; seed++) {
+        expect(
+          pickMessageForDay(pool, day, seed, slot: 1),
+          isNot(same(pickMessageForDay(pool, day, seed, slot: 0))),
+          reason: 'seed $seed',
+        );
+      }
     });
 
-    test('manual mode ignores the time-of-day component of the given day', () {
+    test('a one-message pool serves both slots', () {
+      final single = pool.take(1).toList();
+
+      expect(pickMessageForDay(single, day, 7, slot: 0), same(single.first));
+      expect(pickMessageForDay(single, day, 7, slot: 1), same(single.first));
+    });
+
+    test('ignores the time-of-day component of the given day', () {
       final midnight = DateTime(2026, 1, 15);
       final lateEvening = DateTime(2026, 1, 15, 23, 30);
 
       expect(
-        pickMessageForDay(pool, midnight, 'manual', 0),
-        same(pickMessageForDay(pool, lateEvening, 'manual', 0)),
+        pickMessageForDay(pool, midnight, 5),
+        same(pickMessageForDay(pool, lateEvening, 5)),
       );
     });
   });
@@ -451,7 +424,7 @@ void notificationSchedulerSuite() {
     test(
         'skips today when the requested time already passed, but still '
         'queues the remaining days ahead', () async {
-      final scheduler = schedulerWith(_FakeDataSource(messages: activePool, mode: 'manual'));
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
 
       // Midnight is behind the pinned clock (10:30), so offset 0 (today)
       // must be skipped.
@@ -485,7 +458,7 @@ void notificationSchedulerSuite() {
       stubPluginDefaults(pending: const [
         PendingNotificationRequest(0, 'رسالة الصباح', 'قديم', 'p'),
       ]);
-      final scheduler = schedulerWith(_FakeDataSource(messages: activePool, mode: 'manual'));
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
 
       await scheduler.reschedule(
         morningEnabled: true,
@@ -503,7 +476,7 @@ void notificationSchedulerSuite() {
       stubPluginDefaults(pending: const [
         PendingNotificationRequest(2, 'غداً', 'نص', 'p'),
       ]);
-      final scheduler = schedulerWith(_FakeDataSource(messages: activePool, mode: 'manual'));
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
 
       await scheduler.reschedule(
         morningEnabled: true,
@@ -517,7 +490,7 @@ void notificationSchedulerSuite() {
 
     test('schedules today too when the requested time is still ahead',
         () async {
-      final scheduler = schedulerWith(_FakeDataSource(messages: activePool, mode: 'manual'));
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
 
       // 23:59 is ahead of the pinned clock (10:30), so today counts too.
       final result = await scheduler.reschedule(
@@ -532,7 +505,7 @@ void notificationSchedulerSuite() {
 
     test('morning and evening both enabled schedule twice as many entries',
         () async {
-      final scheduler = schedulerWith(_FakeDataSource(messages: activePool, mode: 'manual'));
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
 
       final result = await scheduler.reschedule(
         morningEnabled: true,
@@ -547,7 +520,7 @@ void notificationSchedulerSuite() {
     // ---- Design observation: morning/evening shared one body -------------
     test('the morning and evening slots carry different text on a given day',
         () async {
-      final scheduler = schedulerWith(_FakeDataSource(messages: activePool, mode: 'manual'));
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
 
       await scheduler.reschedule(
         morningEnabled: true,
@@ -641,7 +614,7 @@ void notificationSchedulerSuite() {
 
     test('the device seed is generated once and reused on later calls',
         () async {
-      final scheduler = schedulerWith(_FakeDataSource(messages: activePool, mode: 'random'));
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
 
       await scheduler.reschedule(
         morningEnabled: true,
@@ -705,12 +678,12 @@ void notificationSchedulerSuite() {
         'settings to the platform — turning a reminder off while the '
         'start-up reschedule is still in flight must stay off', () async {
       final dataSource =
-          _FakeDataSource(messages: activePool, mode: 'manual');
+          _FakeDataSource(messages: activePool);
       final scheduler = schedulerWith(dataSource);
 
       // Park run A right before it starts laying out its window.
       final gate = Completer<void>();
-      dataSource.modeGate = gate;
+      dataSource.messagesGate = gate;
       final runA = scheduler.reschedule(
         morningEnabled: true,
         morningTime: const TimeOfDay(hour: 23, minute: 59),
@@ -722,7 +695,7 @@ void notificationSchedulerSuite() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
       // B is the reader switching both reminders off. It runs to completion.
-      dataSource.modeGate = null;
+      dataSource.messagesGate = null;
       final resultB = await scheduler.reschedule(
         morningEnabled: false,
         morningTime: const TimeOfDay(hour: 23, minute: 59),

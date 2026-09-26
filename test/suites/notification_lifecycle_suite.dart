@@ -23,9 +23,6 @@ class _FakeDataSource implements NotificationDataSource {
 
   @override
   Future<List<Map<String, dynamic>>> loadActiveMessages() async => messages;
-
-  @override
-  Future<String> loadMode() async => 'manual';
 }
 
 /// Covers the pieces added around the scheduler rather than inside it: the

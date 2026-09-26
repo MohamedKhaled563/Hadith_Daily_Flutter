@@ -7,9 +7,10 @@ abstract class NotificationDataSource {
   /// Raw `notificationMessages` docs where `active == true`.
   Future<List<Map<String, dynamic>>> loadActiveMessages();
 
-  /// `settings/notificationMode` — always resolves to 'manual' or 'random',
-  /// defaulting to 'random' when the doc is missing or unreadable.
-  Future<String> loadMode();
+  // There was a `loadMode` here too, reading `settings/notificationMode`
+  // ('manual' | 'random'). The dashboard no longer offers that toggle — the
+  // day-by-day curation lives on the daily-message calendar instead — so
+  // reminders are always drawn at random; see pickMessageForDay.
 
   // There was a `loadMessageById` here, for resolving a tapped notification
   // back to the notificationMessages doc its payload named. Nothing has
@@ -42,14 +43,4 @@ class FirestoreNotificationDataSource implements NotificationDataSource {
     return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
   }
 
-  @override
-  Future<String> loadMode() async {
-    try {
-      final doc =
-          await _db.collection('settings').doc('notificationMode').get();
-      return doc.data()?['mode'] == 'manual' ? 'manual' : 'random';
-    } catch (_) {
-      return 'random';
-    }
-  }
 }

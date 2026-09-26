@@ -3,21 +3,19 @@ import 'package:flutter/material.dart';
 
 /// Moderator/admin management of the small curated pool
 /// NotificationScheduler draws from on-device — see firestore.rules
-/// (phase 12). Same random/manual mode toggle as the daily-tip pool
-/// (RotationOrderPage), stored separately at settings/notificationMode so
-/// the two rotations don't interfere with each other.
+/// (phase 12).
 ///
-/// Order is only meaningful in manual mode (random mode ignores it
-/// entirely), so it's set by dragging rows rather than typing a number, and
-/// a full drag session is committed with one "حفظ الترتيب" batch write —
-/// there's nothing else per-row left to "save" once the number field is
-/// gone. Loaded once into local state (like RotationOrderPage) rather than
-/// a live stream, since a mid-drag snapshot update would fight the drag.
+/// There is no random/manual toggle here any more: which message goes out on
+/// which day is curated on the «رسائل اليوم ومشاركات المجتمع» calendar, and
+/// this pool only fills the reminder's body, so every device simply draws
+/// from it at random (see pickMessageForDay). With no manual order to keep,
+/// there is no drag-to-reorder either — `order` is still written on add, and
+/// only sorts the list.
 ///
 /// Phase 16 narrowed notificationMessages update/delete in firestore.rules
 /// to isAdmin() — a moderator may only create here now, same as
 /// dailyMessages via BulkAddPage. [isAdmin] gates every affordance that
-/// would otherwise hit that wall (reordering, per-row edit/toggle/delete);
+/// would otherwise hit that wall (per-row edit/toggle/delete);
 /// a moderator still sees the list and can add new messages.
 class NotificationMessagesPage extends StatefulWidget {
   const NotificationMessagesPage({super.key, required this.isAdmin});
@@ -69,8 +67,6 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
   }
   late Future<List<_MsgEntry>> _messagesFuture = _loadMessages();
   List<_MsgEntry>? _messages;
-  bool _orderDirty = false;
-  bool _savingOrder = false;
 
   Future<List<_MsgEntry>> _loadMessages() async {
     final snapshot = await _db
@@ -91,21 +87,9 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
 
   void _reload() {
     setState(() {
-      _orderDirty = false;
       _messages = null;
       _messagesFuture = _loadMessages();
     });
-  }
-
-  Future<void> _setMode(String mode) async {
-    try {
-      await _db
-          .collection('settings')
-          .doc('notificationMode')
-          .set({'mode': mode});
-    } catch (error) {
-      _snack('تعذّر تغيير طريقة الاختيار: $error');
-    }
   }
 
   Future<void> _addMessage() async {
@@ -167,44 +151,6 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
       return;
     }
     _reload();
-  }
-
-  void _onReorder(int oldIndex, int newIndex) {
-    final messages = _messages;
-    if (messages == null) return;
-    setState(() {
-      final item = messages.removeAt(oldIndex);
-      messages.insert(newIndex, item);
-      for (var i = 0; i < messages.length; i++) {
-        messages[i].order = i;
-      }
-      _orderDirty = true;
-    });
-  }
-
-  Future<void> _saveOrder() async {
-    final messages = _messages;
-    if (messages == null || _savingOrder) return;
-    setState(() => _savingOrder = true);
-    try {
-      final batch = _db.batch();
-      for (final entry in messages) {
-        batch.update(entry.ref, {'order': entry.order});
-      }
-      await batch.commit();
-      if (mounted) {
-        setState(() {
-          _orderDirty = false;
-          _savingOrder = false;
-        });
-        _snack('تم حفظ الترتيب');
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() => _savingOrder = false);
-        _snack('تعذّر حفظ الترتيب: $error');
-      }
-    }
   }
 
   Future<void> _saveText(_MsgEntry entry, String text) async {
@@ -270,7 +216,7 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
       children: [
         Column(
           children: [
-            _ModeToggle(onChanged: _setMode, onRefresh: _reload, isAdmin: widget.isAdmin),
+            _PoolHeader(onRefresh: _reload, isAdmin: widget.isAdmin),
             Expanded(
               child: FutureBuilder<List<_MsgEntry>>(
                 future: _messagesFuture,
@@ -289,58 +235,23 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
                     );
                   }
 
-                  return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                    stream: _db
-                        .collection('settings')
-                        .doc('notificationMode')
-                        .snapshots(),
-                    builder: (context, modeSnap) {
-                      final mode =
-                          modeSnap.data?.data()?['mode'] as String? ?? 'random';
-                      final draggable = widget.isAdmin && mode == 'manual';
-
-                      return ReorderableListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
-                        buildDefaultDragHandles: false,
-                        itemCount: messages.length,
-                        onReorderItem: draggable
-                            ? _onReorder
-                            : (_, __) {},
-                        itemBuilder: (context, index) => _MessageRow(
-                          key: ValueKey(messages[index].ref.id),
-                          entry: messages[index],
-                          draggable: draggable,
-                          canEdit: widget.isAdmin,
-                          index: index,
-                          onSaveText: (text) => _saveText(messages[index], text),
-                          onToggleActive: (v) => _toggleActive(messages[index], v),
-                          onDelete: () => _delete(messages[index]),
-                        ),
-                      );
-                    },
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) => _MessageRow(
+                      key: ValueKey(messages[index].ref.id),
+                      entry: messages[index],
+                      canEdit: widget.isAdmin,
+                      onSaveText: (text) => _saveText(messages[index], text),
+                      onToggleActive: (v) => _toggleActive(messages[index], v),
+                      onDelete: () => _delete(messages[index]),
+                    ),
                   );
                 },
               ),
             ),
           ],
         ),
-        if (_orderDirty && widget.isAdmin)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: FloatingActionButton.extended(
-              onPressed: _savingOrder ? null : _saveOrder,
-              backgroundColor: Colors.green,
-              icon: _savingOrder
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.check_rounded),
-              label: const Text('حفظ الترتيب'),
-            ),
-          ),
         Positioned(
           bottom: 16,
           left: 16,
@@ -355,14 +266,9 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
   }
 }
 
-class _ModeToggle extends StatelessWidget {
-  const _ModeToggle({
-    required this.onChanged,
-    required this.onRefresh,
-    required this.isAdmin,
-  });
+class _PoolHeader extends StatelessWidget {
+  const _PoolHeader({required this.onRefresh, required this.isAdmin});
 
-  final ValueChanged<String> onChanged;
   final VoidCallback onRefresh;
   final bool isAdmin;
 
@@ -370,58 +276,29 @@ class _ModeToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('settings')
-            .doc('notificationMode')
-            .snapshots(),
-        builder: (context, snapshot) {
-          final mode = snapshot.data?.data()?['mode'] as String? ?? 'random';
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.notifications_active_outlined),
-                      SizedBox(width: 8),
-                      Text(
-                        'طريقة اختيار رسالة التنبيه:',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'random', label: Text('عشوائي')),
-                      ButtonSegment(value: 'manual', label: Text('يدوي')),
-                    ],
-                    selected: {mode},
-                    onSelectionChanged: (s) => onChanged(s.first),
-                  ),
-                  Text(
-                    mode == 'manual'
-                        ? (isAdmin
-                            ? 'اسحب الرسائل لترتيبها، ثم اضغط "حفظ الترتيب" — نفس الرسالة لكل الأجهزة'
-                            : 'الترتيب والتعديل والحذف متاحة للمدير فقط — يمكنك إضافة رسائل جديدة')
-                        : 'يختار كل جهاز عشوائياً من الرسائل المفعّلة — الترتيب لا يُستخدم هنا',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.refresh_rounded),
-                    tooltip: 'تحديث القائمة',
-                    onPressed: onRefresh,
-                  ),
-                ],
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.notifications_active_outlined),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isAdmin
+                      ? 'يختار كل جهاز عشوائياً من الرسائل المفعّلة لتنبيهَي الصباح والمساء'
+                      : 'يختار كل جهاز عشوائياً من الرسائل المفعّلة — التعديل والحذف متاحان للمدير فقط، ويمكنك إضافة رسائل جديدة',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
-            ),
-          );
-        },
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'تحديث القائمة',
+                onPressed: onRefresh,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -431,22 +308,18 @@ class _MessageRow extends StatefulWidget {
   const _MessageRow({
     super.key,
     required this.entry,
-    required this.draggable,
     required this.canEdit,
-    required this.index,
     required this.onSaveText,
     required this.onToggleActive,
     required this.onDelete,
   });
 
   final _MsgEntry entry;
-  final bool draggable;
 
   /// Phase 16: only an admin may update/delete an existing
   /// notificationMessages doc — a moderator sees the list read-only besides
   /// adding new ones (NotificationMessagesPage._addMessage, unaffected).
   final bool canEdit;
-  final int index;
   final ValueChanged<String> onSaveText;
   final ValueChanged<bool> onToggleActive;
   final VoidCallback onDelete;
@@ -482,16 +355,6 @@ class _MessageRowState extends State<_MessageRow> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.draggable) ...[
-              ReorderableDragStartListener(
-                index: widget.index,
-                child: const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Icon(Icons.drag_handle_rounded),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
             Expanded(
               child: TextField(
                 controller: _textController,

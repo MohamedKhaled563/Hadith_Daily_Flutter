@@ -44,19 +44,16 @@ class NotificationScheduleResult {
 
 /// Schedules the morning/evening reminder notifications from
 /// notificationMessages — entirely on-device, no server push (Spark plan,
-/// see the roadmap). Two independent picks feed this:
+/// see the roadmap). Each device seeds its own `Random` once (persisted
+/// locally) and mixes that seed with the date, so the same device always
+/// picks the same message for a given future date (stable across repeated
+/// rescheduling) while different devices likely diverge — acceptable
+/// per-device personalisation that still needs no server component.
 ///
-///   - `settings/notificationMode` ('manual' | 'random', moderator/admin
-///     controlled from the dashboard) decides HOW a day's message is
-///     chosen.
-///   - manual: every device computes the same index — `daysSinceEpoch %
-///     pool.length` into the pool sorted by `order` — so everyone sees the
-///     same message on the same calendar day with zero shared state.
-///   - random: each device seeds its own `Random` once (persisted locally)
-///     and mixes that seed with the date, so the same device always picks
-///     the same message for a given future date (stable across repeated
-///     rescheduling) while different devices likely diverge — acceptable
-///     per-device personalisation that still needs no server component.
+/// There used to be a dashboard-controlled 'manual' mode as well
+/// (`settings/notificationMode`), where every device walked the pool in
+/// `order`. It was dropped: curating what readers see on which day is the
+/// daily-message calendar's job, and this pool is only the reminder's body.
 ///
 /// Notifications are scheduled `_daysAhead` days out at a time and
 /// refreshed on every app start (and whenever the reminder settings
@@ -308,7 +305,6 @@ class NotificationScheduler {
       }
 
       final pool = await _loadPool();
-      final mode = await _dataSource.loadMode();
       final seed = await _deviceSeed();
       // A newer reschedule() overtook this one while it was waiting on the
       // permission prompt / Firestore / prefs above. Its settings are the
@@ -372,10 +368,10 @@ class NotificationScheduler {
         // whole loop was moved out from behind. Cancel-only instead.
         final morning = pool.isEmpty
             ? null
-            : pickMessageForDay(pool, day, mode, seed, slot: 0);
+            : pickMessageForDay(pool, day, seed, slot: 0);
         final evening = pool.isEmpty
             ? null
-            : pickMessageForDay(pool, day, mode, seed, slot: 1);
+            : pickMessageForDay(pool, day, seed, slot: 1);
 
         final morningScheduled = await _syncOne(
           id: offset * 2,
@@ -685,29 +681,27 @@ DateTime resolveScheduledTime(DateTime day, TimeOfDay time) {
 /// does or doesn't go out.
 bool isInPast(DateTime scheduled, DateTime now) => scheduled.isBefore(now);
 
-/// Which pool message a given calendar day resolves to under 'manual' or
-/// 'random' mode — pulled out of the class so it can be unit tested without
-/// any platform/Firestore dependency.
+/// Which pool message a given calendar day resolves to on this device —
+/// pulled out of the class so it can be unit tested without any
+/// platform/Firestore dependency.
+///
 /// [slot] distinguishes the day's two reminders (0 = morning, 1 = evening).
-/// Both used to be handed the single message this returned, so the evening
-/// reminder repeated the morning's text word for word every day. Slot 0 is
-/// deliberately a no-op on both branches, so an existing day's morning pick
-/// is exactly what it always was.
+/// Both come from one day-seeded `Random`: the morning takes the first draw,
+/// and the evening draws from the *rest* of the pool, so the two never
+/// repeat each other's text on the same day while the pool has more than
+/// one message. (Seeding each slot separately, as this once did, let them
+/// collide about half the time on a two-message pool.)
 PoolMessage pickMessageForDay(
   List<PoolMessage> pool,
   DateTime day,
-  String mode,
   int deviceSeed, {
   int slot = 0,
 }) {
-  final daysSinceEpoch = calendarDayNumber(day);
-  if (mode == 'manual') {
-    return pool[(daysSinceEpoch + slot) % pool.length];
-  }
-  // 0x9E3779B9 (the golden-ratio constant used by hash mixers) only to keep
-  // the two slots' seeds far apart; `slot: 0` leaves the seed untouched.
-  final random = Random(deviceSeed ^ daysSinceEpoch ^ (slot * 0x9E3779B9));
-  return pool[random.nextInt(pool.length)];
+  final random = Random(deviceSeed ^ calendarDayNumber(day));
+  final first = random.nextInt(pool.length);
+  if (slot == 0 || pool.length == 1) return pool[first];
+  final other = random.nextInt(pool.length - 1);
+  return pool[other >= first ? other + 1 : other];
 }
 
 /// [day]'s calendar date as a day number, read from its *calendar fields*
@@ -716,11 +710,10 @@ PoolMessage pickMessageForDay(
 /// [NotificationScheduler.reschedule] builds each day as a local midnight,
 /// whose `millisecondsSinceEpoch` lands on the previous UTC day anywhere
 /// east of Greenwich. Dividing that raw value by a day — which this used to
-/// do — therefore gave a reader in Cairo a different index than one in New
-/// York for the very same date, quietly breaking the one guarantee 'manual'
-/// mode exists to provide: that everybody sees the same message on the same
-/// day. Re-anchoring the same y/m/d in UTC removes the offset entirely, and
-/// makes the result independent of what time of day [day] happens to carry.
+/// do — therefore made the day number depend on the device's timezone, and
+/// shifted a date's pick whenever the reader travelled. Re-anchoring the
+/// same y/m/d in UTC removes the offset entirely, and makes the result
+/// independent of what time of day [day] happens to carry.
 int calendarDayNumber(DateTime day) =>
     DateTime.utc(day.year, day.month, day.day).millisecondsSinceEpoch ~/
         Duration.millisecondsPerDay;
