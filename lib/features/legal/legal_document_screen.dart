@@ -14,7 +14,7 @@ import '../../core/widgets/smooth_page_route.dart';
 /// in the project — the checkbox was plain text with nothing behind it, so a
 /// reader was agreeing to something they could not read. Both stores also
 /// require a reachable policy, and Play Console additionally wants a URL for
-/// the listing; `docs/privacy-policy.html` and `docs/terms-of-use.html` carry
+/// the listing; `site/privacy-policy.html` and `site/terms-of-use.html` carry
 /// the same words for that.
 ///
 /// The text is deliberately not Markdown-rendered by a package: it is two

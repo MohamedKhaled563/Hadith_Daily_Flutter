@@ -4,30 +4,21 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "build/web",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
+    "public": "site",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
     ],
     "headers": [
       {
-        "source": "index.html",
-        "headers": [{"key": "Cache-Control", "value": "no-cache"}]
-      },
-      {
-        "source": "flutter_bootstrap.js",
-        "headers": [{"key": "Cache-Control", "value": "no-cache"}]
-      },
-      {
-        "source": "main.dart.js",
-        "headers": [{"key": "Cache-Control", "value": "no-cache"}]
-      },
-      {
-        "source": "flutter_service_worker.js",
-        "headers": [{"key": "Cache-Control", "value": "no-cache"}]
+        "source": "**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
       }
     ]
   }

@@ -25,7 +25,7 @@ Verified on 2026-09-23.
 | UGC safety | Reporting + per-device author blocking + moderator approval queue |
 | Admin dashboard | Separate entrypoint (`lib/main_dashboard.dart`), not in the phone app |
 | Firebase project | `hadithdaily-5fc06` |
-| Legal text | `docs/privacy-policy.html`, `docs/terms-of-use.html` — written, **not yet hosted** |
+| Legal text | `site/` — privacy, terms and account deletion, served by Firebase Hosting |
 | Release signing | **Missing** — no `android/key.properties` |
 
 Two blockers: **signing** (step 1) and **hosting the privacy policy**
@@ -113,57 +113,66 @@ keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab
 
 The owner must be you — **not** `CN=Android Debug`.
 
-## 4. Host the privacy policy and terms
+## 4. Host the legal pages
 
-Play requires a publicly reachable privacy-policy URL. The text already
-exists at `docs/privacy-policy.html` and `docs/terms-of-use.html`; it just
-has nowhere to live.
+Play requires a publicly reachable privacy-policy URL, and so does App
+Store Connect. The pages live in `site/`, which is what Firebase Hosting
+serves:
 
-**Recommended: Firebase Hosting**, since the project (`hadithdaily-5fc06`)
-and the `firebase` CLI are already set up.
-
-`firebase.json` serves `build/web`, and Flutter copies anything in `web/`
-into that output, so:
+- `site/index.html` — a small landing page linking the other three
+- `site/privacy-policy.html`
+- `site/terms-of-use.html`
+- `site/delete-account.html` (see step 5)
 
 ```bash
-copy docs\privacy-policy.html web\
-copy docs\terms-of-use.html web\
-flutter build web
 firebase deploy --only hosting
 ```
 
-The pages then live at:
+They then live at:
 
 - `https://hadithdaily-5fc06.web.app/privacy-policy.html`
 - `https://hadithdaily-5fc06.web.app/terms-of-use.html`
+- `https://hadithdaily-5fc06.web.app/delete-account.html`
 
-> **Check what else that deploy publishes.** Hosting serves the whole
-> `build/web` output. `flutter build web` uses `lib/main.dart` (the reader
-> app) unless you pass `-t lib/main_dashboard.dart`, so the moderator
-> dashboard should not be included — but open the hosting URL afterwards and
-> confirm, because publishing the dashboard would expose the moderation
-> tools to anyone with the link. The dashboard is protected by Firestore
-> rules either way, but it should not be discoverable.
+> **This used to serve the app, and that was a problem.** `firebase.json`
+> previously pointed `hosting.public` at `build/web` with a rewrite of
+> `**` to `/index.html`. Two things followed from that. A `flutter build
+> web` run against `lib/main_dashboard.dart` put the *moderator
+> dashboard's* login at the project's public root — the same URL handed
+> to both app stores. And because the rewrite caught every unmatched
+> path, a missing legal page never 404'd; it silently served the app
+> shell, so the URL looked alive while the file did not exist.
+>
+> Both are fixed by serving `site/` as plain static files with no
+> rewrite. The dashboard is no longer hosted at all — run it locally:
+>
+> ```bash
+> flutter run -d chrome -t lib/main_dashboard.dart
+> ```
+>
+> Note that `flutter build web -t lib/main.dart` does **not** undo the
+> first problem on its own: `-t` only picks the Dart entrypoint, while
+> `web/index.html` and `web/manifest.json` are copied verbatim and are
+> both still branded as the dashboard.
 
-**Alternative: GitHub Pages**, if this repo is public — Settings → Pages →
-Source: `main` / `/docs`. Zero deploy pipeline and no chance of publishing
-anything else. URLs become
-`https://mohamedkhaled563.github.io/Hadith_Daily_Flutter/privacy-policy.html`.
-
-Whichever you choose, open the URL in a private window before moving on.
+Whichever host you use, open each URL in a private window and confirm
+you see the page itself — not the app.
 
 ## 5. Account deletion request page
 
 Play requires apps with accounts to offer **both**:
 
-1. In-app deletion — already done (`delete_account_sheet.dart`).
-2. A **web page** where someone can request deletion without installing the
-   app.
+1. In-app deletion — done (`delete_account_sheet.dart`).
+2. A **web page** where someone can request deletion without installing
+   the app — `site/delete-account.html`.
 
-The simplest compliant version is a short static page next to the others
-saying what gets deleted and giving a contact address, plus a note that the
-app itself can do it under الإعدادات. Add it as `docs/delete-account.html`,
-deploy it the same way as step 4, and give the Console that URL.
+The page is written and deploys with the rest of `site/`. Before you
+deploy it, replace the placeholder contact address in it: it ships with
+a visible `[ضع هنا بريد التواصل]` marker rather than a guessed address,
+because Play rejects the page without a working contact, and whatever
+address goes there is published to anyone who opens the page.
+
+Give the Console that URL under Data safety → Account deletion.
 
 ## 6. Create the app in Play Console
 
