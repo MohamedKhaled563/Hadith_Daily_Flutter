@@ -54,8 +54,10 @@ rules_version = '2';
 // never by the bulk tool. The settings/deliveryMode toggle that phases 5
 // and 6 above introduced is gone — per-date scheduling
 // (settings/dailyMessageSchedule) replaced it, and tool/
-// set_delivery_mode.py went with it — so settings/{settingId} below now
-// covers only notificationMode and dailyMessageSchedule.
+// set_delivery_mode.py went with it. settings/notificationMode (the
+// reminder pool's random/manual toggle) went the same way once reminders
+// became always-random — so settings/{settingId} below now covers only
+// dailyMessageConfig and dailyMessageSchedule.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -192,8 +194,8 @@ service cloud.firestore {
     }
 
     // Public read; a moderator/admin is the only client allowed to write —
-    // covers the notification-mode flag, dailyMessageConfig's
-    // messagesPerDay (how many messages a day carries), and
+    // covers dailyMessageConfig's messagesPerDay (how many messages a day
+    // carries), and
     // dailyMessageSchedule's per-date pins — the last two both set from
     // DailyMessageSchedulePage.
     //
