@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../core/auth/sign_in_gate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -43,7 +44,24 @@ class _HadithListScreenState extends State<HadithListScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _repo.favoritesListenable.addListener(_onFavoritesChanged);
+  }
+
+  void _onFavoritesChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _toggleFavorite(int number) async {
+    if (!await requireSignIn(context, reason: kFavoritesSignInReason)) return;
+    if (!mounted) return;
+    setState(() => _repo.toggleFavoriteHadith(number));
+  }
+
+  @override
   void dispose() {
+    _repo.favoritesListenable.removeListener(_onFavoritesChanged);
     _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -244,9 +262,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
                       return _HadithListCard(
                         hadith: hadith,
                         isFavorite: _repo.isHadithFavorite(hadith.number),
-                        onToggleFavorite: () => setState(
-                          () => _repo.toggleFavoriteHadith(hadith.number),
-                        ),
+                        onToggleFavorite: () => _toggleFavorite(hadith.number),
                         onTap: () async {
                           await Navigator.push(
                             context,

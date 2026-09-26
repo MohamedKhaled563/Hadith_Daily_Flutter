@@ -14,16 +14,21 @@ import '../widgets/smooth_page_route.dart';
 /// The app used to route straight to the login screen from the splash, so the
 /// first thing a new install saw was a form — before a single hadith. Nothing
 /// on the home screen, the hadith list or the reading screens needs an
-/// identity; bookmarks are local to the device, and everything the reader
-/// browses is public-read. Only three things genuinely need to know who you
-/// are: liking something, posting to the community, and writing to the
-/// moderators.
+/// identity; everything the reader browses is public-read. Only four things
+/// genuinely need to know who you are: saving a favourite (favourites belong
+/// to the account, not the phone), liking something, posting to the
+/// community, and writing to the moderators.
 ///
-/// So the gate moved here. Call [requireSignIn] at those three points and
-/// nowhere else. It returns true if the reader is already signed in (the
+/// So the gate moved here. Call [requireSignIn] at those points and nowhere
+/// else. It returns true if the reader is already signed in (the
 /// common case, and it does not interrupt them), or if they signed in just
 /// now; false if they dismissed it, in which case the caller should simply do
 /// nothing rather than show an error — declining is not a failure.
+/// The [requireSignIn] reason for every bookmark control, so they all say it
+/// the same way.
+const kFavoritesSignInReason =
+    'سجّل الدخول لتُحفظ مفضلتك في حسابك وتجدها على أي جهاز.';
+
 Future<bool> requireSignIn(
   BuildContext context, {
   /// One line saying what signing in unlocks, in the reader's own terms.
@@ -88,8 +93,8 @@ class _SignInPrompt extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'ما حفظته على هذا الجهاز يبقى كما هو، والحساب يضيف إليه المشاركة '
-          'والإعجاب.',
+          'بالحساب تبقى مفضلتك وإعجاباتك معك على أي جهاز، وتستطيع المشاركة '
+          'في مجتمع الحديث.',
           textAlign: TextAlign.center,
           style: textTheme.bodySmall?.copyWith(color: palette.mutedText),
         ),

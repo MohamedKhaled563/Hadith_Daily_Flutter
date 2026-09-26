@@ -165,8 +165,8 @@ class _SplashScreenState extends State<SplashScreen>
     // login screen from here, so a new install's first experience was a form
     // — before a single hadith. Nothing a reader browses needs an identity:
     // the hadiths, the daily messages and the approved community posts are
-    // all public-read, and bookmarks live on the device. Signing in is asked
-    // for at the three points that genuinely need it (see requireSignIn).
+    // all public-read. Signing in is asked for at the few points that
+    // genuinely need it — saving a favourite among them (see requireSignIn).
     //
     // Nothing is pushed on top any more: today's message is part of Home.
     Navigator.pushReplacement(

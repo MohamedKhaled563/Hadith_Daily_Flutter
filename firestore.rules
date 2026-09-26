@@ -271,6 +271,44 @@ service cloud.firestore {
       //      is the only thing that can do it.
       allow delete: if (isAdmin() && uid != request.auth.uid)
                   || request.auth.uid == uid;
+
+      // Phase 19: favourites, per account (HadithRepository +
+      // FavoritesStore). They used to live in the phone's SharedPreferences,
+      // so they belonged to the device rather than the person. Owner-only,
+      // both ways — not even a moderator reads someone's bookmarks. Two doc
+      // shapes, told apart by `kind`: a hadith is just its number; an
+      // insight carries its own copy of the message, because a community
+      // message may not exist anywhere else the app can look it up.
+      match /favorites/{favoriteId} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+
+        allow create, update: if request.auth != null
+                  && request.auth.uid == uid
+                  && request.resource.data.hadithNumber is int
+                  && request.resource.data.createdAt == request.time
+                  && ((request.resource.data.kind == 'hadith'
+                       && request.resource.data.keys().hasOnly(
+                            ['kind', 'hadithNumber', 'createdAt']))
+                      || (request.resource.data.kind == 'insight'
+                          && request.resource.data.keys().hasOnly(
+                               ['kind', 'hadithNumber', 'arabic', 'english',
+                                'category', 'themes', 'keywords', 'id',
+                                'sourceCollection', 'createdAt'])
+                          && request.resource.data.arabic is string
+                          && request.resource.data.arabic.size() <= 2000
+                          && request.resource.data.english is string
+                          && request.resource.data.english.size() <= 4000
+                          && request.resource.data.category is string
+                          && request.resource.data.category.size() <= 100
+                          && request.resource.data.themes is string
+                          && request.resource.data.themes.size() <= 1000
+                          && request.resource.data.keywords is string
+                          && request.resource.data.keywords.size() <= 1000
+                          && request.resource.data.id is string
+                          && request.resource.data.id.size() <= 200
+                          && request.resource.data.sourceCollection is string
+                          && request.resource.data.sourceCollection.size() <= 100));
+      }
     }
 
     // Phase 13: normalized-display-name uniqueness registry. Doc id is the

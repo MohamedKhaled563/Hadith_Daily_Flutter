@@ -10,6 +10,7 @@ import 'package:hadith_app/core/theme/app_state_controller.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/core/utils/notification_reliability_tip.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
+import 'package:hadith_app/data/services/favorites_store.dart';
 import 'package:hadith_app/features/hadith/hadith_list_screen.dart';
 
 /// Guest browsing: the app opens, and the three things that genuinely need an
@@ -40,7 +41,7 @@ void main() {
   });
 
   group('reading needs no account', () {
-    testWidgets('a guest can browse the hadith list and bookmark',
+    testWidgets('a guest can browse the hadith list, but not bookmark',
         (tester) async {
       expect(AppStateController().isLoggedIn, isFalse,
           reason: 'this suite runs as a guest');
@@ -52,15 +53,21 @@ void main() {
       expect(find.text('الأربعين النووية'), findsOneWidget);
       expect(find.byType(ListView), findsOneWidget);
 
-      // Bookmarks live in SharedPreferences, not Firestore, which is why a
-      // guest can have them at all — toggling one must not throw.
+      // Favourites belong to an account, so a guest starts with none — no
+      // seeded "starter" favourites — and the repository refuses to add one
+      // (the UI puts requireSignIn in front of every bookmark control).
       final repo = HadithRepository();
-      final first = repo.getAll().first.number;
-      final before = repo.isHadithFavorite(first);
-      repo.toggleFavoriteHadith(first);
-      expect(repo.isHadithFavorite(first), !before);
-      repo.toggleFavoriteHadith(first);
-      expect(repo.isHadithFavorite(first), before);
+      repo.debugOverrideFavorites(
+        store: InMemoryFavoritesStore(),
+        currentUid: () => null,
+      );
+      expect(repo.getFavoriteHadiths(), isEmpty);
+      expect(repo.getFavoriteInsights(), isEmpty);
+      expect(
+        () => repo.toggleFavoriteHadith(repo.getAll().first.number),
+        throwsStateError,
+      );
+      expect(repo.getFavoriteHadiths(), isEmpty);
     });
   });
 

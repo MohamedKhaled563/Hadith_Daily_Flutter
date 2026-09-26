@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/auth/sign_in_gate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/theme/app_palette.dart';
@@ -32,6 +33,7 @@ class FavoritesScreen extends StatefulWidget {
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final HadithRepository _repo = HadithRepository();
+
   /// Which list is showing. Deliberately not just 0: the screen used to open
   /// on "today's messages" whether or not it had any, so a reader with three
   /// saved hadiths and no saved messages landed on an empty tab.
@@ -41,6 +43,25 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final chosen = _selectedCategory;
     if (chosen != null) return chosen;
     return insights == 0 && hadiths > 0 ? 1 : 0;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Kept mounted in HomeScreen's IndexedStack, so it has to hear about
+    // favourites changing elsewhere — including the account's list arriving
+    // after sign-in, or clearing on sign-out.
+    _repo.favoritesListenable.addListener(_onFavoritesChanged);
+  }
+
+  @override
+  void dispose() {
+    _repo.favoritesListenable.removeListener(_onFavoritesChanged);
+    super.dispose();
+  }
+
+  void _onFavoritesChanged() {
+    if (mounted) setState(() {});
   }
 
   void _copyText(String text) {
@@ -75,7 +96,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 )
               else
                 const SizedBox(width: CircleIconButton.slot),
-
               Flexible(
                 child: Semantics(
                   header: true,
@@ -105,7 +125,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(width: CircleIconButton.slot),
             ],
           ),
@@ -113,49 +132,71 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
         const SizedBox(height: 12),
 
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: palette.surfaceSunken,
-              borderRadius: BorderRadius.circular(AppRadii.pill),
-              border: Border.all(color: palette.cardBorder),
+        // Favourites belong to an account, so a guest has none to list —
+        // say why, and offer the way in, rather than an empty tab that tells
+        // them to tap a bookmark that will only ask them to sign in anyway.
+        if (!_repo.hasFavoritesAccount)
+          Expanded(
+            child: AppEmptyState(
+              icon: Icons.bookmark_border_rounded,
+              title: 'مفضلتك تُحفظ في حسابك',
+              subtitle: 'سجّل الدخول لتحفظ الرسائل والأحاديث التي تلامس قلبك، '
+                  'وتجدها على أي جهاز تدخل منه.',
+              actionLabel: 'تسجيل الدخول',
+              actionIcon: Icons.login_rounded,
+              onAction: () =>
+                  requireSignIn(context, reason: kFavoritesSignInReason),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _CategoryTab(
-                    // Not "رسائل اليوم": this list holds community
-                    // reflections as well now, and calling them today's
-                    // messages was only accurate while they were the only
-                    // thing that could be saved.
-                    title: 'الرسائل (${toArabicDigits(favoriteInsights.length)})',
-                    icon: Icons.auto_awesome_rounded,
-                    isSelected: selected == 0,
-                    onTap: () => setState(() => _selectedCategory = 0),
+          )
+        else ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: palette.surfaceSunken,
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+                border: Border.all(color: palette.cardBorder),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _CategoryTab(
+                      // Not "رسائل اليوم": this list holds community
+                      // reflections as well now, and calling them today's
+                      // messages was only accurate while they were the only
+                      // thing that could be saved.
+                      title:
+                          'الرسائل (${toArabicDigits(favoriteInsights.length)})',
+                      // The leaf, which is what marks a message everywhere
+                      // else in the app — paired against the book for the
+                      // hadiths. Both concrete objects, like the tab beside
+                      // it; a sparkle here said nothing about the contents.
+                      icon: Icons.eco_rounded,
+                      isSelected: selected == 0,
+                      onTap: () => setState(() => _selectedCategory = 0),
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: _CategoryTab(
-                    title: 'الأحاديث (${toArabicDigits(favoriteHadiths.length)})',
-                    icon: Icons.menu_book_rounded,
-                    isSelected: selected == 1,
-                    onTap: () => setState(() => _selectedCategory = 1),
+                  Expanded(
+                    child: _CategoryTab(
+                      title:
+                          'الأحاديث (${toArabicDigits(favoriteHadiths.length)})',
+                      icon: Icons.menu_book_rounded,
+                      isSelected: selected == 1,
+                      onTap: () => setState(() => _selectedCategory = 1),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-
-        const SizedBox(height: 16),
-
-        Expanded(
-          child: selected == 0
-              ? _buildInsightsList(favoriteInsights)
-              : _buildHadithsList(favoriteHadiths),
-        ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: selected == 0
+                ? _buildInsightsList(favoriteInsights)
+                : _buildHadithsList(favoriteHadiths),
+          ),
+        ],
       ],
     );
   }
@@ -172,7 +213,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     return ListView.separated(
       padding: EdgeInsets.fromLTRB(
-        20, 4, 20, 30 + BottomNavigation.reservedHeight(context),
+        20,
+        4,
+        20,
+        30 + BottomNavigation.reservedHeight(context),
       ),
       itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
@@ -234,9 +278,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 12),
-
                 Text(
                   '« ${insight.message} »',
                   textAlign: TextAlign.center,
@@ -248,9 +290,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     color: palette.bodyText,
                   ),
                 ),
-
                 const SizedBox(height: 14),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -262,7 +302,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             child: HadithDetailScreen(hadith: hadith),
                           ),
                         ),
-                        semanticLabel: 'افتح الحديث ${toArabicDigits(hadith.number)}',
+                        semanticLabel:
+                            'افتح الحديث ${toArabicDigits(hadith.number)}',
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -298,7 +339,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       )
                     else
                       const SizedBox.shrink(),
-
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -349,7 +389,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     return ListView.separated(
       padding: EdgeInsets.fromLTRB(
-        20, 4, 20, 30 + BottomNavigation.reservedHeight(context),
+        20,
+        4,
+        20,
+        30 + BottomNavigation.reservedHeight(context),
       ),
       itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 14),
@@ -365,7 +408,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             context,
             appPageRoute(child: HadithDetailScreen(hadith: hadith)),
           ),
-          semanticLabel: 'الحديث ${toArabicDigits(hadith.number)}: ${hadith.title}',
+          semanticLabel:
+              'الحديث ${toArabicDigits(hadith.number)}: ${hadith.title}',
           child: Row(
             children: [
               Container(
@@ -533,4 +577,3 @@ class _CategoryPill extends StatelessWidget {
     );
   }
 }
-

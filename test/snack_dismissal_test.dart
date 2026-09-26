@@ -7,6 +7,7 @@ import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/core/widgets/app_snack.dart';
 import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
+import 'package:hadith_app/data/services/favorites_store.dart';
 import 'package:hadith_app/features/favorites/favorites_screen.dart';
 
 /// Flutter resolves a SnackBar's `persist` as `persist ?? action != null`, so
@@ -35,10 +36,14 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     repo = HadithRepository();
     await repo.load();
-    for (final i in repo.getFavoriteInsights().toList()) {
-      repo.toggleFavoriteInsight(i);
-    }
+    repo.debugOverrideFavorites(
+      store: InMemoryFavoritesStore(),
+      currentUid: () => 'reader-1',
+    );
     repo.toggleFavoriteInsight(_saved);
+    // Let the store's snapshot land here rather than inside the widget
+    // test's fake-async zone.
+    await pumpEventQueue();
   });
 
   Future<void> pumpScreen(WidgetTester tester) async {

@@ -29,8 +29,8 @@ enum ReauthMethod { password, google, unsupported }
 ///     on the parent. Removing the like through the same transaction the app
 ///     normally uses keeps the count honest; doing it after their own posts
 ///     were deleted would strand their like docs under missing parents.
-///  3. **Their posts, then their feedback, then the profile doc, then the
-///     username claim.** Each later step's rule depends on `request.auth`
+///  3. **Their posts, then their feedback, then their favourites, then the
+///     profile doc, then the username claim.** Each later step's rule depends on `request.auth`
 ///     still being this user, so the Auth account goes last.
 ///  4. **The Auth account.**
 ///
@@ -130,6 +130,13 @@ class AccountDeletionService {
     onProgress('جارٍ حذف ملاحظاتك…');
     await _deleteOwnedDocs(
       _db.collection('feedbackMessages').where('authorUid', isEqualTo: uid),
+    );
+
+    onProgress('جارٍ حذف مفضلتك…');
+    // Firestore does not cascade: deleting users/{uid} below would leave
+    // this subcollection behind, unreachable but still stored.
+    await _deleteOwnedDocs(
+      _db.collection('users').doc(uid).collection('favorites'),
     );
 
     onProgress('جارٍ حذف ملفك الشخصي…');

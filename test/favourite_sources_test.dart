@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +7,7 @@ import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/core/widgets/tap_target.dart';
 import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
+import 'package:hadith_app/data/services/favorites_store.dart';
 import 'package:hadith_app/data/services/daily_tip_service.dart';
 import 'package:hadith_app/features/favorites/favorites_screen.dart';
 
@@ -31,6 +30,7 @@ CommunityPost post({
 
 void main() {
   late HadithRepository repo;
+  late InMemoryFavoritesStore store;
 
   setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
 
@@ -38,11 +38,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     repo = HadithRepository();
     await repo.load();
-    // load() seeds a few favourites so a first launch is not empty; clear
-    // them so each test starts from a known, empty list.
-    for (final insight in repo.getFavoriteInsights().toList()) {
-      repo.toggleFavoriteInsight(insight);
-    }
+    // Favourites belong to an account; a fresh store per test is a fresh
+    // account with nothing saved.
+    store = InMemoryFavoritesStore();
+    repo.debugOverrideFavorites(store: store, currentUid: () => 'reader-1');
   });
 
   test('a community post can be saved, and shows up in the messages list',
@@ -94,34 +93,23 @@ void main() {
     expect(repo.getFavoriteInsights(), hasLength(1));
   });
 
-  test('a community post survives a reload from disk', () async {
+  test('a community post is stored in the account, with its source',
+      () async {
     repo.toggleFavoriteInsight(post().toInsight());
 
-    // HadithRepository is a singleton, so constructing a second one would
-    // hand back the same object and prove nothing. What makes this real is
-    // that load() -> _loadFavorites() *replaces* the in-memory map with
-    // whatever SharedPreferences holds: if the write path were broken, the
-    // reload would drop the favourite rather than keep it.
-    final stored = (await SharedPreferences.getInstance())
-        .getStringList('favoriteInsightTexts')!;
-    expect(
-      stored.map((e) => json.decode(e) as Map<String, dynamic>),
-      contains(
-        allOf(
-          containsPair('arabic', post().message),
-          containsPair('sourceCollection', 'communityMessages'),
-        ),
-      ),
-      reason: 'the community post has to reach disk, with its source',
-    );
-
-    await repo.load();
+    // Signing out and back in drops the in-memory list and rebuilds it from
+    // the store alone: if the write path were broken, the favourite would
+    // not come back.
+    repo.debugOverrideFavorites(store: store, currentUid: () => null);
+    expect(repo.getFavoriteInsights(), isEmpty);
+    repo.debugOverrideFavorites(store: store, currentUid: () => 'reader-1');
+    await pumpEventQueue();
 
     expect(repo.isInsightFavorite(post().toInsight()), isTrue);
-    expect(
-      repo.getFavoriteInsights().map((i) => i.message),
-      contains(post().message),
-    );
+    final restored = repo.getFavoriteInsights().single;
+    expect(restored.message, post().message);
+    expect(restored.sourceCollection, 'communityMessages',
+        reason: 'the community post has to be stored with its source');
   });
 
   test('it carries its source so the card can label it', () async {

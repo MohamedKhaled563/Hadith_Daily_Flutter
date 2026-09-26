@@ -76,27 +76,28 @@ class DailyMessageCard extends StatefulWidget {
 class _DailyMessageCardState extends State<DailyMessageCard> {
   final HadithRepository _repo = HadithRepository();
 
-  late bool _isBookmarked;
-
   Insight get _insight => widget.entry.insight;
   Hadith? get _hadith => widget.entry.hadith;
+
+  // Read live rather than cached: home swaps the entry in place when the
+  // reader asks for another message, and the account's favourites can land
+  // after the card is built (right after signing in).
+  bool get _isBookmarked => _repo.isInsightFavorite(_insight);
 
   @override
   void initState() {
     super.initState();
-    _isBookmarked = _repo.isInsightFavorite(_insight);
+    _repo.favoritesListenable.addListener(_onFavoritesChanged);
   }
 
   @override
-  void didUpdateWidget(covariant DailyMessageCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Home swaps the entry in place when the reader asks for another
-    // message, so the bookmark state has to follow the new message rather
-    // than stay on the one it was built with.
-    if (oldWidget.entry.insight.id != _insight.id ||
-        oldWidget.entry.insight.message != _insight.message) {
-      _isBookmarked = _repo.isInsightFavorite(_insight);
-    }
+  void dispose() {
+    _repo.favoritesListenable.removeListener(_onFavoritesChanged);
+    super.dispose();
+  }
+
+  void _onFavoritesChanged() {
+    if (mounted) setState(() {});
   }
 
   String get _shareText {
@@ -112,12 +113,11 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
     showAppSnack(context, 'تم نسخ نص الرسالة', tone: SnackTone.success);
   }
 
-  void _toggleBookmark() {
+  Future<void> _toggleBookmark() async {
+    if (!await requireSignIn(context, reason: kFavoritesSignInReason)) return;
+    if (!mounted) return;
     AppHaptics.toggle();
-    setState(() {
-      _isBookmarked = !_isBookmarked;
-      _repo.toggleFavoriteInsight(_insight);
-    });
+    setState(() => _repo.toggleFavoriteInsight(_insight));
 
     showAppSnack(
       context,

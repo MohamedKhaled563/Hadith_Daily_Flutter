@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/app_links.dart';
+import '../../core/auth/sign_in_gate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
 import '../../core/theme/app_palette.dart';
@@ -38,7 +39,25 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
 
   bool get _isBookmarked => _repo.isHadithFavorite(hadith.number);
 
-  void _toggleBookmark() {
+  @override
+  void initState() {
+    super.initState();
+    _repo.favoritesListenable.addListener(_onFavoritesChanged);
+  }
+
+  @override
+  void dispose() {
+    _repo.favoritesListenable.removeListener(_onFavoritesChanged);
+    super.dispose();
+  }
+
+  void _onFavoritesChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _toggleBookmark() async {
+    if (!await requireSignIn(context, reason: kFavoritesSignInReason)) return;
+    if (!mounted) return;
     AppHaptics.toggle();
     setState(() => _repo.toggleFavoriteHadith(hadith.number));
 

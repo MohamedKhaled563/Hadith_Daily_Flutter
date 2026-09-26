@@ -442,7 +442,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                 if (_state.isLoggedIn)
                   _ProfileHeader(state: _state, repo: _repo)
                 else
-                  _GuestHeader(repo: _repo, onSignIn: _promptSignIn),
+                  _GuestHeader(onSignIn: _promptSignIn),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -620,22 +620,17 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
 
 /// What a guest sees in place of the profile card.
 ///
-/// It still shows their saved count, because bookmarks are local and a guest
-/// really does have them — the card's job is to say "you already have
-/// something here" before it asks for anything.
+/// A guest has no favourites — they belong to an account — so this card
+/// only says what signing in adds, and offers it.
 class _GuestHeader extends StatelessWidget {
-  const _GuestHeader({required this.repo, required this.onSignIn});
+  const _GuestHeader({required this.onSignIn});
 
-  final HadithRepository repo;
   final VoidCallback onSignIn;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
-
-    final saved =
-        repo.favoriteHadithNumbers.length + repo.favoriteInsightTexts.length;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -683,10 +678,7 @@ class _GuestHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      saved == 0
-                          ? 'تصفّح كما تحب، بلا حساب'
-                          : 'محفوظاتك على هذا الجهاز: '
-                              '${toArabicDigits(saved)}',
+                      'سجّل الدخول لتحفظ مفضلتك في حسابك',
                       style: textTheme.bodySmall?.copyWith(
                         color: palette.mutedText,
                         fontSize: 12,

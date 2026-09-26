@@ -3,6 +3,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../data/repositories/hadith_repository.dart';
 import '../auth/auth_service.dart';
 
 class AppStateController extends ChangeNotifier {
@@ -133,6 +134,8 @@ class AppStateController extends ChangeNotifier {
           : (user.email ?? 'زائر كريم');
       _userEmail = user.email ?? '';
     }
+    // Favourites belong to the account: load this one's, or clear them.
+    HadithRepository().setUser(user?.uid);
     notifyListeners();
   }
 
