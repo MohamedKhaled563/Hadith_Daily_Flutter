@@ -107,6 +107,9 @@ void dailyMessageRevealSuite() {
   setUpAll(() async {
     setupFirebaseCoreMocks();
     await Firebase.initializeApp();
+    // load() now clears the pre-account favourites key from
+    // SharedPreferences, so the plugin needs its mock before it runs.
+    SharedPreferences.setMockInitialValues({});
     await HadithRepository().load();
   });
 
