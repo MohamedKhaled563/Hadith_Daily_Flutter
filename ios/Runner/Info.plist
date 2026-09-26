@@ -37,6 +37,33 @@
 			</array>
 		</dict>
 	</array>
+	<!-- The share sheet's "Save Image" action writes the rendered message
+	     card to Photos from this app's own process, so iOS terminates the app
+	     the instant it is tapped without this key. See ShareService. -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>لحفظ بطاقة الرسالة في مكتبة الصور عند اختيارك «حفظ الصورة» من قائمة المشاركة.</string>
+	<!-- file_picker's native code links into this binary even though only the
+	     dashboard entrypoint (lib/main_dashboard.dart) calls it, because plugin
+	     registration is per-project rather than per-entrypoint. App Store
+	     Connect's upload scan rejects a binary carrying photo-library symbols
+	     with no purpose string (ITMS-90683), so the string is required even
+	     though the phone app never opens the photo library. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>لاختيار ملف من جهازك عند استيراد الرسائل اليومية. لا يستخدم التطبيق صورك لأي غرض آخر.</string>
+	<!-- The app uses only HTTPS and the platform's own crypto, which is the
+	     exempt case. Without this key App Store Connect asks the export
+	     compliance question on every upload, TestFlight builds included. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- The UI is Arabic-only (main.dart pins locale: Locale('ar')), but
+	     CFBundleDevelopmentRegion resolves to $(DEVELOPMENT_LANGUAGE) = en, so
+	     without this iOS renders its own dialogs in English inside an Arabic,
+	     right-to-left app. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>ar</string>
+		<string>en</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>Tayyib Qalbak Store Readiness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Amiri:wght@400;700&display=swap">
+<style>
+  :root {
+    --ground: #EDF1EC;
+    --surface: #FFFFFF;
+    --surface-2: #F5F8F4;
+    --ink: #14211C;
+    --ink-2: #53655C;
+    --ink-3: #7C8D84;
+    --line: #D5DED3;
+    --line-2: #E4EAE2;
+    --emerald: #15362B;
+    --gold: #B8901C;
+    --blocker: #9E2B20;
+    --blocker-bg: #FBEAE7;
+    --required: #8A5D12;
+    --required-bg: #FAF0DD;
+    --advised: #2F6080;
+    --advised-bg: #E7F0F6;
+    --done: #2E6A4F;
+    --done-bg: #E3F0E9;
+    --shadow: 0 1px 2px rgba(20,33,28,.05), 0 8px 24px -16px rgba(20,33,28,.25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #0C1512;
+      --surface: #131F19;
+      --surface-2: #18261F;
+      --ink: #E3EBE6;
+      --ink-2: #94A79C;
+      --ink-3: #6D8177;
+      --line: #25352C;
+      --line-2: #1D2B23;
+      --emerald: #7FC4A4;
+      --gold: #DFBE55;
+      --blocker: #EC8375;
+      --blocker-bg: #2C1714;
+      --required: #DFAE5B;
+      --required-bg: #2A2013;
+      --advised: #86B8D8;
+      --advised-bg: #14222B;
+      --done: #68BE94;
+      --done-bg: #12251B;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #0C1512;
+    --surface: #131F19;
+    --surface-2: #18261F;
+    --ink: #E3EBE6;
+    --ink-2: #94A79C;
+    --ink-3: #6D8177;
+    --line: #25352C;
+    --line-2: #1D2B23;
+    --emerald: #7FC4A4;
+    --gold: #DFBE55;
+    --blocker: #EC8375;
+    --blocker-bg: #2C1714;
+    --required: #DFAE5B;
+    --required-bg: #2A2013;
+    --advised: #86B8D8;
+    --advised-bg: #14222B;
+    --done: #68BE94;
+    --done-bg: #12251B;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 32px 72px;
+  }
+
+  /* ---------- masthead ---------- */
+  .mast { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
+  .mark {
+    width: 46px; height: 46px; flex: none; border-radius: 11px;
+    background: #15362B; display: grid; place-items: center;
+  }
+  .mark svg { width: 27px; height: 27px; display: block; }
+  .mast h1 {
+    font-family: Archivo, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700; font-size: 25px; line-height: 1.2;
+    margin: 0 0 3px; letter-spacing: -.017em; text-wrap: balance;
+  }
+  .ar { font-family: Amiri, "Times New Roman", serif; font-weight: 700; }
+  .mast .sub { color: var(--ink-2); font-size: 14px; margin: 0; }
+  .mast .sub b { color: var(--ink); font-weight: 600; }
+
+  .verified {
+    margin-top: 18px; font-size: 12.5px; color: var(--ink-3);
+    border-top: 1px solid var(--line-2); padding-top: 12px;
+  }
+
+  /* ---------- summary ---------- */
+  .summary {
+    margin-top: 22px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+  }
+  .verdict { padding: 18px 20px; border-bottom: 1px solid var(--line-2); }
+  .verdict .tag {
+    display: inline-block; font-family: Archivo, sans-serif; font-weight: 700;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--blocker); background: var(--blocker-bg);
+    padding: 4px 9px; border-radius: 5px; margin-bottom: 9px;
+  }
+  .verdict p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+  .verdict p b { color: var(--ink); font-weight: 600; }
+
+  .meters { display: grid; grid-template-columns: 1fr 1fr; }
+  .meter { padding: 16px 20px 18px; }
+  .meter + .meter { border-left: 1px solid var(--line-2); }
+  .meter .top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .meter .name {
+    font-family: Archivo, sans-serif; font-weight: 600; font-size: 12px;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2);
+  }
+  .meter .count {
+    font-family: Archivo, sans-serif; font-weight: 700; font-size: 17px;
+    font-variant-numeric: tabular-nums; color: var(--ink);
+  }
+  .meter .count span { color: var(--ink-3); font-weight: 500; font-size: 13px; }
+  .track { height: 6px; border-radius: 3px; background: var(--line-2); margin-top: 10px; overflow: hidden; }
+  .fill { height: 100%; background: var(--done); border-radius: 3px; width: 0; transition: width .35s cubic-bezier(.4,0,.2,1); }
+  .meter .note { font-size: 12.5px; color: var(--ink-3); margin-top: 8px; }
+  .meter .note.has-blockers { color: var(--blocker); font-weight: 500; }
+
+  /* ---------- controls ---------- */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin: 26px 0 6px; position: sticky; top: env(safe-area-inset-top, 0px);
+    background: var(--ground); padding-block: 10px; z-index: 5;
+  }
+  .seg { display: flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; padding: 3px; gap: 2px; }
+  .seg button {
+    font: 500 13px/1 "Public Sans", sans-serif; color: var(--ink-2);
+    background: none; border: 0; padding: 7px 12px; border-radius: 6px; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
+  .seg button:focus-visible, .ghost:focus-visible, .row-head:focus-visible, .copy:focus-visible, .box:focus-visible {
+    outline: 2px solid var(--emerald); outline-offset: 2px;
+  }
+  .ghost {
+    font: 500 13px/1 "Public Sans", sans-serif; color: var(--ink-2);
+    background: var(--surface); border: 1px solid var(--line);
+    padding: 8px 12px; border-radius: 8px; cursor: pointer;
+  }
+  .ghost[aria-pressed="true"] { color: var(--blocker); border-color: var(--blocker); background: var(--blocker-bg); font-weight: 600; }
+  .ghost.plain:hover { color: var(--ink); }
+  .spacer { flex: 1 1 auto; }
+
+  .sync { font-size: 12px; color: var(--ink-3); }
+  .sync.err { color: var(--required); }
+
+  /* ---------- sections ---------- */
+  .section { margin-top: 30px; }
+  .section > h2 {
+    font-family: Archivo, sans-serif; font-weight: 600; font-size: 12px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+    margin: 0 0 3px; display: flex; align-items: center; gap: 9px;
+  }
+  .section > h2::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
+  .section > .blurb { margin: 0 0 12px; font-size: 13.5px; color: var(--ink-2); max-width: 62ch; }
+
+  .list { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; box-shadow: var(--shadow); overflow: hidden; }
+  .item + .item { border-top: 1px solid var(--line-2); }
+  .item.blocker { border-left: 3px solid var(--blocker); }
+  .item.done .title { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+  .row-head {
+    display: flex; align-items: flex-start; gap: 12px; width: 100%;
+    padding: 14px 16px; background: none; border: 0; text-align: left;
+    cursor: pointer; color: inherit; font: inherit;
+  }
+  .row-head:hover { background: var(--surface-2); }
+
+  .box {
+    flex: none; width: 19px; height: 19px; margin-top: 2px; border-radius: 5px;
+    border: 1.5px solid var(--line); background: var(--surface);
+    cursor: pointer; display: grid; place-items: center; padding: 0;
+    transition: background .15s, border-color .15s;
+  }
+  .box[aria-checked="true"] { background: var(--done); border-color: var(--done); }
+  .box svg { width: 11px; height: 11px; opacity: 0; }
+  .box[aria-checked="true"] svg { opacity: 1; }
+  .box[disabled] { opacity: .45; cursor: default; }
+
+  .row-main { flex: 1 1 auto; min-width: 0; }
+  .title {
+    font-family: Archivo, sans-serif; font-weight: 600; font-size: 15px;
+    line-height: 1.35; margin: 0 0 4px; text-wrap: balance;
+  }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip {
+    font: 600 10.5px/1 Archivo, sans-serif; letter-spacing: .07em; text-transform: uppercase;
+    padding: 4px 7px; border-radius: 4px; white-space: nowrap;
+  }
+  .chip.sev-blocker { color: var(--blocker); background: var(--blocker-bg); }
+  .chip.sev-required { color: var(--required); background: var(--required-bg); }
+  .chip.sev-advised { color: var(--advised); background: var(--advised-bg); }
+  .chip.plat { color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line-2); }
+  .chip.evid { color: var(--done); background: var(--done-bg); }
+  .meta .where {
+    font: 400 12px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+    color: var(--ink-3); overflow-wrap: anywhere;
+  }
+
+  .chev { flex: none; width: 16px; height: 16px; margin-top: 4px; color: var(--ink-3); transition: transform .2s; }
+  .item.open .chev { transform: rotate(90deg); }
+
+  /* ---------- detail ---------- */
+  .detail { padding: 2px 16px 20px 47px; border-top: 1px dashed var(--line-2); margin-top: -1px; }
+  .detail > *:first-child { margin-top: 14px; }
+  .detail h4 {
+    font-family: Archivo, sans-serif; font-weight: 600; font-size: 11px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+    margin: 20px 0 7px;
+  }
+  .detail p { margin: 0 0 10px; color: var(--ink-2); max-width: 66ch; }
+  .detail p b, .detail li b { color: var(--ink); font-weight: 600; }
+  .detail ol, .detail ul { margin: 0 0 10px; padding-left: 20px; color: var(--ink-2); max-width: 66ch; }
+  .detail li { margin-bottom: 7px; }
+  .detail li::marker { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .detail code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .88em;
+    background: var(--surface-2); border: 1px solid var(--line-2);
+    padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere;
+  }
+  .detail a { color: var(--emerald); text-underline-offset: 2px; }
+
+  .found {
+    border-left: 2px solid var(--gold); background: var(--surface-2);
+    padding: 11px 14px; border-radius: 0 7px 7px 0; margin: 0 0 12px;
+    font-size: 13.5px; color: var(--ink-2); max-width: 66ch;
+  }
+  .found strong {
+    display: block; font-family: Archivo, sans-serif; font-size: 10.5px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--gold);
+    margin-bottom: 4px; font-weight: 700;
+  }
+
+  .snip { margin: 0 0 12px; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface-2); }
+  .snip-bar {
+    display: flex; align-items: center; gap: 10px; padding: 7px 8px 7px 12px;
+    border-bottom: 1px solid var(--line-2); background: var(--surface);
+  }
+  .snip-bar .f {
+    font: 400 11.5px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+    color: var(--ink-2); flex: 1 1 auto; overflow-wrap: anywhere;
+  }
+  .copy {
+    font: 600 11px/1 Archivo, sans-serif; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line);
+    padding: 5px 9px; border-radius: 5px; cursor: pointer; flex: none;
+  }
+  .copy:hover { color: var(--ink); }
+  .copy.ok { color: var(--done); border-color: var(--done); }
+  .snip pre { margin: 0; padding: 12px; overflow-x: auto; }
+  .snip code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px;
+    line-height: 1.65; background: none; border: 0; padding: 0; white-space: pre;
+    color: var(--ink); overflow-wrap: normal;
+  }
+
+  .verify {
+    display: flex; gap: 9px; align-items: flex-start; margin-top: 14px;
+    padding: 11px 13px; background: var(--done-bg); border-radius: 8px;
+    font-size: 13.5px; color: var(--ink-2); max-width: 66ch;
+  }
+  .verify svg { flex: none; width: 15px; height: 15px; margin-top: 3px; color: var(--done); }
+  .verify b { color: var(--ink); font-weight: 600; }
+
+  .empty { padding: 34px 16px; text-align: center; color: var(--ink-3); font-size: 14px; }
+
+  footer { margin-top: 42px; padding-top: 18px; border-top: 1px solid var(--line-2); font-size: 12.5px; color: var(--ink-3); }
+  footer p { margin: 0 0 7px; max-width: 66ch; }
+
+  @media (max-width: 620px) {
+    .wrap { padding-block: 24px 56px; }
+    .meters { grid-template-columns: 1fr; }
+    .meter + .meter { border-left: 0; border-top: 1px solid var(--line-2); }
+    .detail { padding-left: 16px; }
+    .controls { position: static; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#D9B44A" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 21C12 21 3.5 15.4 3.5 9.2A4.7 4.7 0 0 1 12 6.6a4.7 4.7 0 0 1 8.5 2.6C20.5 15.4 12 21 12 21Z"/>
+        <path d="M12 18.5V9"/><path d="M12 13.2c1.6-.2 3-1.5 3.4-3.4-1.8-.2-3.2 1.2-3.4 3.4Z"/>
+      </svg>
+    </div>
+    <div>
+      <h1><span class="ar">طيّب قلبك</span> — store readiness</h1>
+      <p class="sub">Everything standing between this build and a live listing on the <b>App Store</b> and <b>Google Play</b>. Tick items off as you go; progress is saved and shared across your devices.</p>
+    </div>
+  </header>
+
+  <p class="verified">Audited against the repository on 26 Sep 2026 — Flutter 3.47, <code style="font-family:'IBM Plex Mono',monospace;font-size:12px">com.prodktstudio.tayebqalbak</code>, version 1.0.0+1. Items marked <span class="chip evid" style="display:inline-block;vertical-align:baseline">verified</span> were confirmed directly against the code or the live hosting URL, not assumed.</p>
+
+  <section class="summary" aria-label="Readiness summary">
+    <div class="verdict">
+      <span class="tag" id="verdict-tag">6 blockers open</span>
+      <p id="verdict-text"><b>Not ready to submit on either store.</b> The app code itself is in good shape — the gaps are two iOS crash/rejection bugs, an exposed moderator dashboard, and the release paperwork neither store will let you skip.</p>
+    </div>
+    <div class="meters">
+      <div class="meter">
+        <div class="top"><span class="name">iOS · App Store</span><span class="count" id="ios-count">0<span>/0</span></span></div>
+        <div class="track"><div class="fill" id="ios-fill"></div></div>
+        <p class="note" id="ios-note">—</p>
+      </div>
+      <div class="meter">
+        <div class="top"><span class="name">Android · Play</span><span class="count" id="and-count">0<span>/0</span></span></div>
+        <div class="track"><div class="fill" id="and-fill"></div></div>
+        <p class="note" id="and-note">—</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Filter by platform">
+      <button type="button" data-plat="all" aria-pressed="true">All</button>
+      <button type="button" data-plat="ios" aria-pressed="false">iOS</button>
+      <button type="button" data-plat="android" aria-pressed="false">Android</button>
+    </div>
+    <button type="button" class="ghost" id="only-blockers" aria-pressed="false">Blockers only</button>
+    <button type="button" class="ghost" id="expand-all" aria-pressed="false">Expand all</button>
+    <span class="spacer"></span>
+    <span class="sync" id="sync">Loading progress…</span>
+  </div>
+
+  <div id="sections"></div>
+
+  <footer>
+    <p><b>Where this came from.</b> Every item was checked against the working tree at <code style="font-family:'IBM Plex Mono',monospace;font-size:12px">D:\Prodkt Studio\Daily_Hadith_Flutter</code>. The Android steps deliberately overlap <code style="font-family:'IBM Plex Mono',monospace;font-size:12px">docs/android-release-reminding-steps.md</code>, which is still accurate — this page adds iOS and the three hosting items that doc lists as outstanding.</p>
+    <p><b>Not blockers, already done:</b> deployment target 15.0 correctly matched to Firebase iOS SDK 12; bundle ID consistent across all four config sites; Cupertino swipe-back wired through every route; <code style="font-family:'IBM Plex Mono',monospace;font-size:12px">sharePositionOrigin</code> passed so iPad sharing does not crash; 28 pending notifications, under iOS's 64 cap; app icon alpha-free at 1024×1024; in-app account deletion; <code style="font-family:'IBM Plex Mono',monospace;font-size:12px">SCHEDULE_EXACT_ALARM</code> correctly not declared; R8 keep-rules for flutter_local_notifications.</p>
+  </footer>
+</div>
+
+<script>
+const GROUPS = [
+  { id: "ios-code", name: "iOS — code & configuration", blurb: "Changes inside the repo. All of these can be made from Windows and verified by a Codemagic build." },
+  { id: "android-code", name: "Android — code & signing", blurb: "The Android app is already Play-compliant in code. What is missing is its release identity." },
+  { id: "hosting", name: "Hosting & legal pages", blurb: "Both stores refuse a listing without a reachable privacy policy. One item here is also a live exposure to close today." },
+  { id: "asc", name: "App Store Connect", blurb: "Console paperwork for Apple. None of it needs a Mac." },
+  { id: "play", name: "Google Play Console", blurb: "Console paperwork for Google, in the order the Console asks for it." },
+  { id: "pipeline", name: "Build pipeline & first release", blurb: "Now that Codemagic builds iOS, this is what turns a green build into a shipped release." }
+];
+
+const ITEMS = [
+  // ---------------- iOS code ----------------
+  {
+    id: "ios-photo-add", group: "ios-code", plat: "ios", sev: "blocker", verified: true,
+    title: "Add NSPhotoLibraryAddUsageDescription — the share sheet crashes without it",
+    where: "ios/Runner/Info.plist",
+    found: "share_service.dart renders the message card to a PNG in the temp directory and hands it to SharePlus as an XFile. Info.plist declares no photo-library keys at all.",
+    why: "<p>When the iOS share sheet opens on a file, it offers <b>Save Image</b>. That action runs <em>inside your app's process</em>, not the system's — so iOS checks your Info.plist for a purpose string and, finding none, terminates the app immediately. No warning, no dialog, just a crash.</p><p>This is not a probabilistic review risk. It is a guaranteed crash on a path your users will take constantly, because sharing the daily message card is a core feature of the app.</p>",
+    steps: [
+      "Open <code>ios/Runner/Info.plist</code>.",
+      "Paste the block below inside the top-level <code>&lt;dict&gt;</code> — anywhere works; just before <code>&lt;key&gt;UIApplicationSceneManifest&lt;/key&gt;</code> keeps the permission keys together.",
+      "Commit and let Codemagic build."
+    ],
+    code: [{ file: "ios/Runner/Info.plist", lang: "xml", body:
+`<key>NSPhotoLibraryAddUsageDescription</key>
+<string>لحفظ بطاقة الرسالة في مكتبة الصور عند اختيارك «حفظ الصورة» من قائمة المشاركة.</string>` }],
+    verify: "Install the build on a real iPhone, open any daily message, tap share, then tap <b>Save Image</b>. The app must stay open and the card must appear in Photos."
+  },
+  {
+    id: "ios-photo-read", group: "ios-code", plat: "ios", sev: "blocker", verified: true,
+    title: "Add NSPhotoLibraryUsageDescription — file_picker is linked into the binary",
+    where: "ios/Runner/Info.plist",
+    found: "GeneratedPluginRegistrant.m registers FilePickerPlugin from file_picker_darwin. The only Dart caller is the dashboard's bulk_add_page.dart, which the phone app never imports — but plugin registration is per-project, not per-entrypoint, so the native code ships anyway.",
+    why: "<p>App Store Connect runs a static scan over the uploaded binary. When it finds symbols that touch the photo library with no matching purpose string, it rejects the upload with <b>ITMS-90683</b> — before a human reviewer ever sees the app.</p><p>Your Dart code only ever asks for <code>FileType.custom</code>, so nothing will actually open the photo library. That does not matter to the scanner; it reads the linked binary, not your call sites.</p>",
+    steps: [
+      "Add the key below alongside the previous one.",
+      "If you would rather not ship a photo-library purpose string on a reading app at all, the clean alternative is to move <code>lib/features/dashboard/</code> into its own Flutter flavor so <code>file_picker</code> never links into the phone build. That is a larger change — the key is the cheap fix."
+    ],
+    code: [{ file: "ios/Runner/Info.plist", lang: "xml", body:
+`<key>NSPhotoLibraryUsageDescription</key>
+<string>لاختيار ملف من جهازك عند استيراد الرسائل اليومية. لا يستخدم التطبيق صورك لأي غرض آخر.</string>` }],
+    verify: "The upload to App Store Connect completes without an ITMS-90683 email. You will only know for certain at first upload."
+  },
+  {
+    id: "ios-apple-signin", group: "ios-code", plat: "ios", sev: "blocker", verified: true,
+    title: "Decide on Sign in with Apple before you submit",
+    where: "lib/core/auth/auth_service.dart",
+    found: "AuthService offers Google sign-in and first-party email/password. There is no sign_in_with_apple dependency and no AppleAuthProvider usage anywhere in lib/.",
+    why: "<p><b>Guideline 4.8</b> says an app using a third-party login must also offer an alternative that (a) limits collection to name and email, (b) <b>lets the user keep their email address private</b>, and (c) does not collect interactions for advertising without consent.</p><p>Your email/password signup satisfies (a) and (c). It does not satisfy (b) — there is no hide-my-email equivalent. Reviewers apply this inconsistently: many apps ship with Google plus first-party email and pass. Some do not.</p><p>This is the single highest-variance item on the list, which is why it is marked a blocker even though it is a judgement call rather than a defect.</p>",
+    steps: [
+      "<b>Recommended:</b> add <code>sign_in_with_apple</code>, enable the <b>Sign in with Apple</b> capability on the Runner target, enable Apple as a provider in Firebase Console → Authentication, and wire <code>AppleAuthProvider</code> into <code>AuthService</code> beside the Google path. Budget half a day including the Apple Developer portal side.",
+      "<b>Or gamble:</b> submit with Google plus email/password and argue 4.8 compliance in the review notes. A rejection costs one review cycle, not the listing.",
+      "If you add it: Apple requires the button to be <b>at least as prominent</b> as the Google button. Same size, same position in the stack, not below a fold."
+    ],
+    code: [{ file: "pubspec.yaml", lang: "yaml", body:
+`  sign_in_with_apple: ^7.0.1` }],
+    verify: "Sign in with a fresh Apple ID using <b>Hide My Email</b>, then confirm the relay address lands in Firebase Auth and a <code>users/</code> document is mirrored for it."
+  },
+  {
+    id: "ios-appdelegate", group: "ios-code", plat: "ios", sev: "required", verified: true,
+    title: "Set the notification-center delegate in AppDelegate",
+    where: "ios/Runner/AppDelegate.swift",
+    found: "AppDelegate overrides didFinishLaunchingWithOptions but never assigns UNUserNotificationCenter.current().delegate.",
+    why: "<p>flutter_local_notifications documents this as a required setup step on iOS. Without it a reminder that fires while the app is in the foreground may not be presented at all, and a tap on a reminder may not route back into <code>onDidReceiveNotificationResponse</code> — so your <code>_openTodayMessage</code> handler never runs.</p><p>Harmless if it turns out to be redundant on your Flutter version. Cheap insurance either way.</p>",
+    steps: [
+      "Add <code>import UserNotifications</code> at the top of <code>AppDelegate.swift</code>.",
+      "Assign the delegate before calling <code>super</code>."
+    ],
+    code: [{ file: "ios/Runner/AppDelegate.swift", lang: "swift", body:
+`import Flutter
+import UIKit
+import UserNotifications
+
+@main
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+  override func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -> Bool {
+    // Required by flutter_local_notifications so a reminder that fires while
+    // the app is in the foreground is presented, and so taps route back into
+    // onDidReceiveNotificationResponse.
+    UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+  }
+}` }],
+    verify: "Set a reminder two minutes out, keep the app open in the foreground, and confirm the banner appears. Then background it, tap the next reminder, and confirm it opens today's message."
+  },
+  {
+    id: "ios-notif-timing", group: "ios-code", plat: "ios", sev: "required", verified: true,
+    title: "Move the notification permission prompt off first launch",
+    where: "lib/data/services/notification_scheduler.dart:161",
+    found: "DarwinInitializationSettings() is constructed with no arguments, so requestAlertPermission / requestBadgePermission / requestSoundPermission all default to true.",
+    why: "<p>iOS presents the notification permission dialog <b>exactly once</b>, to whichever call asks first. Left at the defaults, that call is <code>_plugin.initialize()</code> — which runs from <code>reschedule()</code>, which HomeScreen calls in <code>initState</code>. So a brand-new user gets the system prompt cold, during the first frame, before anything has explained what the reminders are.</p><p>The deliberate <code>requestPermission()</code> call a few lines later is then reduced to a no-op, because the one-shot prompt is already spent. The code reads as though it controls the timing; it does not.</p><p>Not a rejection risk — a conversion one. Prompting cold is the classic way to get a permanent <em>Don't Allow</em>.</p>",
+    steps: [
+      "Pass explicit <code>false</code> for all three Darwin permission flags so <code>initialize()</code> asks for nothing.",
+      "The existing <code>requestPermission()</code> path then owns the timing, unchanged.",
+      "Optional but worth it: show a short in-app explanation sheet before calling <code>requestPermission()</code> the first time."
+    ],
+    code: [{ file: "lib/data/services/notification_scheduler.dart", lang: "dart", body:
+`    // iOS only ever presents the system permission prompt once, for whichever
+    // call asks first. Left at the defaults (all true), that call is
+    // initialize() below — which runs from HomeScreen's initState, so the
+    // reader gets the prompt cold, before anything has explained what the
+    // reminders are, and the deliberate requestPermission() call that follows
+    // is reduced to a no-op. Asking for nothing here hands the timing back to
+    // requestPermission(), which is where the app decides to ask.
+    const iosInit = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );` }],
+    verify: "Delete the app, reinstall, and launch. No permission dialog should appear until you enable a reminder."
+  },
+  {
+    id: "ios-device-family", group: "ios-code", plat: "ios", sev: "required", verified: true,
+    title: "Restrict the build to iPhone",
+    where: "ios/Runner.xcodeproj/project.pbxproj",
+    found: "TARGETED_DEVICE_FAMILY = \"1,2\" at lines 368, 495 and 549 — iPhone and iPad. Info.plist locks iPad to portrait only, and main.dart locks orientation globally.",
+    why: "<p>Declaring iPad support means Apple reviews the app on an iPad and App Store Connect demands a separate set of iPad screenshots. Your layouts are built around a portrait phone hero with a fixed-height bottom nav — <code>main.dart</code> says so explicitly — so an iPad review is an invitation to a 4.0 (Design) or 2.4.1 rejection for an unadapted layout.</p><p>Shipping iPhone-only is the honest declaration. The app still installs and runs on iPad in compatibility mode.</p>",
+    steps: [
+      "Replace all three occurrences of <code>TARGETED_DEVICE_FAMILY = \"1,2\";</code> with the iPhone-only value.",
+      "You can then skip iPad screenshots entirely in App Store Connect.",
+      "If you would rather ship iPad properly, the work is a responsive pass over every screen — treat that as a post-1.0 release, not a launch blocker."
+    ],
+    code: [{ file: "ios/Runner.xcodeproj/project.pbxproj", lang: "text", body:
+`TARGETED_DEVICE_FAMILY = "1";` }],
+    verify: "In App Store Connect, the app's supported devices list shows iPhone only and no iPad screenshot slot is required."
+  },
+  {
+    id: "ios-launch", group: "ios-code", plat: "ios", sev: "required", verified: true,
+    title: "Replace the placeholder launch screen",
+    where: "ios/Runner/Assets.xcassets/LaunchImage.imageset/",
+    found: "All three LaunchImage PNGs are literally 1×1 pixels — the stock Flutter placeholder. LaunchScreen.storyboard paints a hardcoded white background (red=1 green=1 blue=1).",
+    why: "<p>Cold start on iOS is currently a full-screen white flash with nothing on it. Android already solved exactly this — <code>drawable/launch_background.xml</code> carries a comment explaining that a white launch window after a reader chose dark mode was jarring, and paints the brand emerald <code>#15362B</code> instead, in both the light and night variants.</p><p>iOS never got the same treatment. Not a rejection, but it is the first thing a reviewer and every user sees.</p>",
+    steps: [
+      "Create <code>ios/Runner/Assets.xcassets/LaunchBackground.colorset/Contents.json</code> with the JSON below — same emerald in both appearances, matching the Android decision.",
+      "In <code>LaunchScreen.storyboard</code>, replace the hardcoded white <code>&lt;color key=\"backgroundColor\" red=\"1\" green=\"1\" blue=\"1\" ...&gt;</code> with <code>&lt;color key=\"backgroundColor\" name=\"LaunchBackground\"/&gt;</code>, and add the <code>&lt;namedColor&gt;</code> entry to the storyboard's <code>&lt;resources&gt;</code> block.",
+      "Either drop a real logo into <code>LaunchImage@2x.png</code> / <code>@3x.png</code>, or delete the <code>imageView</code> from the storyboard for a clean solid-colour launch."
+    ],
+    code: [
+      { file: "ios/Runner/Assets.xcassets/LaunchBackground.colorset/Contents.json", lang: "json", body:
+`{
+  "colors" : [
+    {
+      "idiom" : "universal",
+      "color" : {
+        "color-space" : "srgb",
+        "components" : { "red" : "0x15", "green" : "0x36", "blue" : "0x2B", "alpha" : "1.000" }
+      }
+    },
+    {
+      "idiom" : "universal",
+      "appearances" : [ { "appearance" : "luminosity", "value" : "dark" } ],
+      "color" : {
+        "color-space" : "srgb",
+        "components" : { "red" : "0x15", "green" : "0x36", "blue" : "0x2B", "alpha" : "1.000" }
+      }
+    }
+  ],
+  "info" : { "version" : 1, "author" : "xcode" }
+}` },
+      { file: "ios/Runner/Base.lproj/LaunchScreen.storyboard — add inside <resources>", lang: "xml", body:
+`<namedColor name="LaunchBackground">
+    <color red="0.08235294117647059" green="0.21176470588235294" blue="0.16862745098039217" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+</namedColor>` }
+    ],
+    verify: "Cold-start the app on a device in dark mode. The launch window should be emerald, continuous with the launcher icon, with no white flash."
+  },
+  {
+    id: "ios-gsi-plist", group: "ios-code", plat: "ios", sev: "required", verified: true,
+    title: "Add GoogleService-Info.plist to the Xcode target",
+    where: "ios/Runner/GoogleService-Info.plist",
+    found: "The file exists on disk and is tracked in git, its BUNDLE_ID matches, and its REVERSED_CLIENT_ID matches the URL scheme in Info.plist — but the string \"GoogleService\" appears nowhere in project.pbxproj, and the Runner target's Resources build phase lists only LaunchScreen, AppFrameworkInfo, Assets.xcassets and Main.storyboard.",
+    why: "<p>The file never reaches the app bundle. Today that is harmless: <code>Firebase.initializeApp</code> takes options from <code>firebase_options.dart</code>, and <code>AuthService</code> passes the iOS OAuth client ID explicitly, so nothing reads the plist at runtime.</p><p>It breaks the day you add Firebase Cloud Messaging, Analytics, Crashlytics or Remote Config — all of which look for the bundled plist and fail with an unhelpful error. Fix it now while you know why.</p>",
+    steps: [
+      "Open <code>ios/Runner.xcworkspace</code> in Xcode (or use a Codemagic pre-build script).",
+      "Drag <code>GoogleService-Info.plist</code> into the <b>Runner</b> group in the Project Navigator.",
+      "In the dialog, tick <b>Copy items if needed</b> off (it is already in place) and make sure <b>Runner</b> is ticked under <em>Add to targets</em>.",
+      "Confirm it now appears under Build Phases → Copy Bundle Resources."
+    ],
+    verify: "Build, then inspect the .app bundle (or Codemagic's artifact) and confirm GoogleService-Info.plist sits at its root."
+  },
+  {
+    id: "ios-encryption", group: "ios-code", plat: "ios", sev: "advised", verified: true,
+    title: "Declare export compliance in Info.plist",
+    where: "ios/Runner/Info.plist",
+    found: "ITSAppUsesNonExemptEncryption is absent.",
+    why: "<p>Without this key, App Store Connect asks you the export-compliance question on <b>every single upload</b>, including every TestFlight build. With Codemagic pushing builds automatically that becomes a recurring manual gate that can silently stall a release.</p><p>The app uses only HTTPS and the platform's own crypto, which is the exempt case.</p>",
+    steps: [
+      "Add the key below to <code>Info.plist</code>.",
+      "If you later add your own encryption beyond standard HTTPS, revisit this — the declaration is a legal statement, not a convenience flag."
+    ],
+    code: [{ file: "ios/Runner/Info.plist", lang: "xml", body:
+`<key>ITSAppUsesNonExemptEncryption</key>
+<false/>` }],
+    verify: "Upload a TestFlight build and confirm it goes straight to <b>Ready to Test</b> without a compliance prompt."
+  },
+  {
+    id: "ios-localization", group: "ios-code", plat: "ios", sev: "advised", verified: true,
+    title: "Declare Arabic as a bundle localization",
+    where: "ios/Runner/Info.plist",
+    found: "CFBundleDevelopmentRegion resolves to $(DEVELOPMENT_LANGUAGE), which is en. CFBundleLocalizations is absent. main.dart pins locale: Locale('ar') and supportedLocales [ar, en].",
+    why: "<p>iOS reads the bundle's declared localizations to decide the language of system-supplied UI — permission dialogs, the share sheet, the share sheet's own buttons — and the App Store uses it when presenting the listing. An Arabic-only app that declares itself English gets English system dialogs inside an Arabic interface.</p>",
+    steps: [
+      "Add <code>CFBundleLocalizations</code> with <code>ar</code> first.",
+      "Set the App Store Connect primary language to Arabic to match (covered in the listing item)."
+    ],
+    code: [{ file: "ios/Runner/Info.plist", lang: "xml", body:
+`<key>CFBundleLocalizations</key>
+<array>
+    <string>ar</string>
+    <string>en</string>
+</array>` }],
+    verify: "On an Arabic-language device, trigger the notification permission dialog and confirm its buttons are Arabic."
+  },
+  {
+    id: "ios-store-link", group: "ios-code", plat: "ios", sev: "advised", verified: true,
+    title: "Fill in the App Store link used by sharing",
+    where: "lib/core/app_links.dart:19",
+    found: "AppLinks.appStore is null with a TODO explaining exactly this. storeLink returns null on iOS, so shared messages from an iPhone carry no download link while Android ones do.",
+    why: "<p>Every message shared from an iPhone is currently missing its <em>get the app</em> line — which is the app's main organic growth channel. The numeric ID is assigned the moment you create the app record in App Store Connect, well before submission, so this can be closed early.</p>",
+    steps: [
+      "Create the App Store Connect record first (see the App Store Connect section).",
+      "Copy the numeric Apple ID from the app's <b>App Information</b> page.",
+      "Set the constant below."
+    ],
+    code: [{ file: "lib/core/app_links.dart", lang: "dart", body:
+`  static const String? appStore =
+      'https://apps.apple.com/app/id0000000000';` }],
+    verify: "Share a message from an iPhone build and confirm the App Store link is appended."
+  },
+
+  // ---------------- Android code ----------------
+  {
+    id: "and-keystore", group: "android-code", plat: "android", sev: "blocker", verified: true,
+    title: "Create the upload keystore",
+    where: "android/key.properties",
+    found: "android/key.properties does not exist. build.gradle already has the signing config wired and a gradle.taskGraph guard that throws on `bundleRelease` without it — so the AAB build fails loudly rather than shipping a debug-signed bundle.",
+    why: "<p>This is your app's permanent identity on Play. A bundle signed with the Flutter debug key is not signed in any meaningful sense — every Flutter project on earth shares that key — and Play rejects it.</p><p><b>Do this yourself.</b> Do not let anyone else, an assistant included, generate the keystore or hold its passwords. Lose the key and you can never update the listing again; leak it and someone else can publish as you.</p>",
+    steps: [
+      "Generate the keystore with <code>keytool</code>, somewhere outside the repo.",
+      "Create <code>android/key.properties</code> pointing at it. It is already gitignored, along with <code>*.jks</code> and <code>*.keystore</code>.",
+      "Back the <code>.jks</code> file and its passwords up somewhere that is not this machine.",
+      "<code>docs/android-release-reminding-steps.md</code> step 1 has the exact commands for this repo."
+    ],
+    code: [
+      { file: "Generate (run once, from anywhere)", lang: "bash", body:
+`keytool -genkey -v -keystore tayebqalbak-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload` },
+      { file: "android/key.properties", lang: "properties", body:
+`storePassword=<the store password you just chose>
+keyPassword=<the key password you just chose>
+keyAlias=upload
+storeFile=C:/path/to/tayebqalbak-upload.jks` }
+    ],
+    verify: "<code>flutter build appbundle</code> completes instead of throwing the guard's error message."
+  },
+  {
+    id: "and-verify-bundle", group: "android-code", plat: "android", sev: "required",
+    title: "Build and verify the signed bundle",
+    where: "build/app/outputs/bundle/release/",
+    why: "<p>Confirms the keystore is actually being applied rather than silently falling back, and that R8 has not stripped anything the app needs at runtime — the proguard rules for flutter_local_notifications' Gson usage are there precisely because R8 broke scheduled notifications once already.</p>",
+    steps: [
+      "Run the release bundle build.",
+      "Verify the signing certificate is yours, not the debug one.",
+      "Install the release build on a real device and confirm reminders still fire after a reboot — that path depends on both the R8 rules and the boot receiver."
+    ],
+    code: [{ file: "terminal", lang: "bash", body:
+`flutter build appbundle --release
+keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab` }],
+    verify: "The printed certificate fingerprint matches your keystore, and a reminder set before a reboot still fires after it."
+  },
+
+  // ---------------- hosting ----------------
+  {
+    id: "web-dashboard-exposed", group: "hosting", plat: "both", sev: "blocker", verified: true,
+    title: "Take the moderator dashboard off public hosting",
+    where: "https://hadithdaily-5fc06.web.app",
+    found: "Opened the live URL during this audit. The root serves the moderator dashboard login — page title «لوحة الإشراف — طيّب قلبك», subtitle «طيّب قلبك — للمشرفين والمحررين». This is the exact scenario docs/android-release-reminding-steps.md step 4 warns against.",
+    why: "<p>A previous <code>flutter build web</code> was run against <code>lib/main_dashboard.dart</code> rather than <code>lib/main.dart</code>, and the result was deployed to the project's public hosting. The moderation tools are now discoverable by anyone with the URL.</p><p>Firestore rules still protect the data, so this is not an open door — but it publishes the existence and shape of your moderation surface, and it means the domain you are about to hand both stores as your privacy-policy host currently serves an admin login.</p>",
+    steps: [
+      "Decide where the dashboard should live. The cleanest answer is: not on the public hosting site at all — run it locally with <code>flutter run -d chrome -t lib/main_dashboard.dart</code> when you need it.",
+      "Rebuild the public site from the reader entrypoint, or from a minimal static site that only carries the legal pages.",
+      "Redeploy, then open the root URL in a private window and confirm the dashboard is gone.",
+      "If you do want a hosted dashboard, put it on a separate Firebase Hosting site (<code>firebase hosting:sites:create</code>) with its own URL you do not publish."
+    ],
+    code: [{ file: "terminal", lang: "bash", body:
+`# Rebuild from the reader entrypoint, not the dashboard
+flutter build web -t lib/main.dart
+firebase deploy --only hosting`}],
+    verify: "Open <code>https://hadithdaily-5fc06.web.app</code> in a private window. You must not see «لوحة الإشراف»."
+  },
+  {
+    id: "web-privacy", group: "hosting", plat: "both", sev: "blocker", verified: true,
+    title: "Host the privacy policy and terms",
+    where: "docs/privacy-policy.html, docs/terms-of-use.html",
+    found: "Both files exist and are written. Requested https://hadithdaily-5fc06.web.app/privacy-policy.html during this audit — it does not exist; the SPA rewrite in firebase.json (\"source\": \"**\") swallows it and serves the dashboard instead. web/ contains only favicon.png, icons, index.html and manifest.json.",
+    why: "<p>Both stores require a publicly reachable privacy-policy URL before a listing can go live. Apple additionally shows it on the product page. The text is written; it simply has nowhere to live.</p><p>Note the rewrite trap: because <code>firebase.json</code> rewrites <code>**</code> to <code>/index.html</code>, a missing file does not 404 — it silently serves the app. So \"the URL loads\" is not proof the policy is there. Check the content.</p>",
+    steps: [
+      "Copy both HTML files into <code>web/</code> so Flutter's build carries them into <code>build/web</code>.",
+      "Rebuild from the reader entrypoint and deploy — same command as the item above, so do these two together.",
+      "Open each URL in a private window and confirm you see the policy text, not the app shell."
+    ],
+    code: [{ file: "terminal (PowerShell)", lang: "bash", body:
+`copy docs\\privacy-policy.html web\\
+copy docs\\terms-of-use.html web\\
+flutter build web -t lib/main.dart
+firebase deploy --only hosting`}],
+    verify: "<code>https://hadithdaily-5fc06.web.app/privacy-policy.html</code> shows the policy text in a private window. If you see the app, the file did not deploy."
+  },
+  {
+    id: "web-delete-account", group: "hosting", plat: "both", sev: "blocker", verified: true,
+    title: "Publish the account-deletion request page",
+    where: "docs/delete-account.html",
+    found: "The file does not exist. In-app deletion is implemented (delete_account_sheet.dart calling AccountDeletionService), which covers half the requirement.",
+    why: "<p>Google Play requires apps with account creation to offer <b>both</b> in-app deletion and a <b>web page</b> where someone can request deletion without installing the app. Apple requires the in-app path under Guideline 5.1.1(v); the web page satisfies Play's additional rule and does no harm on Apple's side.</p><p>You have the in-app half. The web half is missing, and Play asks for its URL explicitly in the Data safety section.</p>",
+    steps: [
+      "Create <code>docs/delete-account.html</code> — a short static page stating what gets deleted, how long it takes, and a contact address.",
+      "Copy it into <code>web/</code> and deploy alongside the other two legal pages.",
+      "Give Play Console that URL in Data safety → Account deletion."
+    ],
+    code: [{ file: "docs/delete-account.html — starting point", lang: "html", body:
+`<!doctype html>
+<html lang="ar" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>حذف الحساب — طيّب قلبك</title>
+<h1>طلب حذف الحساب</h1>
+<p>يمكنك حذف حسابك من داخل التطبيق مباشرة:
+   الإعدادات ← الحساب ← حذف الحساب.</p>
+<p>إن لم يكن التطبيق مثبتًا لديك، أرسل طلبًا من البريد المسجَّل
+   في حسابك إلى <strong>prodktstudio@gmail.com</strong>
+   وسيُحذف الحساب خلال 30 يومًا.</p>
+<h2>ما الذي يُحذف</h2>
+<ul>
+  <li>حسابك واسم العرض الخاص بك.</li>
+  <li>مشاركاتك وتعليقاتك في المجتمع.</li>
+  <li>قائمة المفضّلة وإعدادات التذكيرات.</li>
+</ul>
+<p>لا نحتفظ بأي نسخة من هذه البيانات بعد إتمام الحذف.</p>
+</html>`}],
+    verify: "The page loads at its public URL in a private window and the email address on it is one you actually monitor."
+  },
+
+  // ---------------- App Store Connect ----------------
+  {
+    id: "asc-app-record", group: "asc", plat: "ios", sev: "required",
+    title: "Create the app record and register the bundle ID",
+    where: "App Store Connect · Apple Developer portal",
+    why: "<p>Nothing else on the Apple side can start until the record exists, and creating it immediately yields the numeric Apple ID that <code>AppLinks.appStore</code> needs. Do this first.</p>",
+    steps: [
+      "Apple Developer portal → Certificates, Identifiers & Profiles → Identifiers → register <code>com.prodktstudio.tayebqalbak</code> as an App ID.",
+      "Enable only the capabilities you actually use. <b>You do not need Push Notifications</b> — the app's reminders are entirely local via flutter_local_notifications, with no FCM and no APNs. Enable <b>Sign in with Apple</b> only if you decided to add it.",
+      "App Store Connect → My Apps → + → New App. Name <span class=\"ar\">طيّب قلبك</span>, primary language <b>Arabic</b>, bundle ID as above, SKU anything stable.",
+      "Copy the numeric Apple ID from App Information and close the AppLinks item."
+    ],
+    verify: "The app appears under My Apps and its App Information page shows the numeric Apple ID."
+  },
+  {
+    id: "asc-privacy-labels", group: "asc", plat: "ios", sev: "required",
+    title: "Fill the App Privacy questionnaire",
+    where: "App Store Connect · App Privacy",
+    why: "<p>Apple will not let you submit without it, and the answers appear on your product page as the privacy nutrition label. Inaccurate answers here are a common cause of post-release removal, so map them to what the app genuinely collects.</p>",
+    steps: [
+      "<b>Contact info → Email address</b>: collected, linked to identity, for App Functionality (Firebase Auth).",
+      "<b>Contact info → Name</b>: the display name, linked to identity, for App Functionality — and note it is shown publicly in the community feed.",
+      "<b>User content</b>: community posts and comments, linked to identity, for App Functionality.",
+      "<b>Identifiers → User ID</b>: the Firebase Auth UID, linked to identity.",
+      "Answer <b>No</b> to tracking — the app has no ad SDK, no IDFA use, and therefore needs no NSUserTrackingUsageDescription and no ATT prompt.",
+      "Give the privacy-policy URL from the hosting item."
+    ],
+    verify: "The App Privacy section shows a complete label with no outstanding warnings."
+  },
+  {
+    id: "asc-assets", group: "asc", plat: "ios", sev: "required",
+    title: "Screenshots and listing copy",
+    where: "App Store Connect · <version> · App Store",
+    why: "<p>Apple requires screenshots at the current required iPhone sizes. Because you are shipping iPhone-only, you can skip the iPad sets entirely.</p>",
+    steps: [
+      "Capture screenshots on a 6.9\" iPhone simulator or device — this set is required and Apple will scale it down for smaller devices.",
+      "Capture a 6.5\" set as well if the Console still asks for it for your selected devices.",
+      "Screenshots must show the actual app. No device frames with marketing text covering the UI, no fabricated screens.",
+      "Write the Arabic name, subtitle, promotional text, description and keywords. The listing language should be Arabic to match the app.",
+      "Support URL is required — the hosting site is fine. Marketing URL is optional."
+    ],
+    verify: "The version page shows no red validation warnings and the <b>Submit for Review</b> button is enabled."
+  },
+  {
+    id: "asc-review-notes", group: "asc", plat: "ios", sev: "advised",
+    title: "Write review notes and supply a demo account",
+    where: "App Store Connect · App Review Information",
+    why: "<p>Your community feed is behind a sign-in. A reviewer who cannot get past the login rejects under Guideline 2.1 for incomplete information — this is one of the most common first-submission rejections and it is entirely avoidable.</p>",
+    steps: [
+      "Create a real account in the production Firebase project and put its email and password in the demo-account fields.",
+      "In the notes, state that the app is Arabic-only and right-to-left, so a reviewer does not read that as a layout defect.",
+      "Explain that reminders are local notifications with no server component — it heads off questions about background modes.",
+      "If you shipped without Sign in with Apple, state your Guideline 4.8 reasoning here: the app offers a first-party email and password account alongside Google, and collects only name and email."
+    ],
+    verify: "Sign in with the demo credentials yourself, on a fresh device, immediately before submitting."
+  },
+
+  // ---------------- Play ----------------
+  {
+    id: "play-app-record", group: "play", plat: "android", sev: "required",
+    title: "Create the app and opt into Play App Signing",
+    where: "Google Play Console",
+    why: "<p>Play App Signing must be opted into <b>before your first upload</b>. It lets Google hold the app signing key while you keep only the upload key — which means a lost or compromised upload key is recoverable instead of fatal.</p>",
+    steps: [
+      "Play Console → Create app. Name <span class=\"ar\">طيّب قلبك</span>, default language Arabic, App, Free.",
+      "App integrity → Play App Signing → opt in. Do this before uploading anything.",
+      "Upload the signed bundle from the earlier item to an internal testing release."
+    ],
+    verify: "App integrity shows both an app signing key and an upload key certificate."
+  },
+  {
+    id: "play-data-safety", group: "play", plat: "android", sev: "required",
+    title: "Complete the Data safety form",
+    where: "Play Console · Policy · App content",
+    why: "<p>Play's equivalent of Apple's privacy label, and it asks two things Apple does not: whether data is encrypted in transit, and whether users can request deletion. The second is why the deletion web page is a blocker.</p>",
+    steps: [
+      "Declare the same categories as the Apple label: email address, name, user-generated content, and the Firebase user ID.",
+      "Purpose: App functionality and Account management. Not advertising, not analytics — unless you later add Firebase Analytics, in which case revisit this.",
+      "Answer <b>Yes</b> to encryption in transit (Firestore and Auth are HTTPS throughout).",
+      "Answer <b>Yes</b> to deletion requests and supply the deletion page URL.",
+      "Give the privacy-policy URL."
+    ],
+    verify: "App content shows Data safety as complete with a green check."
+  },
+  {
+    id: "play-content-rating", group: "play", plat: "android", sev: "required",
+    title: "Content rating, target audience and UGC declarations",
+    where: "Play Console · Policy · App content",
+    why: "<p>The app carries a community feed, which makes it user-generated content under Play policy. Play requires a moderation story, and you have one — the questionnaire is where you assert it.</p>",
+    steps: [
+      "Complete the content rating questionnaire. Declare that the app contains user-generated content.",
+      "Target audience: adults. Do not declare it as appealing to children — that pulls in Families policy and a much stricter review.",
+      "For the UGC section, state what the app actually does: in-app reporting on every post, per-device author blocking, and a moderator approval queue. All three are implemented.",
+      "Declare the app as containing religious content where asked; it is a legitimate category and not a restriction."
+    ],
+    verify: "All App content sections show complete, with a rating issued for every region."
+  },
+  {
+    id: "play-assets", group: "play", plat: "android", sev: "required",
+    title: "Feature graphic, screenshots and listing copy",
+    where: "Play Console · Grow · Main store listing",
+    why: "<p>Play's asset requirements differ from Apple's — in particular the 1024×500 feature graphic has no App Store equivalent and is easy to forget until it blocks the release.</p>",
+    steps: [
+      "App icon: 512×512 PNG, 32-bit with alpha. Note this is the opposite of Apple, which forbids alpha — do not reuse the same file.",
+      "Feature graphic: 1024×500 PNG or JPEG, no alpha. Required.",
+      "At least two phone screenshots; four to eight is better for conversion.",
+      "Short description (80 characters) and full description (4000), both in Arabic.",
+      "Set Arabic as the default listing language."
+    ],
+    verify: "Main store listing shows complete with no missing-asset warnings."
+  },
+  {
+    id: "play-internal-test", group: "play", plat: "android", sev: "required",
+    title: "Ship to internal testing first",
+    where: "Play Console · Testing · Internal testing",
+    why: "<p>Internal testing gives you the real Play-signed artifact on a real device within minutes, with no review wait. It is the only way to catch problems that only appear after Play re-signs the bundle — and it is where you will find out whether R8 broke anything in the release build.</p><p>Going straight to production means a multi-day review wait to discover a crash on launch.</p>",
+    steps: [
+      "Create an internal testing release and upload the signed AAB.",
+      "Add your own account and a couple of testers.",
+      "Install through the Play link, not a sideloaded APK — you are testing the Play-signed artifact specifically.",
+      "Exercise the whole flow: sign up, post to the community, report a post, set a reminder, reboot the phone, confirm the reminder still fires, then delete the account."
+    ],
+    verify: "A Play-installed internal build survives the full flow above, reboot included."
+  },
+
+  // ---------------- pipeline ----------------
+  {
+    id: "cm-ios-signing", group: "pipeline", plat: "ios", sev: "required",
+    title: "Wire Codemagic to App Store Connect",
+    where: "Codemagic · Teams · Integrations",
+    why: "<p>Your build works, which means the hard part is done. Automatic code signing needs an App Store Connect API key so Codemagic can fetch provisioning profiles and upload builds without you touching a Mac.</p>",
+    steps: [
+      "App Store Connect → Users and Access → Integrations → App Store Connect API → generate a key with <b>App Manager</b> access.",
+      "Download the <code>.p8</code> once — it cannot be downloaded again. Note the Key ID and Issuer ID.",
+      "Codemagic → Teams → Integrations → Apple Developer Portal → add the key.",
+      "In the workflow, enable iOS code signing in automatic mode and select the bundle ID.",
+      "Add a TestFlight publishing step so successful builds upload themselves."
+    ],
+    verify: "A Codemagic build finishes and the build appears in TestFlight without manual intervention."
+  },
+  {
+    id: "cm-config", group: "pipeline", plat: "both", sev: "advised", verified: true,
+    title: "Commit a codemagic.yaml",
+    where: "codemagic.yaml",
+    found: "No codemagic.yaml in the repository, so the current setup is configured through the Codemagic web UI.",
+    why: "<p>UI-configured workflows are invisible to the repo and to anyone reading it later — including you in six months. A committed <code>codemagic.yaml</code> versions the build alongside the code, and lets you change build settings in the same commit as the code that needs them.</p><p>Optional. The UI setup works. This is about not losing the configuration.</p>",
+    steps: [
+      "Export or transcribe the current workflow into <code>codemagic.yaml</code> at the repo root.",
+      "Derive the build number from the Codemagic build counter rather than pubspec, so TestFlight never sees a duplicate.",
+      "Keep both an iOS and an Android workflow in one file."
+    ],
+    code: [{ file: "codemagic.yaml — build number fragment", lang: "yaml", body:
+`scripts:
+  - name: Set build number from Codemagic counter
+    script: |
+      # App Store Connect rejects a re-used build number, and pubspec's
+      # +1 never changes. PROJECT_BUILD_NUMBER increments per build.
+      echo "BUILD_NUMBER=$PROJECT_BUILD_NUMBER" >> $CM_ENV
+  - name: Build IPA
+    script: |
+      flutter build ipa --release \\
+        --build-name=1.0.0 \\
+        --build-number=$PROJECT_BUILD_NUMBER`}],
+    verify: "A build from a clean clone produces the same artifact as the UI workflow did."
+  },
+  {
+    id: "rel-version", group: "pipeline", plat: "both", sev: "required", verified: true,
+    title: "Settle the version and build-number scheme",
+    where: "pubspec.yaml",
+    found: "version: 1.0.0+1. Android reads versionCode from flutter.versionCode; iOS reads CFBundleVersion from $(FLUTTER_BUILD_NUMBER).",
+    why: "<p>Both stores refuse a build whose build number has been used before, even for a rejected or deleted build. With CI pushing repeatedly, a static <code>+1</code> in pubspec means your second upload fails.</p><p>The two stores also disagree about what may be reused: Play requires a strictly increasing integer versionCode forever; Apple requires CFBundleVersion to increase within a version string but lets it reset when CFBundleShortVersionString changes.</p>",
+    steps: [
+      "Keep <code>1.0.0</code> as the version name for the first release on both stores.",
+      "Do not hand-maintain the build number. Pass <code>--build-number</code> from the CI build counter on both platforms.",
+      "Bump the version name in pubspec for each user-visible release; let CI own the number after the <code>+</code>."
+    ],
+    verify: "Two consecutive CI builds produce two different build numbers, and the second uploads without a duplicate-version error."
+  },
+  {
+    id: "rel-device-test", group: "pipeline", plat: "both", sev: "required",
+    title: "Test the release build on real hardware",
+    where: "TestFlight · Play internal testing",
+    why: "<p>Release builds differ from debug in ways that matter to this app specifically: R8 and tree-shaking run, the notification scheduler's timezone handling meets a real device clock, and the bundled Tajawal and Amiri fonts must actually render rather than silently falling back.</p>",
+    steps: [
+      "Install from TestFlight and from Play internal testing — not from a local <code>flutter run</code>.",
+      "Confirm Arabic text renders in Tajawal and Amiri, not a system fallback. The pubspec comment records that this exact bug shipped once before via google_fonts.",
+      "Set a reminder, force-quit the app, and confirm it still fires.",
+      "Reboot the device and confirm reminders survive — that path uses the boot receiver on Android and re-scheduling on iOS.",
+      "Test with the OS in dark mode and with the largest accessibility text size, since main.dart composes the OS scaler with the in-app one.",
+      "Sign in with Google on both platforms. The iOS path uses a different OAuth client ID than Android and has never run on a real device."
+    ],
+    verify: "Every item above passes on at least one physical iPhone and one physical Android phone."
+  },
+  {
+    id: "rel-firestore", group: "pipeline", plat: "both", sev: "required",
+    title: "Re-check Firestore rules and indexes before launch",
+    where: "firestore.rules, firestore.indexes.json",
+    why: "<p>The rules file is substantial and is the only thing standing between a public app and your data — especially now that the moderator dashboard has been publicly reachable. Launch traffic is the wrong time to discover a missing composite index.</p>",
+    steps: [
+      "Deploy the current rules and indexes explicitly rather than assuming the console matches the repo.",
+      "Re-read the rules covering the moderation collections with the dashboard exposure in mind: assume an attacker has seen the dashboard's shape.",
+      "Confirm every query the app issues has a matching index — an unindexed query fails only in production, under load.",
+      "Check the Firebase billing plan. The app is designed for Spark, but a public launch changes read volume."
+    ],
+    code: [{ file: "terminal", lang: "bash", body:
+`firebase deploy --only firestore:rules,firestore:indexes`}],
+    verify: "The Firebase console's Rules tab matches the repo, and the app's community feed loads with no index errors in the logs."
+  }
+];
+
+/* ---------------- state ---------------- */
+const state = { done: {}, plat: "all", blockersOnly: false, open: {}, db: null, seeded: false };
+
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const SEV_LABEL = { blocker: "Blocker", required: "Required", advised: "Advised" };
+const PLAT_LABEL = { ios: "iOS", android: "Android", both: "Both" };
+
+function applies(item, plat) {
+  if (plat === "all") return true;
+  return item.plat === plat || item.plat === "both";
+}
+function visible(item) {
+  if (!applies(item, state.plat)) return false;
+  if (state.blockersOnly && item.sev !== "blocker") return false;
+  return true;
+}
+
+/* ---------------- render ---------------- */
+function buildSections() {
+  const host = document.getElementById("sections");
+  host.innerHTML = "";
+  let shown = 0;
+
+  for (const g of GROUPS) {
+    const items = ITEMS.filter(i => i.group === g.id && visible(i));
+    if (!items.length) continue;
+    shown += items.length;
+
+    const sec = document.createElement("section");
+    sec.className = "section";
+    sec.innerHTML = `<h2>${esc(g.name)}</h2><p class="blurb">${esc(g.blurb)}</p>`;
+
+    const list = document.createElement("div");
+    list.className = "list";
+    for (const it of items) list.appendChild(renderItem(it));
+    sec.appendChild(list);
+    host.appendChild(sec);
+  }
+
+  if (!shown) {
+    host.innerHTML = `<div class="list"><p class="empty">Nothing matches this filter. Every blocker on this platform is ticked off.</p></div>`;
+  }
+}
+
+function renderItem(it) {
+  const el = document.createElement("div");
+  const done = !!state.done[it.id];
+  const open = !!state.open[it.id];
+  el.className = "item" + (it.sev === "blocker" ? " blocker" : "") + (done ? " done" : "") + (open ? " open" : "");
+  el.dataset.id = it.id;
+
+  const chips = [
+    `<span class="chip sev-${it.sev}">${SEV_LABEL[it.sev]}</span>`,
+    `<span class="chip plat">${PLAT_LABEL[it.plat]}</span>`,
+    it.verified ? `<span class="chip evid">Verified</span>` : "",
+    it.where ? `<span class="where">${esc(it.where)}</span>` : ""
+  ].join("");
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:flex-start">
+      <button type="button" class="box" role="checkbox" aria-checked="${done}"
+              aria-label="Mark done: ${esc(it.title)}" style="margin:16px 0 0 16px">
+        <svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 6.3 4.3 9 10.5 2.8"/></svg>
+      </button>
+      <button type="button" class="row-head" aria-expanded="${open}" style="padding-left:12px">
+        <span class="row-main">
+          <span class="title">${esc(it.title)}</span>
+          <span class="meta">${chips}</span>
+        </span>
+        <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+      </button>
+    </div>
+    <div class="detail" ${open ? "" : "hidden"}>${detailHTML(it)}</div>`;
+
+  el.querySelector(".box").addEventListener("click", (e) => { e.stopPropagation(); toggleDone(it.id); });
+  el.querySelector(".row-head").addEventListener("click", () => toggleOpen(it.id));
+  return el;
+}
+
+function detailHTML(it) {
+  let h = "";
+  if (it.found) h += `<div class="found"><strong>What the audit found</strong>${esc(it.found)}</div>`;
+  h += `<h4>Why it matters</h4>${it.why}`;
+  if (it.steps && it.steps.length) {
+    h += `<h4>Steps</h4><ol>${it.steps.map(s => `<li>${s}</li>`).join("")}</ol>`;
+  }
+  if (it.code && it.code.length) {
+    h += `<h4>Paste this</h4>` + it.code.map(c => `
+      <div class="snip">
+        <div class="snip-bar">
+          <span class="f">${esc(c.file)}</span>
+          <button type="button" class="copy" data-code="${esc(c.body)}">Copy</button>
+        </div>
+        <pre><code>${esc(c.body)}</code></pre>
+      </div>`).join("");
+  }
+  if (it.verify) {
+    h += `<div class="verify"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.4l3.4 3.3 7.6-7.4"/></svg><span><b>Done when:</b> ${it.verify}</span></div>`;
+  }
+  return h;
+}
+
+/* ---------------- summary ---------------- */
+function updateSummary() {
+  for (const [plat, prefix] of [["ios", "ios"], ["android", "and"]]) {
+    const rel = ITEMS.filter(i => applies(i, plat));
+    const done = rel.filter(i => state.done[i.id]).length;
+    const blk = rel.filter(i => i.sev === "blocker" && !state.done[i.id]).length;
+
+    document.getElementById(prefix + "-count").innerHTML = `${done}<span>/${rel.length}</span>`;
+    document.getElementById(prefix + "-fill").style.width = (rel.length ? (done / rel.length) * 100 : 0) + "%";
+    const note = document.getElementById(prefix + "-note");
+    note.textContent = blk ? `${blk} blocker${blk > 1 ? "s" : ""} still open` : (done === rel.length ? "Everything ticked — ready to submit" : "No blockers left; required items remain");
+    note.classList.toggle("has-blockers", blk > 0);
+  }
+
+  const openBlk = ITEMS.filter(i => i.sev === "blocker" && !state.done[i.id]).length;
+  const tag = document.getElementById("verdict-tag");
+  const txt = document.getElementById("verdict-text");
+  if (openBlk) {
+    tag.textContent = `${openBlk} blocker${openBlk > 1 ? "s" : ""} open`;
+    tag.style.color = "var(--blocker)"; tag.style.background = "var(--blocker-bg)";
+    txt.innerHTML = "<b>Not ready to submit on either store.</b> The app code itself is in good shape — the gaps are two iOS crash/rejection bugs, an exposed moderator dashboard, and the release paperwork neither store will let you skip.";
+  } else {
+    const left = ITEMS.filter(i => !state.done[i.id]).length;
+    tag.textContent = left ? "Blockers cleared" : "Ready to submit";
+    tag.style.color = "var(--done)"; tag.style.background = "var(--done-bg)";
+    txt.innerHTML = left
+      ? `<b>All blockers cleared.</b> ${left} required or advised item${left > 1 ? "s" : ""} remain before the listings are complete.`
+      : "<b>Everything on this list is done.</b> Submit, and keep the demo account alive until review finishes.";
+  }
+}
+
+/* ---------------- interactions ---------------- */
+function toggleOpen(id) {
+  state.open[id] = !state.open[id];
+  const el = document.querySelector(`.item[data-id="${id}"]`);
+  if (!el) return;
+  el.classList.toggle("open", state.open[id]);
+  el.querySelector(".row-head").setAttribute("aria-expanded", String(state.open[id]));
+  el.querySelector(".detail").hidden = !state.open[id];
+}
+
+function toggleDone(id) {
+  state.done[id] = !state.done[id];
+  const el = document.querySelector(`.item[data-id="${id}"]`);
+  if (el) {
+    el.classList.toggle("done", state.done[id]);
+    el.querySelector(".box").setAttribute("aria-checked", String(state.done[id]));
+  }
+  updateSummary();
+  persist(id);
+}
+
+document.querySelectorAll(".seg button").forEach(b => {
+  b.addEventListener("click", () => {
+    state.plat = b.dataset.plat;
+    document.querySelectorAll(".seg button").forEach(o => o.setAttribute("aria-pressed", String(o === b)));
+    buildSections();
+  });
+});
+
+document.getElementById("only-blockers").addEventListener("click", (e) => {
+  state.blockersOnly = !state.blockersOnly;
+  e.currentTarget.setAttribute("aria-pressed", String(state.blockersOnly));
+  buildSections();
+});
+
+document.getElementById("expand-all").addEventListener("click", (e) => {
+  const anyClosed = ITEMS.filter(visible).some(i => !state.open[i.id]);
+  ITEMS.forEach(i => { if (visible(i)) state.open[i.id] = anyClosed; });
+  e.currentTarget.setAttribute("aria-pressed", String(anyClosed));
+  e.currentTarget.textContent = anyClosed ? "Collapse all" : "Expand all";
+  buildSections();
+});
+
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".copy");
+  if (!btn) return;
+  const text = btn.dataset.code;
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = "Copied"; btn.classList.add("ok");
+    setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("ok"); }, 1600);
+  } catch {
+    const pre = btn.closest(".snip").querySelector("pre");
+    const r = document.createRange(); r.selectNodeContents(pre);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    btn.textContent = "Selected";
+    setTimeout(() => { btn.textContent = "Copy"; }, 1600);
+  }
+});
+
+/* ---------------- persistence ---------------- */
+// The published copy of this page stores ticks server-side through the
+// artifact `db` capability, which does not exist in a file opened off disk.
+// localStorage keeps this standalone copy useful on its own; it is per
+// browser and does not sync with the hosted version.
+const KEY = "tayebqalbak.store-readiness.v1";
+const sync = document.getElementById("sync");
+
+function setSync(msg, isErr) {
+  sync.textContent = msg;
+  sync.classList.toggle("err", !!isErr);
+}
+
+function persist() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state.done));
+    setSync("Saved in this browser");
+  } catch {
+    setSync("Ticks are not being saved — storage is blocked", true);
+  }
+}
+
+function restore() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) { setSync("Ticks save in this browser"); return; }
+    const saved = JSON.parse(raw);
+    if (saved && typeof saved === "object") {
+      for (const k of Object.keys(saved)) state.done[k] = !!saved[k];
+    }
+    setSync("Saved in this browser");
+  } catch {
+    setSync("Ticks are not being saved — storage is blocked", true);
+  }
+}
+
+// Ticked by the fix pass on 26 Sep 2026; a saved tick below overrides these.
+const ALREADY_DONE = ["ios-photo-add", "ios-photo-read", "ios-appdelegate",
+  "ios-notif-timing", "ios-device-family", "ios-launch", "ios-encryption",
+  "ios-localization"];
+ALREADY_DONE.forEach(id => { state.done[id] = true; });
+
+restore();
+buildSections();
+updateSummary();
+</script>
+</body>
+</html>
