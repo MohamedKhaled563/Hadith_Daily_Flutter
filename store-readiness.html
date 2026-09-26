@@ -656,48 +656,48 @@ keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab` }]
 
   // ---------------- hosting ----------------
   {
-    id: "web-dashboard-exposed", group: "hosting", plat: "both", sev: "blocker", verified: true,
-    title: "Take the moderator dashboard off public hosting",
+    id: "web-dashboard-exposed", group: "hosting", plat: "both", sev: "advised", verified: true,
+    title: "Always build the deploy from the dashboard entrypoint",
     where: "firebase.json",
-    found: "Confirmed live during the audit: the root served the dashboard login, title \u00ab\u0644\u0648\u062d\u0629 \u0627\u0644\u0625\u0634\u0631\u0627\u0641\u00bb. Fixed in the repo on 26 Sep 2026; not yet deployed.",
-    why: "<p>A previous <code>flutter build web</code> ran against <code>lib/main_dashboard.dart</code> and was deployed to the project's public hosting, putting the moderation tools at the URL about to be handed to both app stores. Firestore rules still gated the data, so nothing was open \u2014 but the surface was discoverable and the domain read as an admin tool.</p>",
+    found: "Withdrawn as a blocker. The dashboard is used by several moderators from their own machines and stays where it is. What remains is the build hazard underneath it.",
+    why: "<p>This item originally said to take the moderator dashboard off public hosting, because an admin login sat at the root of the domain being given to the app stores. That was an overstatement: neither store audits what sits at <code>/</code>, they check that the privacy-policy URL resolves. An admin login there is cosmetic.</p><p>The real hazard is quieter. <code>build/</code> is gitignored, so whatever was last built locally is what deploys. A bare <code>flutter build web</code> uses <code>lib/main.dart</code> and would replace the dashboard with the reader app at the address your moderators use \u2014 with no warning and nothing in the repo recording which entrypoint produced the live site.</p>",
     steps: [
-      "<b>Done in the repo:</b> <code>firebase.json</code> now serves <code>site/</code>, a static directory holding only the legal pages and a landing page. The dashboard is no longer hosted at all.",
-      "<b>Correction worth knowing:</b> rebuilding with <code>-t lib/main.dart</code> does <em>not</em> fix this \u2014 which is what this page and <code>docs/android-release-reminding-steps.md</code> both said before. <code>-t</code> only picks the Dart entrypoint; <code>web/index.html</code> and <code>web/manifest.json</code> are copied verbatim and are both branded as the dashboard, so the build still produces a page titled \u00ab\u0644\u0648\u062d\u0629 \u0627\u0644\u0625\u0634\u0631\u0627\u0641\u00bb.",
-      "<b>Yours:</b> deploy, then check the root URL in a private window.",
-      "Run the dashboard locally when you need it: <code>flutter run -d chrome -t lib/main_dashboard.dart</code>."
+      "<b>Always pass the entrypoint</b> when building for deploy. The command below is the only safe one.",
+      "The three legal pages live in <code>web/</code>, which a web build copies verbatim into <code>build/web</code>, so they ship alongside the dashboard automatically.",
+      "After deploying, open the root URL and confirm you still see \u00ab\u0644\u0648\u062d\u0629 \u0627\u0644\u0625\u0634\u0631\u0627\u0641\u00bb."
     ],
     code: [{ file: "terminal", lang: "bash", body:
-`firebase deploy --only hosting`}],
+`flutter build web -t lib/main_dashboard.dart
+firebase deploy --only hosting`}],
     verify: "Open <code>https://hadithdaily-5fc06.web.app</code> in a private window. You must not see «لوحة الإشراف»."
   },
   {
     id: "web-privacy", group: "hosting", plat: "both", sev: "blocker", verified: true,
     title: "Host the privacy policy and terms",
-    where: "site/",
-    found: "Confirmed missing during the audit. Moved from docs/ to site/ on 26 Sep 2026 and the SPA rewrite removed; not yet deployed.",
-    why: "<p>Both stores require a publicly reachable privacy-policy URL before a listing can go live. The text was written; it had nowhere to live.</p><p>The <code>** \u2192 /index.html</code> rewrite is why this was invisible: a missing file never 404'd, it silently served the app shell. The URL \"loading\" was never evidence the page was there.</p>",
+    where: "web/",
+    found: "Confirmed missing during the audit \u2014 the files existed in docs/ but were never in the deploy. Now in web/, which a web build carries into build/web. Not yet deployed.",
+    why: "<p>Both stores require a publicly reachable privacy-policy URL before a listing can go live. This was the genuine blocker all along.</p><p>It stayed invisible because of the <code>** \u2192 /index.html</code> rewrite. Rewrites only fire for paths matching no file, so the rule never blocked these pages \u2014 it served the dashboard with a 200 wherever a file was missing. The URL appearing to load was never evidence the page existed.</p>",
     steps: [
-      "<b>Done in the repo:</b> the pages moved from <code>docs/</code> to <code>site/</code>, which is what Hosting now serves \u2014 one copy rather than two that drift.",
-      "<b>Also fixed:</b> the SPA rewrite is gone, so a missing page returns a real 404 and the next gap is obvious immediately.",
-      "<b>Yours:</b> deploy, then open each URL in a private window and confirm you see the policy text."
+      "<b>Done in the repo:</b> the pages sit in <code>web/</code> and deploy beside the dashboard. The rewrite is gone, so a missing page now returns a real 404 and the next gap is obvious immediately.",
+      "<b>Yours:</b> build from the dashboard entrypoint and deploy, then open each URL in a private window and confirm you see the policy text."
     ],
     code: [{ file: "terminal", lang: "bash", body:
-`firebase deploy --only hosting`}],
+`flutter build web -t lib/main_dashboard.dart
+firebase deploy --only hosting`}],
     verify: "<code>https://hadithdaily-5fc06.web.app/privacy-policy.html</code> shows the policy text in a private window. If you see the app, the file did not deploy."
   },
   {
     id: "web-delete-account", group: "hosting", plat: "both", sev: "blocker", verified: true,
     title: "Publish the account-deletion request page",
-    where: "site/delete-account.html",
-    found: "Written and committed on 26 Sep 2026. It ships with a deliberate visible placeholder, [\u0636\u0639 \u0647\u0646\u0627 \u0628\u0631\u064a\u062f \u0627\u0644\u062a\u0648\u0627\u0635\u0644], where the contact address belongs.",
+    where: "web/delete-account.html",
+    found: "Written and committed. It ships with a deliberate visible placeholder, [\u0636\u0639 \u0647\u0646\u0627 \u0628\u0631\u064a\u062f \u0627\u0644\u062a\u0648\u0627\u0635\u0644], where the contact address belongs.",
     why: "<p>Play requires apps with account creation to offer <b>both</b> in-app deletion and a <b>web page</b> for someone without the app installed. The in-app half was already done.</p><p>The page is written \u2014 what gets deleted, what survives, both request routes. It cannot ship as-is: Play rejects the page without a working contact, and whatever address goes there is published to anyone who opens it, which is a decision rather than a detail.</p>",
     steps: [
-      "<b>Yours, and blocking:</b> replace the placeholder in <code>site/delete-account.html</code> with a contact address you actually monitor. A dedicated support address beats a personal one \u2014 it is public the moment you deploy.",
+      "<b>Yours, and blocking:</b> replace the placeholder in <code>web/delete-account.html</code> with a contact address you actually monitor. A dedicated support address beats a personal one \u2014 it is public the moment you deploy.",
       "<b>Yours:</b> deploy with the other two.",
       "Give Play Console that URL under Data safety \u2192 Account deletion."
     ],
-    code: [{ file: "site/delete-account.html", lang: "html", body:
+    code: [{ file: "web/delete-account.html", lang: "html", body:
 `<span class="addr">[\u0636\u0639 \u0647\u0646\u0627 \u0628\u0631\u064a\u062f \u0627\u0644\u062a\u0648\u0627\u0635\u0644]</span>`}],
     verify: "The page loads at its public URL in a private window and the email address on it is one you actually monitor."
   },
