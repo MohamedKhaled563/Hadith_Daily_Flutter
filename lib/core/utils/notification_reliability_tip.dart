@@ -136,10 +136,17 @@ class NotificationReliabilityTip {
             ),
           ],
           const SizedBox(height: 8),
-          AppButton(
-            text: 'فهمت، شكراً',
-            isSecondary: true,
-            onPressed: () => Navigator.maybePop(context),
+          // The sheet's own context, not the caller's: `context` here belongs
+          // to whichever screen opened the tip (home, or the settings drawer),
+          // so popping from it targets that screen's route — or, once the
+          // drawer has closed, a deactivated element — and the tap did
+          // nothing. Builder hands us a context inside the sheet's route.
+          Builder(
+            builder: (sheetContext) => AppButton(
+              text: 'فهمت، شكراً',
+              isSecondary: true,
+              onPressed: () => Navigator.pop(sheetContext),
+            ),
           ),
         ],
       ),
