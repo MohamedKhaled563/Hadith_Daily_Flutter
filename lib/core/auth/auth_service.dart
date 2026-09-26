@@ -1,7 +1,12 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 /// Thin wrapper around FirebaseAuth + GoogleSignIn.
 ///
@@ -155,6 +160,85 @@ class AuthService {
     final userCredential = await _auth.signInWithCredential(credential);
     await _mirrorUserDocBestEffort(userCredential.user!);
     return userCredential;
+  }
+
+  /// Whether this device can offer Sign in with Apple.
+  ///
+  /// App Store Guideline 4.8 makes Apple sign-in the equivalent-login
+  /// option alongside Google, so the button must be offered on iOS. It is
+  /// pointless on Android, where the web flow would open a browser to
+  /// authenticate against an Apple ID the reader is not signed into on this
+  /// device — Google and email already cover that case, so callers hide the
+  /// button rather than show one that leads nowhere.
+  Future<bool> get isAppleSignInAvailable async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return false;
+    return SignInWithApple.isAvailable();
+  }
+
+  /// Returns null if the reader dismisses the Apple sheet — a normal
+  /// cancellation, matching [signInWithGoogle]'s contract.
+  ///
+  /// The nonce is not ceremony. Firebase verifies that the SHA-256 hash it
+  /// finds inside Apple's signed identity token matches the raw nonce we
+  /// hand it here, which is what stops a token captured from one app being
+  /// replayed against another. Apple only ever sees the hash; Firebase only
+  /// ever sees the raw value.
+  Future<UserCredential?> signInWithApple() async {
+    final rawNonce = _generateNonce();
+
+    final AuthorizationCredentialAppleID appleCredential;
+    try {
+      appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: const [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
+      );
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) return null;
+      rethrow;
+    }
+
+    final credential = OAuthProvider('apple.com').credential(
+      idToken: appleCredential.identityToken,
+      rawNonce: rawNonce,
+    );
+    final userCredential = await _auth.signInWithCredential(credential);
+    final user = userCredential.user!;
+
+    // Apple hands over the reader's name exactly once — on the very first
+    // authorization for this App ID — and never again, not even after a
+    // reinstall. Firebase does not fold it into the account on its own, so
+    // if it is not captured here the reader is left permanently nameless
+    // and shows up in the community feed as an empty byline. Every later
+    // sign-in arrives with givenName null and displayName already set, so
+    // this runs once and then never fires again.
+    if ((user.displayName ?? '').trim().isEmpty) {
+      final name = [appleCredential.givenName, appleCredential.familyName]
+          .whereType<String>()
+          .map((part) => part.trim())
+          .where((part) => part.isNotEmpty)
+          .join(' ');
+      if (name.isNotEmpty) {
+        await user.updateDisplayName(name);
+        await user.reload();
+      }
+    }
+
+    await _mirrorUserDocBestEffort(_auth.currentUser ?? user);
+    return userCredential;
+  }
+
+  /// A cryptographically random nonce, in the URL-safe alphabet Apple
+  /// accepts. [Random.secure] rather than [Random]: a predictable nonce
+  /// defeats the replay protection it exists to provide.
+  static String _generateNonce([int length = 32]) {
+    const chars =
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => chars[random.nextInt(chars.length)])
+        .join();
   }
 
   /// [_ensureUserDoc], but never fatal — for the two *sign-in* paths, where

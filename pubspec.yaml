@@ -43,6 +43,8 @@ dependencies:
   # of Android's own permissions, with no way for the app to fix it in code.
   device_info_plus: ^13.2.0
   app_settings: ^9.0.0
+  sign_in_with_apple: ^8.2.0
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:

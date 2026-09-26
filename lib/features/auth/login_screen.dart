@@ -39,6 +39,11 @@ class _LoginScreenState extends State<LoginScreen>
 
   bool _obscurePassword = true;
   bool _submitting = false;
+
+  /// Whether to offer Sign in with Apple. Resolved once in [initState]
+  /// rather than read during build: the check is async, and on Android it
+  /// is always false, so the button simply never appears there.
+  bool _appleAvailable = false;
   String _loadingMessage = 'جارٍ تسجيل الدخول…';
   String? _error;
 
@@ -64,6 +69,9 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
+    AuthService.instance.isAppleSignInAvailable.then((available) {
+      if (mounted && available) setState(() => _appleAvailable = true);
+    });
     _entrance.forward();
   }
 
@@ -150,6 +158,42 @@ class _LoginScreenState extends State<LoginScreen>
     if (!mounted) return;
     if (credential == null) {
       // Reader dismissed the account picker — not an error.
+      setState(() => _submitting = false);
+      return;
+    }
+
+    _finish();
+  }
+
+  Future<void> _submitApple() async {
+    setState(() {
+      _submitting = true;
+      _loadingMessage = 'جارٍ الدخول عبر Apple…';
+      _error = null;
+    });
+
+    final UserCredential? credential;
+    try {
+      credential = await AuthService.instance.signInWithApple();
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = authErrorMessage(e);
+      });
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = 'تعذّر إتمام تسجيل الدخول عبر Apple';
+      });
+      return;
+    }
+
+    if (!mounted) return;
+    if (credential == null) {
+      // Reader dismissed the Apple sheet — not an error.
       setState(() => _submitting = false);
       return;
     }
@@ -311,6 +355,14 @@ class _LoginScreenState extends State<LoginScreen>
                               const SizedBox(height: 18),
                               const OrDivider(),
                               const SizedBox(height: 18),
+                              if (_appleAvailable) ...[
+                                ProviderButton(
+                                  label: 'المتابعة باستخدام Apple',
+                                  icon: const AppleMark(),
+                                  onTap: _submitting ? () {} : _submitApple,
+                                ),
+                                const SizedBox(height: 12),
+                              ],
                               ProviderButton(
                                 label: 'المتابعة باستخدام Google',
                                 icon: const GoogleMark(),

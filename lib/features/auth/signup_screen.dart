@@ -637,6 +637,32 @@ class GoogleMark extends StatelessWidget {
   }
 }
 
+class AppleMark extends StatelessWidget {
+  const AppleMark({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Sized and bordered exactly like GoogleMark: Guideline 4.8 requires the
+    // Apple option to be no less prominent than the other provider, and the
+    // simplest way to guarantee that is for both to be the same widget with
+    // the same mark box.
+    return Container(
+      width: 24,
+      height: 24,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: context.palette.cardBorder, width: 1.2),
+      ),
+      child: Icon(
+        Icons.apple,
+        size: 16,
+        color: context.palette.mutedText,
+      ),
+    );
+  }
+}
+
 class OrDivider extends StatelessWidget {
   const OrDivider({super.key});
 
