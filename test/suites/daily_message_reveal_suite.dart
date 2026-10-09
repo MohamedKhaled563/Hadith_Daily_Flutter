@@ -18,9 +18,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// The shape here is the point, and it has changed twice. It was a
 /// horizontal pager over the whole set, then a pushed screen with a reveal
 /// button and a progress strand. It is now what a tip-of-the-day app does:
-/// press the emblem once, the message takes its place **on the home tab**,
-/// and it stays there for the rest of the day — across restarts — with no
-/// counter anywhere and no second screen to navigate to.
+/// press the emblem, the message takes its place **on the home tab**, with
+/// no counter anywhere and no second screen to navigate to. Every launch
+/// starts on the emblem again; pressing it later the same day returns to the
+/// last message the reader saw.
 ///
 /// These tests pin that, because every one of those properties was got wrong
 /// at least once.
@@ -93,6 +94,7 @@ Future<void> _pumpHome(
   int count,
   Map<String, Object> seed, {
   Finder? until,
+  bool pressEmblem = false,
 }) async {
   // Pin the day's size so a live Firestore read cannot top the seeded day up
   // and turn a finished day back into an unfinished one.
@@ -100,6 +102,10 @@ Future<void> _pumpHome(
   SharedPreferences.setMockInitialValues(seed);
   await DailyTipService().getTodayTips();
   await tester.pumpWidget(_host(const HomeScreen()));
+  if (pressEmblem) {
+    await _settle(tester, until: find.textContaining('هل سمعت'));
+    await tester.tap(find.textContaining('طيّب قلبك').first);
+  }
   await _settle(tester, until: until);
 }
 
@@ -180,6 +186,7 @@ void dailyMessageRevealSuite() {
 
     testWidgets('never shows a counter', (tester) async {
       await _pumpHome(tester, 4, _seededDay(4, revealed: 2),
+          pressEmblem: true,
           until: find.textContaining('رسالة رقم 2'));
 
       // The reader is being given a message, not shown a position in a queue.
@@ -190,10 +197,33 @@ void dailyMessageRevealSuite() {
   });
 
   group('home — the rest of the day', () {
-    testWidgets('comes back to the message, not the emblem', (tester) async {
+    testWidgets('a restart shows the emblem again', (tester) async {
       // Opened earlier today and the app was closed since.
       await _pumpHome(tester, 3, _seededDay(3, revealed: 2),
-          until: find.textContaining('رسالة رقم 2'));
+          until: find.textContaining('هل سمعت'));
+
+      expect(find.textContaining('هل سمعت'), findsOneWidget);
+      expect(find.textContaining('رسالة رقم'), findsNothing);
+    });
+
+    testWidgets('pressing it again returns to the last message seen',
+        (tester) async {
+      await _pumpHome(tester, 3, _seededDay(3, revealed: 2),
+          pressEmblem: true, until: find.textContaining('رسالة رقم 2'));
+
+      expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
+      expect(find.textContaining('رسالة رقم 1'), findsNothing);
+      expect(find.text('رسالة أخرى'), findsOneWidget);
+    });
+
+    testWidgets('a reminder tap lands straight on the message',
+        (tester) async {
+      DailyTipService.debugMessagesPerDay = 3;
+      SharedPreferences.setMockInitialValues(_seededDay(3, revealed: 2));
+      await DailyTipService().getTodayTips();
+      await tester
+          .pumpWidget(_host(const HomeScreen(openMessageOnStart: true)));
+      await _settle(tester, until: find.textContaining('رسالة رقم 2'));
 
       expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
       expect(find.textContaining('هل سمعت'), findsNothing);
@@ -202,6 +232,7 @@ void dailyMessageRevealSuite() {
     testWidgets('offers another message while the day has more',
         (tester) async {
       await _pumpHome(tester, 3, _seededDay(3, revealed: 1),
+          pressEmblem: true,
           until: find.text('رسالة أخرى'));
 
       expect(find.text('رسالة أخرى'), findsOneWidget);
@@ -222,6 +253,7 @@ void dailyMessageRevealSuite() {
         'closes the day with the last message rather than a panel of its own',
         (tester) async {
       await _pumpHome(tester, 2, _seededDay(2, revealed: 2),
+          pressEmblem: true,
           until: find.text('نلقاك غداً بإذن الله'));
 
       expect(find.text('رسالة أخرى'), findsNothing);
@@ -247,6 +279,7 @@ void dailyMessageRevealSuite() {
         (tester) async {
       // messagesPerDay lowered after the reader had already gone further.
       await _pumpHome(tester, 2, _seededDay(2, revealed: 9),
+          pressEmblem: true,
           until: find.text('نلقاك غداً بإذن الله'));
 
       expect(find.textContaining('رسالة رقم 2'), findsOneWidget);

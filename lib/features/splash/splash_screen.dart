@@ -134,12 +134,15 @@ class _SplashScreenState extends State<SplashScreen>
   ///
   /// Never throws: a platform-channel hiccup should skip the deep link, not
   /// block the splash.
+  bool _launchedFromReminder = false;
+
   Future<void> _resolveLaunch() async {
     try {
       final launched =
           await NotificationScheduler.instance.wasLaunchedByNotification();
       if (!launched) return;
       await DailyTipService().ensureOpenedToday();
+      _launchedFromReminder = true;
     } catch (_) {
       // Best effort; Home still works, it just shows the emblem.
     }
@@ -171,7 +174,9 @@ class _SplashScreenState extends State<SplashScreen>
     // Nothing is pushed on top any more: today's message is part of Home.
     Navigator.pushReplacement(
       context,
-      appPageRoute(child: const HomeScreen()),
+      appPageRoute(
+        child: HomeScreen(openMessageOnStart: _launchedFromReminder),
+      ),
     );
   }
 

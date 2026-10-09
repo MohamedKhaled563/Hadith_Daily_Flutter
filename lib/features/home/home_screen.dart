@@ -25,7 +25,11 @@ import '../favorites/favorites_screen.dart';
 import '../profile/settings_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.openMessageOnStart = false});
+
+  /// Land straight on today's message instead of the emblem. Only for a
+  /// launch from a reminder tap — see SplashScreen.
+  final bool openMessageOnStart;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -52,18 +56,18 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// Today's set, and how much of it the reader has asked for.
   ///
-  /// `_revealed == 0` means they have not pressed the emblem yet today, so
-  /// home shows the emblem. Anything above that and home shows the message
-  /// instead — for the rest of the day, across restarts. Pressing طيّب قلبك
-  /// is a once-a-day act; coming back to the app should return the reader to
-  /// their message, not ask them for it again.
+  /// `_revealed == 0` means the emblem hasn't been pressed in this session,
+  /// so home shows the emblem. Every launch starts there, even later in a day
+  /// that's already been opened: pressing طيّب قلبك again brings back the
+  /// last message the reader saw (DailyTipService keeps how far they got),
+  /// with رسالة أخرى picking up from there.
   List<DailyMessageEntry> _todayEntries = const [];
   int _revealed = 0;
 
   @override
   void initState() {
     super.initState();
-    _restoreToday();
+    if (widget.openMessageOnStart) _restoreToday();
     // A reminder tapped while the app is running should land on the message,
     // not on an emblem waiting to be pressed. Cold starts go through
     // SplashScreen, which does the same thing before handing over.
@@ -121,12 +125,14 @@ class _HomeScreenState extends State<HomeScreen>
   /// The emblem was pressed — draw today's message and keep it on screen.
   ///
   /// Deliberately no navigation. The message takes the emblem's place on
-  /// this tab and stays there for the rest of the day, so there is nothing
-  /// to go "back" from and nothing to re-open tomorrow except the emblem
-  /// itself.
+  /// this tab for the rest of the session, so there is nothing to go "back"
+  /// from.
   Future<void> _openDailyMessage() async {
     if (_revealed >= 1) return; // Already out; the card is what they tapped.
     setState(() => _loadingDailyTip = true);
+    // Opened earlier today? Then this returns to where they left off rather
+    // than starting the day's set over.
+    final alreadyRevealed = await DailyTipService().revealedCount();
     final entries = await _loadTodayEntries();
     if (!mounted) return;
     setState(() => _loadingDailyTip = false);
@@ -143,9 +149,9 @@ class _HomeScreenState extends State<HomeScreen>
     AppHaptics.tap();
     setState(() {
       _todayEntries = entries;
-      _revealed = 1;
+      _revealed = alreadyRevealed.clamp(1, entries.length);
     });
-    DailyTipService().saveRevealedCount(1);
+    if (alreadyRevealed < 1) DailyTipService().saveRevealedCount(1);
   }
 
   /// "رسالة أخرى" — the next of today's set, if the day carries more than
