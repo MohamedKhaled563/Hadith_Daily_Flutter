@@ -7,10 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:hadith_app/core/theme/app_state_controller.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
+import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/home/home_screen.dart';
 import 'package:hadith_app/features/hadith/hadith_list_screen.dart';
 import 'package:hadith_app/features/hadith/hadith_detail_screen.dart';
+import 'package:hadith_app/features/hadith/intro_section_screen.dart';
 import 'package:hadith_app/features/messages/daily_message_card.dart';
 import 'package:hadith_app/features/messages/daily_message_screen.dart';
 
@@ -61,6 +63,15 @@ Future<void> _pumpAt(
   );
   await tester.pump(const Duration(milliseconds: 400));
 }
+
+/// The bundled insights.json is empty — messages come from the dashboard —
+/// so the message-card tests lay out one of their own.
+const _sampleInsight = Insight(
+  hadithNumber: 1,
+  arabic: 'قبل ما تبدأ يومك، اسأل نفسك: ليه بعمل اللي هعمله ده؟ '
+      'الإجابة بتغيّر كل حاجة.',
+  english: '',
+);
 
 void main() {
   setUpAll(() async {
@@ -121,15 +132,28 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('المقدمة and الترجمة load and render without overflow',
+      (tester) async {
+    final sections = HadithRepository().introSections;
+    expect(sections.map((s) => s.key), ['introduction', 'biography']);
+    for (final section in sections) {
+      await _pumpAt(
+        tester,
+        IntroSectionScreen(section: section),
+        const Size(360, 640),
+      );
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('Daily message card renders without overflow', (tester) async {
     final repo = HadithRepository();
-    final insight = repo.getRandomInsight();
-    expect(insight, isNotNull, reason: 'insights.json should be bundled');
+    const insight = _sampleInsight;
 
     await _pumpAt(
       tester,
       DailyMessageScreen(
-        insight: insight!,
+        insight: insight,
         hadith: repo.getByNumber(insight.hadithNumber),
       ),
       const Size(360, 640),
@@ -144,7 +168,7 @@ void main() {
   testWidgets('Daily message card lays out with a footer under it',
       (tester) async {
     final repo = HadithRepository();
-    final insight = repo.insights.first;
+    const insight = _sampleInsight;
 
     await _pumpAt(
       tester,
@@ -171,7 +195,8 @@ void main() {
     final repo = HadithRepository();
 
     expect(repo.getAll(), hasLength(42));
-    expect(repo.insights, hasLength(246));
+    // Messages are uploaded from the dashboard; none ship in the app.
+    expect(repo.insights, isEmpty);
 
     // Numbering is complete and unique.
     expect(
@@ -187,11 +212,6 @@ void main() {
       expect(hadith.explanation.trim(), isNotEmpty,
           reason: '#${hadith.number} explanation');
     }
-
-    // Daily messages cover every hadith since the workbook migration
-    // (7fc5798) replaced the old 22-hadith source with one covering all 42.
-    final covered = repo.insights.map((i) => i.hadithNumber).toSet();
-    expect(covered, List.generate(42, (i) => i + 1).toSet());
   });
 
   testWidgets('Theme toggle repaints pushed screens (F-04)', (tester) async {

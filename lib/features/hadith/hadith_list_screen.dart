@@ -14,8 +14,10 @@ import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/models/hadith.dart';
+import '../../data/models/intro_section.dart';
 import '../../data/repositories/hadith_repository.dart';
 import 'hadith_detail_screen.dart';
+import 'intro_section_screen.dart';
 
 class HadithListScreen extends StatefulWidget {
   const HadithListScreen({super.key});
@@ -93,6 +95,11 @@ class _HadithListScreenState extends State<HadithListScreen> {
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
     final displayed = _displayed;
+    // المقدمة and الترجمة lead the full list, as they do in the book, but
+    // step aside while the reader is searching or looking at favourites.
+    final intro = _showOnlyFavorites || _searchQuery.trim().isNotEmpty
+        ? const <IntroSection>[]
+        : _repo.introSections;
 
     return AppScreen(
       child: Column(
@@ -255,10 +262,22 @@ class _HadithListScreenState extends State<HadithListScreen> {
                     padding: EdgeInsets.fromLTRB(
                       20, 4, 20, 16 + MediaQuery.viewPaddingOf(context).bottom,
                     ),
-                    itemCount: displayed.length,
+                    itemCount: intro.length + displayed.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      final hadith = displayed[index];
+                      if (index < intro.length) {
+                        final section = intro[index];
+                        return _IntroListCard(
+                          section: section,
+                          onTap: () => Navigator.push(
+                            context,
+                            appPageRoute(
+                              child: IntroSectionScreen(section: section),
+                            ),
+                          ),
+                        );
+                      }
+                      final hadith = displayed[index - intro.length];
                       return _HadithListCard(
                         hadith: hadith,
                         isFavorite: _repo.isHadithFavorite(hadith.number),
@@ -415,7 +434,7 @@ class _HadithListCard extends StatelessWidget {
                     Flexible(
                       child: Text(
                         hadith.mukhrij.isNotEmpty
-                            ? hadith.mukhrij
+                            ? 'رواه ${hadith.mukhrij}'
                             : hadith.reference,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -445,3 +464,97 @@ class _HadithListCard extends StatelessWidget {
   }
 }
 
+/// A card for المقدمة or الترجمة, sitting above the hadiths. Same parchment
+/// as a hadith card, with an icon where the number seal goes — these aren't
+/// numbered, and they can't be saved to favourites.
+class _IntroListCard extends StatelessWidget {
+  const _IntroListCard({required this.section, required this.onTap});
+
+  final IntroSection section;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final preview = section.blocks
+        .firstWhere(
+          (b) => b.type == IntroBlockType.paragraph,
+          orElse: () => section.blocks.first,
+        )
+        .text;
+
+    return ParchmentCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      showCornerOrnaments: false,
+      showWatermark: false,
+      onTap: onTap,
+      semanticLabel: section.title,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFEADBBE), Color(0xFFC7A566)],
+                  ),
+                  border: Border.all(
+                    color: context.isDarkMode
+                        ? palette.cardBorderStrong
+                        : Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+                child: Icon(
+                  section.key == 'biography'
+                      ? Icons.person_rounded
+                      : Icons.auto_stories_rounded,
+                  size: 17,
+                  color: const Color(0xFF26352C),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  section.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 15,
+                    height: AppLeading.chrome,
+                    fontWeight: FontWeight.w700,
+                    color: palette.bodyText,
+                  ),
+                ),
+              ),
+              // chevron_left points "forward" under RTL.
+              Icon(
+                Icons.chevron_left_rounded,
+                size: 22,
+                color: palette.mutedText,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            preview,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.start,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 13.5,
+              height: AppLeading.body,
+              color: palette.mutedText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

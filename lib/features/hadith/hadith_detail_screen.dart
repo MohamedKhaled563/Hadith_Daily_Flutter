@@ -72,7 +72,7 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
   void _copyHadith(BuildContext context) {
     final buffer = StringBuffer()..writeln('« ${hadith.title} »');
     if (hadith.mukhrij.isNotEmpty) {
-      buffer.writeln('المُخَرِّج: ${hadith.mukhrij}');
+      buffer.writeln('رواه ${hadith.mukhrij}');
     }
     buffer.writeln('الحديث رقم ${hadith.number} من الأربعين النووية\n');
     buffer.writeln('نص الحديث:');
@@ -308,7 +308,7 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
                               if (hadith.mukhrij.isNotEmpty)
                                 _AttributionChip(
                                   icon: Icons.menu_book_rounded,
-                                  label: 'المُخَرِّج',
+                                  label: 'رواه',
                                   value: hadith.mukhrij,
                                 ),
                               // Deliberately reads `hadith.source` here, not
@@ -477,9 +477,9 @@ class _CardHeading extends StatelessWidget {
 }
 
 /// A single labeled fact about the hadith's attribution — who extracted/
-/// collected it (المُخَرِّج) or who transmitted/compiled it (أخرجه). Kept as
+/// collected it (رواه) or who transmitted/compiled it (أخرجه). Kept as
 /// one small chip type used twice rather than two bespoke pills, so
-/// "المُخَرِّج: البخاري ومسلم" and "أخرجه: رواه مسلم" always read the same way
+/// "رواه البخاري ومسلم" and "أخرجه مسلم" always read the same way
 /// instead of looking like two unrelated bits of chrome.
 class _AttributionChip extends StatelessWidget {
   const _AttributionChip({
@@ -514,7 +514,7 @@ class _AttributionChip extends StatelessWidget {
               TextSpan(
                 children: [
                   TextSpan(
-                    text: '$label: ',
+                    text: '$label ',
                     style: TextStyle(
                       fontFamily: kSans,
                       fontSize: 12,

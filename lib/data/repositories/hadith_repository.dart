@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/hadith.dart';
 import '../models/insight.dart';
+import '../models/intro_section.dart';
 import '../services/favorites_store.dart';
 
 class HadithRepository {
@@ -17,22 +18,56 @@ class HadithRepository {
 
   List<Hadith> _hadiths = [];
   List<Insight> _insights = [];
+  List<IntroSection> _introSections = [];
+
+  // Whether each asset has been read. Not `list.isNotEmpty`: insights.json
+  // ships empty (messages come from the dashboard), and an empty list would
+  // send every load() back to the asset bundle.
+  bool _insightsLoaded = false;
+  bool _introLoaded = false;
 
   List<Hadith> get hadiths => _hadiths;
+
+  /// المقدمة and الترجمة, in the order the hadith list shows them.
+  List<IntroSection> get introSections => _introSections;
   List<Hadith> getAll() => _hadiths;
   List<Insight> get insights => _insights;
 
-  /// Loads the bundled content. Both files are generated from
+  /// Loads the bundled content. These files are generated from
   /// `assets/data/الأربعون_النووية_رسائل_يومية.xlsx` by
   /// `tool/import_hadiths_v2.py` and `tool/import_daily_messages_v2.py` —
   /// re-run those scripts rather than editing the JSON by hand.
   Future<void> load() async {
     await Future.wait(
-        [loadHadiths(), _loadInsights(), _clearLegacyFavorites()]);
+        [loadHadiths(), _loadInsights(), _loadIntro(), _clearLegacyFavorites()]);
+  }
+
+  Future<void> _loadIntro() async {
+    if (_introLoaded) return;
+    _introLoaded = true;
+    try {
+      final jsonString =
+          await rootBundle.loadString('assets/data/nawawi_intro.json');
+      final List<dynamic> jsonList = json.decode(jsonString);
+      _introSections = jsonList
+          .map((e) => IntroSection.fromJson(e as Map<String, dynamic>))
+          .where((s) => s.blocks.isNotEmpty)
+          .toList();
+    } catch (error) {
+      assert(() {
+        debugPrint(
+          'HadithRepository: failed to load assets/data/nawawi_intro.json. '
+          'Error: $error',
+        );
+        return true;
+      }());
+      _introSections = const [];
+    }
   }
 
   Future<void> _loadInsights() async {
-    if (_insights.isNotEmpty) return;
+    if (_insightsLoaded) return;
+    _insightsLoaded = true;
     try {
       final jsonString =
           await rootBundle.loadString('assets/data/insights.json');

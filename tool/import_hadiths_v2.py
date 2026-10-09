@@ -14,6 +14,10 @@ the hadith (المخرج, e.g. "البخاري ومسلم") and the isnad/ananah
 introduces the hadith text (عنعنة), which map to the model's
 `mukhrij`/`isnad` fields, and a short explanation alongside the full one.
 
+The "مقدمة الإمام النووي" and "ترجمة الإمام النووي" sheets — each a single
+cell of text — become `assets/data/nawawi_intro.json`, which the hadith list
+shows ahead of the forty hadiths.
+
 Run from the project root:
 
     python tool/import_hadiths_v2.py              # regenerates hadiths.json only
@@ -37,9 +41,16 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = Path(__file__).resolve().parent.parent
 WORKBOOK = ROOT / "assets" / "data" / "الأربعون_النووية_رسائل_يومية.xlsx"
 HADITHS_OUT = ROOT / "assets" / "data" / "hadiths.json"
+INTRO_OUT = ROOT / "assets" / "data" / "nawawi_intro.json"
 SERVICE_ACCOUNT_KEY = ROOT / "secrets" / "service-account.json"
 
 SHEET_HADITHS = "الأحاديث والشروح"
+
+# (key in nawawi_intro.json, sheet), in the order the app lists them.
+INTRO_SHEETS = [
+    ("introduction", "مقدمة الإمام النووي"),
+    ("biography", "ترجمة الإمام النووي"),
+]
 
 
 def clean(value) -> str:
@@ -107,6 +118,47 @@ def load_hadiths() -> list[dict]:
         )
 
     return hadiths
+
+
+def intro_blocks(text: str) -> list[dict]:
+    """Split one sheet's text into heading / bullet / paragraph blocks.
+
+    The sheet is a single cell: its first line is the title, a line opening
+    with "•" is a list item, and a short line with no closing punctuation is
+    a section heading ("مولده ونشأته", "شيوخه", ...). Everything else is a
+    paragraph.
+    """
+    blocks = []
+    for line in text.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("•"):
+            blocks.append({"type": "bullet", "text": line.lstrip("•").strip()})
+        elif len(line) <= 40 and line[-1] not in ".:؛،»!؟)":
+            blocks.append({"type": "heading", "text": line})
+        else:
+            blocks.append({"type": "paragraph", "text": line})
+    return blocks
+
+
+def load_intro() -> list[dict]:
+    workbook = openpyxl.load_workbook(WORKBOOK, data_only=True)
+    sections = []
+    for key, sheet_name in INTRO_SHEETS:
+        text = clean(workbook[sheet_name]["A1"].value)
+        title, _, body = text.partition("\n")
+        sections.append(
+            {"key": key, "title": title.strip(), "blocks": intro_blocks(body)}
+        )
+    return sections
+
+
+def write_intro(sections: list[dict]) -> None:
+    INTRO_OUT.write_text(
+        json.dumps(sections, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def write_json(hadiths: list[dict]) -> None:
@@ -199,6 +251,9 @@ def main() -> int:
 
     write_json(hadiths)
     print(f"wrote          : {HADITHS_OUT.relative_to(ROOT)}")
+
+    write_intro(load_intro())
+    print(f"wrote          : {INTRO_OUT.relative_to(ROOT)}")
 
     if "--push" in sys.argv[1:]:
         print()
