@@ -451,14 +451,14 @@ class _TodayMessage extends StatelessWidget {
   }
 }
 
-/// "رسالة أخرى" — built from the app's own vocabulary rather than dropped in
-/// as a stock button.
+/// "رسالة أخرى" — built from the same parts as the toolbar right above it.
 ///
-/// A flat Material pill reads as a form control and belongs to no particular
-/// app. This is the deep green of the navigation bar, ringed in the same gold
-/// hairline the cards and chips use, with the emblem-sized badge that appears
-/// throughout: it looks like part of this app and like an invitation rather
-/// than a submit.
+/// It used to be a solid green pill with a small leaf in a dark ring. Next to
+/// the cream card and the cream, gold-ringed toolbar it was the one heavy
+/// block on the screen, and the leaf said "this app" rather than "another".
+/// Now it is a cream pill with the strong gold rim, green type for the
+/// action, and a gold-ringed circle holding a turning arrow — the same
+/// circle the toolbar's buttons use, with a glyph that reads as "another".
 class _AnotherMessageButton extends StatelessWidget {
   const _AnotherMessageButton({required this.onTap});
 
@@ -467,48 +467,35 @@ class _AnotherMessageButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final isDark = context.isDarkMode;
-    final green =
-        isDark ? AppColors.primaryGreenDark : AppColors.primaryGreen;
-    final ink = Theme.of(context).colorScheme.onPrimary;
+    final green = Theme.of(context).colorScheme.primary;
 
     return TapTarget(
       onTap: onTap,
       semanticLabel: 'اعرض رسالة أخرى من رسائل اليوم',
       child: Container(
-        padding: const EdgeInsetsDirectional.fromSTEB(8, 8, 20, 8),
+        padding: const EdgeInsetsDirectional.fromSTEB(6, 6, 20, 6),
         decoration: BoxDecoration(
-          color: green,
+          color: palette.surface,
           borderRadius: BorderRadius.circular(AppRadii.pill),
-          border: Border.all(
-            color: palette.ornamentGold.withValues(alpha: 0.6),
-            width: 1.2,
-          ),
+          border: Border.all(color: palette.cardBorderStrong, width: 1.3),
           boxShadow: AppElevation.card,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // The emblem circle from the top of the card, shrunk: the same
-            // gold hairline ring around the same leaf. A visual rhyme with
-            // what the reader just pressed, rather than a stock glyph.
             Container(
-              width: 34,
-              height: 34,
+              width: 36,
+              height: 36,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: ink.withValues(alpha: 0.10),
-                border: Border.all(
-                  color: palette.ornamentGold.withValues(alpha: 0.55),
-                  width: 1,
-                ),
+                color: palette.surfaceSunken,
+                border: Border.all(color: palette.ornamentGold, width: 1.2),
               ),
-              child: AssetHelper.assetOrFallback(
-                assetPath: 'assets/images/leaf_accent.png',
-                width: 15,
-                height: 15,
-                fallback: Icon(Icons.eco_rounded, size: 15, color: ink),
+              child: Icon(
+                Icons.autorenew_rounded,
+                size: 19,
+                color: palette.goldText,
               ),
             ),
             const SizedBox(width: 12),
@@ -519,7 +506,7 @@ class _AnotherMessageButton extends StatelessWidget {
                 fontSize: 14.5,
                 height: AppLeading.chrome,
                 fontWeight: FontWeight.w800,
-                color: ink,
+                color: green,
               ),
             ),
           ],
@@ -529,8 +516,6 @@ class _AnotherMessageButton extends StatelessWidget {
   }
 }
 
-/// The close of the day, shown with the last message rather than as a panel
-/// of its own — the reader has finished, they have not hit a wall.
 class _TomorrowNote extends StatelessWidget {
   const _TomorrowNote({required this.palette});
 
