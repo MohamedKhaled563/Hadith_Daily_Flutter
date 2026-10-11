@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../core/auth/auth_service.dart';
+import 'daily_pool_version.dart';
 import 'message_like_service.dart';
 
 /// Which sign-in method an account uses, so the delete flow knows what kind
@@ -123,9 +124,12 @@ class AccountDeletionService {
     await _removeAllLikes(uid);
 
     onProgress('جارٍ حذف مشاركاتك…');
-    await _deleteOwnedDocs(
+    final posts = await _deleteOwnedDocs(
       _db.collection('communityMessages').where('authorUid', isEqualTo: uid),
     );
+    // Approved posts sit in every device's cached daily pool; without this
+    // they would keep being drawn there until that copy aged out.
+    if (posts > 0) await DailyPoolVersion.bump();
 
     onProgress('جارٍ حذف ملاحظاتك…');
     await _deleteOwnedDocs(
@@ -196,7 +200,8 @@ class AccountDeletionService {
         }),
       );
 
-      for (final target in liked.whereType<({String collection, String id})>()) {
+      for (final target
+          in liked.whereType<({String collection, String id})>()) {
         // toggleLike on an existing like removes it and decrements the
         // parent's count in one transaction — the exact shape the rules
         // permit. Reusing it keeps this from drifting out of step with the
@@ -214,10 +219,10 @@ class AccountDeletionService {
   }
 
   /// Deletes every doc a query returns, in chunks that respect Firestore's
-  /// 500-write batch ceiling.
-  Future<void> _deleteOwnedDocs(Query<Map<String, dynamic>> query) async {
+  /// 500-write batch ceiling, and reports how many there were.
+  Future<int> _deleteOwnedDocs(Query<Map<String, dynamic>> query) async {
     final snapshot = await query.get();
-    if (snapshot.docs.isEmpty) return;
+    if (snapshot.docs.isEmpty) return 0;
 
     const chunk = 400;
     for (var i = 0; i < snapshot.docs.length; i += chunk) {
@@ -227,6 +232,7 @@ class AccountDeletionService {
       }
       await batch.commit();
     }
+    return snapshot.docs.length;
   }
 
   /// Removes `users/{uid}` and releases the `usernames/` claim.

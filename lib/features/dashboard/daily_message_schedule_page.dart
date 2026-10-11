@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../data/services/daily_pool_version.dart';
 import '../../data/services/daily_tip_service.dart';
 import 'dashboard_refresh.dart';
 
@@ -176,6 +179,9 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage>
     setState(() => _deletingPaths.add(entry.ref.path));
     try {
       await entry.ref.delete();
+      // Not through DashboardRefresh, which would reload this page for a
+      // row it has already dropped — but the phones still need telling.
+      unawaited(DailyPoolVersion.bump());
       if (!mounted) return;
       setState(() {
         _entries?.removeWhere((e) => e.ref.path == entry.ref.path);

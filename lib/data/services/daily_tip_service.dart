@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/insight.dart';
+import 'daily_pool_version.dart';
 
 /// One candidate from the delivery pool — either an admin-seeded
 /// `dailyMessages` doc or an approved `communityMessages` submission.
@@ -103,6 +104,26 @@ class DailyTipService {
   static const _todaySetKey = 'dailyTip.todaySet';
   static const _pickedOnDateKey = 'dailyTip.pickedOnDate';
   static const _messagesPerDayKey = 'dailyTip.messagesPerDay';
+
+  // Which DailyPoolVersion the pool was last fetched from the *server* at,
+  // and when. Together they decide whether Firestore's local copy of the
+  // pool can stand in for a fresh read — see _loadPool.
+  static const _poolSyncedVersionKey = 'dailyTip.poolSyncedVersion';
+  static const _poolSyncedAtKey = 'dailyTip.poolSyncedAt';
+
+  /// How old the local pool may get before it is refetched even though the
+  /// version never moved — the backstop for an edit made straight in the
+  /// Firebase console, or a writer that forgot to bump.
+  static const poolMaxAge = Duration(days: 7);
+
+  /// Where the last pool came from — 'server' or 'cache'. For tests and
+  /// the device probe only.
+  @visibleForTesting
+  static String? debugLastPoolSource;
+
+  /// How many messages that pool held. Same purpose.
+  @visibleForTesting
+  static int? debugLastPoolSize;
 
   // How far into today's set the reader has actually opened. Separate from
   // _todaySetKey because the two answer different questions: that one is
@@ -224,14 +245,27 @@ class DailyTipService {
     final prefs = await SharedPreferences.getInstance();
     final results = await Future.wait<Object>([
       _messagesPerDay(prefs),
-      _loadPool(),
+      _loadPool(prefs),
       _scheduledIdsFor(today),
     ]);
+    var pool = results[1] as _Pool;
+    final pinnedIds = results[2] as List<String>;
+
+    // A pin the local pool has never heard of means the pool is behind —
+    // the dashboard pins from the live collections. One server fetch,
+    // rather than quietly drawing at random over an admin's choice.
+    if (pool.fromCache) {
+      final known = {for (final tip in pool.tips) tip.id};
+      if (pinnedIds.any((id) => !known.contains(id))) {
+        pool = await _loadPool(prefs, forceServer: true);
+      }
+    }
+
     return _PreparedDraw(
       day: today,
       target: results[0] as int,
-      pool: results[1] as List<DailyTip>,
-      pinnedIds: results[2] as List<String>,
+      pool: pool.tips,
+      pinnedIds: pinnedIds,
     );
   }
 
@@ -504,16 +538,107 @@ class DailyTipService {
     return <Map<String, dynamic>>[];
   }
 
-  Future<List<DailyTip>> _loadPool() async {
-    final halves = await Future.wait([_loadSeeded(), _loadCommunity()]);
-    return [...halves[0], ...halves[1]];
+  /// The whole pool — from Firestore's local cache when nothing has changed
+  /// since the last server fetch, from the server otherwise.
+  ///
+  /// The cache read is what makes the daily draw cheap: it is free, and it
+  /// is the same cache every other read in the app fills, so it survives
+  /// restarts with no storage of our own. All it needs is a reason to trust
+  /// it, which is [DailyPoolVersion] — one doc read in place of the whole
+  /// pool.
+  Future<_Pool> _loadPool(
+    SharedPreferences prefs, {
+    bool forceServer = false,
+  }) async {
+    // The local read runs alongside the version check rather than after it,
+    // so the common case costs one round trip, not one plus a cache scan.
+    final versionCheck = _currentPoolVersion();
+    final localRead = forceServer ? null : _readPool(fromCache: true);
+    final version = await versionCheck;
+
+    if (localRead != null) {
+      final syncedVersion = prefs.getInt(_poolSyncedVersionKey);
+      final syncedAt = prefs.getInt(_poolSyncedAtKey) ?? 0;
+      final age = DateTime.now().millisecondsSinceEpoch - syncedAt;
+      // An unreadable version (offline, or past the budget) also settles
+      // for the local copy: a server read of the whole pool would only hit
+      // the same wall, a second time, before falling back to it anyway.
+      final trusted = version == null ||
+          (syncedVersion == version &&
+              age >= 0 &&
+              age < poolMaxAge.inMilliseconds);
+      if (trusted) {
+        final cached = await localRead;
+        if (cached.tips.isNotEmpty) {
+          debugLastPoolSource = 'cache';
+          debugLastPoolSize = cached.tips.length;
+          return cached;
+        }
+      }
+    }
+
+    final fetched = await _readPool(fromCache: false);
+    debugLastPoolSource = fetched.fromCache ? 'cache' : 'server';
+    debugLastPoolSize = fetched.tips.length;
+    // Only a complete answer from the server earns the version stamp. A
+    // read that fell back to the cache part way (offline, or past the
+    // server budget) proves nothing about how current the pool is.
+    if (!fetched.fromCache && version != null) {
+      await Future.wait([
+        prefs.setInt(_poolSyncedVersionKey, version),
+        prefs.setInt(
+          _poolSyncedAtKey,
+          DateTime.now().millisecondsSinceEpoch,
+        ),
+      ]);
+    }
+    return fetched;
   }
 
-  Future<List<DailyTip>> _loadSeeded() async {
+  /// The live DailyPoolVersion, or null if it cannot be read right now —
+  /// offline, past the server budget — in which case the local copy is used
+  /// if there is one. A doc that does not exist yet is version 0, so the
+  /// TTL alone governs until the first bump.
+  Future<int?> _currentPoolVersion() async {
+    try {
+      final ref = DailyPoolVersion.ref(_db);
+      final doc = await ref.get().timeout(_serverBudget);
+      if (doc.metadata.isFromCache) return null;
+      return (doc.data()?[DailyPoolVersion.field] as num?)?.toInt() ?? 0;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<_Pool> _readPool({required bool fromCache}) async {
+    final halves = await Future.wait([
+      _loadSeeded(fromCache: fromCache),
+      _loadCommunity(fromCache: fromCache),
+    ]);
+    return _Pool(
+      [...halves[0].tips, ...halves[1].tips],
+      fromCache: halves[0].fromCache || halves[1].fromCache,
+    );
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _read(
+    Query<Map<String, dynamic>> query, {
+    required bool fromCache,
+  }) =>
+      fromCache
+          ? query.get(const GetOptions(source: Source.cache))
+          : _getQuery(query);
+
+  Future<_Pool> _loadSeeded({required bool fromCache}) async {
     final pool = <DailyTip>[];
+    var cached = true;
 
     try {
-      final snapshot = await _getQuery(_db.collection('dailyMessages'));
+      final snapshot = await _read(
+        _db.collection('dailyMessages'),
+        fromCache: fromCache,
+      );
+      cached = snapshot.metadata.isFromCache;
       for (final doc in snapshot.docs) {
         final data = doc.data();
         final text = (data['arabic'] as String?)?.trim() ?? '';
@@ -536,18 +661,21 @@ class DailyTipService {
       // Offline on first-ever launch, before anything is cached — the
       // community half still gets a chance to contribute.
     }
-    return pool;
+    return _Pool(pool, fromCache: cached);
   }
 
-  Future<List<DailyTip>> _loadCommunity() async {
+  Future<_Pool> _loadCommunity({required bool fromCache}) async {
     final pool = <DailyTip>[];
+    var cached = true;
 
     try {
-      final snapshot = await _getQuery(
+      final snapshot = await _read(
         _db
             .collection('communityMessages')
             .where('status', isEqualTo: 'approved'),
+        fromCache: fromCache,
       );
+      cached = snapshot.metadata.isFromCache;
       for (final doc in snapshot.docs) {
         final data = doc.data();
         final text = (data['message'] as String?)?.trim() ?? '';
@@ -565,7 +693,7 @@ class DailyTipService {
       }
     } catch (_) {}
 
-    return pool;
+    return _Pool(pool, fromCache: cached);
   }
 
   Future<void> _recordShown(DailyTip tip) async {
@@ -601,4 +729,13 @@ class _PreparedDraw {
   final int target;
   final List<DailyTip> pool;
   final List<String> pinnedIds;
+}
+
+/// A loaded pool, and whether any of it came from the local cache rather
+/// than the server.
+class _Pool {
+  const _Pool(this.tips, {required this.fromCache});
+
+  final List<DailyTip> tips;
+  final bool fromCache;
 }

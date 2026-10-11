@@ -225,11 +225,26 @@ service cloud.firestore {
           && request.resource.data.messagesPerDay <= 10;
     }
 
+    // settings/dailyPool's `version` — see DailyPoolVersion. Phones cache the
+    // daily-message pool and refetch only when this moves, so whoever changes
+    // the pool must be able to move it, and that includes an ordinary user
+    // deleting their own account (and with it their approved posts). Up by
+    // exactly one and nothing else: the worst a hostile client can do is
+    // make devices refetch a pool they used to refetch every day anyway.
+    function validPoolBump() {
+      return request.resource.data.keys().hasOnly(['version'])
+          && request.resource.data.version
+               == (resource == null ? 0 : resource.data.get('version', 0)) + 1;
+    }
+
     match /settings/{settingId} {
       allow read: if true;
-      allow create, update: if isModerator()
+      allow create, update: if (isModerator()
                   && (settingId != 'dailyMessageConfig'
-                      || validDailyMessageConfig());
+                      || validDailyMessageConfig()))
+                  || (settingId == 'dailyPool'
+                      && request.auth != null
+                      && validPoolBump());
       allow delete: if isModerator();
     }
 

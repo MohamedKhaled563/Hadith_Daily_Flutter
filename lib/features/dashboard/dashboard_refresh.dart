@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../data/services/daily_pool_version.dart';
+
 /// In-memory "this collection just changed" signal shared by every tab.
 ///
 /// Tabs live in an IndexedStack and stay mounted, so a page that loads its
@@ -15,6 +17,10 @@ import 'package:flutter/widgets.dart';
 /// every device bumps `timesShown` on dailyMessages when it draws a
 /// message, so a live listener would re-read (and bill) docs all day long
 /// for changes the dashboard doesn't care about.
+///
+/// Doubles as the one place every dashboard write to the daily-message pool
+/// passes through, so it is also where the phones are told their cached
+/// copy of that pool is out of date — see [DailyPoolVersion].
 class DashboardRefresh extends ChangeNotifier {
   DashboardRefresh._();
 
@@ -27,10 +33,13 @@ class DashboardRefresh extends ChangeNotifier {
   static void markChanged(Iterable<String> collections) {
     final self = instance;
     var changed = false;
+    var poolChanged = false;
     for (final c in collections) {
       self._revisions[c] = self.revisionOf(c) + 1;
       changed = true;
+      poolChanged |= DailyPoolVersion.collections.contains(c);
     }
+    if (poolChanged) unawaited(DailyPoolVersion.bump());
     if (changed) self.notifyListeners();
   }
 }
