@@ -28,21 +28,21 @@ class DailyTip {
   /// The card UI (DailyMessageScreen) speaks `Insight`, not this — keeps the
   /// screen itself unaware of where a tip came from.
   Insight toInsight() => Insight(
-    hadithNumber: hadithNumber,
-    arabic: text,
-    english: '',
-    category: category,
-    id: id,
-    sourceCollection: sourceCollection,
-  );
+        hadithNumber: hadithNumber,
+        arabic: text,
+        english: '',
+        category: category,
+        id: id,
+        sourceCollection: sourceCollection,
+      );
 
   Map<String, dynamic> toCacheJson() => {
-    'id': id,
-    'source': sourceCollection,
-    'text': text,
-    'hadithNumber': hadithNumber,
-    'category': category,
-  };
+        'id': id,
+        'source': sourceCollection,
+        'text': text,
+        'hadithNumber': hadithNumber,
+        'category': category,
+      };
 
   static DailyTip? fromCacheJson(Object? raw) {
     if (raw is! Map) return null;
@@ -136,10 +136,19 @@ class DailyTipService {
   /// the same local day, a freshly drawn one the first call after the day
   /// rolls over. Empty only if the pool itself is empty (e.g. no
   /// connectivity on first ever launch, before anything is cached).
-  Future<List<DailyTip>> getTodayTips() async {
+  ///
+  /// Concurrent callers share one draw: the home screen's emblem and a
+  /// reminder tap can both ask at once, and two overlapping draws would each
+  /// append to seenIds and bump timesShown for messages only one of them
+  /// keeps.
+  Future<List<DailyTip>> getTodayTips() =>
+      _inFlight ??= _getTodayTips().whenComplete(() => _inFlight = null);
+
+  Future<List<DailyTip>>? _inFlight;
+
+  Future<List<DailyTip>> _getTodayTips() async {
     final prefs = await SharedPreferences.getInstance();
     final today = _todayString();
-    final target = await _messagesPerDay(prefs);
 
     final cached = prefs.getString(_pickedOnDateKey) == today
         ? _readCachedSet(prefs)
@@ -148,9 +157,82 @@ class DailyTipService {
     // Already drawn today and still big enough — including the case where
     // the admin has since lowered the count, which must not shrink a day
     // that is already running.
-    if (cached.isNotEmpty && cached.length >= target) return cached;
+    //
+    // Answered from the device alone. This used to await a server read of
+    // dailyMessageConfig first, on every call, so even a day that was fully
+    // drawn and sitting in SharedPreferences showed the loading overlay for
+    // a round trip — and for a good deal longer than that on a weak signal.
+    // The config is refreshed behind the answer instead; a raised count
+    // tops the day up on the next call.
+    if (cached.isNotEmpty && cached.length >= _knownMessagesPerDay(prefs)) {
+      unawaited(_messagesPerDay(prefs));
+      return cached;
+    }
 
-    return _drawTips(prefs, today, target, cached);
+    final prepared = await _prepare(today);
+    final tips = await _drawTips(prefs, today, prepared, cached);
+    // Spent: a later top-up the same day should see a fresh pool and count.
+    if (identical(_prepared, prepared)) _prepared = null;
+    return tips;
+  }
+
+  /// Fetches everything a draw needs — the count, the pool and today's pins
+  /// — without drawing, so pressing the emblem afterwards is local work
+  /// only. SplashScreen calls this while its quote is on screen, and the app
+  /// again on resume in case the day rolled over in the background.
+  ///
+  /// Deliberately stops short of drawing: a draw marks messages as seen and
+  /// bumps their timesShown, and a reader who opens the app without pressing
+  /// طيّب قلبك has not been shown anything.
+  ///
+  /// Never throws.
+  Future<void> warmUp() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = _todayString();
+      final drawn = prefs.getString(_pickedOnDateKey) == today &&
+          _readCachedSet(prefs).length >= _knownMessagesPerDay(prefs);
+      if (drawn) {
+        await _messagesPerDay(prefs);
+      } else {
+        await _prepare(today);
+      }
+    } catch (_) {
+      // Best effort — getTodayTips() fetches for itself if this did not.
+    }
+  }
+
+  _PreparedDraw? _prepared;
+  Future<_PreparedDraw>? _preparing;
+
+  /// One fetch for a day, shared: a warm-up still in flight when the emblem
+  /// is pressed is joined rather than started again.
+  Future<_PreparedDraw> _prepare(String today) {
+    final ready = _prepared;
+    if (ready != null && ready.day == today) return Future.value(ready);
+    return _preparing ??= _fetchDraw(today).then((draw) {
+      // An empty pool is a failed fetch, not a result worth keeping.
+      if (draw.pool.isNotEmpty) _prepared = draw;
+      return draw;
+    }).whenComplete(() => _preparing = null);
+  }
+
+  /// The reads a draw needs, in parallel — they used to run one after
+  /// another, four round trips counting the pool's two halves, which is most
+  /// of why the first message of the day took seconds to appear.
+  Future<_PreparedDraw> _fetchDraw(String today) async {
+    final prefs = await SharedPreferences.getInstance();
+    final results = await Future.wait<Object>([
+      _messagesPerDay(prefs),
+      _loadPool(),
+      _scheduledIdsFor(today),
+    ]);
+    return _PreparedDraw(
+      day: today,
+      target: results[0] as int,
+      pool: results[1] as List<DailyTip>,
+      pinnedIds: results[2] as List<String>,
+    );
   }
 
   /// Convenience for callers that only ever show one card — the notification
@@ -220,8 +302,9 @@ class DailyTipService {
     final pinned = debugMessagesPerDay;
     if (pinned != null) return pinned;
     try {
-      final doc =
-          await _db.collection('settings').doc('dailyMessageConfig').get();
+      final doc = await _getDoc(
+        _db.collection('settings').doc('dailyMessageConfig'),
+      );
       final value = (doc.data()?['messagesPerDay'] as num?)?.toInt();
       if (value != null && value >= 1) {
         final clamped = value > maxMessagesPerDay ? maxMessagesPerDay : value;
@@ -233,8 +316,41 @@ class DailyTipService {
       // below covers both.
     }
 
+    return _knownMessagesPerDay(prefs);
+  }
+
+  /// The last count this device saw, without asking anyone.
+  int _knownMessagesPerDay(SharedPreferences prefs) {
+    final pinned = debugMessagesPerDay;
+    if (pinned != null) return pinned;
     final cached = prefs.getInt(_messagesPerDayKey) ?? 1;
     return cached < 1 ? 1 : cached;
+  }
+
+  /// How long a read waits on the server before settling for Firestore's
+  /// local cache. A plain `get()` prefers the server, and on a weak or
+  /// dropping connection it can hold out for many seconds before falling
+  /// back — all of it spent behind the loading overlay.
+  static const _serverBudget = Duration(seconds: 3);
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> _getDoc(
+    DocumentReference<Map<String, dynamic>> ref,
+  ) async {
+    try {
+      return await ref.get().timeout(_serverBudget);
+    } on TimeoutException {
+      return ref.get(const GetOptions(source: Source.cache));
+    }
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _getQuery(
+    Query<Map<String, dynamic>> query,
+  ) async {
+    try {
+      return await query.get().timeout(_serverBudget);
+    } on TimeoutException {
+      return query.get(const GetOptions(source: Source.cache));
+    }
   }
 
   List<DailyTip> _readCachedSet(SharedPreferences prefs) {
@@ -271,10 +387,11 @@ class DailyTipService {
   Future<List<DailyTip>> _drawTips(
     SharedPreferences prefs,
     String today,
-    int target,
+    _PreparedDraw prepared,
     List<DailyTip> existing,
   ) async {
-    final pool = await _loadPool();
+    final pool = prepared.pool;
+    final target = prepared.target;
     // Nothing to draw from: hand back whatever the day already had rather
     // than wiping it.
     if (pool.isEmpty) return existing;
@@ -283,7 +400,7 @@ class DailyTipService {
     final chosenIds = {for (final tip in chosen) tip.id};
 
     // 1. The admin's pins for today, in the order they were scheduled.
-    for (final pinned in await _scheduledTipsFor(today, pool)) {
+    for (final pinned in _pinnedTips(prepared.pinnedIds, pool)) {
       if (chosen.length >= target) break;
       if (chosenIds.add(pinned.id)) chosen.add(pinned);
     }
@@ -342,31 +459,27 @@ class DailyTipService {
   /// see DailyMessageSchedulePage. Returns an empty list if there is no
   /// schedule doc, no entry for today, or the pinned messages were since
   /// deleted from the pool.
-  Future<List<DailyTip>> _scheduledTipsFor(
-    String today,
-    List<DailyTip> pool,
-  ) async {
+  Future<List<String>> _scheduledIdsFor(String today) async {
     try {
-      final doc =
-          await _db.collection('settings').doc('dailyMessageSchedule').get();
+      final doc = await _getDoc(
+        _db.collection('settings').doc('dailyMessageSchedule'),
+      );
       final days = doc.data()?['days'] as Map<String, dynamic>?;
-      final entries = normaliseScheduledDay(days?[today]);
-
-      final tips = <DailyTip>[];
-      for (final entry in entries) {
-        final messageId = entry['messageId'] as String?;
-        if (messageId == null) continue;
-        for (final tip in pool) {
-          if (tip.id == messageId) {
-            tips.add(tip);
-            break;
-          }
-        }
-      }
-      return tips;
+      return [
+        for (final entry in normaliseScheduledDay(days?[today]))
+          if (entry['messageId'] is String) entry['messageId'] as String,
+      ];
     } catch (_) {
       return const [];
     }
+  }
+
+  List<DailyTip> _pinnedTips(List<String> ids, List<DailyTip> pool) {
+    final byId = {for (final tip in pool) tip.id: tip};
+    return [
+      for (final id in ids)
+        if (byId[id] != null) byId[id]!,
+    ];
   }
 
   /// `days.<date>` held a single pin object before multi-message days; it
@@ -392,10 +505,15 @@ class DailyTipService {
   }
 
   Future<List<DailyTip>> _loadPool() async {
+    final halves = await Future.wait([_loadSeeded(), _loadCommunity()]);
+    return [...halves[0], ...halves[1]];
+  }
+
+  Future<List<DailyTip>> _loadSeeded() async {
     final pool = <DailyTip>[];
 
     try {
-      final snapshot = await _db.collection('dailyMessages').get();
+      final snapshot = await _getQuery(_db.collection('dailyMessages'));
       for (final doc in snapshot.docs) {
         final data = doc.data();
         final text = (data['arabic'] as String?)?.trim() ?? '';
@@ -416,14 +534,20 @@ class DailyTipService {
       }
     } catch (_) {
       // Offline on first-ever launch, before anything is cached — the
-      // community half below still gets a chance to contribute.
+      // community half still gets a chance to contribute.
     }
+    return pool;
+  }
+
+  Future<List<DailyTip>> _loadCommunity() async {
+    final pool = <DailyTip>[];
 
     try {
-      final snapshot = await _db
-          .collection('communityMessages')
-          .where('status', isEqualTo: 'approved')
-          .get();
+      final snapshot = await _getQuery(
+        _db
+            .collection('communityMessages')
+            .where('status', isEqualTo: 'approved'),
+      );
       for (final doc in snapshot.docs) {
         final data = doc.data();
         final text = (data['message'] as String?)?.trim() ?? '';
@@ -462,4 +586,19 @@ class DailyTipService {
     final day = now.day.toString().padLeft(2, '0');
     return '${now.year}-$month-$day';
   }
+}
+
+/// What [DailyTipService.warmUp] fetches ahead of a draw, for one local day.
+class _PreparedDraw {
+  const _PreparedDraw({
+    required this.day,
+    required this.target,
+    required this.pool,
+    required this.pinnedIds,
+  });
+
+  final String day;
+  final int target;
+  final List<DailyTip> pool;
+  final List<String> pinnedIds;
 }

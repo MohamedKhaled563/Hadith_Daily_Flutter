@@ -1,10 +1,13 @@
-﻿import 'package:firebase_core/firebase_core.dart';
+﻿import 'dart:async';
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_state_controller.dart';
 import 'data/repositories/hadith_repository.dart';
+import 'data/services/daily_tip_service.dart';
 import 'data/services/moderation_service.dart';
 import 'data/services/notification_lifecycle_refresher.dart';
 import 'data/services/notification_scheduler.dart';
@@ -82,6 +85,16 @@ class _HadithAppState extends State<HadithApp> with WidgetsBindingObserver {
   @override
   void didChangePlatformBrightness() {
     if (mounted) setState(() {});
+  }
+
+  /// Back from the background — possibly into a new day, with the app never
+  /// having gone through SplashScreen to fetch it. Same warm-up SplashScreen
+  /// does, so pressing the emblem stays instant.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(DailyTipService().warmUp());
+    }
   }
 
   @override

@@ -37,12 +37,10 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
   // navigated here, not a live query, so `widget.post.likes` never moves on
   // its own — the optimistic delta below is computed against that fixed
   // baseline. "Have I liked this" comes from a live per-user stream (always
-  // the real answer, even across devices), but toggleLike is a Firestore
-  // transaction and never gets an instant local-cache echo, so without this
-  // override the heart would sit frozen for the whole round trip — see
-  // _LiveMessageToolbar in daily_message_screen.dart for the same pattern.
+  // the real answer, even across devices); the override bridges the frame
+  // before that stream echoes a like, and carries the count, which on this
+  // screen has no live source of its own.
   bool? _optimisticLiked;
-  bool _isToggling = false;
 
   /// Saving a community reflection was impossible: the whole community flow
   /// had share and like and no bookmark anywhere, so a reader could only keep
@@ -95,27 +93,22 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
     showModerationOutcome(context, outcome);
   }
 
-  Future<void> _handleLike(bool serverLiked) async {
-    if (_isToggling) return;
+  void _handleLike(bool serverLiked) {
     final next = !(_optimisticLiked ?? serverLiked);
-    setState(() {
-      _optimisticLiked = next;
-      _isToggling = true;
+    setState(() => _optimisticLiked = next);
+    // Issued, not awaited: the batch is in the local cache already and the
+    // streams echo it within a frame; offline it waits for the connection.
+    // The future only settles on the server's verdict, so it is watched
+    // for a rejection rather than held behind.
+    _service.setLiked(widget.post.id, liked: next).catchError((Object _) {
+      if (!mounted) return;
+      setState(() => _optimisticLiked = null);
+      showAppSnack(
+        context,
+        'تعذّر تسجيل الإعجاب، حاول مجدداً',
+        tone: SnackTone.danger,
+      );
     });
-    try {
-      await _service.toggleLike(widget.post.id);
-    } catch (_) {
-      if (mounted) {
-        setState(() => _optimisticLiked = null);
-        showAppSnack(
-          context,
-          'تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت',
-          tone: SnackTone.danger,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isToggling = false);
-    }
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/insight.dart';
+import 'message_like_service.dart';
 
 /// Firestore-backed community messages — submissions land as `pending` and
 /// only become visible to everyone once a moderator approves them (phase 4;
@@ -142,6 +143,11 @@ class CommunityService {
         .snapshots()
         .map((doc) => doc.exists);
   }
+
+  /// See [MessageLikeService.setLiked] — same batch, same rules, for a
+  /// community post.
+  Future<void> setLiked(String messageId, {required bool liked}) =>
+      MessageLikeService().setLiked(_collection, messageId, liked: liked);
 
   Future<void> toggleLike(String messageId) async {
     final user = FirebaseAuth.instance.currentUser;

@@ -41,6 +41,46 @@ class MessageLikeService {
         .map((doc) => (doc.data()?['likeCount'] as num?)?.toInt() ?? 0);
   }
 
+  /// Likes or unlikes [messageId], as a plain batch rather than a
+  /// transaction — the like buttons' path.
+  ///
+  /// A batch lands in the local cache the moment it is issued, so the
+  /// [likeStatus]/[likeCount] streams echo it within a frame, and it queues
+  /// while offline instead of failing. A transaction does neither: it is
+  /// never applied locally ahead of the server, and offline it fails
+  /// outright with `unavailable` — the heart did nothing, then snapped back.
+  ///
+  /// [liked] is the state the reader is asking for, which the caller already
+  /// knows from [likeStatus]. firestore.rules checks it against the like doc
+  /// as it stood before the write, so a batch built from a stale view is
+  /// rejected rather than moving the counter the wrong way.
+  ///
+  /// The returned future settles only on the server's answer — offline, not
+  /// until the device reconnects — so callers should not hold UI on it; it is
+  /// there to surface a rejection.
+  Future<void> setLiked(String collection, String messageId,
+      {required bool liked}) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Future.error(StateError('Must be signed in to like a message.'));
+    }
+
+    final messageRef = _db.collection(collection).doc(messageId);
+    final likeRef = messageRef.collection('likes').doc(user.uid);
+    final batch = _db.batch();
+    if (liked) {
+      batch.set(likeRef, {'createdAt': FieldValue.serverTimestamp()});
+      batch.update(messageRef, {'likeCount': FieldValue.increment(1)});
+    } else {
+      batch.delete(likeRef);
+      batch.update(messageRef, {'likeCount': FieldValue.increment(-1)});
+    }
+    return batch.commit();
+  }
+
+  /// Flips the like from whatever the server says it is now. Still a
+  /// transaction: AccountDeletionService needs the server's answer before it
+  /// moves on, and has no stream of its own to read the current state from.
   Future<void> toggleLike(String collection, String messageId) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {

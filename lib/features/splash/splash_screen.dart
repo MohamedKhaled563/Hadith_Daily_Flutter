@@ -63,6 +63,9 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
 
     _launchResolved = _resolveLaunch();
+    // Fetch today's pool while the splash quote is up, so the first press
+    // of the emblem draws locally instead of waiting on the network.
+    unawaited(DailyTipService().warmUp());
 
     // Rhythmic Heartbeat pulse (Lub-Dub organic curve). Started in
     // didChangeDependencies rather than here — whether it should run at all

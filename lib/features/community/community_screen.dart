@@ -487,15 +487,11 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
   final HadithRepository _repo = HadithRepository();
   final _service = CommunityService();
 
-  // See _LiveMessageToolbar in daily_message_screen.dart for why this
-  // optimistic override exists: toggleLike is a Firestore transaction,
-  // which never gets an instant local-cache echo, so the likeStatus()
-  // stream below would otherwise sit frozen for the whole round trip.
+  // Bridges the frame between a tap and the likeStatus() stream echoing it —
+  // see _LiveMessageToolbar in daily_message_card.dart.
   bool? _optimisticLiked;
-  bool _isToggling = false;
 
   Future<void> _handleLike(bool serverLiked) async {
-    if (_isToggling) return;
     if (!await requireSignIn(
       context,
       reason: 'سجّل الدخول ليبقى إعجابك محفوظاً على كل أجهزتك',
@@ -504,24 +500,20 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
     }
     if (!mounted) return;
     final next = !(_optimisticLiked ?? serverLiked);
-    setState(() {
-      _optimisticLiked = next;
-      _isToggling = true;
+    setState(() => _optimisticLiked = next);
+    // Issued, not awaited: the batch is in the local cache already and the
+    // streams echo it within a frame; offline it waits for the connection.
+    // The future only settles on the server's verdict, so it is watched
+    // for a rejection rather than held behind.
+    _service.setLiked(widget.post.id, liked: next).catchError((Object _) {
+      if (!mounted) return;
+      setState(() => _optimisticLiked = null);
+      showAppSnack(
+        context,
+        'تعذّر تسجيل الإعجاب، حاول مجدداً',
+        tone: SnackTone.danger,
+      );
     });
-    try {
-      await _service.toggleLike(widget.post.id);
-    } catch (_) {
-      if (mounted) {
-        setState(() => _optimisticLiked = null);
-        showAppSnack(
-          context,
-          'تعذّر تسجيل الإعجاب، تحقق من اتصالك بالإنترنت',
-          tone: SnackTone.danger,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isToggling = false);
-    }
   }
 
   @override

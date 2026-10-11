@@ -327,18 +327,16 @@ class _LiveMessageToolbar extends StatefulWidget {
 class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
   final _likeService = MessageLikeService();
 
-  // Optimistic "have I liked this": MessageLikeService.toggleLike runs a
-  // Firestore transaction, and unlike a plain set/update, a transaction's
-  // write is never applied to the local cache ahead of the server — the
-  // likeStatus()/likeCount() streams below sit frozen until the round trip
-  // completes. Without this override the heart would visibly do nothing
-  // for however long that takes. Cleared once the live stream confirms the
-  // same value, so a like from another device still always wins.
+  // Optimistic "have I liked this". MessageLikeService.setLiked is a plain
+  // batch, which the likeStatus()/likeCount() streams below echo from the
+  // local cache almost at once — this only bridges the frame or two before
+  // they do. (It used to cover a whole server round trip, back when likes
+  // were a transaction, which is never applied locally ahead of the
+  // server.) Cleared once the live stream confirms the same value, so a
+  // like from another device still always wins.
   bool? _optimisticLiked;
-  bool _isToggling = false;
 
   Future<void> _handleLike(bool serverLiked) async {
-    if (_isToggling) return;
     // Liking is one of the three things that needs to know who you are — the
     // like doc is keyed by uid so it follows the reader between devices.
     if (!await requireSignIn(
@@ -349,27 +347,26 @@ class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
     }
     if (!mounted) return;
     final next = !(_optimisticLiked ?? serverLiked);
-    setState(() {
-      _optimisticLiked = next;
-      _isToggling = true;
-    });
-    try {
-      await _likeService.toggleLike(
-        widget.insight.sourceCollection,
-        widget.insight.id,
+    setState(() => _optimisticLiked = next);
+    // Issued, not awaited: the batch is in the local cache already and the
+    // streams echo it within a frame; offline it waits for the connection.
+    // The future only settles on the server's verdict, so it is watched
+    // for a rejection rather than held behind.
+    _likeService
+        .setLiked(
+          widget.insight.sourceCollection,
+          widget.insight.id,
+          liked: next,
+        )
+        .catchError((Object _) {
+      if (!mounted) return;
+      setState(() => _optimisticLiked = null);
+      showAppSnack(
+        context,
+        'تعذّر تسجيل الإعجاب، حاول مجدداً',
+        tone: SnackTone.danger,
       );
-    } catch (_) {
-      if (mounted) {
-        setState(() => _optimisticLiked = null);
-        showAppSnack(
-          context,
-          'تعذّر تسجيل الإعجاب، حاول مجدداً',
-          tone: SnackTone.danger,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isToggling = false);
-    }
+    });
   }
 
   @override

@@ -85,6 +85,16 @@ service cloud.firestore {
     function dailyMessageLikeExistsAfter(messageId) {
       return existsAfter(/databases/$(database)/documents/dailyMessages/$(messageId)/likes/$(request.auth.uid));
     }
+    // Whether request.auth's own like doc existed *before* this request.
+    // Paired with the ...ExistsAfter() checks so the counter only moves when
+    // the like doc really flipped: likes are written as a plain batch now
+    // (instant locally, queued offline), and a batch built from a stale view
+    // could otherwise delete a like that was never there and still take one
+    // off likeCount — a hole the old transaction-only clients never hit but
+    // a hand-written request always could.
+    function likeExistedBefore(collection, messageId) {
+      return exists(/databases/$(database)/documents/$(collection)/$(messageId)/likes/$(request.auth.uid));
+    }
 
     match /hadiths/{hadithId} {
       allow read: if true;
@@ -122,10 +132,12 @@ service cloud.firestore {
                            .affectedKeys().hasOnly(['likeCount'])
                       && ((request.resource.data.likeCount
                              == resource.data.get('likeCount', 0) + 1
-                           && dailyMessageLikeExistsAfter(messageId))
+                           && dailyMessageLikeExistsAfter(messageId)
+                           && !likeExistedBefore('dailyMessages', messageId))
                           || (request.resource.data.likeCount
                                 == resource.data.get('likeCount', 0) - 1
-                              && !dailyMessageLikeExistsAfter(messageId))));
+                              && !dailyMessageLikeExistsAfter(messageId)
+                              && likeExistedBefore('dailyMessages', messageId))));
       allow delete: if isAdmin();
 
       // Phase 19: one doc per user who has liked this message, id = their
@@ -425,10 +437,12 @@ service cloud.firestore {
                            .affectedKeys().hasOnly(['likeCount'])
                       && ((request.resource.data.likeCount
                              == resource.data.likeCount + 1
-                           && likeExistsAfter(messageId))
+                           && likeExistsAfter(messageId)
+                           && !likeExistedBefore('communityMessages', messageId))
                           || (request.resource.data.likeCount
                                 == resource.data.likeCount - 1
-                              && !likeExistsAfter(messageId))))
+                              && !likeExistsAfter(messageId)
+                              && likeExistedBefore('communityMessages', messageId))))
                   || (request.auth != null
                       && resource.data.status == 'approved'
                       && request.resource.data.diff(resource.data)
