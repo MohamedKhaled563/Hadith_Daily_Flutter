@@ -11,6 +11,7 @@ import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/entrance.dart';
 import '../../core/widgets/like_counter.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
@@ -221,81 +222,82 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
       color: palette.bodyText,
     );
 
-    return ParchmentCard(
-      elevated: true,
-      showBotanicals: true,
-      padding: EdgeInsets.all(widget.fillHeight ? 18 : 22),
-      child: Column(
-        mainAxisSize:
-            widget.fillHeight ? MainAxisSize.max : MainAxisSize.min,
-        children: [
-          widget.heroTag == null
-              ? emblem
-              : Hero(tag: widget.heroTag!, child: emblem),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: BorderRadius.circular(AppRadii.pill),
-              border: Border.all(color: palette.cardBorder, width: 1.1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AssetHelper.assetOrFallback(
-                  assetPath: 'assets/images/leaf_accent.png',
-                  width: 14,
-                  height: 14,
-                  fallback: Icon(
-                    Icons.eco_rounded,
-                    size: 14,
-                    color: palette.goldText,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _insight.category,
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 12.5,
-                    height: AppLeading.chrome,
-                    fontWeight: FontWeight.w700,
-                    color: palette.goldText,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          GoldDivider(compact: widget.fillHeight),
-          if (widget.fillHeight)
-            Expanded(
-              child: Center(
-                child: _FittedMessage(
-                  text: '« ${_insight.message} »',
-                  style: messageStyle,
-                ),
+    return Entrance(
+      child: ParchmentCard(
+        elevated: true,
+        showBotanicals: true,
+        padding: EdgeInsets.all(widget.fillHeight ? 18 : 22),
+        child: Column(
+          mainAxisSize: widget.fillHeight ? MainAxisSize.max : MainAxisSize.min,
+          children: [
+            widget.heroTag == null
+                ? emblem
+                : Hero(tag: widget.heroTag!, child: emblem),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+                border: Border.all(color: palette.cardBorder, width: 1.1),
               ),
-            )
-          else
-            Text(
-              '« ${_insight.message} »',
-              textAlign: TextAlign.center,
-              style: messageStyle,
-            ),
-          GoldDivider(compact: widget.fillHeight),
-          const SizedBox(height: 2),
-          if (_hadith != null) ...[
-            _HadithLinkPill(
-              hadith: _hadith!,
-              onTap: () => Navigator.push(
-                context,
-                appPageRoute(child: HadithDetailScreen(hadith: _hadith!)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AssetHelper.assetOrFallback(
+                    assetPath: 'assets/images/leaf_accent.png',
+                    width: 14,
+                    height: 14,
+                    fallback: Icon(
+                      Icons.eco_rounded,
+                      size: 14,
+                      color: palette.goldText,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _insight.category,
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 12.5,
+                      height: AppLeading.chrome,
+                      fontWeight: FontWeight.w700,
+                      color: palette.goldText,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
+            GoldDivider(compact: widget.fillHeight),
+            if (widget.fillHeight)
+              Expanded(
+                child: Center(
+                  child: _FittedMessage(
+                    text: '« ${_insight.message} »',
+                    style: messageStyle,
+                  ),
+                ),
+              )
+            else
+              Text(
+                '« ${_insight.message} »',
+                textAlign: TextAlign.center,
+                style: messageStyle,
+              ),
+            GoldDivider(compact: widget.fillHeight),
+            const SizedBox(height: 2),
+            if (_hadith != null) ...[
+              _HadithLinkPill(
+                hadith: _hadith!,
+                onTap: () => Navigator.push(
+                  context,
+                  appPageRoute(child: HadithDetailScreen(hadith: _hadith!)),
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -354,10 +356,10 @@ class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
     // for a rejection rather than held behind.
     _likeService
         .setLiked(
-          widget.insight.sourceCollection,
-          widget.insight.id,
-          liked: next,
-        )
+      widget.insight.sourceCollection,
+      widget.insight.id,
+      liked: next,
+    )
         .catchError((Object _) {
       if (!mounted) return;
       setState(() => _optimisticLiked = null);
@@ -393,8 +395,7 @@ class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
             }
             final isLiked = _optimisticLiked ?? serverLiked;
             final serverCount = likeCountSnap.data ?? 0;
-            final displayedLikes =
-                serverCount +
+            final displayedLikes = serverCount +
                 (_optimisticLiked != null && _optimisticLiked != serverLiked
                     ? (_optimisticLiked! ? 1 : -1)
                     : 0);

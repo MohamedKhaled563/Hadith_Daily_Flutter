@@ -10,6 +10,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/entrance.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
@@ -213,25 +214,27 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Semantics(
-              header: true,
-              child: Column(
-                children: [
-                  Text(
-                    hadith.title,
-                    textAlign: TextAlign.center,
-                    style: textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'الحديث رقم ${toArabicDigits(hadith.number)} من الأربعين النووية',
-                    textAlign: TextAlign.center,
-                    style: textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: palette.goldText,
+            child: Entrance(
+              child: Semantics(
+                header: true,
+                child: Column(
+                  children: [
+                    Text(
+                      hadith.title,
+                      textAlign: TextAlign.center,
+                      style: textTheme.headlineMedium,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'الحديث رقم ${toArabicDigits(hadith.number)} من الأربعين النووية',
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: palette.goldText,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -245,194 +248,209 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
                 32 + MediaQuery.viewPaddingOf(context).bottom,
               ),
               children: [
-                ParchmentCard(
-                  elevated: true,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _CardHeading(
-                        icon: Icons.format_quote_rounded,
-                        title: 'نص الحديث الشريف',
-                      ),
-                      const SizedBox(height: 14),
-                      if (hadith.isnad.isNotEmpty) ...[
-                        // The isnad/ananah phrase that introduces the hadith
-                        // (عنعنة) — set apart from the hadith text itself so
-                        // the reader can tell where the chain of narration
-                        // ends and the Prophet's words begin.
-                        Text(
-                          hadith.isnad,
-                          textAlign: TextAlign.start,
-                          // No italic. Arabic script has no italic form, and
-                          // no oblique Amiri is bundled — so `FontStyle.italic`
-                          // made the engine synthesise a slant by shearing the
-                          // glyphs, which is a Latin convention applied to a
-                          // script that does not take it. The chain of
-                          // narration is set apart by size and colour instead,
-                          // which is how Arabic typography does this.
-                          //
-                          // mutedText rather than bodyText at 70%: it is the
-                          // token that was measured against these surfaces,
-                          // and an arbitrary alpha was not.
-                          style: AppTextStyles.hadithText.copyWith(
-                            fontSize: 15,
-                            color: palette.mutedText,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                      // The Prophetic text in Amiri — a Naskh face — set apart
-                      // from the Tajawal UI chrome around it.
-                      Text(
-                        hadith.text,
-                        textAlign: TextAlign.start,
-                        style: AppTextStyles.hadithText.copyWith(
-                          color: palette.bodyText,
-                        ),
-                      ),
-                      if (hadith.mukhrij.isNotEmpty ||
-                          (hadith.source?.trim().isNotEmpty ?? false)) ...[
-                        const SizedBox(height: 16),
-                        Align(
-                          alignment: AlignmentDirectional.centerEnd,
-                          child: Wrap(
-                            alignment: WrapAlignment.end,
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              // Labeled explicitly — this used to be a bare
-                              // name with a person icon and no label, which
-                              // is what read as the same thing as the
-                              // reference chip below (a tester flagged the
-                              // two as indistinguishable).
-                              if (hadith.mukhrij.isNotEmpty)
-                                _AttributionChip(
-                                  icon: Icons.menu_book_rounded,
-                                  label: 'رواه',
-                                  value: hadith.mukhrij,
-                                ),
-                              // Deliberately reads `hadith.source` here, not
-                              // `hadith.reference` — reference falls back to
-                              // the generic "من الأربعين النووية" book title
-                              // when no real source was entered (true for
-                              // all 42 bundled hadiths today), and showing
-                              // that fallback as "أخرجه: ..." reads as a
-                              // fabricated isnad attribution. `source` has
-                              // no such fallback, so this chip only appears
-                              // once a real transmitter (e.g. "رواه مسلم")
-                              // is actually entered in the data.
-                              if (hadith.source?.trim().isNotEmpty ?? false)
-                                _AttributionChip(
-                                  icon: Icons.auto_stories_rounded,
-                                  label: 'أخرجه',
-                                  value: hadith.source!.trim(),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (hadith.shortExplanation.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  ParchmentCard(
+                Entrance.staggered(
+                  index: 1,
+                  child: ParchmentCard(
+                    elevated: true,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _CardHeading(
-                          icon: Icons.summarize_rounded,
-                          title: 'خلاصة الشرح',
+                          icon: Icons.format_quote_rounded,
+                          title: 'نص الحديث الشريف',
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
+                        if (hadith.isnad.isNotEmpty) ...[
+                          // The isnad/ananah phrase that introduces the hadith
+                          // (عنعنة) — set apart from the hadith text itself so
+                          // the reader can tell where the chain of narration
+                          // ends and the Prophet's words begin.
+                          Text(
+                            hadith.isnad,
+                            textAlign: TextAlign.start,
+                            // No italic. Arabic script has no italic form, and
+                            // no oblique Amiri is bundled — so `FontStyle.italic`
+                            // made the engine synthesise a slant by shearing the
+                            // glyphs, which is a Latin convention applied to a
+                            // script that does not take it. The chain of
+                            // narration is set apart by size and colour instead,
+                            // which is how Arabic typography does this.
+                            //
+                            // mutedText rather than bodyText at 70%: it is the
+                            // token that was measured against these surfaces,
+                            // and an arbitrary alpha was not.
+                            style: AppTextStyles.hadithText.copyWith(
+                              fontSize: 15,
+                              color: palette.mutedText,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        // The Prophetic text in Amiri — a Naskh face — set apart
+                        // from the Tajawal UI chrome around it.
                         Text(
-                          hadith.shortExplanation,
+                          hadith.text,
                           textAlign: TextAlign.start,
-                          style: TextStyle(
-                            fontFamily: kSans,
-                            fontSize: 14.5,
-                            height: AppLeading.body,
+                          style: AppTextStyles.hadithText.copyWith(
                             color: palette.bodyText,
                           ),
                         ),
+                        if (hadith.mukhrij.isNotEmpty ||
+                            (hadith.source?.trim().isNotEmpty ?? false)) ...[
+                          const SizedBox(height: 16),
+                          Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: Wrap(
+                              alignment: WrapAlignment.end,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                // Labeled explicitly — this used to be a bare
+                                // name with a person icon and no label, which
+                                // is what read as the same thing as the
+                                // reference chip below (a tester flagged the
+                                // two as indistinguishable).
+                                if (hadith.mukhrij.isNotEmpty)
+                                  _AttributionChip(
+                                    icon: Icons.menu_book_rounded,
+                                    label: 'رواه',
+                                    value: hadith.mukhrij,
+                                  ),
+                                // Deliberately reads `hadith.source` here, not
+                                // `hadith.reference` — reference falls back to
+                                // the generic "من الأربعين النووية" book title
+                                // when no real source was entered (true for
+                                // all 42 bundled hadiths today), and showing
+                                // that fallback as "أخرجه: ..." reads as a
+                                // fabricated isnad attribution. `source` has
+                                // no such fallback, so this chip only appears
+                                // once a real transmitter (e.g. "رواه مسلم")
+                                // is actually entered in the data.
+                                if (hadith.source?.trim().isNotEmpty ?? false)
+                                  _AttributionChip(
+                                    icon: Icons.auto_stories_rounded,
+                                    label: 'أخرجه',
+                                    value: hadith.source!.trim(),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
+                    ),
+                  ),
+                ),
+                if (hadith.shortExplanation.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Entrance.staggered(
+                    index: 2,
+                    child: ParchmentCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _CardHeading(
+                            icon: Icons.summarize_rounded,
+                            title: 'خلاصة الشرح',
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            hadith.shortExplanation,
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                              fontFamily: kSans,
+                              fontSize: 14.5,
+                              height: AppLeading.body,
+                              color: palette.bodyText,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
                 if (hadith.explanation.isNotEmpty) ...[
                   const SizedBox(height: 14),
-                  _ExplanationTeaserCard(hadith: hadith),
+                  Entrance.staggered(
+                    index: 3,
+                    child: _ExplanationTeaserCard(hadith: hadith),
+                  ),
                 ],
                 if (hadith.narratorBio.isNotEmpty) ...[
                   const SizedBox(height: 14),
-                  ParchmentCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _CardHeading(
-                          icon: Icons.person_outline_rounded,
-                          title: 'عن راوي الحديث',
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          hadith.narratorBio,
-                          textAlign: TextAlign.start,
-                          style: TextStyle(
-                            fontFamily: kSans,
-                            fontSize: 14,
-                            height: AppLeading.body,
-                            color: palette.bodyText,
+                  Entrance.staggered(
+                    index: 4,
+                    child: ParchmentCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _CardHeading(
+                            icon: Icons.person_outline_rounded,
+                            title: 'عن راوي الحديث',
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 12),
+                          Text(
+                            hadith.narratorBio,
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                              fontFamily: kSans,
+                              fontSize: 14,
+                              height: AppLeading.body,
+                              color: palette.bodyText,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
                 if (hadith.keyLessons.isNotEmpty) ...[
                   const SizedBox(height: 14),
-                  ParchmentCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _CardHeading(
-                          icon: Icons.spa_rounded,
-                          title: 'من فوائد الحديث وهداياته',
-                        ),
-                        const SizedBox(height: 12),
-                        for (final lesson in hadith.keyLessons)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Container(
-                                    width: 5,
-                                    height: 5,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: palette.goldText,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    lesson,
-                                    textAlign: TextAlign.start,
-                                    style: TextStyle(
-                                      fontFamily: kSans,
-                                      fontSize: 13.5,
-                                      height: AppLeading.body,
-                                      color: palette.bodyText,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                  Entrance.staggered(
+                    index: 5,
+                    child: ParchmentCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _CardHeading(
+                            icon: Icons.spa_rounded,
+                            title: 'من فوائد الحديث وهداياته',
                           ),
-                      ],
+                          const SizedBox(height: 12),
+                          for (final lesson in hadith.keyLessons)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: Container(
+                                      width: 5,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: palette.goldText,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      lesson,
+                                      textAlign: TextAlign.start,
+                                      style: TextStyle(
+                                        fontFamily: kSans,
+                                        fontSize: 13.5,
+                                        height: AppLeading.body,
+                                        color: palette.bodyText,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

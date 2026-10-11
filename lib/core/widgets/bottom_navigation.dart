@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../utils/app_motion.dart';
 import 'tap_target.dart';
@@ -325,8 +326,8 @@ class _GoldenHalo extends StatelessWidget {
           gradient: RadialGradient(
             radius: 0.85,
             colors: [
-              const Color(0xFFE8D49E).withValues(alpha: 0.55),
-              const Color(0xFFC59B27).withValues(alpha: 0.25),
+              AppColors.goldLight.withValues(alpha: 0.55),
+              AppColors.gold.withValues(alpha: 0.25),
               Colors.transparent,
             ],
           ),

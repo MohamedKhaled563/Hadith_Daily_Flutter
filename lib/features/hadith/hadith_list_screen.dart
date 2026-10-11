@@ -16,6 +16,7 @@ import '../../core/widgets/tap_target.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/intro_section.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../core/widgets/entrance.dart';
 import 'hadith_detail_screen.dart';
 import 'intro_section_screen.dart';
 
@@ -27,6 +28,13 @@ class HadithListScreen extends StatefulWidget {
 }
 
 class _HadithListScreenState extends State<HadithListScreen> {
+  bool _entranceDone = false;
+  Timer? _entranceTimer;
+
+  Widget _withEntrance(int index, Widget row) => _entranceDone || index > 7
+      ? row
+      : Entrance.staggered(index: index, child: row);
+
   final HadithRepository _repo = HadithRepository();
   final TextEditingController _searchController = TextEditingController();
 
@@ -48,6 +56,12 @@ class _HadithListScreenState extends State<HadithListScreen> {
   @override
   void initState() {
     super.initState();
+    // Rows rise in once when the screen opens. After that, rows the list
+    // mounts while scrolling appear at rest, so scrolling never replays it.
+    _entranceTimer = Timer(
+      const Duration(milliseconds: 900),
+      () => _entranceDone = true,
+    );
     _repo.favoritesListenable.addListener(_onFavoritesChanged);
   }
 
@@ -63,6 +77,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
 
   @override
   void dispose() {
+    _entranceTimer?.cancel();
     _repo.favoritesListenable.removeListener(_onFavoritesChanged);
     _searchDebounce?.cancel();
     _searchController.dispose();
@@ -105,7 +120,6 @@ class _HadithListScreenState extends State<HadithListScreen> {
       child: Column(
         children: [
           const SizedBox(height: 8),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -134,9 +148,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
               ],
             ),
           ),
-
           const SizedBox(height: 10),
-
           Semantics(
             header: true,
             child: Text(
@@ -156,9 +168,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
               style: textTheme.bodySmall,
             ),
           ),
-
           const SizedBox(height: 12),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
@@ -227,7 +237,6 @@ class _HadithListScreenState extends State<HadithListScreen> {
               ),
             ),
           ),
-
           if (_searchQuery.trim().isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
@@ -239,9 +248,7 @@ class _HadithListScreenState extends State<HadithListScreen> {
               style: textTheme.bodySmall?.copyWith(color: palette.goldText),
             ),
           ],
-
           const SizedBox(height: 10),
-
           Expanded(
             child: displayed.isEmpty
                 ? AppEmptyState(
@@ -260,39 +267,46 @@ class _HadithListScreenState extends State<HadithListScreen> {
                   )
                 : ListView.separated(
                     padding: EdgeInsets.fromLTRB(
-                      20, 4, 20, 16 + MediaQuery.viewPaddingOf(context).bottom,
+                      20,
+                      4,
+                      20,
+                      16 + MediaQuery.viewPaddingOf(context).bottom,
                     ),
                     itemCount: intro.length + displayed.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      if (index < intro.length) {
-                        final section = intro[index];
-                        return _IntroListCard(
-                          section: section,
-                          onTap: () => Navigator.push(
-                            context,
-                            appPageRoute(
-                              child: IntroSectionScreen(section: section),
-                            ),
-                          ),
-                        );
-                      }
-                      final hadith = displayed[index - intro.length];
-                      return _HadithListCard(
-                        hadith: hadith,
-                        isFavorite: _repo.isHadithFavorite(hadith.number),
-                        onToggleFavorite: () => _toggleFavorite(hadith.number),
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            appPageRoute(
-                              child: HadithDetailScreen(hadith: hadith),
+                    itemBuilder: (context, index) => _withEntrance(
+                      index,
+                      Builder(builder: (context) {
+                        if (index < intro.length) {
+                          final section = intro[index];
+                          return _IntroListCard(
+                            section: section,
+                            onTap: () => Navigator.push(
+                              context,
+                              appPageRoute(
+                                child: IntroSectionScreen(section: section),
+                              ),
                             ),
                           );
-                          if (mounted) setState(() {});
-                        },
-                      );
-                    },
+                        }
+                        final hadith = displayed[index - intro.length];
+                        return _HadithListCard(
+                          hadith: hadith,
+                          isFavorite: _repo.isHadithFavorite(hadith.number),
+                          onToggleFavorite: () =>
+                              _toggleFavorite(hadith.number),
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              appPageRoute(
+                                child: HadithDetailScreen(hadith: hadith),
+                              ),
+                            );
+                            if (mounted) setState(() {});
+                          },
+                        );
+                      }),
+                    ),
                   ),
           ),
         ],
@@ -389,16 +403,12 @@ class _HadithListCard extends StatelessWidget {
                       ? Icons.bookmark_rounded
                       : Icons.bookmark_border_rounded,
                   size: 22,
-                  color: isFavorite
-                      ? palette.goldText
-                      : palette.mutedText,
+                  color: isFavorite ? palette.goldText : palette.mutedText,
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 10),
-
           Text(
             hadith.text,
             maxLines: 2,
@@ -409,9 +419,7 @@ class _HadithListCard extends StatelessWidget {
               color: palette.mutedText,
             ),
           ),
-
           const SizedBox(height: 10),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

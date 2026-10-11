@@ -40,6 +40,11 @@ class AppBackground extends StatelessWidget {
             ),
           ),
 
+          if (showBottomLandscape)
+            ExcludeSemantics(
+              child: IgnorePointer(child: _SkyTint(isDark: isDark)),
+            ),
+
           child,
         ],
       ),
@@ -137,6 +142,51 @@ class AppScreen extends StatelessWidget {
           child: bottomNavigationBar == null
               ? child
               : BottomNavigation.scope(child: child),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tints the sky of the landscape to the hour: lavender and peach at dawn,
+/// a fresh green by day, coral at sunset, a deep blue in the evening. The
+/// painting itself never changes; this is a wash over its empty upper half,
+/// fading out well before the hills, so the scene feels like *now*.
+///
+/// Read from the clock at build. The home screen rebuilds often enough that
+/// an open app drifts into the next period without a timer of its own.
+class _SkyTint extends StatelessWidget {
+  const _SkyTint({required this.isDark});
+
+  final bool isDark;
+
+  static List<Color> _colorsFor(int hour, bool isDark) {
+    if (isDark) {
+      return const [Color(0xB314402E), Color(0x40143A2A), Color(0x00000000)];
+    }
+    if (hour >= 4 && hour < 7) {
+      // Dawn — around Fajr.
+      return const [Color(0x8CB0AAD6), Color(0x73F3C4AF), Color(0x00F3C4AF)];
+    }
+    if (hour >= 7 && hour < 16) {
+      return const [Color(0x8CA6D6BE), Color(0x59D6ECDE), Color(0x00D6ECDE)];
+    }
+    if (hour >= 16 && hour < 19) {
+      // Sunset — around Maghrib, matching the sun already in the painting.
+      return const [Color(0x8CE78B60), Color(0x73F6C596), Color(0x00F6C596)];
+    }
+    return const [Color(0x8C7E8CC2), Color(0x59C9C3E3), Color(0x00C9C3E3)];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: _colorsFor(DateTime.now().hour, isDark),
+          stops: const [0.0, 0.32, 0.6],
         ),
       ),
     );

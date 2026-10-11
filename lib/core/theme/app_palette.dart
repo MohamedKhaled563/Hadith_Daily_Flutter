@@ -28,6 +28,9 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
     required this.warningWash,
     required this.danger,
     required this.dangerWash,
+    required this.warm,
+    required this.warmText,
+    required this.warmWash,
   });
 
   /// Parchment card gradient, top → bottom.
@@ -68,18 +71,26 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
   final Color danger;
   final Color dangerWash;
 
+  /// The sunset accent: likes, streaks, "new" badges. [warm] is for icons
+  /// and fills (3:1 on every surface), [warmText] for text on [warmWash].
+  final Color warm;
+  final Color warmText;
+  final Color warmWash;
+
   static const light = BotanicalPalette(
-    parchmentTop: Color(0xFFF2ECE0),
-    parchmentMid: Color(0xFFEBE3D4),
-    parchmentBottom: Color(0xFFE5DCCB),
-    cardBorder: Color(0x75D1BE93),
-    cardBorderStrong: Color(0xFFD6BE88),
+    // Lighter than the page now (L* 99 → 95 over a 93 ground). The old card
+    // was darker than the scaffold, so it read as sunk rather than raised.
+    parchmentTop: Color(0xFFFFFCF5),
+    parchmentMid: Color(0xFFFAF4E8),
+    parchmentBottom: Color(0xFFF6EDDC),
+    cardBorder: Color(0x9ED9A521),
+    cardBorderStrong: Color(0xFFD9B45A),
     surface: Color(0xFFFAF6EE),
     surfaceSunken: Color(0xFFEFE8DC),
     goldText: Color(0xFF7A5B0E),
     bodyText: Color(0xFF243329),
     mutedText: Color(0xFF4A5D52),
-    ornamentGold: Color(0xFFC59B27),
+    ornamentGold: Color(0xFFD9A521),
     watermark: Color(0x1CB89F70),
     cornerOrnament: Color(0x77B89F70),
     success: Color(0xFF1F6B43),
@@ -88,20 +99,23 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
     warningWash: Color(0xFFF0E4C8),
     danger: Color(0xFF96291F),
     dangerWash: Color(0xFFF3DDD7),
+    warm: Color(0xFFD2643A),
+    warmText: Color(0xFFA9481F),
+    warmWash: Color(0xFFFBE3D3),
   );
 
   static const dark = BotanicalPalette(
-    parchmentTop: Color(0xFF24362B),
-    parchmentMid: Color(0xFF1B2A20),
-    parchmentBottom: Color(0xFF152219),
-    cardBorder: Color(0x60D1BE93),
-    cardBorderStrong: Color(0xFFD6BE88),
+    parchmentTop: Color(0xFF1F3328),
+    parchmentMid: Color(0xFF192B21),
+    parchmentBottom: Color(0xFF14231A),
+    cardBorder: Color(0x80E6BE55),
+    cardBorderStrong: Color(0xFFE6BE55),
     surface: Color(0xFF1C2620),
     surfaceSunken: Color(0xFF1E2D23),
-    goldText: Color(0xFFD9B44A),
+    goldText: Color(0xFFE6BE55),
     bodyText: Color(0xFFF7F5EE),
-    mutedText: Color(0xFFB5C0B8),
-    ornamentGold: Color(0xFFD1BE93),
+    mutedText: Color(0xFFB9C6BD),
+    ornamentGold: Color(0xFFE6BE55),
     watermark: Color(0x18D1BE93),
     cornerOrnament: Color(0x55D1BE93),
     success: Color(0xFF8FD3AB),
@@ -110,6 +124,9 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
     warningWash: Color(0xFF35301C),
     danger: Color(0xFFF2948B),
     dangerWash: Color(0xFF351F1C),
+    warm: Color(0xFFF0A07A),
+    warmText: Color(0xFFF0A07A),
+    warmWash: Color(0xFF3A2A20),
   );
 
   /// Convenience accessor so call sites read as
@@ -138,6 +155,9 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
     Color? warningWash,
     Color? danger,
     Color? dangerWash,
+    Color? warm,
+    Color? warmText,
+    Color? warmWash,
   }) {
     return BotanicalPalette(
       parchmentTop: parchmentTop ?? this.parchmentTop,
@@ -159,6 +179,9 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
       warningWash: warningWash ?? this.warningWash,
       danger: danger ?? this.danger,
       dangerWash: dangerWash ?? this.dangerWash,
+      warm: warm ?? this.warm,
+      warmText: warmText ?? this.warmText,
+      warmWash: warmWash ?? this.warmWash,
     );
   }
 
@@ -186,6 +209,9 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
       warningWash: Color.lerp(warningWash, other.warningWash, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
       dangerWash: Color.lerp(dangerWash, other.dangerWash, t)!,
+      warm: Color.lerp(warm, other.warm, t)!,
+      warmText: Color.lerp(warmText, other.warmText, t)!,
+      warmWash: Color.lerp(warmWash, other.warmWash, t)!,
     );
   }
 }
