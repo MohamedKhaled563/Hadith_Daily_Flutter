@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../utils/app_motion.dart';
 import 'asset_helper.dart';
 import 'bottom_navigation.dart';
 
@@ -153,12 +156,60 @@ class AppScreen extends StatelessWidget {
 /// painting itself never changes; this is a wash over its empty upper half,
 /// fading out well before the hills, so the scene feels like *now*.
 ///
-/// Read from the clock at build. The home screen rebuilds often enough that
-/// an open app drifts into the next period without a timer of its own.
-class _SkyTint extends StatelessWidget {
+/// It used to read the clock only at build, trusting the home screen to
+/// rebuild often enough. It doesn't: an app opened at three was still showing
+/// the daytime green at ten past four. So the tint now keeps its own clock —
+/// a timer to the top of the next hour, and a fresh look whenever the app
+/// comes back to the foreground (timers do not run while it is suspended).
+class _SkyTint extends StatefulWidget {
   const _SkyTint({required this.isDark});
 
   final bool isDark;
+
+  @override
+  State<_SkyTint> createState() => _SkyTintState();
+}
+
+class _SkyTintState extends State<_SkyTint> with WidgetsBindingObserver {
+  late int _hour = DateTime.now().hour;
+  Timer? _nextHour;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleNextHour();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _nextHour?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refresh();
+  }
+
+  void _scheduleNextHour() {
+    _nextHour?.cancel();
+    final now = DateTime.now();
+    final topOfNextHour = DateTime(now.year, now.month, now.day, now.hour + 1);
+    // A second past the hour, so the clock has certainly turned over.
+    _nextHour = Timer(
+      topOfNextHour.difference(now) + const Duration(seconds: 1),
+      _refresh,
+    );
+  }
+
+  void _refresh() {
+    if (!mounted) return;
+    final hour = DateTime.now().hour;
+    if (hour != _hour) setState(() => _hour = hour);
+    _scheduleNextHour();
+  }
 
   static List<Color> _colorsFor(int hour, bool isDark) {
     if (isDark) {
@@ -180,12 +231,16 @@ class _SkyTint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    // Animated, so a period change while the reader is looking is a slow
+    // shift of light rather than a cut.
+    return AnimatedContainer(
+      duration: context.motion(const Duration(milliseconds: 1600)),
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: _colorsFor(DateTime.now().hour, isDark),
+          colors: _colorsFor(_hour, widget.isDark),
           stops: const [0.0, 0.32, 0.6],
         ),
       ),
