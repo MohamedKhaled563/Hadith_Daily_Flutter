@@ -1,0 +1,52 @@
+# Codemagic builds the iOS app for us, because Xcode only runs on a Mac and
+# this project is developed on Windows. Android does not need this: the
+# signed .aab is built locally (docs/android-release-reminding-steps.md).
+#
+# Codemagic only reads this file once the app's settings in Codemagic are
+# switched to "codemagic.yaml" instead of the Workflow Editor.
+#
+# Two things must exist before the first run, and both need the paid Apple
+# Developer account:
+#   1. An App Store Connect API key, added in Codemagic under
+#      Team settings -> Integrations -> Developer Portal, and named exactly
+#      as in `integrations:` below.
+#   2. The App ID com.prodktstudio.tayebqalbak registered in the Apple
+#      Developer portal with the "Sign in with Apple" capability turned on
+#      (ios/Runner/Runner.entitlements asks for it, so signing fails without).
+
+workflows:
+  ios-release:
+    name: iOS release (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: Tayeb Qalbak ASC key
+    environment:
+      flutter: stable
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.prodktstudio.tayebqalbak
+    scripts:
+      - name: Apply the fetched signing profiles to the Xcode project
+        script: xcode-project use-profiles
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Build the .ipa
+        script: |
+          # App Store Connect refuses a build number it has seen before, even
+          # for a deleted build, and pubspec's "+1" never moves on its own.
+          # Codemagic's counter goes up on every build, so each upload is
+          # unique. The version name (1.0.0) still comes from pubspec.yaml.
+          flutter build ipa --release \
+            --build-number=$PROJECT_BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Lands in TestFlight only. Submitting for review stays a manual
+        # click in App Store Connect.
+        submit_to_testflight: true

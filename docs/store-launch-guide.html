@@ -1,0 +1,784 @@
+<title>Tayyib Qalbak Launch Guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Lexend:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Amiri:wght@700&display=swap">
+<style>
+  :root {
+    --ground: #F1F4EE;
+    --surface: #FFFFFF;
+    --surface-2: #F7F9F5;
+    --ink: #17221D;
+    --ink-2: #4F6157;
+    --ink-3: #7A8B82;
+    --line: #D9E1D5;
+    --emerald: #15362B;
+    --emerald-soft: #E2ECE5;
+    --gold: #9A7615;
+    --gold-soft: #F7EED6;
+    --you: #8A5A0E;
+    --you-bg: #FAEFD9;
+    --dev: #2D5773;
+    --dev-bg: #E5EFF6;
+    --done: #2B6A4C;
+    --done-bg: #E0F0E6;
+    --warn: #9C2F22;
+    --warn-bg: #FBEAE6;
+    --on-emerald: #F3F6F1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #0D1512;
+      --surface: #142019;
+      --surface-2: #19271F;
+      --ink: #E4ECE7;
+      --ink-2: #9DB0A5;
+      --ink-3: #6F8378;
+      --line: #263830;
+      --emerald: #84C7A6;
+      --emerald-soft: #1A2D24;
+      --gold: #E0BF5C;
+      --gold-soft: #2A2314;
+      --you: #E6B565;
+      --you-bg: #2C2213;
+      --dev: #8CBCDC;
+      --dev-bg: #14232D;
+      --done: #6CC197;
+      --done-bg: #13281D;
+      --warn: #EE8B7C;
+      --warn-bg: #2E1814;
+      --on-emerald: #0D1512;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #0D1512;
+    --surface: #142019;
+    --surface-2: #19271F;
+    --ink: #E4ECE7;
+    --ink-2: #9DB0A5;
+    --ink-3: #6F8378;
+    --line: #263830;
+    --emerald: #84C7A6;
+    --emerald-soft: #1A2D24;
+    --gold: #E0BF5C;
+    --gold-soft: #2A2314;
+    --you: #E6B565;
+    --you-bg: #2C2213;
+    --dev: #8CBCDC;
+    --dev-bg: #14232D;
+    --done: #6CC197;
+    --done-bg: #13281D;
+    --warn: #EE8B7C;
+    --warn-bg: #2E1814;
+    --on-emerald: #0D1512;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Lexend", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  b, strong { font-weight: 600; }
+  a { color: var(--emerald); text-underline-offset: 3px; font-weight: 500; }
+  a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px; }
+  code, .mono { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-size: .86em; }
+  code { background: var(--surface-2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 5px; word-break: break-word; }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding-inline: 20px; padding-block: 0 80px; }
+
+  /* nav */
+  .nav {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+    background: color-mix(in srgb, var(--ground) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav .in { max-width: 860px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 6px; overflow-x: auto; align-items: center; }
+  .nav a { white-space: nowrap; text-decoration: none; color: var(--ink-2); font-size: 14px; padding: 6px 12px; border-radius: 999px; font-weight: 400; }
+  .nav a:hover { background: var(--surface); color: var(--ink); }
+  .nav .prog { margin-left: auto; white-space: nowrap; font-size: 13px; color: var(--ink-3); font-variant-numeric: tabular-nums; padding-left: 10px; }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; padding-block: 44px 28px; }
+  .emblem { width: 110px; color: var(--emerald); }
+  .eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); font-weight: 500; margin: 0 0 8px; }
+  h1, h2, h3 { font-family: "Bricolage Grotesque", "Lexend", sans-serif; text-wrap: balance; margin: 0; letter-spacing: -.01em; }
+  h1 { font-size: clamp(34px, 6vw, 50px); line-height: 1.05; font-weight: 800; color: var(--emerald); }
+  h1 .ar { font-family: "Amiri", serif; font-weight: 700; }
+  .lede { font-size: 18px; color: var(--ink-2); margin: 14px 0 0; max-width: 58ch; }
+
+  /* money */
+  .money { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-block: 8px 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .tile .k { font-size: 13px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; }
+  .tile .v { font-family: "Bricolage Grotesque", sans-serif; font-size: 34px; font-weight: 800; color: var(--emerald); line-height: 1.1; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .tile .v small { font-size: 15px; font-weight: 600; color: var(--ink-2); }
+  .tile p { margin: 6px 0 0; font-size: 14px; color: var(--ink-2); }
+  .note { font-size: 14px; color: var(--ink-3); margin: 0; }
+
+  /* legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-block: 28px 0; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; font-size: 14px; color: var(--ink-2); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; letter-spacing: .02em; white-space: nowrap; }
+  .chip.you { background: var(--you-bg); color: var(--you); }
+  .chip.dev { background: var(--dev-bg); color: var(--dev); }
+  .chip.done { background: var(--done-bg); color: var(--done); }
+  .chip.cost { background: var(--gold-soft); color: var(--gold); }
+  .chip.wait { background: var(--warn-bg); color: var(--warn); }
+
+  /* sections */
+  section.part { margin-top: 64px; scroll-margin-top: 70px; }
+  .part-head { display: flex; gap: 16px; align-items: baseline; border-bottom: 2px solid var(--emerald); padding-bottom: 10px; margin-bottom: 8px; }
+  .part-head .tag { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 15px; color: var(--on-emerald); background: var(--emerald); border-radius: 8px; padding: 2px 10px; }
+  h2 { font-size: clamp(26px, 4vw, 32px); font-weight: 700; }
+  .part-intro { color: var(--ink-2); margin: 12px 0 8px; max-width: 64ch; }
+  h3.sub { font-size: 21px; font-weight: 700; margin: 36px 0 4px; color: var(--ink); }
+
+  /* steps */
+  ol.steps { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 14px; counter-reset: s; }
+  .step { counter-increment: s; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px 18px 66px; position: relative; }
+  .step::before {
+    content: counter(s); position: absolute; left: 18px; top: 18px; width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 15px;
+    background: var(--emerald-soft); color: var(--emerald);
+  }
+  .step.is-done { background: var(--surface-2); }
+  .step.is-done::before { content: "✓"; background: var(--done); color: var(--on-emerald); }
+  .step.is-done h4 { color: var(--ink-3); }
+  .step-top { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+  .step h4 { font-family: "Bricolage Grotesque", sans-serif; font-size: 19px; font-weight: 700; margin: 3px 0 0; flex: 1 1 260px; text-wrap: balance; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .why { margin: 8px 0 0; color: var(--ink-2); font-size: 15px; }
+  .why b { color: var(--gold); font-weight: 600; }
+  .step ul { margin: 10px 0 0; padding-left: 20px; }
+  .step li { margin: 4px 0; }
+  .step li::marker { color: var(--ink-3); }
+  .tick { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; color: var(--ink-3); cursor: pointer; user-select: none; }
+  .tick input { width: 18px; height: 18px; accent-color: var(--done); cursor: pointer; }
+
+  details { margin-top: 12px; border: 1px dashed var(--line); border-radius: 10px; padding: 10px 14px; background: var(--surface-2); }
+  summary { cursor: pointer; font-size: 14px; font-weight: 500; color: var(--dev); }
+  details[open] summary { margin-bottom: 8px; }
+  pre { margin: 8px 0; padding: 12px 14px; overflow-x: auto; background: var(--ground); border: 1px solid var(--line); border-radius: 8px; font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; line-height: 1.55; }
+
+  .callout { margin-top: 12px; padding: 12px 14px; border-radius: 10px; font-size: 15px; }
+  .callout.warn { background: var(--warn-bg); color: var(--ink); border-left: 3px solid var(--warn); }
+  .callout.tip { background: var(--gold-soft); border-left: 3px solid var(--gold); }
+
+  /* decision */
+  .choose { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .opt { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .opt h4 { font-family: "Bricolage Grotesque", sans-serif; font-size: 18px; margin: 0 0 6px; }
+  .opt ul { margin: 0; padding-left: 18px; font-size: 15px; }
+  .opt.pick { border: 2px solid var(--emerald); }
+  .opt .pk { font-size: 12px; font-weight: 600; color: var(--emerald); text-transform: uppercase; letter-spacing: .06em; }
+
+  /* screen sketches */
+  .sketch { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface-2); max-width: 520px; }
+  .sketch .bar { display: flex; gap: 6px; align-items: center; padding: 8px 12px; background: var(--ground); border-bottom: 1px solid var(--line); font-size: 12px; color: var(--ink-3); }
+  .sketch .bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); display: inline-block; }
+  .sketch .bar span { margin-left: 8px; font-family: "JetBrains Mono", monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sketch .body { padding: 14px 16px; display: grid; gap: 9px; font-size: 13.5px; }
+  .sketch .row { display: grid; grid-template-columns: 140px 1fr; gap: 10px; align-items: center; }
+  .sketch .lab { color: var(--ink-3); }
+  .sketch .fld { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 5px 9px; color: var(--ink); min-height: 30px; }
+  .sketch .radio { display: flex; gap: 14px; flex-wrap: wrap; }
+  .sketch .radio span::before { content: "○ "; color: var(--ink-3); }
+  .sketch .radio span.on::before { content: "◉ "; color: var(--emerald); }
+  .sketch .btn { justify-self: end; background: var(--emerald); color: var(--on-emerald); border-radius: 999px; padding: 6px 16px; font-weight: 500; font-size: 13px; }
+  .sketch .li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  .sketch .li em { font-style: normal; color: var(--gold); font-size: 12.5px; white-space: nowrap; }
+  .sketch-cap { font-size: 12.5px; color: var(--ink-3); margin: 6px 0 0; }
+
+  /* tables */
+  .tbl { overflow-x: auto; margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; min-width: 520px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 500; background: var(--surface-2); }
+  tr:last-child td { border-bottom: 0; }
+
+  /* timeline */
+  .time { display: grid; gap: 0; margin-top: 16px; border-left: 2px solid var(--line); margin-left: 8px; }
+  .time div { position: relative; padding: 0 0 16px 22px; }
+  .time div::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--emerald); }
+  .time b { display: block; font-family: "Bricolage Grotesque", sans-serif; font-size: 16px; }
+  .time span { color: var(--ink-2); font-size: 15px; }
+
+  .gloss { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
+  .gloss div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 15px; }
+  .gloss b { display: block; color: var(--emerald); }
+
+  footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-3); }
+
+  @media (max-width: 640px) {
+    .hero { grid-template-columns: 1fr; }
+    .emblem { width: 72px; order: -1; }
+    .money, .choose, .gloss { grid-template-columns: 1fr; }
+    .step { padding: 16px 16px 16px 58px; }
+    .step::before { left: 14px; }
+    .sketch .row { grid-template-columns: 1fr; gap: 3px; }
+  }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<nav class="nav" aria-label="Sections">
+  <div class="in">
+    <a href="#fees">Fees</a>
+    <a href="#accounts">Accounts</a>
+    <a href="#android">Android</a>
+    <a href="#iphone">iPhone</a>
+    <a href="#code">Code status</a>
+    <a href="#updates">Updates</a>
+    <span class="prog" id="prog">0 of 0 done</span>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Prodkt Studio · release guide</p>
+      <h1>Putting <span class="ar">طيّب قلبك</span> on Google Play and the App Store</h1>
+      <p class="lede">Every step, in order, from paying for the developer accounts to the day the app goes live. Each step says who does it and why it matters.</p>
+    </div>
+    <div class="emblem" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="100%" height="100%" fill="none"><circle cx="150" cy="38" r="7" fill="currentColor"/><path d="M150 78 C135 52 95 44 68 70 C38 98 42 145 74 184 C100 216 135 244 150 258" stroke="currentColor" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M150 78 C165 52 205 44 232 70 C262 98 258 145 226 184 C200 216 165 244 150 258" stroke="currentColor" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M150 252 C150 210 152 145 150 86" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M150 160 C138 135 140 100 150 82 C160 100 162 135 150 160 Z" fill="#5E7C65" stroke="currentColor" stroke-width="2"/><path d="M150 195 C118 185 88 152 82 120 C108 122 138 148 150 195 Z" fill="#6F8D76" stroke="currentColor" stroke-width="2"/><path d="M150 185 C182 175 212 142 218 110 C192 112 162 138 150 185 Z" fill="#5E7C65" stroke="currentColor" stroke-width="2"/><path d="M150 262 C146 270 146 278 150 286 C154 278 154 270 150 262 Z" fill="#B9A06A"/><path d="M148 266 C138 265 130 270 130 276 C138 276 145 272 148 266 Z" fill="#C9B27C"/><path d="M152 266 C162 265 170 270 170 276 C162 276 155 272 152 266 Z" fill="#C9B27C"/><circle cx="150" cy="292" r="3" fill="#B9A06A"/><path d="M120 275 C95 273 70 268 55 272" stroke="#C9B27C" stroke-width="2" stroke-linecap="round"/><path d="M180 275 C205 273 230 268 245 272" stroke="#C9B27C" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+  </header>
+
+  <div class="money" id="fees">
+    <div class="tile">
+      <div class="k">Google Play</div>
+      <div class="v">$25 <small>one time</small></div>
+      <p>Paid once, forever. Covers every Android app you publish.</p>
+    </div>
+    <div class="tile">
+      <div class="k">Apple App Store</div>
+      <div class="v">$99 <small>per year</small></div>
+      <p>Renews yearly. If it lapses, the app disappears from the store.</p>
+    </div>
+    <div class="tile">
+      <div class="k">Building for iPhone</div>
+      <div class="v">$0 <small>to start</small></div>
+      <p>Codemagic's free monthly build minutes are enough for this app.</p>
+    </div>
+  </div>
+  <p class="note">Prices checked October 2026. Pay with a Visa or Mastercard debit/credit card that is <b>enabled for international online payments</b>. Prepaid cards are often refused. Apple may show the price in your local currency.</p>
+
+  <div class="legend">
+    <span><span class="chip you">You</span> needs your name, ID, card or decisions</span>
+    <span><span class="chip dev">Developer</span> technical, done on the computer</span>
+    <span><span class="chip done">Already done</span> finished in the code</span>
+    <span><span class="chip cost">Costs money</span></span>
+  </div>
+
+  <div class="callout tip" style="margin-top:14px">Tick each step as you finish it. Your ticks are saved in this browser only.</div>
+
+  <!-- ============ ACCOUNTS ============ -->
+  <section class="part" id="accounts">
+    <div class="part-head"><span class="tag">A</span><h2>Create the two developer accounts</h2></div>
+    <p class="part-intro">You need one account with Google and one with Apple. They are the "shop licences" that let you sell in each store. Start both on day one, because each takes a few days to be approved.</p>
+
+    <h3 class="sub">First decision: personal or company account?</h3>
+    <p class="part-intro">Both stores ask this. It decides whose name appears under the app in the store.</p>
+    <div class="choose">
+      <div class="opt pick">
+        <span class="pk">Pick this if Prodkt Studio is a registered company</span>
+        <h4>Organization</h4>
+        <ul>
+          <li>Store shows <b>"Prodkt Studio"</b></li>
+          <li>Google <b>skips the 14-day, 12-tester test</b></li>
+          <li>Needs a free <b>D-U-N-S number</b> (a company ID). Getting one can take 1–4 weeks</li>
+          <li>Needs company papers and a company website</li>
+        </ul>
+      </div>
+      <div class="opt">
+        <span class="pk">Pick this if there is no registered company</span>
+        <h4>Personal (Individual)</h4>
+        <ul>
+          <li>Store shows <b>your own full legal name</b></li>
+          <li>Approved in 1–2 days</li>
+          <li>Google requires <b>12 testers for 14 days</b> before going live (step B8)</li>
+          <li>Only your national ID or passport is needed</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px">Organization only: request the D-U-N-S number first, free, through <a href="https://developer.apple.com/enroll/duns-lookup/" target="_blank" rel="noopener">Apple's D-U-N-S lookup</a>. The same number works for Google.</p>
+
+    <h3 class="sub">Google Play developer account</h3>
+    <ol class="steps">
+      <li class="step" data-id="a-g1">
+        <div class="step-top"><h4>Prepare a Google account just for publishing</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> this account will own the app forever. Use a company Gmail such as prodktstudio@gmail.com, not a personal one.</p>
+        <ul>
+          <li>Turn on 2-step verification in that Google account.</li>
+          <li>Have ready: national ID or passport, a phone number, a card, and an Android phone.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-a-g1"> Done</label>
+      </li>
+      <li class="step" data-id="a-g2">
+        <div class="step-top"><h4>Sign up and pay $25</h4><div class="chips"><span class="chip you">You</span><span class="chip cost">$25</span></div></div>
+        <p class="why"><b>Why:</b> this is the one-time registration fee that opens your Play Console.</p>
+        <ul>
+          <li>Open <a href="https://play.google.com/console/signup" target="_blank" rel="noopener">play.google.com/console/signup</a> and sign in.</li>
+          <li>Choose <b>Yourself</b> (personal) or <b>An organization or business</b>.</li>
+          <li>Fill in the developer name. This is shown publicly in the store.</li>
+          <li>Fill in a contact email and phone. Google verifies both with codes.</li>
+          <li>Pay the $25 by card.</li>
+        </ul>
+        <div class="sketch" aria-label="Sketch of the Play Console sign-up page">
+          <div class="bar"><i></i><i></i><i></i><span>play.google.com/console/signup</span></div>
+          <div class="body">
+            <div class="row"><span class="lab">Account type</span><span class="radio"><span>Yourself</span><span class="on">An organization</span></span></div>
+            <div class="row"><span class="lab">Developer name</span><span class="fld">Prodkt Studio</span></div>
+            <div class="row"><span class="lab">Contact email</span><span class="fld">prodktstudio@gmail.com</span></div>
+            <div class="row"><span class="lab">D-U-N-S number</span><span class="fld">Organization only</span></div>
+            <span class="btn">Create account and pay</span>
+          </div>
+        </div>
+        <p class="sketch-cap">Simplified sketch. The real page asks the same things, possibly across several screens. Google's own walkthrough with screenshots: <a href="https://support.google.com/googleplay/android-developer/answer/6112435" target="_blank" rel="noopener">Get started with Play Console</a>.</p>
+        <label class="tick"><input type="checkbox" id="t-a-g2"> Done</label>
+      </li>
+      <li class="step" data-id="a-g3">
+        <div class="step-top"><h4>Verify your identity and your Android phone</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> Google will not let you publish until it confirms you are a real person with a real phone.</p>
+        <ul>
+          <li>Upload a photo of your ID when asked. The name must match the card holder for personal accounts.</li>
+          <li>Install the <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.playconsole" target="_blank" rel="noopener">Google Play Console app</a> on your Android phone and sign in with the same account. This verifies the device.</li>
+          <li>Wait for the approval email. It usually takes 1–2 working days.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-a-g3"> Done</label>
+      </li>
+    </ol>
+
+    <h3 class="sub">Apple Developer Program</h3>
+    <ol class="steps">
+      <li class="step" data-id="a-a1">
+        <div class="step-top"><h4>Prepare an Apple Account with two-factor sign-in</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> Apple requires two-factor authentication on the account that owns the app.</p>
+        <ul>
+          <li>Use an existing Apple Account or create one at <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a>.</li>
+          <li>Turn on two-factor authentication (needs an iPhone or a phone number).</li>
+          <li>Your account name must be your <b>real legal name</b>. Nicknames get the enrollment rejected.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-a-a1"> Done</label>
+      </li>
+      <li class="step" data-id="a-a2">
+        <div class="step-top"><h4>Enroll and pay $99</h4><div class="chips"><span class="chip you">You</span><span class="chip cost">$99 / year</span></div></div>
+        <p class="why"><b>Why:</b> only paid members can upload apps to the App Store.</p>
+        <ul>
+          <li><b>Easiest, if you have an iPhone:</b> install the <a href="https://apps.apple.com/app/apple-developer/id640199958" target="_blank" rel="noopener">Apple Developer app</a> → Account → <b>Enroll Now</b>. It scans your ID and you pay inside the app.</li>
+          <li><b>Without an iPhone:</b> go to <a href="https://developer.apple.com/programs/enroll/" target="_blank" rel="noopener">developer.apple.com/programs/enroll</a> → Start your enrollment.</li>
+          <li>Choose Individual or Organization (same choice as above).</li>
+          <li>Pay the $99. Approval: often same day for individuals, up to 2 weeks for organizations.</li>
+        </ul>
+        <div class="sketch" aria-label="Sketch of the Apple Developer app enrollment">
+          <div class="bar"><i></i><i></i><i></i><span>Apple Developer app → Account</span></div>
+          <div class="body">
+            <div class="li"><span>Apple Developer Program</span><em>$99 / year</em></div>
+            <div class="row"><span class="lab">Entity type</span><span class="radio"><span class="on">Individual</span><span>Organization</span></span></div>
+            <div class="row"><span class="lab">Legal name</span><span class="fld">Mohamed Khaled</span></div>
+            <div class="row"><span class="lab">Identity</span><span class="fld">Scan ID card / passport</span></div>
+            <span class="btn">Enroll Now</span>
+          </div>
+        </div>
+        <p class="sketch-cap">Simplified sketch. Apple's official steps: <a href="https://developer.apple.com/help/account/membership/program-enrollment/" target="_blank" rel="noopener">Program enrollment help</a>.</p>
+        <div class="callout warn">Keep auto-renew on. If the $99 is not renewed, the app is removed from the App Store until you pay again.</div>
+        <label class="tick"><input type="checkbox" id="t-a-a2"> Done</label>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ ANDROID ============ -->
+  <section class="part" id="android">
+    <div class="part-head"><span class="tag">B</span><h2>Release on Google Play (Android)</h2></div>
+    <p class="part-intro">Start this once Google approves your account. Most of it is filling forms in <a href="https://play.google.com/console" target="_blank" rel="noopener">Play Console</a>. The developer has already written the exact answers in <code>docs/play-console-answers.md</code>, so you can copy them.</p>
+
+    <ol class="steps">
+      <li class="step" data-id="b1">
+        <div class="step-top"><h4>Create the app's signing key</h4><div class="chips"><span class="chip dev">Developer</span><span class="chip you">You keep the passwords</span></div></div>
+        <p class="why"><b>Why:</b> every update must be signed with the same key. It is the app's permanent "signature".</p>
+        <ul>
+          <li>The developer runs one command on the computer. It creates a small file named <code>tayeb-qalbak-upload.jks</code>.</li>
+          <li>You choose two passwords and save them in a password manager.</li>
+          <li>Back up the file in <b>two</b> safe places (for example Google Drive and a USB stick).</li>
+        </ul>
+        <details>
+          <summary>For the developer: commands</summary>
+<pre>keytool -genkey -v -keystore "%USERPROFILE%\tayeb-qalbak-upload.jks" -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload</pre>
+          <p>Then create <code>android/key.properties</code> (it is git-ignored):</p>
+<pre>storePassword=…
+keyPassword=…
+keyAlias=upload
+storeFile=C:/Users/Mohamed Khaled/tayeb-qalbak-upload.jks</pre>
+          <p>Full runbook: <code>docs/android-release-reminding-steps.md</code>, steps 1–2.</p>
+        </details>
+        <label class="tick"><input type="checkbox" id="t-b1"> Done</label>
+      </li>
+
+      <li class="step" data-id="b2">
+        <div class="step-top"><h4>Build the upload file (.aab)</h4><div class="chips"><span class="chip dev">Developer</span></div></div>
+        <p class="why"><b>Why:</b> Google Play accepts one file type, the "app bundle". This is what you upload.</p>
+        <details>
+          <summary>For the developer: commands</summary>
+<pre>flutter build appbundle --release
+keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab</pre>
+          <p>The owner printed must be you, not <code>CN=Android Debug</code>. The build refuses to run without <code>key.properties</code>, on purpose. Also run <code>flutter build apk --release</code> then <code>pwsh tool/verify_release_apk.ps1</code>.</p>
+        </details>
+        <label class="tick"><input type="checkbox" id="t-b2"> Done</label>
+      </li>
+
+      <li class="step" data-id="b3">
+        <div class="step-top"><h4>Create the app in Play Console</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> this creates the empty store page that everything else fills in.</p>
+        <ul>
+          <li>Play Console → <b>Create app</b>.</li>
+          <li>App name <b>طيّب قلبك</b>, default language <b>Arabic</b>, <b>App</b>, <b>Free</b>.</li>
+          <li>Tick the two declarations and press Create app.</li>
+        </ul>
+        <div class="sketch" aria-label="Sketch of the Create app form">
+          <div class="bar"><i></i><i></i><i></i><span>Play Console → Create app</span></div>
+          <div class="body">
+            <div class="row"><span class="lab">App name</span><span class="fld">طيّب قلبك</span></div>
+            <div class="row"><span class="lab">Default language</span><span class="fld">Arabic – ar</span></div>
+            <div class="row"><span class="lab">App or game</span><span class="radio"><span class="on">App</span><span>Game</span></span></div>
+            <div class="row"><span class="lab">Free or paid</span><span class="radio"><span class="on">Free</span><span>Paid</span></span></div>
+            <span class="btn">Create app</span>
+          </div>
+        </div>
+        <p class="sketch-cap">Simplified sketch. Google's guide: <a href="https://support.google.com/googleplay/android-developer/answer/9859152" target="_blank" rel="noopener">Create and set up your app</a>.</p>
+        <div class="callout warn">"Free" cannot be changed to "Paid" later.</div>
+        <label class="tick"><input type="checkbox" id="t-b3"> Done</label>
+      </li>
+
+      <li class="step" data-id="b4">
+        <div class="step-top"><h4>Answer the "App content" questions</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> Google uses these answers for the age rating and the privacy section of the store page. Wrong answers can get the app removed later.</p>
+        <p class="why">Go to Dashboard → <b>Set up your app</b>, then answer each item. Copy from <code>docs/play-console-answers.md</code>:</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Item</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Privacy policy</td><td><a href="https://hadithdaily-5fc06.web.app/privacy-policy.html" target="_blank" rel="noopener">hadithdaily-5fc06.web.app/privacy-policy.html</a></td></tr>
+            <tr><td>App access</td><td>Some features need sign-in. Give a <b>demo email and password</b> (create one in the app first)</td></tr>
+            <tr><td>Ads</td><td>No</td></tr>
+            <tr><td>Content rating</td><td>Category "Reference, News, or Educational". No to violence etc. Yes to user-generated content</td></tr>
+            <tr><td>Target audience</td><td><b>18 and over</b> only. Not designed for children</td></tr>
+            <tr><td>Data safety</td><td>Email, name, in-app messages, other user content. Not shared. Encrypted. Deletion URL below</td></tr>
+            <tr><td>Account deletion URL</td><td><a href="https://hadithdaily-5fc06.web.app/delete-account.html" target="_blank" rel="noopener">hadithdaily-5fc06.web.app/delete-account.html</a></td></tr>
+            <tr><td>News, government, financial, health</td><td>No to all</td></tr>
+          </tbody>
+        </table></div>
+        <div class="sketch" aria-label="Sketch of the Set up your app checklist">
+          <div class="bar"><i></i><i></i><i></i><span>Dashboard → Set up your app</span></div>
+          <div class="body">
+            <div class="li"><span>Set privacy policy</span><em>Done ✓</em></div>
+            <div class="li"><span>App access</span><em>Done ✓</em></div>
+            <div class="li"><span>Content rating</span><em>Start →</em></div>
+            <div class="li"><span>Target audience</span><em>Start →</em></div>
+            <div class="li"><span>Data safety</span><em>Start →</em></div>
+          </div>
+        </div>
+        <p class="sketch-cap">Simplified sketch of the checklist. Each line opens a short form.</p>
+        <label class="tick"><input type="checkbox" id="t-b4"> Done</label>
+      </li>
+
+      <li class="step" data-id="b5">
+        <div class="step-top"><h4>Fill the store page: text and pictures</h4><div class="chips"><span class="chip you">You</span><span class="chip dev">Developer helps with images</span></div></div>
+        <p class="why"><b>Why:</b> this is what people see before they install.</p>
+        <ul>
+          <li>Grow users → <b>Store presence → Main store listing</b>.</li>
+          <li>Short and full description: ready to paste in <code>docs/play-console-answers.md</code>.</li>
+          <li><b>App icon</b> 512 × 512 PNG.</li>
+          <li><b>Feature graphic</b> 1024 × 500 (a banner shown at the top of the listing).</li>
+          <li><b>2 to 8 phone screenshots</b> of the real app. Good choices: home, a daily message, the forty hadiths list, community, reminders.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-b5"> Done</label>
+      </li>
+
+      <li class="step" data-id="b6">
+        <div class="step-top"><h4>Upload to "Internal testing" and try it yourself</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> a private test that needs no Google review. You install the real store version on your own phone.</p>
+        <ul>
+          <li>Test and release → <b>Testing → Internal testing</b> → Create new release.</li>
+          <li>Accept <b>Play App Signing</b> if asked. Google then keeps a backup of the key, so a lost key can be replaced.</li>
+          <li>Upload the <code>.aab</code> from step 2, then add your own email in the <b>Testers</b> tab.</li>
+          <li>Open the invite link on your phone and install.</li>
+          <li>Check: reminders arrive with the phone locked, Google sign-in works, posting and deleting an account work.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-b6"> Done</label>
+      </li>
+
+      <li class="step" data-id="b7">
+        <div class="step-top"><h4>Connect Google's signing key to Firebase</h4><div class="chips"><span class="chip dev">Developer</span><span class="chip wait">Needs Play account</span></div></div>
+        <p class="why"><b>Why:</b> Google re-signs the app for the store. Without this step, "Sign in with Google" fails for every store user.</p>
+        <ul>
+          <li>Play Console → Test and release → <b>App integrity</b> → App signing → copy the <b>SHA-1</b> and <b>SHA-256</b>.</li>
+          <li>Paste both into <a href="https://console.firebase.google.com/project/hadithdaily-5fc06/settings/general" target="_blank" rel="noopener">Firebase → Project settings</a> → Android app → Add fingerprint.</li>
+          <li>Download the new <code>google-services.json</code> into <code>android/app/</code> and rebuild.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-b7"> Done</label>
+      </li>
+
+      <li class="step" data-id="b8">
+        <div class="step-top"><h4>Closed test: 12 testers for 14 days</h4><div class="chips"><span class="chip you">You</span><span class="chip wait">Personal accounts only</span></div></div>
+        <p class="why"><b>Why:</b> Google requires new personal accounts to prove real people used the app before it goes public. Organization accounts skip this step.</p>
+        <ul>
+          <li>Testing → <b>Closed testing</b> → create a track, upload the same <code>.aab</code>.</li>
+          <li>Add at least <b>12 Gmail addresses</b> of friends or family who own Android phones.</li>
+          <li>Each one opens the invite link, joins, installs, and <b>keeps it installed for 14 days in a row</b>.</li>
+          <li>Ask them to open it a few times. Google looks for real use.</li>
+        </ul>
+        <p class="sketch-cap">Google's rule: <a href="https://support.google.com/googleplay/android-developer/answer/14151465" target="_blank" rel="noopener">App testing requirements for new personal accounts</a>.</p>
+        <div class="callout tip">Collect the 12 emails now, while waiting for account approval. This is the slowest part of the Android launch.</div>
+        <label class="tick"><input type="checkbox" id="t-b8"> Done</label>
+      </li>
+
+      <li class="step" data-id="b9">
+        <div class="step-top"><h4>Apply for production, then publish</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> this sends the app to Google's review and then to the public store.</p>
+        <ul>
+          <li>Personal accounts: Dashboard → <b>Apply for production</b>, answer a few questions about the test (1–7 days).</li>
+          <li>Then Test and release → <b>Production</b> → Create new release → add the same build.</li>
+          <li>Set rollout to <b>20%</b> first. Raise it to 100% after a few days without crashes.</li>
+          <li>Send for review. First review usually takes 1–7 days. You get an email when it is live.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-b9"> Done</label>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ IPHONE ============ -->
+  <section class="part" id="iphone">
+    <div class="part-head"><span class="tag">C</span><h2>Release on the App Store (iPhone)</h2></div>
+    <p class="part-intro">iPhone apps can only be built on a Mac. We work on Windows, so a cloud service called <b>Codemagic</b> rents us a Mac for each build. The build file for it is now in the project (<code>codemagic.yaml</code>).</p>
+
+    <ol class="steps">
+      <li class="step" data-id="c1">
+        <div class="step-top"><h4>Register the app's ID with Apple</h4><div class="chips"><span class="chip dev">Developer</span><span class="chip wait">Needs Apple account</span></div></div>
+        <p class="why"><b>Why:</b> Apple must know the app's unique name and which features it uses, such as "Sign in with Apple".</p>
+        <ul>
+          <li><a href="https://developer.apple.com/account/resources/identifiers/list" target="_blank" rel="noopener">Certificates, Identifiers &amp; Profiles → Identifiers</a> → <b>+</b> → App IDs → App.</li>
+          <li>Bundle ID (explicit): <code>com.prodktstudio.tayebqalbak</code></li>
+          <li>Tick <b>Sign in with Apple</b> only. No push notifications needed.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-c1"> Done</label>
+      </li>
+
+      <li class="step" data-id="c2">
+        <div class="step-top"><h4>Create the app in App Store Connect</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> this is the App Store version of the store page. It also gives the app a number the developer needs.</p>
+        <ul>
+          <li><a href="https://appstoreconnect.apple.com/apps" target="_blank" rel="noopener">App Store Connect → Apps</a> → <b>+</b> → New App.</li>
+          <li>Platform iOS, name <b>طيّب قلبك</b>, primary language Arabic, bundle ID from step 1, SKU <code>tayebqalbak</code>, full access.</li>
+          <li>Open App Information and copy the <b>Apple ID</b> number (about 10 digits). Send it to the developer.</li>
+        </ul>
+        <div class="sketch" aria-label="Sketch of the New App dialog">
+          <div class="bar"><i></i><i></i><i></i><span>appstoreconnect.apple.com → New App</span></div>
+          <div class="body">
+            <div class="row"><span class="lab">Platforms</span><span class="radio"><span class="on">iOS</span></span></div>
+            <div class="row"><span class="lab">Name</span><span class="fld">طيّب قلبك</span></div>
+            <div class="row"><span class="lab">Primary language</span><span class="fld">Arabic</span></div>
+            <div class="row"><span class="lab">Bundle ID</span><span class="fld mono">com.prodktstudio.tayebqalbak</span></div>
+            <div class="row"><span class="lab">SKU</span><span class="fld mono">tayebqalbak</span></div>
+            <span class="btn">Create</span>
+          </div>
+        </div>
+        <p class="sketch-cap">Simplified sketch. Apple's guide: <a href="https://developer.apple.com/help/app-store-connect/create-an-app-record/add-a-new-app" target="_blank" rel="noopener">Add a new app</a>.</p>
+        <label class="tick"><input type="checkbox" id="t-c2"> Done</label>
+      </li>
+
+      <li class="step" data-id="c3">
+        <div class="step-top"><h4>Put the App Store link in the app</h4><div class="chips"><span class="chip dev">Developer</span><span class="chip wait">Needs the number from step 2</span></div></div>
+        <p class="why"><b>Why:</b> when someone shares a message from an iPhone, the shared text includes the download link.</p>
+        <details>
+          <summary>For the developer: the change</summary>
+          <p>In <code>lib/core/app_links.dart</code>:</p>
+<pre>static const String? appStore = 'https://apps.apple.com/app/id&lt;APPLE_ID&gt;';</pre>
+        </details>
+        <label class="tick"><input type="checkbox" id="t-c3"> Done</label>
+      </li>
+
+      <li class="step" data-id="c4">
+        <div class="step-top"><h4>Turn on Apple sign-in in Firebase</h4><div class="chips"><span class="chip dev">Developer</span></div></div>
+        <p class="why"><b>Why:</b> Apple requires "Sign in with Apple" because the app offers Google sign-in. The code is ready; Firebase must accept it.</p>
+        <ul>
+          <li><a href="https://console.firebase.google.com/project/hadithdaily-5fc06/authentication/providers" target="_blank" rel="noopener">Firebase → Authentication → Sign-in method</a> → Add <b>Apple</b> → Enable → Save.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-c4"> Done</label>
+      </li>
+
+      <li class="step" data-id="c5">
+        <div class="step-top"><h4>Create an API key so Codemagic can upload for you</h4><div class="chips"><span class="chip you">You</span><span class="chip dev">Developer</span></div></div>
+        <p class="why"><b>Why:</b> the key lets Codemagic sign the app and send it to Apple without a Mac.</p>
+        <ul>
+          <li>App Store Connect → <b>Users and Access → Integrations → App Store Connect API</b> → Generate key, access <b>App Manager</b>.</li>
+          <li>Download the <code>.p8</code> file. <b>Apple lets you download it only once.</b> Store it safely.</li>
+          <li>Note the <b>Key ID</b> and <b>Issuer ID</b> shown on the same page.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-c5"> Done</label>
+      </li>
+
+      <li class="step" data-id="c6">
+        <div class="step-top"><h4>Build the iPhone app in Codemagic</h4><div class="chips"><span class="chip dev">Developer</span><span class="chip cost">Free tier</span></div></div>
+        <p class="why"><b>Why:</b> this turns the code into the iPhone app file and sends it to Apple's TestFlight.</p>
+        <ul>
+          <li>Sign in at <a href="https://codemagic.io/start/" target="_blank" rel="noopener">codemagic.io</a> with GitHub and add the <b>Hadith_Daily_Flutter</b> repository.</li>
+          <li>Team settings → Integrations → <b>Developer Portal</b> → add the key from step 5. Name it exactly <code>Tayeb Qalbak ASC key</code>.</li>
+          <li>In the app's settings, switch to <b>codemagic.yaml</b>. Start the workflow <b>iOS release (TestFlight)</b>.</li>
+          <li>About 20–30 minutes later the build appears in App Store Connect → TestFlight.</li>
+        </ul>
+        <p class="sketch-cap">Codemagic's guide: <a href="https://docs.codemagic.io/yaml-code-signing/signing-ios/" target="_blank" rel="noopener">iOS code signing</a>.</p>
+        <label class="tick"><input type="checkbox" id="t-c6"> Done</label>
+      </li>
+
+      <li class="step" data-id="c7">
+        <div class="step-top"><h4>Test on a real iPhone with TestFlight</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> the same check as Android's internal test, before Apple reviews it.</p>
+        <ul>
+          <li>App Store Connect → TestFlight → Internal Testing → add your Apple Account email.</li>
+          <li>Install the <a href="https://apps.apple.com/app/testflight/id899247664" target="_blank" rel="noopener">TestFlight app</a> on an iPhone and install طيّب قلبك from it.</li>
+          <li>Check reminders, Google and Apple sign-in, sharing a card, deleting an account.</li>
+          <li>Take the store screenshots on this iPhone (a large one such as a Pro Max is best).</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-c7"> Done</label>
+      </li>
+
+      <li class="step" data-id="c8">
+        <div class="step-top"><h4>Fill the App Store page and privacy answers</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> Apple shows these on the store page and checks them during review.</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Where in App Store Connect</th><th>What to enter</th></tr></thead>
+          <tbody>
+            <tr><td>App Information</td><td>Category <b>Reference</b> (second: Lifestyle). Privacy policy URL from step B4</td></tr>
+            <tr><td>Age rating</td><td>No to all mature content. Yes to user-generated content</td></tr>
+            <tr><td>App Privacy</td><td>Same four data types as Google: email, name, messages, other user content. Not used for tracking</td></tr>
+            <tr><td>Pricing and availability</td><td>Free, all countries you want</td></tr>
+            <tr><td>Version page</td><td>Screenshots (6.9" iPhone size), description, keywords, support URL</td></tr>
+            <tr><td>App Review Information</td><td>Demo email and password. Note: "Arabic-only, right-to-left. Reminders are local notifications."</td></tr>
+          </tbody>
+        </table></div>
+        <p class="sketch-cap">Screenshot sizes: <a href="https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications" target="_blank" rel="noopener">Apple's screenshot specifications</a>.</p>
+        <label class="tick"><input type="checkbox" id="t-c8"> Done</label>
+      </li>
+
+      <li class="step" data-id="c9">
+        <div class="step-top"><h4>Submit for review</h4><div class="chips"><span class="chip you">You</span></div></div>
+        <p class="why"><b>Why:</b> a person at Apple checks the app against the <a href="https://developer.apple.com/app-store/review/guidelines/" target="_blank" rel="noopener">review guidelines</a>.</p>
+        <ul>
+          <li>On the version page, under <b>Build</b>, choose the TestFlight build.</li>
+          <li>Pick "Manually release" if you want to choose the launch day.</li>
+          <li>Press <b>Add for Review</b> then <b>Submit</b>. Review usually takes 1–2 days.</li>
+          <li>If rejected, Apple explains why in Resolution Center. Fix, rebuild, resubmit.</li>
+        </ul>
+        <label class="tick"><input type="checkbox" id="t-c9"> Done</label>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ CODE STATUS ============ -->
+  <section class="part" id="code">
+    <div class="part-head"><span class="tag">D</span><h2>Code status</h2></div>
+    <p class="part-intro">What is already handled in the project, and the few code changes that can only happen after the accounts exist.</p>
+
+    <div class="tbl"><table>
+      <thead><tr><th>Item</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>iPhone cloud build file (<code>codemagic.yaml</code>)</td><td><span class="chip done">Added today</span></td></tr>
+        <tr><td>Privacy policy, terms and account-deletion pages online</td><td><span class="chip done">Done</span></td></tr>
+        <tr><td>Delete account from inside the app</td><td><span class="chip done">Done</span></td></tr>
+        <tr><td>Report, block and approve community posts</td><td><span class="chip done">Done</span></td></tr>
+        <tr><td>Sign in with Apple, iPhone permission texts, launch screen</td><td><span class="chip done">Done</span></td></tr>
+        <tr><td>Safety check that stops an unsigned Android upload</td><td><span class="chip done">Done</span></td></tr>
+        <tr><td>Google Play link used when sharing</td><td><span class="chip done">Done</span></td></tr>
+        <tr><td>Android signing key + <code>key.properties</code> (step B1)</td><td><span class="chip wait">Needs your passwords</span></td></tr>
+        <tr><td>Firebase fingerprints from Google (step B7)</td><td><span class="chip wait">Needs Play account</span></td></tr>
+        <tr><td>App Store link in <code>app_links.dart</code> (step C3)</td><td><span class="chip wait">Needs Apple account</span></td></tr>
+        <tr><td>Apple sign-in switched on in Firebase (step C4)</td><td><span class="chip wait">Needs Apple account</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ TIMELINE ============ -->
+  <section class="part" id="timeline">
+    <div class="part-head"><span class="tag">E</span><h2>How long it takes</h2></div>
+    <div class="time">
+      <div><b>Day 1</b><span>Pay both accounts. Start collecting 12 tester emails.</span></div>
+      <div><b>Days 2–3</b><span>Accounts approved (personal). Organization accounts can take 1–4 weeks.</span></div>
+      <div><b>Days 3–5</b><span>Signing key, store pages, internal test, TestFlight test.</span></div>
+      <div><b>Days 5–19</b><span>Android closed test runs 14 days. Submit iPhone app meanwhile.</span></div>
+      <div><b>About 3–4 weeks</b><span>Both apps live (personal accounts).</span></div>
+    </div>
+  </section>
+
+  <!-- ============ UPDATES ============ -->
+  <section class="part" id="updates">
+    <div class="part-head"><span class="tag">F</span><h2>Releasing an update later</h2></div>
+    <ol class="steps">
+      <li class="step" data-id="f1">
+        <div class="step-top"><h4>Raise the version number</h4><div class="chips"><span class="chip dev">Developer</span></div></div>
+        <p class="why"><b>Why:</b> both stores reject a file with a number they have already seen.</p>
+        <ul><li>In <code>pubspec.yaml</code>: <code>version: 1.0.0+1</code> becomes <code>1.0.1+2</code>. Both parts go up.</li></ul>
+        <label class="tick"><input type="checkbox" id="t-f1"> Done</label>
+      </li>
+      <li class="step" data-id="f2">
+        <div class="step-top"><h4>Build and upload both apps</h4><div class="chips"><span class="chip dev">Developer</span></div></div>
+        <ul>
+          <li>Android: build the <code>.aab</code> (step B2) → Production → Create new release.</li>
+          <li>iPhone: start the Codemagic build (step C6) → new version in App Store Connect → submit.</li>
+        </ul>
+        <p class="why">Updates skip the 14-day test and are usually reviewed within 1–2 days.</p>
+        <label class="tick"><input type="checkbox" id="t-f2"> Done</label>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ GLOSSARY ============ -->
+  <section class="part" id="words">
+    <div class="part-head"><span class="tag">G</span><h2>Words you will see</h2></div>
+    <div class="gloss">
+      <div><b>Play Console</b>Google's website for managing your Android apps.</div>
+      <div><b>App Store Connect</b>Apple's website for managing your iPhone apps.</div>
+      <div><b>.aab (app bundle)</b>The Android file you upload to Google.</div>
+      <div><b>.ipa</b>The iPhone file. Codemagic uploads it for you.</div>
+      <div><b>Signing key</b>The app's digital signature. Lose it and you cannot update the app.</div>
+      <div><b>TestFlight</b>Apple's app for installing test versions before release.</div>
+      <div><b>Bundle ID / package name</b>The app's unique ID: <code>com.prodktstudio.tayebqalbak</code>.</div>
+      <div><b>D-U-N-S</b>A free company ID number. Only needed for organization accounts.</div>
+    </div>
+  </section>
+
+  <footer>
+    Written for طيّب قلبك version 1.0.0, October 2026. Fees and console menus change from time to time; the linked official help pages always show the current screens. Detailed technical runbook: <code>docs/android-release-reminding-steps.md</code>.
+  </footer>
+</div>
+
+<script>
+(function () {
+  var KEY = "tq-launch-guide-v1";
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+  var boxes = Array.prototype.slice.call(document.querySelectorAll(".tick input"));
+  var prog = document.getElementById("prog");
+  function paint() {
+    var n = 0;
+    boxes.forEach(function (b) {
+      var li = b.closest(".step");
+      li.classList.toggle("is-done", b.checked);
+      if (b.checked) n++;
+    });
+    prog.textContent = n + " of " + boxes.length + " done";
+  }
+  boxes.forEach(function (b) {
+    b.checked = !!state[b.id];
+    b.addEventListener("change", function () {
+      state[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      paint();
+    });
+  });
+  paint();
+})();
+</script>
