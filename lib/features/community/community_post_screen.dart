@@ -33,13 +33,19 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
   final HadithRepository _repo = HadithRepository();
   final _service = CommunityService();
 
-  // This screen gets a static [CommunityPost] snapshot from whoever
-  // navigated here, not a live query, so `widget.post.likes` never moves on
-  // its own — the optimistic delta below is computed against that fixed
-  // baseline. "Have I liked this" comes from a live per-user stream (always
-  // the real answer, even across devices); the override bridges the frame
-  // before that stream echoes a like, and carries the count, which on this
-  // screen has no live source of its own.
+  // Both live, and both made once here rather than in build: a stream
+  // created in build re-subscribes on every setState, which a like tap
+  // triggers twice.
+  //
+  // The count used to be `widget.post.likes`, the snapshot this screen was
+  // opened with, plus the optimistic delta below. Once likeStatus confirmed
+  // the like the delta was cleared — and the count dropped straight back to
+  // the old number. Seeded with that snapshot, so it shows the right number
+  // from the first frame instead of flashing zero.
+  late final Stream<int> _likeCount = _service.likeCount(widget.post.id);
+  late final Stream<bool> _likeStatus = _service.likeStatus(widget.post.id);
+
+  // Bridges the frame between a tap and the streams echoing it.
   bool? _optimisticLiked;
 
   /// Saving a community reflection was impossible: the whole community flow
@@ -340,30 +346,34 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    StreamBuilder<bool>(
-                      stream: _service.likeStatus(widget.post.id),
-                      builder: (context, snapshot) {
-                        final serverLiked = snapshot.data ?? false;
-                        if (_optimisticLiked != null &&
-                            _optimisticLiked == serverLiked) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted && _optimisticLiked == serverLiked) {
-                              setState(() => _optimisticLiked = null);
-                            }
-                          });
-                        }
-                        final isLiked = _optimisticLiked ?? serverLiked;
-                        final displayedLikes = widget.post.likes +
-                            (_optimisticLiked != null &&
-                                    _optimisticLiked != serverLiked
-                                ? (_optimisticLiked! ? 1 : -1)
-                                : 0);
-                        return LikeCounter(
-                          likes: displayedLikes,
-                          isLiked: isLiked,
-                          onTap: () => _handleLike(serverLiked),
-                        );
-                      },
+                    StreamBuilder<int>(
+                      stream: _likeCount,
+                      initialData: widget.post.likes,
+                      builder: (context, countSnapshot) => StreamBuilder<bool>(
+                        stream: _likeStatus,
+                        builder: (context, snapshot) {
+                          final serverLiked = snapshot.data ?? false;
+                          if (_optimisticLiked != null &&
+                              _optimisticLiked == serverLiked) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted && _optimisticLiked == serverLiked) {
+                                setState(() => _optimisticLiked = null);
+                              }
+                            });
+                          }
+                          final isLiked = _optimisticLiked ?? serverLiked;
+                          final displayedLikes = (countSnapshot.data ?? 0) +
+                              (_optimisticLiked != null &&
+                                      _optimisticLiked != serverLiked
+                                  ? (_optimisticLiked! ? 1 : -1)
+                                  : 0);
+                          return LikeCounter(
+                            likes: displayedLikes,
+                            isLiked: isLiked,
+                            onTap: () => _handleLike(serverLiked),
+                          );
+                        },
+                      ),
                     ),
                     const SizedBox(width: 10),
                     CircleIconButton(

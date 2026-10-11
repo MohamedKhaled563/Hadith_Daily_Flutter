@@ -128,6 +128,12 @@ class CommunityService {
         .map((snapshot) => snapshot.docs.length);
   }
 
+  /// Live `likeCount` of one post — for screens that hold a single post
+  /// rather than a feed query, which would otherwise only ever have the
+  /// count from when they were opened.
+  Stream<int> likeCount(String messageId) =>
+      MessageLikeService().likeCount(_collection, messageId);
+
   /// Live "have I liked this" status for the signed-in user, sourced
   /// straight from their own `likes/{uid}` doc rather than a local cache —
   /// stays correct across devices and survives clearing local storage.
