@@ -329,6 +329,37 @@ class _LiveMessageToolbar extends StatefulWidget {
 class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
   final _likeService = MessageLikeService();
 
+  // Made once per message, not in build: a stream built in build
+  // re-subscribes on every setState — and the like tap itself is a setState
+  // — so the toolbar briefly read "not liked, 0 likes" between the tap and
+  // the new subscription's first answer.
+  late Stream<int> _likeCount;
+  late Stream<bool> _likeStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribe();
+  }
+
+  @override
+  void didUpdateWidget(_LiveMessageToolbar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.insight.id != widget.insight.id ||
+        oldWidget.insight.sourceCollection !=
+            widget.insight.sourceCollection) {
+      _subscribe();
+      _optimisticLiked = null;
+    }
+  }
+
+  void _subscribe() {
+    final collection = widget.insight.sourceCollection;
+    final id = widget.insight.id;
+    _likeCount = _likeService.likeCount(collection, id);
+    _likeStatus = _likeService.likeStatus(collection, id);
+  }
+
   // Optimistic "have I liked this". MessageLikeService.setLiked is a plain
   // batch, which the likeStatus()/likeCount() streams below echo from the
   // local cache almost at once — this only bridges the frame or two before
@@ -374,16 +405,10 @@ class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<int>(
-      stream: _likeService.likeCount(
-        widget.insight.sourceCollection,
-        widget.insight.id,
-      ),
+      stream: _likeCount,
       builder: (context, likeCountSnap) {
         return StreamBuilder<bool>(
-          stream: _likeService.likeStatus(
-            widget.insight.sourceCollection,
-            widget.insight.id,
-          ),
+          stream: _likeStatus,
           builder: (context, likedSnap) {
             final serverLiked = likedSnap.data ?? false;
             if (_optimisticLiked != null && _optimisticLiked == serverLiked) {

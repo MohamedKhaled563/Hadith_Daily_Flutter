@@ -296,6 +296,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
                     }
                     final post = posts[index];
                     return _CommunityPostCard(
+                      // Keyed by post, not left to position: sorted by likes,
+                      // a like re-orders the list the moment it lands
+                      // locally, and an unkeyed card kept its old slot's
+                      // state — so the next tap read the *other* post's like
+                      // status, sent a like for a post already liked, and
+                      // the rules rightly rejected it.
+                      key: ValueKey(post.id),
                       post: post,
                       rank: index + 1,
                       onTap: () => _openPost(post),
@@ -466,6 +473,7 @@ class _SortToggle extends StatelessWidget {
 
 class _CommunityPostCard extends StatefulWidget {
   const _CommunityPostCard({
+    super.key,
     required this.post,
     required this.rank,
     required this.onTap,
@@ -490,6 +498,20 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
   // Bridges the frame between a tap and the likeStatus() stream echoing it —
   // see _LiveMessageToolbar in daily_message_card.dart.
   bool? _optimisticLiked;
+
+  // Made once, not in build: a stream built in build re-subscribes on every
+  // setState, and a fresh StreamBuilder reads "not liked" until the new
+  // subscription answers — exactly when the next tap decides which way to go.
+  late Stream<bool> _likeStatus = _service.likeStatus(widget.post.id);
+
+  @override
+  void didUpdateWidget(_CommunityPostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.id != widget.post.id) {
+      _likeStatus = _service.likeStatus(widget.post.id);
+      _optimisticLiked = null;
+    }
+  }
 
   Future<void> _handleLike(bool serverLiked) async {
     if (!await requireSignIn(
@@ -550,7 +572,7 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: StreamBuilder<bool>(
-                  stream: _service.likeStatus(widget.post.id),
+                  stream: _likeStatus,
                   builder: (context, snapshot) {
                     final serverLiked = snapshot.data ?? false;
                     if (_optimisticLiked != null &&
