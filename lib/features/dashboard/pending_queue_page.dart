@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'dashboard_refresh.dart';
+
 class PendingQueuePage extends StatelessWidget {
   const PendingQueuePage({super.key});
 
@@ -84,6 +86,8 @@ class _PendingCardState extends State<_PendingCard> {
         'reviewedAt': FieldValue.serverTimestamp(),
         'reviewedBy': uid,
       });
+      // An approval joins (or a later rejection leaves) the delivery pool.
+      DashboardRefresh.markChanged(const ['communityMessages']);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

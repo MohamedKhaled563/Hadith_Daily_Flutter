@@ -449,17 +449,24 @@ class _DashboardHomeState extends State<_DashboardHome> {
             ),
           ),
         ),
+        // Every tab stays mounted; TickerMode marks which one is showing.
+        // Besides pausing hidden tabs' spinners, it is how
+        // DashboardAutoRefresh knows to reload a tab when it is opened
+        // rather than while nobody is looking at it.
         body: IndexedStack(
           index: _tab,
           children: [
-            const PendingQueuePage(),
-            const ContentReportsPage(),
-            BulkAddPage(isAdmin: widget.isAdmin),
-            NotificationMessagesPage(isAdmin: widget.isAdmin),
-            const FeedbackMessagesPage(),
-            if (widget.isAdmin) const DailyMessageSchedulePage(),
-            if (widget.isAdmin) const BulkChangeRequestsPage(),
-            if (widget.isAdmin) const UsersPage(),
+            for (final (i, page) in [
+              const PendingQueuePage(),
+              const ContentReportsPage(),
+              BulkAddPage(isAdmin: widget.isAdmin),
+              NotificationMessagesPage(isAdmin: widget.isAdmin),
+              const FeedbackMessagesPage(),
+              if (widget.isAdmin) const DailyMessageSchedulePage(),
+              if (widget.isAdmin) const BulkChangeRequestsPage(),
+              if (widget.isAdmin) const UsersPage(),
+            ].indexed)
+              TickerMode(enabled: i == _tab, child: page),
           ],
         ),
       ),

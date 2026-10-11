@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/services/daily_tip_service.dart';
+import 'dashboard_refresh.dart';
 
 /// One row in the delivery pool — either a dailyMessages doc ("رسائل
 /// اليوم", added by staff) or an approved communityMessages doc
@@ -53,14 +54,15 @@ class DailyMessageSchedulePage extends StatefulWidget {
       _DailyMessageSchedulePageState();
 }
 
-class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage> {
+class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage>
+    with DashboardAutoRefresh {
   final _db = FirebaseFirestore.instance;
   final _searchController = TextEditingController();
   String _search = '';
   _SourceFilter _filter = _SourceFilter.all;
 
-  late Future<List<_PoolEntry>> _poolFuture = _loadPool();
   List<_PoolEntry>? _entries;
+  Object? _loadError;
 
   final _deletingPaths = <String>{};
   final _schedulingPaths = <String>{};
@@ -117,11 +119,31 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage> {
     return entries;
   }
 
-  void _reload() {
+  @override
+  Set<String> get watchedCollections =>
+      const {'dailyMessages', 'communityMessages'};
+
+  @override
+  Future<void> loadData() async {
+    final fresh = await _loadPool();
+    if (!mounted) return;
     setState(() {
-      _entries = null;
-      _poolFuture = _loadPool();
+      _entries = fresh;
+      _loadError = null;
     });
+  }
+
+  @override
+  void onRefreshError(Object error) {
+    // With a list already on screen, keep it and say so quietly; the full
+    // error page is only for when there is nothing to show at all.
+    if (_entries == null) {
+      setState(() => _loadError = error);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر تحديث القائمة: $error')),
+      );
+    }
   }
 
   /// This whole page is admin-only (dashboard_app.dart never gives a
@@ -340,11 +362,20 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage> {
                   onChanged: (v) => setState(() => _search = v.trim()),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded),
-                tooltip: 'تحديث القائمة',
-                onPressed: _reload,
-              ),
+              refreshing
+                  ? const SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Padding(
+                        padding: EdgeInsets.all(14),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.refresh_rounded),
+                      tooltip: 'تحديث القائمة',
+                      onPressed: refreshNow,
+                    ),
             ],
           ),
         ),
@@ -370,17 +401,16 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage> {
           ),
         ),
         Expanded(
-          child: FutureBuilder<List<_PoolEntry>>(
-            future: _poolFuture,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Center(child: Text('تعذّر التحميل: ${snapshot.error}'));
+          child: Builder(
+            builder: (context) {
+              final entries = _entries;
+              if (entries == null) {
+                return Center(
+                  child: _loadError != null
+                      ? Text('تعذّر التحميل: $_loadError')
+                      : const CircularProgressIndicator(),
+                );
               }
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              _entries ??= snapshot.data!;
-              final entries = _entries!;
 
               final asNumber = int.tryParse(_search);
               final visible = entries.where((e) {
@@ -678,104 +708,119 @@ class _PoolRow extends StatelessWidget {
     final everShown = entry.timesShown > 0;
     final isCommunity = entry.source == 'communityMessages';
 
+    final spinner = const SizedBox(
+      width: 36,
+      height: 36,
+      child: Padding(
+        padding: EdgeInsets.all(8),
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+    );
+
+    // The text gets the card's full width and wraps to as many lines as it
+    // needs — squeezed into one ellipsised line beside the chips, a long
+    // message showed only its opening words. It is laid out RTL on its own:
+    // the dashboard chrome is LTR (see DashboardApp), and an Arabic
+    // paragraph in an LTR box aligns left and flips its trailing
+    // punctuation to the wrong end of each line.
     return Card(
       key: ValueKey('card-${entry.ref.path}'),
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.text,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 6,
-                    children: [
-                      Text(
-                        'الحديث ${entry.hadithNumber}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: (isCommunity ? Colors.blue : Colors.brown)
-                              .withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          isCommunity ? 'من المجتمع' : 'من رسائل اليوم',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: isCommunity ? Colors.blue[800] : Colors.brown[700],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            SelectableText(
+              entry.text,
+              textDirection: TextDirection.rtl,
+              style: const TextStyle(fontWeight: FontWeight.w600, height: 1.6),
             ),
-            const SizedBox(width: 8),
-            Chip(
-              label: Text(everShown ? 'عُرضت ${entry.timesShown} مرة' : 'لم تُعرض بعد'),
-              backgroundColor: everShown
-                  ? Colors.green.withValues(alpha: 0.12)
-                  : Colors.grey.withValues(alpha: 0.15),
-            ),
-            const SizedBox(width: 4),
-            Chip(
-              label: Text(
-                '♥ ${entry.likeCount}',
-                style: TextStyle(
-                  color: entry.likeCount > 0 ? Colors.red[700] : Colors.grey[700],
+            const SizedBox(height: 6),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  children: [
+                    Text(
+                      'الحديث ${entry.hadithNumber}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (isCommunity ? Colors.blue : Colors.brown)
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        isCommunity ? 'من المجتمع' : 'من رسائل اليوم',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isCommunity ? Colors.blue[800] : Colors.brown[700],
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${entry.text.length} حرف',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
-              ),
-              backgroundColor: entry.likeCount > 0
-                  ? Colors.red.withValues(alpha: 0.10)
-                  : Colors.grey.withValues(alpha: 0.15),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 4,
+                  children: [
+                    Chip(
+                      visualDensity: VisualDensity.compact,
+                      label: Text(
+                        everShown ? 'عُرضت ${entry.timesShown} مرة' : 'لم تُعرض بعد',
+                      ),
+                      backgroundColor: everShown
+                          ? Colors.green.withValues(alpha: 0.12)
+                          : Colors.grey.withValues(alpha: 0.15),
+                    ),
+                    Chip(
+                      visualDensity: VisualDensity.compact,
+                      label: Text(
+                        '♥ ${entry.likeCount}',
+                        style: TextStyle(
+                          color: entry.likeCount > 0 ? Colors.red[700] : Colors.grey[700],
+                        ),
+                      ),
+                      backgroundColor: entry.likeCount > 0
+                          ? Colors.red.withValues(alpha: 0.10)
+                          : Colors.grey.withValues(alpha: 0.15),
+                    ),
+                    scheduling
+                        ? spinner
+                        : IconButton(
+                            icon: const Icon(Icons.event_available_rounded,
+                                color: Colors.green),
+                            tooltip: 'تحديد ليوم معيّن',
+                            onPressed: onSchedule,
+                          ),
+                    deleting
+                        ? spinner
+                        : IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded,
+                                color: Colors.red),
+                            tooltip: 'حذف نهائياً',
+                            onPressed: onDelete,
+                          ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(width: 4),
-            scheduling
-                ? const SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: Padding(
-                      padding: EdgeInsets.all(8),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : IconButton(
-                    icon: const Icon(Icons.event_available_rounded, color: Colors.green),
-                    tooltip: 'تحديد ليوم معيّن',
-                    onPressed: onSchedule,
-                  ),
-            deleting
-                ? const SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: Padding(
-                      padding: EdgeInsets.all(8),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                    tooltip: 'حذف نهائياً',
-                    onPressed: onDelete,
-                  ),
           ],
         ),
       ),

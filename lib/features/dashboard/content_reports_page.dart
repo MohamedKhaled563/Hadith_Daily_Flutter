@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/services/moderation_service.dart';
+import 'dashboard_refresh.dart';
 
 /// The moderator's side of the in-app report button.
 ///
@@ -144,6 +145,7 @@ class _ReportedMessageCardState extends State<_ReportedMessageCard> {
       }
 
       await batch.commit();
+      if (hidePost) DashboardRefresh.markChanged(const ['communityMessages']);
     } catch (error) {
       if (mounted) {
         setState(() {

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import 'bulk_add_parsing.dart' as parsing;
 import 'bulk_sync.dart';
+import 'dashboard_refresh.dart';
 
 /// Two ways to bulk-add to the three message collections, replacing the
 /// Google-Sheets-bridge idea from the original roadmap — no separate sync
@@ -120,6 +121,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
         });
       }
       await batch.commit();
+      DashboardRefresh.markChanged(const ['dailyMessages']);
 
       if (!mounted) return;
       setState(() {

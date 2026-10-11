@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'dashboard_refresh.dart';
+
 /// Thin wrapper around Firestore's 500-write batch limit — every sheet sync
 /// (immediate or admin-approved) stages into the same writer so one upload
 /// commits as few batches as possible, auto-flushing just under the limit.
@@ -10,6 +12,11 @@ class BatchWriter {
   WriteBatch _batch;
   int _pending = 0;
 
+  /// Collections touched by the batch being staged — announced through
+  /// [DashboardRefresh] on each commit, so open tabs pick up even a
+  /// partially applied upload.
+  final _touched = <String>{};
+
   /// How many writes have actually been committed so far (across every
   /// auto-flush at the 400-op mark, plus a final [flush]) — lets a caller
   /// report "N of M applied" if a later write in the same upload throws,
@@ -18,10 +25,8 @@ class BatchWriter {
 
   Future<void> _maybeFlush() async {
     if (_pending >= 400) {
-      await _batch.commit();
-      committedCount += _pending;
+      await _commit();
       _batch = _db.batch();
-      _pending = 0;
     }
   }
 
@@ -30,6 +35,7 @@ class BatchWriter {
     Map<String, dynamic> data,
   ) async {
     _batch.set(ref, data);
+    _touched.add(ref.parent.id);
     _pending++;
     await _maybeFlush();
   }
@@ -39,22 +45,28 @@ class BatchWriter {
     Map<String, dynamic> data,
   ) async {
     _batch.set(ref, data, SetOptions(merge: true));
+    _touched.add(ref.parent.id);
     _pending++;
     await _maybeFlush();
   }
 
   Future<void> delete(DocumentReference<Map<String, dynamic>> ref) async {
     _batch.delete(ref);
+    _touched.add(ref.parent.id);
     _pending++;
     await _maybeFlush();
   }
 
   Future<void> flush() async {
-    if (_pending > 0) {
-      await _batch.commit();
-      committedCount += _pending;
-      _pending = 0;
-    }
+    if (_pending > 0) await _commit();
+  }
+
+  Future<void> _commit() async {
+    await _batch.commit();
+    committedCount += _pending;
+    _pending = 0;
+    DashboardRefresh.markChanged(_touched);
+    _touched.clear();
   }
 }
 

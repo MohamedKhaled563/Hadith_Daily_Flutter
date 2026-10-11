@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/services/notification_schedule.dart';
+import 'dashboard_refresh.dart';
 
 /// Moderator/admin management of the small curated pool
 /// NotificationScheduler draws from on-device — see firestore.rules
@@ -63,11 +64,12 @@ String? validateNotificationText(String text) {
   return null;
 }
 
-class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
+class _NotificationMessagesPageState extends State<NotificationMessagesPage>
+    with DashboardAutoRefresh {
   final _db = FirebaseFirestore.instance;
 
-  late Future<List<_MsgEntry>> _messagesFuture = _loadMessages();
   List<_MsgEntry>? _messages;
+  Object? _loadError;
   final _schedulingIds = <String>{};
 
   DocumentReference<Map<String, dynamic>> get _scheduleRef =>
@@ -96,11 +98,26 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
         .toList();
   }
 
-  void _reload() {
+  @override
+  Set<String> get watchedCollections => const {'notificationMessages'};
+
+  @override
+  Future<void> loadData() async {
+    final fresh = await _loadMessages();
+    if (!mounted) return;
     setState(() {
-      _messages = null;
-      _messagesFuture = _loadMessages();
+      _messages = fresh;
+      _loadError = null;
     });
+  }
+
+  @override
+  void onRefreshError(Object error) {
+    if (_messages == null) {
+      setState(() => _loadError = error);
+    } else {
+      _snack('تعذّر تحديث القائمة: $error');
+    }
   }
 
   Future<void> _addMessage() async {
@@ -161,7 +178,7 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
       _snack('تعذّر إضافة الرسالة: $error');
       return;
     }
-    _reload();
+    DashboardRefresh.markChanged(const ['notificationMessages']);
   }
 
   Future<void> _toggleActive(_MsgEntry entry, bool value) async {
@@ -307,20 +324,19 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage> {
           children: [
             _ScheduleSummary(
               onRemove: _removeScheduled,
-              onRefresh: _reload,
+              onRefresh: refreshNow,
             ),
             Expanded(
-              child: FutureBuilder<List<_MsgEntry>>(
-                future: _messagesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(child: Text('تعذّر التحميل: ${snapshot.error}'));
+              child: Builder(
+                builder: (context) {
+                  final messages = _messages;
+                  if (messages == null) {
+                    return Center(
+                      child: _loadError != null
+                          ? Text('تعذّر التحميل: $_loadError')
+                          : const CircularProgressIndicator(),
+                    );
                   }
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  _messages ??= snapshot.data!;
-                  final messages = _messages!;
                   if (messages.isEmpty) {
                     return const Center(
                       child: Text('لا توجد رسائل تنبيه بعد — أضف أول رسالة'),
@@ -589,8 +605,11 @@ class _MessageRow extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
+              // RTL on its own inside the LTR dashboard chrome, so a wrapped
+              // Arabic line aligns right and keeps its punctuation in place.
               child: Text(
                 entry.text,
+                textDirection: TextDirection.rtl,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   color: entry.active ? null : Theme.of(context).disabledColor,
