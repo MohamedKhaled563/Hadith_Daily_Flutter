@@ -608,7 +608,7 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
                       semanticLabel: 'مشاركة المشاركة كصورة',
                       onTap: () => showShareSheet(
                         context: context,
-                        message: widget.post.message,
+                        message: widget.post.displayMessage,
                         hadithTitle: hadith?.title,
                         hadithNumber: toArabicDigits(widget.post.hadithNumber),
                         attribution: widget.post.authorName,
@@ -659,7 +659,7 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
           ),
           const _GoldDivider(),
           Text(
-            '« ${widget.post.message} »',
+            '« ${widget.post.displayMessage} »',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: kSans,

@@ -1,3 +1,14 @@
+/// A message as it is shown: without the trailing full stop admins often
+/// type. An ellipsis ("...") is kept. The stored text is left alone — the
+/// favourites key is built from it — so this applies only where it is read.
+String displayMessageText(String text) {
+  final t = text.trimRight();
+  if (t.endsWith('.') && !t.endsWith('..')) {
+    return t.substring(0, t.length - 1).trimRight();
+  }
+  return t;
+}
+
 class Insight {
   final int hadithNumber;
   final String arabic;
@@ -31,6 +42,8 @@ class Insight {
 
   String get message => arabic;
 
+  String get displayMessage => displayMessageText(arabic);
+
   bool get isLikeable => id.isNotEmpty && sourceCollection.isNotEmpty;
 
   factory Insight.fromJson(Map<String, dynamic> json) {
@@ -58,6 +71,8 @@ class CommunityPost {
   final DateTime createdAt;
 
   String get arabic => message;
+
+  String get displayMessage => displayMessageText(message);
 
   CommunityPost({
     required this.id,

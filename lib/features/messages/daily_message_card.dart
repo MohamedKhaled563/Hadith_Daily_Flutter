@@ -103,7 +103,7 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
 
   String get _shareText {
     final link = AppLinks.storeLink;
-    return '« ${_insight.message} »\n\n'
+    return '« ${_insight.displayMessage} »\n\n'
         'المرتبط بـ: ${_hadith?.title ?? 'حديث نبوي شريف'}\n'
         'من تطبيق: طيّب قلبك - هدي النبوة'
         '${link == null ? '' : '\n$link'}';
@@ -131,7 +131,7 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
   void _showSharePreview() {
     showShareSheet(
       context: context,
-      message: _insight.message,
+      message: _insight.displayMessage,
       hadithTitle: _hadith?.title,
       hadithNumber: _hadith == null ? null : toArabicDigits(_hadith!.number),
       category: _insight.category,
@@ -273,14 +273,14 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
               Expanded(
                 child: Center(
                   child: _FittedMessage(
-                    text: '« ${_insight.message} »',
+                    text: '« ${_insight.displayMessage} »',
                     style: messageStyle,
                   ),
                 ),
               )
             else
               Text(
-                '« ${_insight.message} »',
+                '« ${_insight.displayMessage} »',
                 textAlign: TextAlign.center,
                 style: messageStyle,
               ),

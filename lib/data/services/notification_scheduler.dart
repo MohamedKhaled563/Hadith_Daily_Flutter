@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../models/insight.dart';
 import 'notification_data_source.dart';
 import 'notification_schedule.dart';
 
@@ -384,7 +385,7 @@ class NotificationScheduler {
           time: morningTime,
           enabled: morningEnabled && morning != null,
           title: 'رسالة الصباح',
-          body: morning?.text ?? '',
+          body: displayMessageText(morning?.text ?? ''),
           payload: morning?.id ?? '',
           now: now,
           scheduleMode: scheduleMode,
@@ -398,7 +399,7 @@ class NotificationScheduler {
           time: eveningTime,
           enabled: eveningEnabled && evening != null,
           title: 'تأمل المساء',
-          body: evening?.text ?? '',
+          body: displayMessageText(evening?.text ?? ''),
           payload: evening?.id ?? '',
           now: now,
           scheduleMode: scheduleMode,

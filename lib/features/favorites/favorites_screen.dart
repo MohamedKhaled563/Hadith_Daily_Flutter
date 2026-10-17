@@ -280,7 +280,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '« ${insight.message} »',
+                  '« ${insight.displayMessage} »',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: kSans,
@@ -347,7 +347,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         // leaving it would be a second control for one action.
                         TapTarget(
                           onTap: () => _copyText(
-                            '« ${insight.message} »\n— طيّب قلبك',
+                            '« ${insight.displayMessage} »\n— طيّب قلبك',
                           ),
                           semanticLabel: 'نسخ الرسالة',
                           child: Icon(
