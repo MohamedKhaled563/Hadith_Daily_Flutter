@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/services/notification_schedule.dart';
+import 'bulk_select_bar.dart';
 import 'dashboard_refresh.dart';
 
 /// Moderator/admin management of the small curated pool
@@ -71,6 +72,8 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage>
   List<_MsgEntry>? _messages;
   Object? _loadError;
   final _schedulingIds = <String>{};
+  final _selectedIds = <String>{};
+  bool _bulkDeleting = false;
 
   DocumentReference<Map<String, dynamic>> get _scheduleRef =>
       _db.collection('settings').doc('notificationSchedule');
@@ -108,6 +111,7 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage>
     setState(() {
       _messages = fresh;
       _loadError = null;
+      _selectedIds.retainAll({for (final m in fresh) m.ref.id});
     });
   }
 
@@ -218,8 +222,38 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage>
       return;
     }
     if (mounted) {
-      setState(() => _messages?.remove(entry));
+      setState(() {
+        _messages?.remove(entry);
+        _selectedIds.remove(entry.ref.id);
+      });
     }
+  }
+
+  Future<void> _deleteSelected() async {
+    final targets = [
+      for (final m in _messages ?? const <_MsgEntry>[])
+        if (_selectedIds.contains(m.ref.id)) m,
+    ];
+    if (targets.isEmpty) return;
+    if (!await confirmBulkDelete(context, targets.length) || !mounted) return;
+
+    setState(() => _bulkDeleting = true);
+    var committed = targets.length;
+    Object? error;
+    try {
+      await bulkDelete([for (final m in targets) m.ref]);
+    } on BulkDeleteError catch (e) {
+      committed = e.committed;
+      error = e;
+    }
+    if (!mounted) return;
+    final gone = {for (final m in targets.take(committed)) m.ref.id};
+    setState(() {
+      _bulkDeleting = false;
+      _messages?.removeWhere((m) => gone.contains(m.ref.id));
+      _selectedIds.removeAll(gone);
+    });
+    _snack(error == null ? 'تم حذف $committed رسالة' : 'تعذّر الحذف: $error');
   }
 
   /// Pick a day, then which of its two reminders this message fills. A slot
@@ -343,21 +377,48 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage>
                     );
                   }
 
-                  return ListView.builder(
+                  final list = ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final entry = messages[index];
+                      final id = entry.ref.id;
                       return _MessageRow(
-                        key: ValueKey(entry.ref.id),
+                        key: ValueKey(id),
                         entry: entry,
                         canEdit: widget.isAdmin,
-                        scheduling: _schedulingIds.contains(entry.ref.id),
+                        selected: _selectedIds.contains(id),
+                        onSelectedChanged: !widget.isAdmin || _bulkDeleting
+                            ? null
+                            : (v) => setState(() => v
+                                ? _selectedIds.add(id)
+                                : _selectedIds.remove(id)),
+                        scheduling: _schedulingIds.contains(id),
                         onSchedule: () => _scheduleMessage(entry),
                         onToggleActive: (v) => _toggleActive(entry, v),
                         onDelete: () => _delete(entry),
                       );
                     },
+                  );
+                  // Bulk removal is admin-only, like the per-row delete
+                  // (firestore.rules phase 16).
+                  if (!widget.isAdmin) return list;
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 8, 16, 0),
+                        child: BulkSelectBar(
+                          visibleCount: messages.length,
+                          selectedVisibleCount: _selectedIds.length,
+                          deleting: _bulkDeleting,
+                          onSelectAll: () => setState(() => _selectedIds
+                              .addAll(messages.map((m) => m.ref.id))),
+                          onClear: () => setState(_selectedIds.clear),
+                          onDelete: _deleteSelected,
+                        ),
+                      ),
+                      Expanded(child: list),
+                    ],
                   );
                 },
               ),
@@ -579,6 +640,8 @@ class _MessageRow extends StatelessWidget {
     super.key,
     required this.entry,
     required this.canEdit,
+    required this.selected,
+    required this.onSelectedChanged,
     required this.scheduling,
     required this.onSchedule,
     required this.onToggleActive,
@@ -591,6 +654,8 @@ class _MessageRow extends StatelessWidget {
   /// notificationMessages doc — a moderator sees the switch and delete
   /// disabled, but can still add new messages and use the calendar.
   final bool canEdit;
+  final bool selected;
+  final ValueChanged<bool>? onSelectedChanged;
   final bool scheduling;
   final VoidCallback onSchedule;
   final ValueChanged<bool> onToggleActive;
@@ -604,6 +669,13 @@ class _MessageRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
+            if (canEdit)
+              Checkbox(
+                value: selected,
+                onChanged: onSelectedChanged == null
+                    ? null
+                    : (v) => onSelectedChanged!(v ?? false),
+              ),
             Expanded(
               // RTL on its own inside the LTR dashboard chrome, so a wrapped
               // Arabic line aligns right and keeps its punctuation in place.

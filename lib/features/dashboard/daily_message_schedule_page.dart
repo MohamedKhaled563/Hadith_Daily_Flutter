@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/services/daily_pool_version.dart';
 import '../../data/services/daily_tip_service.dart';
+import 'bulk_select_bar.dart';
 import 'dashboard_refresh.dart';
 
 /// One row in the delivery pool — either a dailyMessages doc ("رسائل
@@ -69,6 +70,8 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage>
 
   final _deletingPaths = <String>{};
   final _schedulingPaths = <String>{};
+  final _selectedPaths = <String>{};
+  bool _bulkDeleting = false;
 
   DocumentReference<Map<String, dynamic>> get _scheduleRef =>
       _db.collection('settings').doc('dailyMessageSchedule');
@@ -133,6 +136,9 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage>
     setState(() {
       _entries = fresh;
       _loadError = null;
+      // A row someone else deleted can't stay selected.
+      final live = {for (final e in fresh) e.ref.path};
+      _selectedPaths.retainAll(live);
     });
   }
 
@@ -186,6 +192,7 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage>
       setState(() {
         _entries?.removeWhere((e) => e.ref.path == entry.ref.path);
         _deletingPaths.remove(entry.ref.path);
+        _selectedPaths.remove(entry.ref.path);
       });
     } catch (e) {
       if (!mounted) return;
@@ -194,6 +201,41 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage>
         SnackBar(content: Text('تعذّر الحذف: $e')),
       );
     }
+  }
+
+  /// Deletes every selected row that the current filter/search shows —
+  /// a selection hidden by a later filter change is left alone, so the
+  /// count on the button is exactly what goes.
+  Future<void> _deleteSelected(List<_PoolEntry> visible) async {
+    final targets =
+        visible.where((e) => _selectedPaths.contains(e.ref.path)).toList();
+    if (targets.isEmpty) return;
+    if (!await confirmBulkDelete(context, targets.length) || !mounted) return;
+
+    setState(() => _bulkDeleting = true);
+    var committed = targets.length;
+    Object? error;
+    try {
+      await bulkDelete([for (final e in targets) e.ref]);
+    } on BulkDeleteError catch (e) {
+      committed = e.committed;
+      error = e;
+    }
+    if (committed > 0) unawaited(DailyPoolVersion.bump());
+    if (!mounted) return;
+    final gone = {for (final e in targets.take(committed)) e.ref.path};
+    setState(() {
+      _bulkDeleting = false;
+      _entries?.removeWhere((e) => gone.contains(e.ref.path));
+      _selectedPaths.removeAll(gone);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error == null ? 'تم حذف $committed رسالة' : 'تعذّر الحذف: $error',
+        ),
+      ),
+    );
   }
 
   /// The configured count, or 1 when the doc hasn't been written yet — the
@@ -435,20 +477,50 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage>
                 return const Center(child: Text('لا توجد نتائج مطابقة'));
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                itemCount: visible.length,
-                itemBuilder: (context, i) {
-                  final entry = visible[i];
-                  return _PoolRow(
-                    key: ValueKey(entry.ref.path),
-                    entry: entry,
-                    deleting: _deletingPaths.contains(entry.ref.path),
-                    scheduling: _schedulingPaths.contains(entry.ref.path),
-                    onDelete: () => _delete(entry),
-                    onSchedule: () => _scheduleMessage(entry),
-                  );
-                },
+              final selectedVisible = visible
+                  .where((e) => _selectedPaths.contains(e.ref.path))
+                  .length;
+
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 0, 16, 4),
+                    child: BulkSelectBar(
+                      visibleCount: visible.length,
+                      selectedVisibleCount: selectedVisible,
+                      deleting: _bulkDeleting,
+                      onSelectAll: () => setState(() => _selectedPaths
+                          .addAll(visible.map((e) => e.ref.path))),
+                      onClear: () => setState(() => _selectedPaths
+                          .removeAll(visible.map((e) => e.ref.path))),
+                      onDelete: () => _deleteSelected(visible),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      itemCount: visible.length,
+                      itemBuilder: (context, i) {
+                        final entry = visible[i];
+                        final path = entry.ref.path;
+                        return _PoolRow(
+                          key: ValueKey(path),
+                          entry: entry,
+                          selected: _selectedPaths.contains(path),
+                          onSelectedChanged: _bulkDeleting
+                              ? null
+                              : (v) => setState(() => v
+                                  ? _selectedPaths.add(path)
+                                  : _selectedPaths.remove(path)),
+                          deleting: _deletingPaths.contains(path),
+                          scheduling: _schedulingPaths.contains(path),
+                          onDelete: () => _delete(entry),
+                          onSchedule: () => _scheduleMessage(entry),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -697,6 +769,8 @@ class _PoolRow extends StatelessWidget {
   const _PoolRow({
     super.key,
     required this.entry,
+    required this.selected,
+    required this.onSelectedChanged,
     required this.deleting,
     required this.scheduling,
     required this.onDelete,
@@ -704,6 +778,8 @@ class _PoolRow extends StatelessWidget {
   });
 
   final _PoolEntry entry;
+  final bool selected;
+  final ValueChanged<bool>? onSelectedChanged;
   final bool deleting;
   final bool scheduling;
   final VoidCallback onDelete;
@@ -753,6 +829,12 @@ class _PoolRow extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   spacing: 6,
                   children: [
+                    Checkbox(
+                      value: selected,
+                      onChanged: onSelectedChanged == null
+                          ? null
+                          : (v) => onSelectedChanged!(v ?? false),
+                    ),
                     Text(
                       'الحديث ${entry.hadithNumber}',
                       style: Theme.of(context).textTheme.bodySmall,

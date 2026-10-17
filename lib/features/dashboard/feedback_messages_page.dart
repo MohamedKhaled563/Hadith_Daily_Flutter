@@ -1,21 +1,64 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'bulk_select_bar.dart';
+
 /// Moderator/admin view of messages sent from the app's settings drawer
 /// ("تواصل معنا واقترح فكرة") — see FeedbackService.submit, which is the
 /// only writer of this collection besides this page's own `read` toggle.
-class FeedbackMessagesPage extends StatelessWidget {
+class FeedbackMessagesPage extends StatefulWidget {
   const FeedbackMessagesPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final stream = FirebaseFirestore.instance
-        .collection('feedbackMessages')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+  State<FeedbackMessagesPage> createState() => _FeedbackMessagesPageState();
+}
 
+class _FeedbackMessagesPageState extends State<FeedbackMessagesPage> {
+  final _stream = FirebaseFirestore.instance
+      .collection('feedbackMessages')
+      .orderBy('createdAt', descending: true)
+      .snapshots();
+
+  final _selectedIds = <String>{};
+  bool _bulkDeleting = false;
+
+  /// The live stream drops deleted rows by itself, so this only has to
+  /// write the deletes and clear the selection.
+  Future<void> _deleteSelected(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) async {
+    final targets =
+        docs.where((d) => _selectedIds.contains(d.id)).toList();
+    if (targets.isEmpty) return;
+    if (!await confirmBulkDelete(context, targets.length) || !mounted) return;
+
+    setState(() => _bulkDeleting = true);
+    var committed = targets.length;
+    Object? error;
+    try {
+      await bulkDelete([for (final d in targets) d.reference]);
+    } on BulkDeleteError catch (e) {
+      committed = e.committed;
+      error = e;
+    }
+    if (!mounted) return;
+    setState(() {
+      _bulkDeleting = false;
+      _selectedIds.removeAll(targets.take(committed).map((d) => d.id));
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error == null ? 'تم حذف $committed رسالة' : 'تعذّر الحذف: $error',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: stream,
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text('تعذّر تحميل الرسائل: ${snapshot.error}'));
@@ -33,13 +76,46 @@ class FeedbackMessagesPage extends StatelessWidget {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: docs.length,
-          itemBuilder: (context, index) => _FeedbackCard(
-            key: ValueKey(docs[index].id),
-            doc: docs[index],
-          ),
+        // Only count what is still in the mailbox — a selected row that
+        // another moderator deleted simply drops out.
+        final liveIds = {for (final d in docs) d.id};
+        final selectedCount = _selectedIds.where(liveIds.contains).length;
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 16, 0),
+              child: BulkSelectBar(
+                visibleCount: docs.length,
+                selectedVisibleCount: selectedCount,
+                deleting: _bulkDeleting,
+                onSelectAll: () => setState(() => _selectedIds
+                  ..clear()
+                  ..addAll(liveIds)),
+                onClear: () => setState(_selectedIds.clear),
+                onDelete: () => _deleteSelected(docs),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final id = docs[index].id;
+                  return _FeedbackCard(
+                    key: ValueKey(id),
+                    doc: docs[index],
+                    selected: _selectedIds.contains(id),
+                    onSelectedChanged: _bulkDeleting
+                        ? null
+                        : (v) => setState(() => v
+                            ? _selectedIds.add(id)
+                            : _selectedIds.remove(id)),
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -47,9 +123,16 @@ class FeedbackMessagesPage extends StatelessWidget {
 }
 
 class _FeedbackCard extends StatelessWidget {
-  const _FeedbackCard({super.key, required this.doc});
+  const _FeedbackCard({
+    super.key,
+    required this.doc,
+    required this.selected,
+    required this.onSelectedChanged,
+  });
 
   final QueryDocumentSnapshot<Map<String, dynamic>> doc;
+  final bool selected;
+  final ValueChanged<bool>? onSelectedChanged;
 
   Future<void> _toggleRead(bool value) {
     return doc.reference.update({'read': value});
@@ -99,6 +182,12 @@ class _FeedbackCard extends StatelessWidget {
           children: [
             Row(
               children: [
+                Checkbox(
+                  value: selected,
+                  onChanged: onSelectedChanged == null
+                      ? null
+                      : (v) => onSelectedChanged!(v ?? false),
+                ),
                 CircleAvatar(
                   child: Text(userName.isNotEmpty ? userName[0] : '؟'),
                 ),
