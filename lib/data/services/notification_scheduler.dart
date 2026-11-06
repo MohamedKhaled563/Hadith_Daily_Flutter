@@ -172,7 +172,29 @@ class NotificationScheduler {
   /// [wasLaunchedByNotification], which SplashScreen checks once at launch.
   static final ValueNotifier<int> notificationTapped = ValueNotifier<int>(0);
 
+  /// [notificationTapped]'s counterpart for a "your message was approved"
+  /// notification, kept apart because a reader tapping that one wants their
+  /// own submissions, not today's message. A cold start instead goes through
+  /// [wasLaunchedBySubmissionApproval].
+  static final ValueNotifier<int> submissionApprovalTapped =
+      ValueNotifier<int>(0);
+
+  /// How a tap tells an approval from a reminder — a reminder's payload is a
+  /// `notificationMessages` doc id, which this can't be mistaken for.
+  @visibleForTesting
+  static const submissionApprovedPayload = 'submission-approved';
+
+  /// Clear of the reminder window's ids (0 to `_daysAhead * 2 - 1`), so the
+  /// rolling [reschedule] can never cancel it out of the shade. One fixed id:
+  /// a later approval replaces an earlier one rather than stacking up.
+  @visibleForTesting
+  static const submissionApprovedId = 1000;
+
   static void _onNotificationResponse(NotificationResponse response) {
+    if (response.payload == submissionApprovedPayload) {
+      submissionApprovalTapped.value++;
+      return;
+    }
     notificationTapped.value++;
   }
 
@@ -219,9 +241,21 @@ class NotificationScheduler {
   /// terminated, checked once at startup since a cold start never fires
   /// [_onNotificationResponse]. Safe to call before [_ensureInitialized]:
   /// this reads native launch state directly, no plugin init required.
+  ///
+  /// False for an approval notification, which opens the reader's submissions
+  /// and must not count as having opened today's message.
   Future<bool> wasLaunchedByNotification() async {
     final details = await _plugin.getNotificationAppLaunchDetails();
-    return details?.didNotificationLaunchApp ?? false;
+    if (!(details?.didNotificationLaunchApp ?? false)) return false;
+    return details?.notificationResponse?.payload != submissionApprovedPayload;
+  }
+
+  /// Whether the app was launched by tapping an approval notification while
+  /// fully terminated — the cold-start half of [submissionApprovalTapped].
+  Future<bool> wasLaunchedBySubmissionApproval() async {
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    if (!(details?.didNotificationLaunchApp ?? false)) return false;
+    return details?.notificationResponse?.payload == submissionApprovedPayload;
   }
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>
@@ -250,6 +284,33 @@ class NotificationScheduler {
           false;
     }
     return true;
+  }
+
+  /// Shows the "your message was approved" notification right away. Unlike
+  /// the reminders this isn't gated on the reminder switches: it only ever
+  /// fires for something the reader submitted, and has its own Android
+  /// channel, so they can silence it in the OS without losing their reminders.
+  Future<void> showSubmissionApproved({
+    required String title,
+    required String body,
+  }) async {
+    await _ensureInitialized();
+    await _plugin.show(
+      submissionApprovedId,
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'submission_updates',
+          'مشاركاتك',
+          channelDescription: 'إشعار عند قبول رسالة أرسلتها',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      payload: submissionApprovedPayload,
+    );
   }
 
   /// Re-lays the future `_daysAhead`-day window from today, honouring which

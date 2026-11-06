@@ -15,6 +15,7 @@ import '../../core/widgets/tap_target.dart';
 import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
+import '../../data/services/notification_scheduler.dart';
 
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold
 /// and the background.
@@ -187,6 +188,12 @@ class _AddMessageScreenState extends State<AddMessageScreen>
       'تم إرسال رسالتك للمراجعة، وستظهر بعد موافقة المشرفين',
       tone: SnackTone.success,
     );
+
+    // The approval notification needs this grant, and a reader who switched
+    // both reminders off has never been asked for it. This is the moment the
+    // ask makes sense; it shows nothing once granted. Left unawaited so the
+    // dialog can't hold up clearing the form behind it.
+    NotificationScheduler.instance.requestPermission().catchError((_) => false);
 
     _messageController.clear();
     setState(() => _selectedHadith = null);

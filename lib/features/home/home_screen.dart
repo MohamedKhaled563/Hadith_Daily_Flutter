@@ -20,16 +20,25 @@ import '../../data/services/notification_scheduler.dart';
 import '../messages/daily_message_card.dart';
 import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
+import '../community/my_submissions_screen.dart';
 import '../share/add_message_screen.dart';
 import '../favorites/favorites_screen.dart';
 import '../profile/settings_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.openMessageOnStart = false});
+  const HomeScreen({
+    super.key,
+    this.openMessageOnStart = false,
+    this.openSubmissionsOnStart = false,
+  });
 
   /// Land straight on today's message instead of the emblem. Only for a
   /// launch from a reminder tap — see SplashScreen.
   final bool openMessageOnStart;
+
+  /// Open the reader's submissions on top of Home. Only for a launch from
+  /// tapping an approval notification — see SplashScreen.
+  final bool openSubmissionsOnStart;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -72,11 +81,19 @@ class _HomeScreenState extends State<HomeScreen>
     // not on an emblem waiting to be pressed. Cold starts go through
     // SplashScreen, which does the same thing before handing over.
     NotificationScheduler.notificationTapped.addListener(_onReminderTapped);
+    NotificationScheduler.submissionApprovalTapped
+        .addListener(_openMySubmissions);
+    if (widget.openSubmissionsOnStart) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _openMySubmissions());
+    }
   }
 
   @override
   void dispose() {
     NotificationScheduler.notificationTapped.removeListener(_onReminderTapped);
+    NotificationScheduler.submissionApprovalTapped
+        .removeListener(_openMySubmissions);
     _tabFade.dispose();
     super.dispose();
   }
@@ -101,6 +118,15 @@ class _HomeScreenState extends State<HomeScreen>
     Navigator.of(context).popUntil((route) => route.isFirst);
     if (mounted) _goToTab(0);
     await _restoreToday();
+  }
+
+  /// An approval notification was tapped: show the reader the message itself,
+  /// from wherever they were.
+  void _openMySubmissions() {
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    navigator.popUntil((route) => route.isFirst);
+    navigator.push(appPageRoute(child: const MySubmissionsScreen()));
   }
 
   Future<List<DailyMessageEntry>> _loadTodayEntries() async {

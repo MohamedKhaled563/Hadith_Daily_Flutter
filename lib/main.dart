@@ -11,6 +11,7 @@ import 'data/services/daily_tip_service.dart';
 import 'data/services/moderation_service.dart';
 import 'data/services/notification_lifecycle_refresher.dart';
 import 'data/services/notification_scheduler.dart';
+import 'data/services/submission_approval_watcher.dart';
 import 'features/splash/splash_screen.dart';
 import 'firebase_options.dart';
 
@@ -65,16 +66,22 @@ class _HadithAppState extends State<HadithApp> with WidgetsBindingObserver {
   /// see [NotificationLifecycleRefresher] for what that cost.
   final _reminders = NotificationLifecycleRefresher();
 
+  /// Lives here rather than on any one screen because an approval can land
+  /// wherever the reader happens to be, or on a tab that hasn't been opened.
+  final _submissionApprovals = SubmissionApprovalWatcher();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _reminders.start();
+    _submissionApprovals.start();
   }
 
   @override
   void dispose() {
     _reminders.dispose();
+    _submissionApprovals.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

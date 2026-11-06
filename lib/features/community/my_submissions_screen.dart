@@ -12,6 +12,8 @@ import '../../core/widgets/parchment_card.dart';
 /// A submitter's own feedback loop: every message they've ever sent to the
 /// community feed, whatever its current status, so approval/rejection is
 /// something they can check rather than something that happens silently.
+/// An approval also raises a local notification, which lands here when tapped
+/// (SubmissionApprovalWatcher); a rejection is only ever seen on this screen.
 /// No push notifications — the app has no server component (Spark plan,
 /// no Cloud Functions), so this reads the same `communityMessages` docs
 /// the rest of the app already does, filtered to `authorUid == me`.

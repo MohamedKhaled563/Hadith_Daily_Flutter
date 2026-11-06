@@ -139,10 +139,15 @@ class _SplashScreenState extends State<SplashScreen>
   /// block the splash.
   bool _launchedFromReminder = false;
 
+  /// Tapping an approval notification lands on the reader's submissions
+  /// instead, and leaves today's message unopened.
+  bool _launchedFromApproval = false;
+
   Future<void> _resolveLaunch() async {
     try {
-      final launched =
-          await NotificationScheduler.instance.wasLaunchedByNotification();
+      final scheduler = NotificationScheduler.instance;
+      _launchedFromApproval = await scheduler.wasLaunchedBySubmissionApproval();
+      final launched = await scheduler.wasLaunchedByNotification();
       if (!launched) return;
       await DailyTipService().ensureOpenedToday();
       _launchedFromReminder = true;
@@ -178,7 +183,10 @@ class _SplashScreenState extends State<SplashScreen>
     Navigator.pushReplacement(
       context,
       appPageRoute(
-        child: HomeScreen(openMessageOnStart: _launchedFromReminder),
+        child: HomeScreen(
+          openMessageOnStart: _launchedFromReminder,
+          openSubmissionsOnStart: _launchedFromApproval,
+        ),
       ),
     );
   }

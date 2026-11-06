@@ -260,6 +260,33 @@ void main() {
   });
 
   testWidgets(
+      'real plugin: an approval notification survives the rolling reschedule',
+      (tester) async {
+    // The reminders' own shade-wiping bug, for the one notification that
+    // isn't a reminder: its id has to stay out of reschedule()'s reach.
+    final android = plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android == null) return;
+
+    await scheduler.showSubmissionApproved(title: 'قُبلت رسالتك', body: 'نص');
+    await tester.pump(const Duration(milliseconds: 500));
+
+    await scheduler.reschedule(
+      morningEnabled: true,
+      morningTime: const TimeOfDay(hour: 23, minute: 59),
+      eveningEnabled: true,
+      eveningTime: const TimeOfDay(hour: 23, minute: 58),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final shown = (await android.getActiveNotifications())
+        .where((n) => n.id == NotificationScheduler.submissionApprovedId)
+        .toList();
+    expect(shown, hasLength(1));
+    expect(shown.single.title, 'قُبلت رسالتك');
+  }, skip: inLastMinuteOfDay);
+
+  testWidgets(
       'real plugin: the device-offset location resolves through the Android '
       'side\'s ZoneId.of() — an unrecognised zone name silently drops the '
       'whole reschedule', (tester) async {

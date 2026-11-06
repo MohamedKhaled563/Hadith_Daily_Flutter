@@ -34,6 +34,7 @@ entry points, so there is one copy of each test:
 | --- | --- | --- |
 | `test/suites/notification_scheduler_suite.dart` | `test/data/services/notification_scheduler_test.dart` | `integration_test/notification_scheduler_test.dart` |
 | `test/suites/notification_lifecycle_suite.dart` | `test/data/services/notification_lifecycle_test.dart` | `integration_test/notification_lifecycle_test.dart` |
+| `test/suites/submission_approval_suite.dart` | `test/data/services/submission_approval_watcher_test.dart` | `integration_test/submission_approval_test.dart` |
 
 `integration_test/notification_device_test.dart` has no host counterpart on
 purpose — it drives the **real** `flutter_local_notifications` plugin against
