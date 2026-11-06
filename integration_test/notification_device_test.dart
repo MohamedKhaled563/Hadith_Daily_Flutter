@@ -30,6 +30,9 @@ class _FixedPool implements NotificationDataSource {
       ];
 
   @override
+  Future<int?> loadPoolVersion() async => 0;
+
+  @override
   Future<Map<String, dynamic>> loadSchedule() async => const {};
 }
 

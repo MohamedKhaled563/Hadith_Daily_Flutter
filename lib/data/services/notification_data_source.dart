@@ -1,11 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'notification_pool_version.dart';
+
 /// Everything NotificationScheduler needs from Firestore, behind an
 /// interface so tests can supply an in-memory fake instead of talking to a
 /// real (or emulated) Firestore instance.
 abstract class NotificationDataSource {
   /// Raw `notificationMessages` docs where `active == true`.
   Future<List<Map<String, dynamic>>> loadActiveMessages();
+
+  /// The live [NotificationPoolVersion], or null if the server cannot be
+  /// reached right now, so "unknown" cannot pass for "unchanged". A doc that
+  /// does not exist yet is version 0. Never throws.
+  Future<int?> loadPoolVersion();
 
   /// The raw `days` map of `settings/notificationSchedule` — the dashboard's
   /// per-day morning/evening pins (see notification_schedule.dart). Empty
@@ -48,6 +55,17 @@ class FirestoreNotificationDataSource implements NotificationDataSource {
     // The doc id rides along as 'id' so a tapped notification's payload can
     // resolve back to this exact doc — the id isn't part of doc.data().
     return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+  }
+
+  @override
+  Future<int?> loadPoolVersion() async {
+    try {
+      final doc = await NotificationPoolVersion.ref(_db).get();
+      if (doc.metadata.isFromCache) return null;
+      return (doc.data()?[NotificationPoolVersion.field] as num?)?.toInt() ?? 0;
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
