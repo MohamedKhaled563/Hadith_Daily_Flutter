@@ -127,6 +127,30 @@ silhouette. If it ever resolves to `mipmap/ic_launcher`, the adaptive
 launcher icon is being used as the small icon again and Android will render
 it as a white or grey block in the status bar.
 
+## Firebase emulators
+
+Nothing in `lib/` talks to the emulators, so a device test that does has to
+wire them up itself, and it leaves something behind. Firestore names its
+on-device cache after the app and the project, not the host it read from:
+
+```
+firestore.[DEFAULT].hadithdaily-5fc06.(default)
+```
+
+An emulator started under the real project id therefore fills the same cache
+the real app reads, and that cache survives `flutter run`, which updates the
+app in place. That is how two seeded test posts turned up as the emulator's
+messages of the day weeks after the run that seeded them. So after any run
+against the emulators:
+
+```bash
+adb -s <device-id> shell pm clear com.prodktstudio.tayebqalbak
+```
+
+Seed Arabic from a UTF-8 file (`curl --data-binary @seed.json`), never inline
+in a `curl -d` argument. On a Windows machine whose ANSI code page has no
+Arabic (1252 here), the argument reaches curl with every letter already `?`.
+
 ## Time-dependent tests
 
 The scheduler takes an injectable clock (`NotificationScheduler.test(clock:)`)
