@@ -144,10 +144,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining(post().message), findsOneWidget);
+    // Shown without the stored message's trailing full stop.
+    final shown = find.text('« ${post().displayMessage} »');
+    expect(shown, findsOneWidget);
 
     final card = find.ancestor(
-      of: find.textContaining(post().message),
+      of: shown,
       matching: find.byType(PressableSurface),
     );
     expect(card, findsOneWidget,
