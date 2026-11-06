@@ -12,10 +12,12 @@ import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/tap_target.dart';
+import '../../data/journey/journey_repository.dart';
 import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
 import '../../data/services/notification_scheduler.dart';
+import '../journey/journey_links.dart';
 
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold
 /// and the background.
@@ -81,6 +83,7 @@ class _AddMessageScreenState extends State<AddMessageScreen>
       _authorController.text = _state.userName;
     }
     WidgetsBinding.instance.addObserver(this);
+    JourneyLinks.writeAbout.addListener(_onWriteAbout);
   }
 
   /// Fires whenever the keyboard's inset changes, including on each frame of
@@ -103,7 +106,18 @@ class _AddMessageScreenState extends State<AddMessageScreen>
     _messageController.dispose();
     _authorController.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    JourneyLinks.writeAbout.removeListener(_onWriteAbout);
     super.dispose();
+  }
+
+  /// Arrived from a finished hadith: that is the one being written about.
+  void _onWriteAbout() {
+    final asked = JourneyLinks.writeAbout.value;
+    if (asked == null || !mounted) return;
+    setState(() {
+      _selectedHadith = _repo.getByNumber(asked.number);
+      _hadithError = null;
+    });
   }
 
   Future<void> _submit() async {
@@ -178,6 +192,8 @@ class _AddMessageScreenState extends State<AddMessageScreen>
 
     if (!mounted) return;
     setState(() => _submitting = false);
+
+    JourneyRepository().recordWrote();
 
     // A real outcome landed — the one place in this screen that earns more
     // than a selection tick.

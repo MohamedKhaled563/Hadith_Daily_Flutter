@@ -36,6 +36,14 @@ entry points, so there is one copy of each test:
 | `test/suites/notification_lifecycle_suite.dart` | `test/data/services/notification_lifecycle_test.dart` | `integration_test/notification_lifecycle_test.dart` |
 | `test/suites/submission_approval_suite.dart` | `test/data/services/submission_approval_watcher_test.dart` | `integration_test/submission_approval_test.dart` |
 
+| `test/suites/journey_suite.dart` | `test/data/journey/journey_test.dart` | `integration_test/journey_test.dart` |
+
+`integration_test/journey_reading_flow_test.dart` drives the reading screen
+against the real clock, and `integration_test/journey_firestore_test.dart` runs
+the journey store through the real SDK and `firestore.rules` on the local
+Firebase emulators — see that file for how to start them. Run these two one
+file at a time.
+
 `integration_test/notification_device_test.dart` has no host counterpart on
 purpose — it drives the **real** `flutter_local_notifications` plugin against
 real AlarmManager and the real notification shade, which only means anything

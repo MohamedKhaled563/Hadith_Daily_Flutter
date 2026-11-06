@@ -104,9 +104,9 @@ class _BottomNavigationState extends State<BottomNavigation> {
       label: 'الرئيسية',
     ),
     (
-      icon: Icons.bookmark_border_rounded,
-      activeIcon: Icons.bookmark_rounded,
-      label: 'المفضلة',
+      icon: Icons.eco_outlined,
+      activeIcon: Icons.eco_rounded,
+      label: 'رحلتي',
     ),
     (
       icon: Icons.forum_outlined,

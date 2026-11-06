@@ -60,7 +60,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('المفضلة'));
+    await tester.tap(find.text('رحلتي'));
     await tester.pumpAndSettle();
 
     expect(tapped, 1);

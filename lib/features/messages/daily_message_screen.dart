@@ -116,6 +116,7 @@ class DailyMessageScreen extends StatelessWidget {
                           hadith: hadith,
                         ),
                         heroTag: 'heart_leaf_emblem_hero',
+                        countsAsRead: false,
                       ),
                     ),
                   ),

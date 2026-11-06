@@ -3,6 +3,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../data/journey/journey_repository.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../auth/auth_service.dart';
 
@@ -136,6 +137,8 @@ class AppStateController extends ChangeNotifier {
     }
     // Favourites belong to the account: load this one's, or clear them.
     HadithRepository().setUser(user?.uid);
+    // So does the reading journey.
+    JourneyRepository().setUser(user?.uid);
     notifyListeners();
   }
 
