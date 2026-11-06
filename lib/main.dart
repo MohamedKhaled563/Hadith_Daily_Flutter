@@ -47,10 +47,9 @@ void main() async {
 }
 
 // Tapping a reminder used to push a message screen from here. It no longer
-// does: today's message lives inline on the home tab and stays there once
-// opened, so there is one place a message is shown rather than two that can
-// drift apart. HomeScreen listens to NotificationScheduler.notificationTapped
-// directly and brings itself to the front.
+// does: HomeScreen listens to NotificationScheduler.notificationTapped
+// directly and opens today's window itself, so a reminder and the emblem take
+// the same path and leaving the message always lands on the emblem.
 
 class HadithApp extends StatefulWidget {
   const HadithApp({super.key});

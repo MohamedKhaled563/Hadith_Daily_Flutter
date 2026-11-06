@@ -18,6 +18,7 @@ import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/daily_tip_service.dart';
 import '../../data/services/notification_scheduler.dart';
 import '../messages/daily_message_card.dart';
+import '../messages/today_message_screen.dart';
 import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
 import '../community/my_submissions_screen.dart';
@@ -32,8 +33,8 @@ class HomeScreen extends StatefulWidget {
     this.openSubmissionsOnStart = false,
   });
 
-  /// Land straight on today's message instead of the emblem. Only for a
-  /// launch from a reminder tap — see SplashScreen.
+  /// Open today's message as soon as home is up, instead of waiting for the
+  /// emblem. Only for a launch from a reminder tap — see SplashScreen.
   final bool openMessageOnStart;
 
   /// Open the reader's submissions on top of Home. Only for a launch from
@@ -63,20 +64,13 @@ class _HomeScreenState extends State<HomeScreen>
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _loadingDailyTip = false;
 
-  /// Today's set, and how much of it the reader has asked for.
-  ///
-  /// `_revealed == 0` means the emblem hasn't been pressed in this session,
-  /// so home shows the emblem. Every launch starts there, even later in a day
-  /// that's already been opened: pressing طيّب قلبك again brings back the
-  /// last message the reader saw (DailyTipService keeps how far they got),
-  /// with رسالة أخرى picking up from there.
-  List<DailyMessageEntry> _todayEntries = const [];
-  int _revealed = 0;
-
   @override
   void initState() {
     super.initState();
-    if (widget.openMessageOnStart) _restoreToday();
+    // After the first frame: the Navigator cannot take a push during a build.
+    if (widget.openMessageOnStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openDailyMessage());
+    }
     // A reminder tapped while the app is running should land on the message,
     // not on an emblem waiting to be pressed. Cold starts go through
     // SplashScreen, which does the same thing before handing over.
@@ -98,26 +92,15 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  /// Reads back what the reader already opened today, without drawing a new
-  /// message. Silent: there is nothing to report if it has not been opened.
-  Future<void> _restoreToday() async {
-    final revealed = await DailyTipService().revealedCount();
-    if (!mounted || revealed < 1) return;
-    final entries = await _loadTodayEntries();
-    if (!mounted || entries.isEmpty) return;
-    setState(() {
-      _todayEntries = entries;
-      _revealed = revealed.clamp(1, entries.length);
-    });
-  }
-
   Future<void> _onReminderTapped() async {
     await DailyTipService().ensureOpenedToday();
     if (!mounted) return;
-    // Back to the tab the message lives on, from wherever they were.
+    // Back to the home tab from wherever they were, so that leaving the
+    // message lands on the emblem. Closes the window too, if it was open:
+    // reopening it is simpler than working out what is on top.
     Navigator.of(context).popUntil((route) => route.isFirst);
     if (mounted) _goToTab(0);
-    await _restoreToday();
+    await _openDailyMessage();
   }
 
   /// An approval notification was tapped: show the reader the message itself,
@@ -148,13 +131,13 @@ class _HomeScreenState extends State<HomeScreen>
     if (!context.reduceMotion) _tabFade.forward(from: 0);
   }
 
-  /// The emblem was pressed — draw today's message and keep it on screen.
+  /// Opens today's message in its own window.
   ///
-  /// Deliberately no navigation. The message takes the emblem's place on
-  /// this tab for the rest of the session, so there is nothing to go "back"
-  /// from.
+  /// Home keeps nothing about it and never changes, so the emblem is waiting
+  /// when the reader comes back, and every press reads today afresh. An app
+  /// left open overnight therefore cannot show yesterday's message.
   Future<void> _openDailyMessage() async {
-    if (_revealed >= 1) return; // Already out; the card is what they tapped.
+    if (_loadingDailyTip) return; // A second tap while the first one loads.
     setState(() => _loadingDailyTip = true);
     // Opened earlier today? Then this returns to where they left off rather
     // than starting the day's set over.
@@ -172,21 +155,12 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    AppHaptics.tap();
-    setState(() {
-      _todayEntries = entries;
-      _revealed = alreadyRevealed.clamp(1, entries.length);
-    });
     if (alreadyRevealed < 1) DailyTipService().saveRevealedCount(1);
-  }
-
-  /// "رسالة أخرى" — the next of today's set, if the day carries more than
-  /// one.
-  void _revealNextMessage() {
-    if (_revealed >= _todayEntries.length) return;
-    AppHaptics.tap();
-    setState(() => _revealed++);
-    DailyTipService().saveRevealedCount(_revealed);
+    Navigator.of(context).push(
+      appMessageRoute(
+        child: TodayMessageScreen(entries: entries, revealed: alreadyRevealed),
+      ),
+    );
   }
 
   @override
@@ -221,18 +195,20 @@ class _HomeScreenState extends State<HomeScreen>
                     // this for us.
                     TickerMode(
                       enabled: _currentTabIndex == 0,
-                      child: _HomeMainView(
-                        onOpenDrawer: _openDrawer,
-                        onOpenAllHadiths: () => Navigator.push(
-                          context,
-                          appPageRoute(child: const HadithListScreen()),
+                      // The emblem is always mounted, and a Hero on a hidden
+                      // tab still answers to its tag: opening a saved message
+                      // from favourites would fly an emblem in from a tab
+                      // that is not on screen.
+                      child: HeroMode(
+                        enabled: _currentTabIndex == 0,
+                        child: _HomeMainView(
+                          onOpenDrawer: _openDrawer,
+                          onOpenAllHadiths: () => Navigator.push(
+                            context,
+                            appPageRoute(child: const HadithListScreen()),
+                          ),
+                          onHeartClick: _openDailyMessage,
                         ),
-                        onHeartClick: _openDailyMessage,
-                        entry: _revealed >= 1 && _todayEntries.isNotEmpty
-                            ? _todayEntries[_revealed - 1]
-                            : null,
-                        hasMore: _revealed < _todayEntries.length,
-                        onRevealNext: _revealNextMessage,
                       ),
                     ),
                     FavoritesScreen(onOpenDrawer: _openDrawer),
@@ -297,22 +273,11 @@ class _HomeMainView extends StatelessWidget {
     required this.onOpenDrawer,
     required this.onOpenAllHadiths,
     required this.onHeartClick,
-    required this.entry,
-    required this.hasMore,
-    required this.onRevealNext,
   });
 
   final VoidCallback onOpenDrawer;
   final VoidCallback onOpenAllHadiths;
   final VoidCallback onHeartClick;
-
-  /// Today's message once it has been opened, or null while the emblem is
-  /// still waiting to be pressed.
-  final DailyMessageEntry? entry;
-
-  /// Whether today carries another message after this one.
-  final bool hasMore;
-  final VoidCallback onRevealNext;
 
   @override
   Widget build(BuildContext context) {
@@ -367,28 +332,6 @@ class _HomeMainView extends StatelessWidget {
           ),
         );
 
-        // With the message out, the tab does not scroll at all. The card
-        // takes the space that is left and its controls sit at a fixed
-        // distance from the bottom, so nothing shifts between a one-line
-        // message and a long one.
-        if (entry != null) {
-          return Column(
-            children: [
-              const SizedBox(height: 6),
-              header,
-              const SizedBox(height: 10),
-              Expanded(
-                child: _TodayMessage(
-                  entry: entry!,
-                  hasMore: hasMore,
-                  onRevealNext: onRevealNext,
-                ),
-              ),
-              SizedBox(height: 10 + BottomNavigation.reservedHeight(context)),
-            ],
-          );
-        }
-
         return SingleChildScrollView(
           physics: const ClampingScrollPhysics(),
           child: ConstrainedBox(
@@ -398,8 +341,6 @@ class _HomeMainView extends StatelessWidget {
                 const SizedBox(height: 6),
                 header,
                 const SizedBox(height: 12),
-                // The emblem state, still waiting to be pressed. The message
-                // state is handled above, without a scroll view.
                 _HeroTitle(titleColor: titleColor, isDark: isDark),
                 const SizedBox(height: 18),
                 _HeartbeatHadithCircle(
@@ -416,168 +357,6 @@ class _HomeMainView extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-/// Today's message, in the emblem's place on the home tab.
-///
-/// No counter, and no indication of how many the day holds. The reader is
-/// being given a message, not shown their position in a queue — a "١ / ٤"
-/// turns a quiet daily habit into a checklist with three items outstanding.
-/// "رسالة أخرى" simply stops being offered when the day is spent.
-class _TodayMessage extends StatelessWidget {
-  const _TodayMessage({
-    required this.entry,
-    required this.hasMore,
-    required this.onRevealNext,
-  });
-
-  final DailyMessageEntry entry;
-  final bool hasMore;
-  final VoidCallback onRevealNext;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      child: AnimatedSwitcher(
-        duration: context.motion(AppDurations.content),
-        switchInCurve: AppDurations.curve,
-        transitionBuilder: (child, animation) => FadeTransition(
-          opacity: animation,
-          child: SlideTransition(
-            position: Tween(
-              begin: const Offset(0, 0.03),
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
-          ),
-        ),
-        // The card is the switcher's child directly. Wrapping it in a Column
-        // broke the fill: a Column hands its children *unbounded* height, so
-        // the card's own Expanded had nothing to divide up.
-        child: DailyMessageCard(
-          key: ValueKey(
-            '${entry.insight.sourceCollection}/${entry.insight.id}'
-            '/${entry.insight.message.hashCode}',
-          ),
-          entry: entry,
-          fillHeight: true,
-          // No Hero: the card is not flying in from anywhere, it is what
-          // the emblem became.
-          footer: hasMore
-              ? _AnotherMessageButton(onTap: onRevealNext)
-              : _TomorrowNote(palette: palette),
-        ),
-      ),
-    );
-  }
-}
-
-/// "رسالة أخرى" — built from the same parts as the toolbar right above it.
-///
-/// It used to be a solid green pill with a small leaf in a dark ring. Next to
-/// the cream card and the cream, gold-ringed toolbar it was the one heavy
-/// block on the screen, and the leaf said "this app" rather than "another".
-/// Now it is a cream pill with the strong gold rim, green type for the
-/// action, and a gold-ringed circle holding a turning arrow — the same
-/// circle the toolbar's buttons use, with a glyph that reads as "another".
-class _AnotherMessageButton extends StatelessWidget {
-  const _AnotherMessageButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final green = Theme.of(context).colorScheme.primary;
-
-    return TapTarget(
-      onTap: onTap,
-      semanticLabel: 'اعرض رسالة أخرى من رسائل اليوم',
-      child: Container(
-        padding: const EdgeInsetsDirectional.fromSTEB(6, 6, 20, 6),
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: BorderRadius.circular(AppRadii.pill),
-          border: Border.all(color: palette.cardBorderStrong, width: 1.3),
-          boxShadow: AppElevation.card,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: palette.surfaceSunken,
-                border: Border.all(color: palette.ornamentGold, width: 1.2),
-              ),
-              child: Icon(
-                Icons.autorenew_rounded,
-                size: 19,
-                color: palette.goldText,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'رسالة أخرى',
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 14.5,
-                height: AppLeading.chrome,
-                fontWeight: FontWeight.w800,
-                color: green,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TomorrowNote extends StatelessWidget {
-  const _TomorrowNote({required this.palette});
-
-  final BotanicalPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        // A pill, like the category and hadith chips on the card. Sitting on
-        // the landscape illustration, plain muted text on its own would be
-        // very close to unreadable.
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-        border: Border.all(color: palette.cardBorder, width: 1.1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.nightlight_round, size: 15, color: palette.goldText),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              'نلقاك غداً بإذن الله',
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 12.5,
-                height: AppLeading.chrome,
-                fontWeight: FontWeight.w700,
-                color: palette.goldText,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

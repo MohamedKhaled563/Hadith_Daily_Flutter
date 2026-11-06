@@ -278,15 +278,13 @@ class DailyTipService {
 
   /// How many of today's messages the reader has opened so far.
   ///
-  /// **Zero means they have not opened today's message yet** — the home
-  /// screen is still showing the emblem waiting to be pressed. One or more
-  /// means the message is out, and home shows it instead of the emblem for
-  /// the rest of the day.
+  /// **Zero means they have not opened today's message yet.** One or more is
+  /// how far through the day's set they have got.
   ///
-  /// That is the whole point of persisting it: pressing طيّب قلبك is a
-  /// once-a-day act. Having done it, closing the app and coming back must
-  /// return the reader to their message, not to an emblem that makes them
-  /// ask for it again. Resets with the day, like the set itself.
+  /// Home shows the emblem either way. This is persisted so that pressing
+  /// طيّب قلبك again, after leaving the window or restarting the app, returns
+  /// the reader to the last message they saw rather than starting the day
+  /// over. Resets with the day, like the set itself.
   Future<int> revealedCount() async {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getString(_revealedOnDateKey) != _todayString()) return 0;

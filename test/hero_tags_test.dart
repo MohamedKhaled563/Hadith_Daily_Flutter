@@ -8,6 +8,7 @@ import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/messages/daily_message_card.dart';
 import 'package:hadith_app/features/messages/daily_message_screen.dart';
+import 'package:hadith_app/features/messages/today_message_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// `heart_leaf_emblem_hero` is shared between the home emblem, the login
@@ -17,9 +18,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///
 /// This used to guard a specific way of breaking that: the day's messages
 /// lived in a pager, and mid-swipe two pages were alive at once, both
-/// claiming the tag. That pager is gone — today's message is inline on the
-/// home tab — so the collision it guarded cannot recur. What replaces it is
-/// the rule itself, checked on the two places that still render the card.
+/// claiming the tag. That pager is gone, but today's window has the same
+/// shape for a moment: "رسالة أخرى" cross-fades, so two cards are alive at
+/// once. Only the message the window opened on may hold the tag.
 
 const _sharedTag = 'heart_leaf_emblem_hero';
 
@@ -81,10 +82,6 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(400, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    // This is how home renders it: the card *replaces* the emblem on the same
-    // tab rather than arriving from it, so claiming the emblem's tag there
-    // would put two Heroes with one tag in a single subtree the moment
-    // anything else on that route claimed it too.
     await tester.pumpWidget(_host(
       Scaffold(
         body: SingleChildScrollView(
@@ -97,5 +94,33 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(_tags(tester), isNot(contains(_sharedTag)));
+  });
+
+  testWidgets('today\'s window never holds the tag twice, even mid cross-fade',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(_host(
+      TodayMessageScreen(
+        entries: [
+          DailyMessageEntry(insight: _insight('الرسالة الأولى')),
+          DailyMessageEntry(insight: _insight('الرسالة الثانية')),
+        ],
+        revealed: 1,
+      ),
+    ));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(_tags(tester).where((t) => t == _sharedTag), hasLength(1),
+        reason: 'the emblem flies to the message the window opens on');
+
+    await tester.tap(find.text('رسالة أخرى'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    // Control: if only one card were alive this would prove nothing.
+    expect(find.byType(DailyMessageCard), findsNWidgets(2));
+    expect(_tags(tester).where((t) => t == _sharedTag), hasLength(1));
   });
 }

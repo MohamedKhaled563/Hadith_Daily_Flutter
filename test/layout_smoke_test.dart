@@ -15,6 +15,7 @@ import 'package:hadith_app/features/hadith/hadith_detail_screen.dart';
 import 'package:hadith_app/features/hadith/intro_section_screen.dart';
 import 'package:hadith_app/features/messages/daily_message_card.dart';
 import 'package:hadith_app/features/messages/daily_message_screen.dart';
+import 'package:hadith_app/features/messages/today_message_screen.dart';
 
 /// Device sizes that previously broke the Home hero (F-07). 360x640 is the
 /// stock small Android phone the audit measured a 6dp deficit on.
@@ -161,10 +162,44 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  // The card also has to survive the day's controls sitting under it. That
-  // used to be a pager and a progress strand on this screen; today's message
-  // now lives inline on the home tab, so what is left here is one message
-  // with a footer beneath it — the shape favourites opens.
+  group('Today\'s window renders without overflow', () {
+    final entries = [
+      const DailyMessageEntry(insight: _sampleInsight),
+      DailyMessageEntry(
+        insight: Insight(
+          hadithNumber: 1,
+          arabic: 'رسالة طويلة تملأ البطاقة. ' * 30,
+          english: '',
+        ),
+      ),
+    ];
+
+    for (final entry in _sizes.entries) {
+      testWidgets(entry.key, (tester) async {
+        await _pumpAt(
+          tester,
+          TodayMessageScreen(entries: entries, revealed: 1),
+          entry.value,
+        );
+        expect(find.text('رسالة أخرى'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('a long message at 360x640 @ 1.6x', (tester) async {
+      await _pumpAt(
+        tester,
+        TodayMessageScreen(entries: entries, revealed: 2),
+        const Size(360, 640),
+        textScale: 1.6,
+      );
+      expect(find.text('نلقاك غداً بإذن الله'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  // The card also has to survive a footer sitting under it when it is sized
+  // to its message rather than filling a window.
   testWidgets('Daily message card lays out with a footer under it',
       (tester) async {
     final repo = HadithRepository();

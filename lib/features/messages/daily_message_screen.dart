@@ -13,13 +13,11 @@ export 'daily_message_card.dart' show DailyMessageEntry;
 /// One message, full screen, with its own back button.
 ///
 /// This used to be where the *day* lived — first as a swipeable pager over
-/// the whole set, then as a reveal flow with a progress strand. Neither
-/// belongs on a pushed route any more: today's message now lives inline on
-/// the home tab and stays there once opened, the way a tip-of-the-day app
-/// works, so opening the day never navigates anywhere.
+/// the whole set, then as a reveal flow with a progress strand. The day now
+/// has its own window, TodayMessageScreen.
 ///
-/// What is left is the case that genuinely is a single message on its own —
-/// opening a bookmarked one from favourites.
+/// What is left here is the case that genuinely is a single message on its
+/// own — opening a bookmarked one from favourites.
 class DailyMessageScreen extends StatelessWidget {
   const DailyMessageScreen({
     super.key,
@@ -34,7 +32,6 @@ class DailyMessageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final navReserved = BottomNavigation.reservedHeight(context);
 
     return AppScreen(
@@ -55,50 +52,7 @@ class DailyMessageScreen extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                CircleIconButton(
-                  icon: Icons.chevron_right_rounded,
-                  semanticLabel: 'رجوع',
-                  onTap: () => Navigator.maybePop(context),
-                ),
-                Flexible(
-                  child: Semantics(
-                    header: true,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'رسالة',
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        AssetHelper.assetOrFallback(
-                          assetPath: 'assets/images/golden_divider.png',
-                          width: 70,
-                          height: 10,
-                          fallback: Container(
-                            width: 40,
-                            height: 1.5,
-                            color: const Color(0xFFD6BE88),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Balances the back button so the title stays centred. The
-                // bookmark action lives on the card itself, alongside copy
-                // and share.
-                const SizedBox(width: CircleIconButton.slot),
-              ],
-            ),
-          ),
+          const MessageWindowHeader(title: 'رسالة'),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -123,6 +77,63 @@ class DailyMessageScreen extends StatelessWidget {
               },
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The back button and title shared by the two screens a message opens on.
+class MessageWindowHeader extends StatelessWidget {
+  const MessageWindowHeader({super.key, required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          CircleIconButton(
+            icon: Icons.chevron_right_rounded,
+            semanticLabel: 'رجوع',
+            onTap: () => Navigator.maybePop(context),
+          ),
+          Flexible(
+            child: Semantics(
+              header: true,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  AssetHelper.assetOrFallback(
+                    assetPath: 'assets/images/golden_divider.png',
+                    width: 70,
+                    height: 10,
+                    fallback: Container(
+                      width: 40,
+                      height: 1.5,
+                      color: const Color(0xFFD6BE88),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Balances the back button so the title stays centred. The
+          // bookmark action lives on the card itself, alongside copy and
+          // share.
+          const SizedBox(width: CircleIconButton.slot),
         ],
       ),
     );

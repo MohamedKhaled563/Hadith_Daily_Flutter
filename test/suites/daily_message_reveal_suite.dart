@@ -8,19 +8,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
+import 'package:hadith_app/core/widgets/bottom_navigation.dart';
 import 'package:hadith_app/data/services/daily_tip_service.dart';
+import 'package:hadith_app/data/services/notification_scheduler.dart';
 import 'package:hadith_app/features/home/home_screen.dart';
 import 'package:hadith_app/features/messages/daily_message_screen.dart';
+import 'package:hadith_app/features/messages/today_message_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Covers how the day's message is given out.
 ///
-/// The shape here is the point, and it has changed twice. It was a
+/// The shape here is the point, and it has changed several times. It was a
 /// horizontal pager over the whole set, then a pushed screen with a reveal
-/// button and a progress strand. It is now what a tip-of-the-day app does:
-/// press the emblem, the message takes its place **on the home tab**, with
-/// no counter anywhere and no second screen to navigate to. Every launch
-/// starts on the emblem again; pressing it later the same day returns to the
+/// button and a progress strand, then inline on the home tab in the emblem's
+/// place. It is now a window: press the emblem, today's message opens over
+/// home with no counter anywhere, and leaving it returns to **the emblem,
+/// which home never loses**. Pressing it again the same day returns to the
 /// last message the reader saw.
 ///
 /// These tests pin that, because every one of those properties was got wrong
@@ -109,6 +112,13 @@ Future<void> _pumpHome(
   await _settle(tester, until: until);
 }
 
+/// Leaves the window by its back button and waits for the transition to end.
+Future<void> _closeWindow(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+  await _settle(tester, until: find.textContaining('هل سمعت'));
+  await _settle(tester);
+}
+
 void dailyMessageRevealSuite() {
   setUpAll(() async {
     setupFirebaseCoreMocks();
@@ -169,19 +179,111 @@ void dailyMessageRevealSuite() {
       expect(find.textContaining('رسالة رقم'), findsNothing);
     });
 
-    testWidgets('puts the message in the emblem\'s place, without navigating',
+    testWidgets('opens the message in its own window, leaving home as it was',
         (tester) async {
       await _pumpHome(tester, 3, _seededDay(3),
           until: find.textContaining('هل سمعت'));
 
       await tester.tap(find.textContaining('طيّب قلبك').first);
       await _settle(tester, until: find.textContaining('رسالة رقم 1'));
+      await _settle(tester);
 
       expect(find.textContaining('رسالة رقم 1'), findsOneWidget);
-      // The hero question is gone: the message replaced it on the same tab.
+      expect(find.byType(TodayMessageScreen), findsOneWidget);
+      // Covered, not replaced: the emblem is still there underneath.
       expect(find.textContaining('هل سمعت'), findsNothing);
-      // And nothing was pushed — home is still the only route.
-      expect(find.byType(DailyMessageScreen), findsNothing);
+      expect(find.textContaining('هل سمعت', skipOffstage: false),
+          findsOneWidget);
+    });
+
+    testWidgets('leaving the window returns to the emblem', (tester) async {
+      await _pumpHome(tester, 3, _seededDay(3),
+          pressEmblem: true, until: find.textContaining('رسالة رقم 1'));
+      await _settle(tester);
+
+      await _closeWindow(tester);
+
+      expect(find.byType(TodayMessageScreen), findsNothing);
+      expect(find.textContaining('هل سمعت'), findsOneWidget);
+      expect(find.textContaining('طيّب قلبك'), findsWidgets);
+    });
+
+    testWidgets('the system back button leaves the window too',
+        (tester) async {
+      await _pumpHome(tester, 3, _seededDay(3),
+          pressEmblem: true, until: find.textContaining('رسالة رقم 1'));
+      await _settle(tester);
+
+      await tester.binding.handlePopRoute();
+      await _settle(tester, until: find.textContaining('هل سمعت'));
+      await _settle(tester);
+
+      expect(find.byType(TodayMessageScreen), findsNothing);
+      expect(find.textContaining('هل سمعت'), findsOneWidget);
+    });
+
+    testWidgets('the emblem opens the window again, at the same message',
+        (tester) async {
+      await _pumpHome(tester, 3, _seededDay(3, revealed: 1),
+          pressEmblem: true, until: find.text('رسالة أخرى'));
+      await _settle(tester);
+
+      await tester.tap(find.text('رسالة أخرى'));
+      await _settle(tester, until: find.textContaining('رسالة رقم 2'));
+      await _settle(tester);
+
+      await _closeWindow(tester);
+      await tester.tap(find.textContaining('طيّب قلبك').first);
+      await _settle(tester, until: find.textContaining('رسالة رقم 2'));
+      await _settle(tester);
+
+      expect(find.byType(TodayMessageScreen), findsOneWidget);
+      expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
+      expect(find.textContaining('رسالة رقم 1'), findsNothing);
+      expect(await DailyTipService().revealedCount(), 2);
+    });
+
+    testWidgets('a double tap opens one window', (tester) async {
+      await _pumpHome(tester, 3, _seededDay(3),
+          until: find.textContaining('هل سمعت'));
+
+      final emblem = find.textContaining('طيّب قلبك').first;
+      await tester.tap(emblem);
+      await tester.tap(emblem, warnIfMissed: false);
+      await _settle(tester, until: find.textContaining('رسالة رقم 1'));
+      await _settle(tester);
+
+      expect(find.byType(TodayMessageScreen), findsOneWidget);
+      await _closeWindow(tester);
+      expect(find.byType(TodayMessageScreen, skipOffstage: false),
+          findsNothing);
+    });
+
+    testWidgets('a hidden home tab takes no part in Hero flights',
+        (tester) async {
+      await _pumpHome(tester, 3, _seededDay(3),
+          until: find.textContaining('هل سمعت'));
+
+      HeroMode modeOverEmblem() => tester.widget<HeroMode>(
+            find
+                .ancestor(
+                  of: find.byWidgetPredicate(
+                    (w) => w is Hero && w.tag == 'heart_leaf_emblem_hero',
+                    skipOffstage: false,
+                  ),
+                  matching: find.byType(HeroMode, skipOffstage: false),
+                )
+                .first,
+          );
+
+      expect(modeOverEmblem().enabled, isTrue);
+
+      // Favourites: opening a saved message from here must not fly an emblem
+      // in from the tab behind it.
+      tester.widget<BottomNavigation>(find.byType(BottomNavigation)).onTap(1);
+      await _settle(tester);
+
+      expect(modeOverEmblem().enabled, isFalse);
     });
 
     testWidgets('never shows a counter', (tester) async {
@@ -224,9 +326,32 @@ void dailyMessageRevealSuite() {
       await tester
           .pumpWidget(_host(const HomeScreen(openMessageOnStart: true)));
       await _settle(tester, until: find.textContaining('رسالة رقم 2'));
+      await _settle(tester);
 
       expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
       expect(find.textContaining('هل سمعت'), findsNothing);
+
+      // And leaving it lands on the emblem like any other opening.
+      await _closeWindow(tester);
+      expect(find.textContaining('هل سمعت'), findsOneWidget);
+    });
+
+    testWidgets('a reminder tapped in the running app opens one window',
+        (tester) async {
+      await _pumpHome(tester, 3, _seededDay(3, revealed: 2),
+          until: find.textContaining('هل سمعت'));
+
+      NotificationScheduler.notificationTapped.value++;
+      await _settle(tester, until: find.textContaining('رسالة رقم 2'));
+      await _settle(tester);
+      expect(find.byType(TodayMessageScreen), findsOneWidget);
+
+      // A second tap with the window already open must not stack another.
+      NotificationScheduler.notificationTapped.value++;
+      await _settle(tester);
+      await _settle(tester);
+      expect(find.byType(TodayMessageScreen, skipOffstage: false),
+          findsOneWidget);
     });
 
     testWidgets('offers another message while the day has more',
