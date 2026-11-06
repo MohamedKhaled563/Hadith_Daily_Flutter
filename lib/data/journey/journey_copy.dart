@@ -25,6 +25,27 @@ class JourneyCopy {
 
   static const signInReason = 'سجّل الدخول لتبقى شجرتك معك على أي جهاز.';
 
+  /// On every poster. A Status or a Story drops the caption and its link, so
+  /// the image has to say how to find the app by itself.
+  static const posterFindUs = 'ابحث عن «طيّب قلبك» في متجر التطبيقات';
+
+  static const posterInvitation = 'اقرأ معي الأربعين النووية';
+
+  static const posterReadToday = 'قرأته اليوم بشرحه';
+
+  static String treeCaption(int count, String? link) {
+    final progress = count == 0
+        ? 'بدأت قراءة الأربعين النووية'
+        : 'قرأت ${toArabicDigits(count)} من ٤٢ حديثاً من الأربعين النووية';
+    return '$progress في تطبيق «طيّب قلبك»، فاقرأ معي.${_linkLine(link)}';
+  }
+
+  static String hadithCaption(String title, int number, String? link) =>
+      '«$title»\nالحديث ${toArabicDigits(number)} من الأربعين النووية\n'
+      'قرأته اليوم بشرحه في تطبيق «طيّب قلبك».${_linkLine(link)}';
+
+  static String _linkLine(String? link) => link == null ? '' : '\n$link';
+
   /// The message for [milestone] hadiths. [lastTitle] is the hadith just
   /// read, and [days] how many reading days it took.
   static JourneyMessage milestone(

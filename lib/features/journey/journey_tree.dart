@@ -134,6 +134,16 @@ class TreeColors {
     );
   }
 
+  /// Always the light treatment, for a poster, whichever mode the reader is
+  /// in. Same reason as ShareCard.
+  factory TreeColors.poster() => TreeColors(
+        wood: BotanicalPalette.light.goldText.withValues(alpha: .6),
+        emptyFill: const Color(0xFFE6DDCA),
+        emptyEdge: const Color(0xFFC9B58A),
+        started: AppColors.primaryGreen,
+        complete: BotanicalPalette.light.ornamentGold,
+      );
+
   final Color wood;
   final Color emptyFill;
   final Color emptyEdge;

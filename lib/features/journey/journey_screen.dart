@@ -21,6 +21,7 @@ import '../../data/repositories/hadith_repository.dart';
 import '../favorites/favorites_screen.dart';
 import '../hadith/hadith_detail_screen.dart';
 import 'journey_links.dart';
+import 'journey_share_sheet.dart';
 import 'journey_tree.dart';
 
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold
@@ -93,7 +94,18 @@ class _JourneyScreenState extends State<JourneyScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: CircleIconButton.slot),
+              // The tree is only worth sending once it has a leaf on it.
+              AnimatedBuilder(
+                animation: JourneyRepository().listenable,
+                builder: (context, _) => _section == 0 &&
+                        JourneyRepository().data.completeCount > 0
+                    ? CircleIconButton(
+                        icon: Icons.ios_share_rounded,
+                        semanticLabel: 'مشاركة شجرتي',
+                        onTap: () => shareTree(context),
+                      )
+                    : const SizedBox(width: CircleIconButton.slot),
+              ),
             ],
           ),
         ),

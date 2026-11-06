@@ -11,19 +11,19 @@ import 'package:share_plus/share_plus.dart';
 import '../app_links.dart';
 import 'share_card.dart';
 
-/// Renders a [ShareCard] to a PNG and hands it to the platform share sheet,
-/// which is what surfaces WhatsApp, Messages, Photos, Facebook and everything
-/// else the device has installed.
+/// Renders a poster to a PNG and hands it to the platform share sheet, which
+/// is what surfaces WhatsApp, Messages, Photos, Facebook and everything else
+/// the device has installed.
 ///
 /// The card is rendered off-stage rather than captured from a `RepaintBoundary`
 /// in the live tree. Capturing the on-screen widget would bake in whatever the
 /// reader's theme and text-scale happen to be, and would be clipped to the
 /// phone's aspect ratio; building it off-stage gives a fixed, predictable
-/// 1080×1350 poster every time.
+/// poster every time, 1080×1350 for a [ShareCard].
 class ShareService {
   const ShareService._();
 
-  /// 3× the card's logical size, giving 1080×1350.
+  /// 3× a poster's logical size, giving 1080×1350 for a [ShareCard].
   static const double _pixelRatio = 3.0;
 
   static Future<void> shareMessage({
@@ -34,6 +34,27 @@ class ShareService {
     String? attribution,
     String? category,
     String? fallbackText,
+  }) =>
+      sharePoster(
+        context: context,
+        poster: ShareCard(
+          message: message,
+          hadithTitle: hadithTitle,
+          hadithNumber: hadithNumber,
+          attribution: attribution,
+          category: category,
+        ),
+        size: const Size(ShareCard.width, ShareCard.height),
+        caption: fallbackText ?? _caption(message, hadithTitle, hadithNumber),
+      );
+
+  /// Renders [poster], laid out at [size], and shares it with [caption]
+  /// beside it. Falls back to [caption] alone if the render fails.
+  static Future<void> sharePoster({
+    required BuildContext context,
+    required Widget poster,
+    required Size size,
+    required String caption,
   }) async {
     // Where the sheet anchors on iPad; harmless elsewhere. iPadOS's popover
     // presentation needs a non-null source rect or it can crash outright, so
@@ -45,18 +66,11 @@ class ShareService {
         ? box.localToGlobal(Offset.zero) & box.size
         : _fallbackOrigin(context);
 
-    final caption = fallbackText ?? _caption(message, hadithTitle, hadithNumber);
-
     try {
-      final bytes = await _renderCard(
+      final bytes = await renderPoster(
         context: context,
-        card: ShareCard(
-          message: message,
-          hadithTitle: hadithTitle,
-          hadithNumber: hadithNumber,
-          attribution: attribution,
-          category: category,
-        ),
+        poster: poster,
+        size: size,
       );
 
       final dir = await getTemporaryDirectory();
@@ -122,15 +136,32 @@ class ShareService {
     'assets/images/botanical_bottom_left.png',
   ];
 
-  /// Builds [card] in its own render tree, off-stage, and rasterises it.
+  /// How many 20ms waits a poster gets for its artwork: a second at most.
+  static const _imageWaitTries = 50;
+
+  /// Whether any image under [root] has not arrived yet.
+  static bool _waitingOnImage(Element root) {
+    var waiting = false;
+    void visit(Element element) {
+      final widget = element.widget;
+      if (widget is RawImage && widget.image == null) waiting = true;
+      if (!waiting) element.visitChildren(visit);
+    }
+
+    root.visitChildren(visit);
+    return waiting;
+  }
+
+  /// Builds [poster] in its own render tree, off-stage, and rasterises it.
   ///
   /// The boundary is hung under a [RenderView] rather than being made the
   /// pipeline root directly. A bare `RenderRepaintBoundary` never gets a
   /// composited layer, so `toImage` trips its `!debugNeedsPaint` assertion —
   /// the RenderView is what drives the paint through to a layer.
-  static Future<Uint8List> _renderCard({
+  static Future<Uint8List> renderPoster({
     required BuildContext context,
-    required Widget card,
+    required Widget poster,
+    required Size size,
   }) async {
     // The poster's artwork must already be decoded: an `Image.asset` that has
     // to load asynchronously will not have painted by the time the canvas is
@@ -151,8 +182,6 @@ class ShareService {
     final boundary = RenderRepaintBoundary();
     final pipeline = PipelineOwner();
     final buildOwner = BuildOwner(focusManager: FocusManager());
-
-    const size = Size(ShareCard.width, ShareCard.height);
 
     final renderView = RenderView(
       view: flutterView,
@@ -175,12 +204,12 @@ class ShareService {
       child: MediaQuery(
         // Pin the text scale: the poster must not inherit the reader's
         // accessibility setting, or the layout overflows its fixed canvas.
-        data: const MediaQueryData(
+        data: MediaQueryData(
           size: size,
           devicePixelRatio: _pixelRatio,
           textScaler: TextScaler.noScaling,
         ),
-        child: card,
+        child: poster,
       ),
     ).attachToRenderTree(buildOwner);
 
@@ -188,6 +217,18 @@ class ShareService {
       buildOwner
         ..buildScope(rootElement)
         ..finalizeTree();
+
+      // Precaching decodes the artwork, but each Image still finds it through
+      // an asset lookup that can land after this first build, which sent the
+      // first poster of a session out with its corners missing. So this
+      // waits for every image to arrive, and gives up rather than hold the
+      // share if one never does.
+      for (var i = 0; i < _imageWaitTries && _waitingOnImage(rootElement); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        buildOwner
+          ..buildScope(rootElement)
+          ..finalizeTree();
+      }
 
       pipeline
         ..flushLayout()

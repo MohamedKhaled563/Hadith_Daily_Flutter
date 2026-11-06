@@ -12,7 +12,7 @@ import '../../data/models/hadith.dart';
 import 'journey_tree.dart';
 
 /// What the reader chose from the completion sheet.
-enum CompletionChoice { write, next }
+enum CompletionChoice { write, next, share }
 
 /// The moment a hadith is finished: the leaf turns gold, and the day's next
 /// step is one tap away. Null when the sheet is just dismissed.
@@ -132,14 +132,31 @@ class _CompletionBody extends StatelessWidget {
           icon: Icons.edit_note_rounded,
           onPressed: () => Navigator.pop(context, CompletionChoice.write),
         ),
-        if (hasNext) ...[
-          const SizedBox(height: 10),
-          AppButton(
-            text: 'الحديث التالي',
-            isSecondary: true,
-            onPressed: () => Navigator.pop(context, CompletionChoice.next),
-          ),
-        ],
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            if (hasNext) ...[
+              Expanded(
+                child: AppButton(
+                  text: 'الحديث التالي',
+                  isSecondary: true,
+                  onPressed: () =>
+                      Navigator.pop(context, CompletionChoice.next),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: AppButton(
+                text: 'مشاركة',
+                isSecondary: true,
+                icon: Icons.ios_share_rounded,
+                onPressed: () =>
+                    Navigator.pop(context, CompletionChoice.share),
+              ),
+            ),
+          ],
+        ),
         if (JourneyRepository().isGuest) ...[
           const SizedBox(height: 6),
           TextButton(

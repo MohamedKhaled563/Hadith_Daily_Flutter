@@ -17,6 +17,7 @@ import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../journey/completion_sheet.dart';
 import '../journey/journey_links.dart';
+import '../journey/journey_share_sheet.dart';
 import 'hadith_detail_screen.dart';
 
 /// The full "شرح الحديث وبيانه" reading, on its own screen rather than
@@ -181,6 +182,8 @@ class _HadithExplanationScreenState extends State<HadithExplanationScreen>
           ..pushReplacement(
             appPageRoute(child: HadithDetailScreen(hadith: next)),
           );
+      case CompletionChoice.share:
+        await shareHadith(context, hadith);
       case CompletionChoice.next:
       case null:
         break;
