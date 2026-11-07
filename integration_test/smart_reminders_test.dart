@@ -55,6 +55,20 @@ void main() {
           request.id: request,
       };
 
+  /// Waits for the window to be laid out. A run makes about 56 platform
+  /// calls, so how long it takes depends on how busy the device is.
+  Future<Map<int, PendingNotificationRequest>> pendingWhere(
+    bool Function(Map<int, PendingNotificationRequest> queued) ready,
+  ) async {
+    final clock = Stopwatch()..start();
+    while (true) {
+      final queued = await pending();
+      if (ready(queued)) return queued;
+      if (clock.elapsed > const Duration(seconds: 20)) return queued;
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+  }
+
   /// A reader who read on each of the last [days] days, and not yet today.
   Future<void> readerWithStreak(int days) async {
     final today = journeyDayKey(DateTime.now());
@@ -101,9 +115,8 @@ void main() {
       (tester) async {
     await readerWithStreak(3);
     refresher.start();
-    await settle();
 
-    final queued = await pending();
+    final queued = await pendingWhere((q) => q.length == 28);
     expect(queued, hasLength(28));
     expect(queued[morningId]?.title, 'حديث اليوم');
     expect(queued[morningId]?.payload, hadithPayload(1));
@@ -115,12 +128,15 @@ void main() {
       (tester) async {
     await readerWithStreak(3);
     refresher.start();
-    await settle();
+    await pendingWhere((q) => q[tonightId]?.title == 'لم نقرأ اليوم بعد');
 
     JourneyRepository().recordMessageRead('today', hadithNumber: 5);
-    await settle();
 
-    final queued = await pending();
+    final queued = await pendingWhere(
+      (q) =>
+          q[tonightId]?.title == 'تأمل المساء' &&
+          (q[tomorrowEveningId]?.body?.startsWith('٤') ?? false),
+    );
     expect(queued[tonightId]?.title, 'تأمل المساء');
     expect(queued[tonightId]?.body, isNot(contains('متتالية')));
     expect(queued[tomorrowEveningId]?.body, startsWith('٤ أيام متتالية'));
@@ -130,13 +146,17 @@ void main() {
       (tester) async {
     await readerWithStreak(1);
     refresher.start();
-    await settle();
-    expect((await pending())[morningId]?.payload, hadithPayload(1));
+    final before = await pendingWhere(
+      (q) => q[morningId]?.payload == hadithPayload(1),
+    );
+    expect(before[morningId]?.payload, hadithPayload(1));
 
     JourneyRepository().recordFullRead(1, seconds: 90);
-    await settle();
 
-    final tomorrowMorning = (await pending())[2];
+    final queued = await pendingWhere(
+      (q) => q[2]?.payload == hadithPayload(2),
+    );
+    final tomorrowMorning = queued[2];
     expect(tomorrowMorning?.title, 'حديث اليوم');
     expect(tomorrowMorning?.payload, hadithPayload(2));
   });
@@ -145,16 +165,19 @@ void main() {
       (tester) async {
     await readerWithStreak(3);
     refresher.start();
-    await settle();
+    final before = await pendingWhere((q) => q.length == 28);
     expect(
-      (await pending()).values.any((r) => r.title == 'لم نقرأ اليوم بعد'),
+      before.values.any((r) => r.title == 'لم نقرأ اليوم بعد'),
       isTrue,
     );
 
     JourneyRepository().setUser(null);
-    await settle();
 
-    final queued = await pending();
+    final queued = await pendingWhere(
+      (q) =>
+          q.length == 28 &&
+          q.values.every((r) => hadithOfPayload(r.payload) == null),
+    );
     expect(queued, hasLength(28));
     expect(
       queued.values.every(
@@ -169,9 +192,9 @@ void main() {
     JourneyRepository().recordMessageRead('m', hadithNumber: 1);
     await settle();
     refresher.start();
-    await settle();
 
-    final queued = await pending();
+    final queued = await pendingWhere((q) => q.length == 28);
+    expect(queued, hasLength(28));
     expect(queued.values.any((r) => hadithOfPayload(r.payload) != null), isFalse);
   });
 

@@ -209,7 +209,7 @@ void main() {
       expect(opened.hadith.number, 16);
 
       Navigator.of(tester.element(find.byType(HadithDetailScreen))).pop();
-      await wait(tester);
+      await wait(tester, 1500);
       expect(find.byType(HadithDetailScreen), findsNothing);
       expect(find.byType(HomeScreen), findsOneWidget);
     });
