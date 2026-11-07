@@ -38,10 +38,10 @@ class DailyMessageEntry {
 /// The message card and the controls that act on it — bookmark, share, copy
 /// and, where the insight has a backing doc, the like counter.
 ///
-/// Lives here rather than inside the message screen because there are now
-/// two places a message is shown: inline on the home tab (today's message,
-/// which stays there once opened) and on its own screen (a bookmarked one,
-/// from favourites). One implementation so the two cannot drift apart.
+/// Lives here rather than inside a message screen because there are two
+/// places a message is shown: today's window (the day's set, opened from the
+/// home emblem) and its own screen (a bookmarked one, from favourites). One
+/// implementation so the two cannot drift apart.
 class DailyMessageCard extends StatefulWidget {
   const DailyMessageCard({
     super.key,
@@ -66,12 +66,12 @@ class DailyMessageCard extends StatefulWidget {
   final bool fillHeight;
 
   /// Hero tag for the emblem at the top of the card, when this card is the
-  /// destination of a flight. Null where there is no flight — notably the
-  /// home tab, where the card *replaces* the emblem rather than arriving
-  /// from it, and two live Heroes sharing a tag would assert.
+  /// destination of a flight. Null where there is no flight — notably a
+  /// message that arrived by "رسالة أخرى" rather than from the home emblem,
+  /// and two live Heroes sharing a tag would assert.
   final String? heroTag;
 
-  /// Shown under the controls. The home tab puts the day's next step here.
+  /// Shown under the controls. Today's window puts the day's next step here.
   final Widget? footer;
 
   /// Whether staying with this message counts as the day's first step. False
@@ -91,9 +91,8 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
   Insight get _insight => widget.entry.insight;
   Hadith? get _hadith => widget.entry.hadith;
 
-  // Read live rather than cached: home swaps the entry in place when the
-  // reader asks for another message, and the account's favourites can land
-  // after the card is built (right after signing in).
+  // Read live rather than cached: the account's favourites can land after
+  // the card is built (right after signing in).
   bool get _isBookmarked => _repo.isInsightFavorite(_insight);
 
   Timer? _readTimer;

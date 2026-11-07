@@ -179,7 +179,7 @@ class _SplashScreenState extends State<SplashScreen>
     // all public-read. Signing in is asked for at the few points that
     // genuinely need it — saving a favourite among them (see requireSignIn).
     //
-    // Nothing is pushed on top any more: today's message is part of Home.
+    // Nothing is pushed on top from here: Home opens today's window itself.
     Navigator.pushReplacement(
       context,
       appPageRoute(
