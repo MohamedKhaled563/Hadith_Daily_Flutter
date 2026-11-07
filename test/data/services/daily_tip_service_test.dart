@@ -62,4 +62,79 @@ void main() {
       expect(() => entries.add({'messageId': 'a'}), returnsNormally);
     });
   });
+
+  group('DailyTipService.localPoolIsTrusted', () {
+    final fresh = const Duration(days: 1).inMilliseconds;
+    final maxAge = DailyTipService.poolMaxAge.inMilliseconds;
+
+    test('a device that has never synced does not trust its cache', () {
+      // Regression: an unreadable version used to trust the local copy
+      // outright. The cache is filled by every other read in the app, so a
+      // device that had never fetched the pool drew its whole day from
+      // whatever happened to be there — with no daily messages among it.
+      expect(
+        DailyTipService.localPoolIsTrusted(
+          liveVersion: null,
+          syncedVersion: null,
+          ageMillis: fresh,
+        ),
+        isFalse,
+      );
+      expect(
+        DailyTipService.localPoolIsTrusted(
+          liveVersion: 4,
+          syncedVersion: null,
+          ageMillis: fresh,
+        ),
+        isFalse,
+      );
+    });
+
+    test('an unreadable version settles for a pool once synced', () {
+      expect(
+        DailyTipService.localPoolIsTrusted(
+          liveVersion: null,
+          syncedVersion: 4,
+          ageMillis: maxAge * 2,
+        ),
+        isTrue,
+      );
+    });
+
+    test('a matching version within the max age is trusted', () {
+      expect(
+        DailyTipService.localPoolIsTrusted(
+          liveVersion: 4,
+          syncedVersion: 4,
+          ageMillis: fresh,
+        ),
+        isTrue,
+      );
+    });
+
+    test('a version that moved is not trusted', () {
+      expect(
+        DailyTipService.localPoolIsTrusted(
+          liveVersion: 5,
+          syncedVersion: 4,
+          ageMillis: fresh,
+        ),
+        isFalse,
+      );
+    });
+
+    test('a pool at the max age, or stamped in the future, is not trusted', () {
+      for (final age in [maxAge, -1]) {
+        expect(
+          DailyTipService.localPoolIsTrusted(
+            liveVersion: 4,
+            syncedVersion: 4,
+            ageMillis: age,
+          ),
+          isFalse,
+          reason: 'age $age',
+        );
+      }
+    });
+  });
 }

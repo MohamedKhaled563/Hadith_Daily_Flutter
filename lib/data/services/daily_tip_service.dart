@@ -555,16 +555,12 @@ class DailyTipService {
     final version = await versionCheck;
 
     if (localRead != null) {
-      final syncedVersion = prefs.getInt(_poolSyncedVersionKey);
       final syncedAt = prefs.getInt(_poolSyncedAtKey) ?? 0;
-      final age = DateTime.now().millisecondsSinceEpoch - syncedAt;
-      // An unreadable version (offline, or past the budget) also settles
-      // for the local copy: a server read of the whole pool would only hit
-      // the same wall, a second time, before falling back to it anyway.
-      final trusted = version == null ||
-          (syncedVersion == version &&
-              age >= 0 &&
-              age < poolMaxAge.inMilliseconds);
+      final trusted = localPoolIsTrusted(
+        liveVersion: version,
+        syncedVersion: prefs.getInt(_poolSyncedVersionKey),
+        ageMillis: DateTime.now().millisecondsSinceEpoch - syncedAt,
+      );
       if (trusted) {
         final cached = await localRead;
         if (cached.tips.isNotEmpty) {
@@ -591,6 +587,31 @@ class DailyTipService {
       ]);
     }
     return fetched;
+  }
+
+  /// Whether Firestore's local copy of the pool can stand in for a server
+  /// read. [liveVersion] is null when the version cannot be read right now;
+  /// [syncedVersion] is null until this device has fetched the whole pool
+  /// from the server.
+  ///
+  /// A device that has never done that has nothing to trust. The cache is
+  /// filled by every other read in the app, so it can hold a few community
+  /// posts from the feed and none of the daily messages, and a draw from
+  /// that is a day made of whatever happened to be cached.
+  @visibleForTesting
+  static bool localPoolIsTrusted({
+    required int? liveVersion,
+    required int? syncedVersion,
+    required int ageMillis,
+  }) {
+    if (syncedVersion == null) return false;
+    // An unreadable version (offline, or past the budget) settles for the
+    // local copy: a server read of the whole pool would only hit the same
+    // wall, a second time, before falling back to it anyway.
+    if (liveVersion == null) return true;
+    return syncedVersion == liveVersion &&
+        ageMillis >= 0 &&
+        ageMillis < poolMaxAge.inMilliseconds;
   }
 
   /// The live DailyPoolVersion, or null if it cannot be read right now —

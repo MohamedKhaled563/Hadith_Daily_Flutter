@@ -137,9 +137,11 @@ void main() {
         reason: 'nothing should be looping under reduce-motion',
       );
 
-      // Let the splash's own timers expire so none are left pending.
+      // Let the splash's own timers expire so none are left pending, along
+      // with warmUp's server budgets: with no Firebase to answer, the version
+      // check runs out and the pool read it falls through to starts another.
       await tester.pump(const Duration(seconds: 4));
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
     });
 
     testWidgets('the same check sees motion when it is allowed',
