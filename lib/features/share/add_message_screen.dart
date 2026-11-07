@@ -173,8 +173,9 @@ class _AddMessageScreenState extends State<AddMessageScreen>
 
     setState(() => _submitting = true);
 
+    final MessageDelivery delivery;
     try {
-      await CommunityService().submit(
+      delivery = await CommunityService().submit(
         hadithNumber: _selectedHadith!.number,
         message: messageText,
         authorName: authorName,
@@ -199,11 +200,22 @@ class _AddMessageScreenState extends State<AddMessageScreen>
     // than a selection tick.
     AppHaptics.success();
 
-    showAppSnack(
-      context,
-      'تم إرسال رسالتك للمراجعة، وستظهر بعد موافقة المشرفين',
-      tone: SnackTone.success,
-    );
+    if (delivery == MessageDelivery.confirmed) {
+      showAppSnack(
+        context,
+        'تم إرسال رسالتك للمراجعة، وستظهر بعد موافقة المشرفين',
+        tone: SnackTone.success,
+      );
+    } else {
+      // It is in Firestore's queue and will go by itself. The form still
+      // clears below, because sending it again would post it twice.
+      showAppSnack(
+        context,
+        'الاتصال ضعيف الآن، فحفظنا رسالتك وسنرسلها وحدها عند عودته، '
+        'فلا داعي لكتابتها مرة أخرى',
+        tone: SnackTone.warning,
+      );
+    }
 
     // The approval notification needs this grant, and a reader who switched
     // both reminders off has never been asked for it. This is the moment the
