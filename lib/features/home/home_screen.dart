@@ -40,7 +40,11 @@ class HomeScreen extends StatefulWidget {
     this.openSubmissionsOnStart = false,
     this.openHadithOnStart,
     this.offerRemindersOnStart = false,
+    this.openJourneyOnStart = false,
   });
+
+  /// Start on the journey tab. Only for a launch from the Friday harvest.
+  final bool openJourneyOnStart;
 
   /// Open today's message as soon as home is up, instead of waiting for the
   /// emblem. Only for a launch from a reminder tap — see SplashScreen.
@@ -96,7 +100,11 @@ class _HomeScreenState extends State<HomeScreen>
     NotificationScheduler.submissionApprovalTapped
         .addListener(_openMySubmissions);
     NotificationScheduler.hadithTapped.addListener(_onHadithReminderTapped);
+    NotificationScheduler.harvestTapped.addListener(_openJourney);
     JourneyLinks.writeAbout.addListener(_onWriteAbout);
+    if (widget.openJourneyOnStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openJourney());
+    }
     if (widget.openSubmissionsOnStart) {
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _openMySubmissions());
@@ -126,6 +134,7 @@ class _HomeScreenState extends State<HomeScreen>
     NotificationScheduler.submissionApprovalTapped
         .removeListener(_openMySubmissions);
     NotificationScheduler.hadithTapped.removeListener(_onHadithReminderTapped);
+    NotificationScheduler.harvestTapped.removeListener(_openJourney);
     JourneyLinks.writeAbout.removeListener(_onWriteAbout);
     _tabFade.dispose();
     super.dispose();
@@ -163,6 +172,13 @@ class _HomeScreenState extends State<HomeScreen>
     final navigator = Navigator.of(context);
     navigator.popUntil((route) => route.isFirst);
     navigator.push(appPageRoute(child: const MySubmissionsScreen()));
+  }
+
+  /// The Friday harvest was tapped: show the week on the journey tab.
+  void _openJourney() {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    _goToTab(1);
   }
 
   void _onHadithReminderTapped() {

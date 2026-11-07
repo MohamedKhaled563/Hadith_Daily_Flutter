@@ -26,6 +26,10 @@ class ShareService {
   /// 3× a poster's logical size, giving 1080×1350 for a [ShareCard].
   static const double _pixelRatio = 3.0;
 
+  /// Told each time a card actually leaves the app — set at start so the
+  /// journey can count it, without this file knowing about the journey.
+  static VoidCallback? onShared;
+
   static Future<void> shareMessage({
     required BuildContext context,
     required String message,
@@ -79,13 +83,16 @@ class ShareService {
       );
       await file.writeAsBytes(bytes, flush: true);
 
-      await SharePlus.instance.share(
+      final result = await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'image/png')],
           text: caption,
           sharePositionOrigin: origin,
         ),
       );
+      // Dismissed means the reader backed out. Android usually cannot say
+      // where it went and reports "unavailable", which still counts.
+      if (result.status != ShareResultStatus.dismissed) onShared?.call();
       // Best-effort: the temp directory is reclaimed by the OS eventually,
       // but not deleting these left one PNG behind per share, unbounded.
       unawaited(file.delete().catchError((_) => file));

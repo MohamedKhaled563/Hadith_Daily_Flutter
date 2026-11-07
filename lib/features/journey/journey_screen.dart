@@ -14,6 +14,7 @@ import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_engine.dart';
+import '../../data/journey/journey_points.dart';
 import '../../data/journey/journey_repository.dart';
 import '../../data/journey/reading_tracker.dart';
 import '../../data/models/hadith.dart';
@@ -267,7 +268,15 @@ class _JourneyBody extends StatelessWidget {
               onOpenHadith: (number) => _openHadith(context, number),
             ),
             const SizedBox(height: 14),
-            _YouVersusYou(streak: streak, weeks: weeks),
+            _YouVersusYou(
+              streak: streak,
+              weeks: weeks,
+              points: journey.thisWeekPoints,
+              lastPoints: journey.lastWeekPoints,
+              canShare: weeks.thisWeek > 0,
+            ),
+            const SizedBox(height: 14),
+            _RecordsCard(records: journey.records),
           ],
         );
       },
@@ -443,10 +452,21 @@ class _StepRow extends StatelessWidget {
 
 /// The only competitor here is the reader's own last week.
 class _YouVersusYou extends StatelessWidget {
-  const _YouVersusYou({required this.streak, required this.weeks});
+  const _YouVersusYou({
+    required this.streak,
+    required this.weeks,
+    required this.points,
+    required this.lastPoints,
+    required this.canShare,
+  });
 
   final StreakResult streak;
   final WeekCompare weeks;
+  final WeekPoints points;
+  final WeekPoints lastPoints;
+
+  /// Whether there is a week worth sharing yet.
+  final bool canShare;
 
   @override
   Widget build(BuildContext context) {
@@ -502,6 +522,134 @@ class _YouVersusYou extends StatelessWidget {
             widest: widest,
             color: palette.mutedText.withValues(alpha: .45),
           ),
+          const SizedBox(height: 14),
+          _PointsRow(points: points, lastPoints: lastPoints),
+          if (canShare) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                onPressed: () => shareHarvest(context),
+                icon: const Icon(Icons.ios_share_rounded, size: 18),
+                label: const Text('شارك حصاد أسبوعك'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// This week's points against last week's. Points measure activity in the
+/// app, nothing more, so they sit here quietly rather than on every screen.
+class _PointsRow extends StatelessWidget {
+  const _PointsRow({required this.points, required this.lastPoints});
+
+  final WeekPoints points;
+  final WeekPoints lastPoints;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final style = TextStyle(
+      fontFamily: kSans,
+      fontSize: 13,
+      height: AppLeading.chrome,
+      color: palette.mutedText,
+    );
+
+    return Semantics(
+      label: 'نقاطك هذا الأسبوع ${toArabicDigits(points.total)}، '
+          'والأسبوع الماضي ${toArabicDigits(lastPoints.total)}',
+      excludeSemantics: true,
+      child: Row(
+        children: [
+          Icon(Icons.eco_rounded, size: 18, color: palette.goldText),
+          const SizedBox(width: 6),
+          Text('نقاطك هذا الأسبوع', style: style),
+          const SizedBox(width: 6),
+          Text(
+            toArabicDigits(points.total),
+            style: style.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: palette.goldText,
+            ),
+          ),
+          const Spacer(),
+          Text('الماضي ${toArabicDigits(lastPoints.total)}', style: style),
+        ],
+      ),
+    );
+  }
+}
+
+/// The reader's eight personal records. A dash for one not set yet.
+class _RecordsCard extends StatelessWidget {
+  const _RecordsCard({required this.records});
+
+  final Map<JourneyRecord, int> records;
+
+  static String _value(JourneyRecord record, int value) {
+    if (value == 0) return '—';
+    return switch (record) {
+      JourneyRecord.streak ||
+      JourneyRecord.weekDays =>
+        arabicDayCount(value),
+      JourneyRecord.weekMinutes ||
+      JourneyRecord.dayMinutes =>
+        arabicMinuteCount(value),
+      _ => toArabicDigits(value),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return ParchmentCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      showWatermark: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _CardTitle('أرقامك'),
+          const SizedBox(height: 6),
+          for (final record in JourneyRecord.values)
+            Semantics(
+              label: '${record.label}: '
+                  '${_value(record, records[record] ?? 0)}',
+              excludeSemantics: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        record.label,
+                        style: TextStyle(
+                          fontFamily: kSans,
+                          fontSize: 13.5,
+                          height: AppLeading.chrome,
+                          color: palette.bodyText,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      _value(record, records[record] ?? 0),
+                      style: TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 13.5,
+                        height: AppLeading.chrome,
+                        fontWeight: FontWeight.w800,
+                        color: palette.goldText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

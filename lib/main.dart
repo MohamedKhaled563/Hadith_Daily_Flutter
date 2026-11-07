@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/crash_reporter.dart';
+import 'core/share/share_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_state_controller.dart';
+import 'data/journey/journey_repository.dart';
 import 'data/repositories/hadith_repository.dart';
 import 'data/services/daily_tip_service.dart';
 import 'data/services/journey_reminders.dart';
@@ -79,6 +81,7 @@ class _HadithAppState extends State<HadithApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     NotificationScheduler.instance.planner = JourneyReminders.plan;
+    ShareService.onShared = JourneyRepository().recordShared;
     _reminders.start();
     _submissionApprovals.start();
   }

@@ -100,6 +100,10 @@ class MySubmissionsScreen extends StatelessWidget {
                             hadithNumber: data['hadithNumber'] as int? ?? 0,
                             status: data['status'] as String? ?? 'pending',
                             createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+                            timesShown:
+                                (data['timesShown'] as num?)?.toInt() ?? 0,
+                            likeCount:
+                                (data['likeCount'] as num?)?.toInt() ?? 0,
                           );
                         },
                       );
@@ -118,12 +122,19 @@ class _SubmissionCard extends StatelessWidget {
     required this.hadithNumber,
     required this.status,
     required this.createdAt,
+    this.timesShown = 0,
+    this.likeCount = 0,
   });
 
   final String message;
   final int hadithNumber;
   final String status;
   final DateTime? createdAt;
+
+  /// How many readers it reached as a daily message, and how many liked it.
+  /// Shown, never scored: any signed-in device can raise timesShown.
+  final int timesShown;
+  final int likeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -163,10 +174,34 @@ class _SubmissionCard extends StatelessWidget {
               color: palette.bodyText,
             ),
           ),
+          if (status == 'approved') ...[
+            const SizedBox(height: 10),
+            Text(
+              reachLine(timesShown: timesShown, likeCount: likeCount),
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 12.5,
+                height: 1.4,
+                fontWeight: FontWeight.w700,
+                color: palette.goldText,
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+}
+
+/// How far an approved message has gone, in words.
+@visibleForTesting
+String reachLine({required int timesShown, required int likeCount}) {
+  if (timesShown == 0) return 'لم تصل إلى أحد بعد، وستأخذ دورها بين الرسائل';
+  final readers = timesShown == 1
+      ? 'وصلت إلى قارئ واحد'
+      : 'وصلت إلى ${toArabicDigits(timesShown)} قارئ';
+  if (likeCount == 0) return readers;
+  return '$readers · أعجبت ${toArabicDigits(likeCount)}';
 }
 
 class _StatusBadge extends StatelessWidget {

@@ -8,6 +8,7 @@
 library;
 
 import '../../core/utils/arabic_numerals.dart';
+import 'journey_points.dart';
 
 class JourneyMessage {
   const JourneyMessage({required this.title, required this.body});
@@ -108,6 +109,35 @@ class JourneyCopy {
         title: 'مكانك محفوظ',
         body: 'توقفنا عند «$title». نكمل حين يناسبك.',
       );
+
+  /// The Friday morning reminder: the week so far, against the last.
+  static JourneyMessage harvest({
+    required int days,
+    required int minutes,
+    required int lastWeekMinutes,
+  }) {
+    final week = '${arabicDayCount(days)} و${arabicMinuteCount(minutes)} '
+        'مع الحديث.';
+    return JourneyMessage(
+      title: 'حصاد الأسبوع',
+      body: lastWeekMinutes > 0
+          ? '$week الأسبوع الماضي كانت ${arabicMinuteCount(lastWeekMinutes)}.'
+          : week,
+    );
+  }
+
+  /// A writer's message has reached its hundredth reader.
+  static const reach = JourneyMessage(
+    title: 'وصلت رسالتك إلى ١٠٠ قارئ',
+    body: 'كلمة كتبتها في دقيقة، وما زالت تصل.',
+  );
+
+  static const harvestInvitation = 'حصاد أسبوعي مع الحديث';
+
+  static String harvestCaption(Harvest harvest, String? link) =>
+      'هذا الأسبوع: ${arabicDayCount(harvest.days)} و'
+      '${arabicMinuteCount(harvest.minutes)} مع الأربعين النووية في تطبيق '
+      '«طيّب قلبك»، فاقرأ معي.${_linkLine(link)}';
 
   /// A streak line for the completion sheet.
   static String streakLine(int current, int best) {

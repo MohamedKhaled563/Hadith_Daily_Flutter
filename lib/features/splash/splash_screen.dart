@@ -146,11 +146,15 @@ class _SplashScreenState extends State<SplashScreen>
   /// A reminder about a hadith lands on that hadith.
   int? _launchedHadith;
 
+  /// The Friday harvest lands on the journey.
+  bool _launchedFromHarvest = false;
+
   Future<void> _resolveLaunch() async {
     try {
       final scheduler = NotificationScheduler.instance;
       _launchedFromApproval = await scheduler.wasLaunchedBySubmissionApproval();
       _launchedHadith = await scheduler.launchedHadith();
+      _launchedFromHarvest = await scheduler.wasLaunchedByHarvest();
       final launched = await scheduler.wasLaunchedByNotification();
       if (!launched) return;
       await DailyTipService().ensureOpenedToday();
@@ -191,8 +195,10 @@ class _SplashScreenState extends State<SplashScreen>
           openMessageOnStart: _launchedFromReminder,
           openSubmissionsOnStart: _launchedFromApproval,
           openHadithOnStart: _launchedHadith,
+          openJourneyOnStart: _launchedFromHarvest,
           offerRemindersOnStart: !_launchedFromReminder &&
               !_launchedFromApproval &&
+              !_launchedFromHarvest &&
               _launchedHadith == null,
         ),
       ),

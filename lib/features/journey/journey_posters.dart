@@ -6,6 +6,7 @@ import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/islamic_pattern_painter.dart';
 import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_models.dart';
+import '../../data/journey/journey_points.dart';
 import '../../data/models/hadith.dart';
 import 'journey_tree.dart';
 
@@ -241,6 +242,86 @@ class TreePoster extends StatelessWidget {
           ),
           if (name != null) ...[
             const SizedBox(height: 2),
+            _PosterName(name!),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The week's harvest: how many days and minutes went to the hadith. Small
+/// numbers, and no comparison with anyone, so it reads as an invitation.
+class HarvestPoster extends StatelessWidget {
+  const HarvestPoster({
+    super.key,
+    required this.format,
+    required this.harvest,
+    this.name,
+  });
+
+  final PosterFormat format;
+  final Harvest harvest;
+
+  /// Null unless the reader turned their name on.
+  final String? name;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PosterFrame(
+      format: format,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            JourneyCopy.harvestInvitation,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 15,
+              height: 1.3,
+              fontWeight: FontWeight.w700,
+              color: _gold,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            arabicDayCount(harvest.days),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Amiri',
+              fontSize: 40,
+              height: 1.3,
+              fontWeight: FontWeight.w700,
+              color: _ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'و${arabicMinuteCount(harvest.minutes)} مع الحديث',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: kSans,
+              fontSize: 16,
+              height: 1.4,
+              fontWeight: FontWeight.w700,
+              color: _ink,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'من الأربعين النووية',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 12.5,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+              color: _gold,
+            ),
+          ),
+          if (name != null) ...[
+            const SizedBox(height: 6),
             _PosterName(name!),
           ],
         ],

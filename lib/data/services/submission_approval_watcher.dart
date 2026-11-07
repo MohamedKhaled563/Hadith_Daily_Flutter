@@ -6,16 +6,30 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/utils/arabic_numerals.dart';
+import '../journey/journey_copy.dart';
+import '../journey/journey_engine.dart';
+import '../journey/journey_repository.dart';
 import '../models/insight.dart';
 import 'notification_scheduler.dart';
 
 /// One of the signed-in reader's messages that a moderator has approved.
 @immutable
 class ApprovedSubmission {
-  const ApprovedSubmission({required this.id, required this.message});
+  const ApprovedSubmission({
+    required this.id,
+    required this.message,
+    this.reviewedAt,
+    this.timesShown = 0,
+  });
 
   final String id;
   final String message;
+
+  /// When a moderator approved it, if the dashboard recorded that.
+  final DateTime? reviewedAt;
+
+  /// How many readers it has reached as a daily message.
+  final int timesShown;
 }
 
 /// Everything [SubmissionApprovalWatcher] needs from Firestore, behind an
@@ -63,6 +77,8 @@ class FirestoreSubmissionDataSource implements SubmissionDataSource {
         ApprovedSubmission(
           id: doc.id,
           message: doc.data()['message'] as String? ?? '',
+          reviewedAt: (doc.data()['reviewedAt'] as Timestamp?)?.toDate(),
+          timesShown: (doc.data()['timesShown'] as num?)?.toInt() ?? 0,
         ),
     ];
   }
@@ -96,15 +112,42 @@ class SubmissionApprovalWatcher {
     SubmissionDataSource? dataSource,
     Stream<String?> Function()? uidChanges,
     Future<void> Function(List<ApprovedSubmission> approved)? notify,
+    Future<void> Function()? notifyReach,
+    void Function(String uid, List<ApprovedSubmission> approved)? onApproved,
   })  : _dataSource = dataSource ?? FirestoreSubmissionDataSource(),
         _uidChanges = uidChanges ?? _authUidChanges,
-        _notify = notify ?? _showNotification;
+        _notify = notify ?? _showNotification,
+        _notifyReach = notifyReach ?? _showReach,
+        _onApproved = onApproved ?? _feedJourney;
 
   static const _seenKeyPrefix = 'submissionApprovals.seen.';
+  static const _reachKeyPrefix = 'submissionReach.announced.';
+
+  /// The reach worth a notification.
+  static const reachMilestone = 100;
 
   final SubmissionDataSource _dataSource;
   final Stream<String?> Function() _uidChanges;
   final Future<void> Function(List<ApprovedSubmission> approved) _notify;
+  final Future<void> Function() _notifyReach;
+  final void Function(String uid, List<ApprovedSubmission> approved)
+      _onApproved;
+
+  static Future<void> _showReach() => NotificationScheduler.instance
+      .showSubmissionApproved(
+        title: JourneyCopy.reach.title,
+        body: JourneyCopy.reach.body,
+      );
+
+  /// Approved messages are worth points, counted by the week they were
+  /// approved in. One approved before the dashboard stamped `reviewedAt`
+  /// counts for no week, rather than for one it did not happen in.
+  static void _feedJourney(String uid, List<ApprovedSubmission> approved) {
+    JourneyRepository().setApprovedOn(uid, [
+      for (final s in approved)
+        if (s.reviewedAt != null) journeyDayKey(s.reviewedAt!),
+    ]);
+  }
 
   StreamSubscription<String?>? _authSub;
   StreamSubscription<void>? _pendingSub;
@@ -167,6 +210,8 @@ class SubmissionApprovalWatcher {
       // longer the current reader's to announce.
       if (uid != _uid) return;
 
+      _onApproved(uid, approved);
+
       final prefs = await SharedPreferences.getInstance();
       final key = '$_seenKeyPrefix$uid';
       final fresh = unseenApprovals(approved, prefs.getStringList(key));
@@ -175,6 +220,18 @@ class SubmissionApprovalWatcher {
       // price is a repeat if the app dies in between — which, being one fixed
       // notification id, replaces rather than adds to the first.
       await prefs.setStringList(key, [for (final s in approved) s.id]);
+
+      final reachKey = '$_reachKeyPrefix$uid';
+      final reached = newlyReached(
+        approved,
+        prefs.getStringList(reachKey),
+        milestone: reachMilestone,
+      );
+      if (reached.isNotEmpty) await _notifyReach();
+      await prefs.setStringList(reachKey, [
+        for (final s in approved)
+          if (s.timesShown >= reachMilestone) s.id,
+      ]);
     } catch (error) {
       // Offline is the usual case here. Nothing was recorded, so the next
       // check picks up exactly where this one would have.
@@ -195,6 +252,20 @@ List<ApprovedSubmission> unseenApprovals(
 ) {
   if (seen == null) return const [];
   return approved.where((s) => !seen.contains(s.id)).toList();
+}
+
+/// Which of [approved] have just passed [milestone] readers. A null
+/// [announced] is a first check on this device, which only sets the baseline:
+/// a message that passed it long ago is not news.
+List<ApprovedSubmission> newlyReached(
+  List<ApprovedSubmission> approved,
+  List<String>? announced, {
+  required int milestone,
+}) {
+  if (announced == null) return const [];
+  return approved
+      .where((s) => s.timesShown >= milestone && !announced.contains(s.id))
+      .toList();
 }
 
 /// What the notification says. Several approved at once share one

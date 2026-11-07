@@ -212,6 +212,10 @@ class NotificationScheduler {
   static final ValueNotifier<HadithReminderTap?> hadithTapped =
       ValueNotifier<HadithReminderTap?>(null);
 
+  /// The Friday harvest was tapped while the app was running: open the
+  /// journey. A cold start goes through [wasLaunchedByHarvest].
+  static final ValueNotifier<int> harvestTapped = ValueNotifier<int>(0);
+
   /// How a tap tells an approval from a reminder — a reminder's payload is a
   /// `notificationMessages` doc id, which this can't be mistaken for.
   @visibleForTesting
@@ -231,6 +235,10 @@ class NotificationScheduler {
     final hadith = hadithOfPayload(response.payload);
     if (hadith != null) {
       hadithTapped.value = HadithReminderTap(hadith);
+      return;
+    }
+    if (response.payload == harvestPayload) {
+      harvestTapped.value++;
       return;
     }
     notificationTapped.value++;
@@ -288,7 +296,15 @@ class NotificationScheduler {
     if (!(details?.didNotificationLaunchApp ?? false)) return false;
     final payload = details?.notificationResponse?.payload;
     return payload != submissionApprovedPayload &&
+        payload != harvestPayload &&
         hadithOfPayload(payload) == null;
+  }
+
+  /// Whether the app was launched by tapping the Friday harvest.
+  Future<bool> wasLaunchedByHarvest() async {
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    if (!(details?.didNotificationLaunchApp ?? false)) return false;
+    return details?.notificationResponse?.payload == harvestPayload;
   }
 
   /// The hadith to open, when the app was launched by tapping a reminder about

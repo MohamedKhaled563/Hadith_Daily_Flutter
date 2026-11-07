@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'journey_engine.dart';
 import 'journey_models.dart';
+import 'journey_points.dart';
 import 'journey_store.dart';
 
 /// What finishing a hadith added up to, for the completion sheet.
@@ -19,6 +20,7 @@ class ReadingOutcome {
     required this.completeCount,
     required this.days,
     this.milestone,
+    this.record,
   });
 
   final int hadithNumber;
@@ -36,6 +38,9 @@ class ReadingOutcome {
 
   /// The milestone just reached, if any.
   final int? milestone;
+
+  /// A personal record this reading beat, if any.
+  final JourneyRecord? record;
 }
 
 /// The reader's journey: what the screens read and what they report to.
@@ -103,6 +108,34 @@ class JourneyRepository {
 
   int? get nextHadithNumber => nextHadith(_data, today);
 
+  /// The reading day each of this reader's messages was approved on. Not
+  /// stored with the journey: it comes from the messages themselves, read by
+  /// SubmissionApprovalWatcher.
+  List<String> _approvedOn = const [];
+  List<String> get approvedOn => _approvedOn;
+
+  /// [uid]'s approved messages, as the server last reported them.
+  void setApprovedOn(String uid, List<String> dayKeys) {
+    if (uid != _uid) return;
+    _approvedOn = List.unmodifiable(dayKeys);
+    _changed();
+  }
+
+  WeekPoints get thisWeekPoints =>
+      weekPoints(_data, weekStartKey(today), approvedOn: _approvedOn);
+
+  WeekPoints get lastWeekPoints => weekPoints(
+        _data,
+        dayKeyPlus(weekStartKey(today), -7),
+        approvedOn: _approvedOn,
+      );
+
+  Map<JourneyRecord, int> get records =>
+      journeyRecords(_data, today: today, approvedOn: _approvedOn);
+
+  Map<JourneyRecord, RecordStanding> get _standings =>
+      recordStandings(_data, today: today, approvedOn: _approvedOn);
+
   void _changed() => _revision.value++;
 
   /// Points the journey at [uid], or back to the phone for a guest.
@@ -120,6 +153,7 @@ class JourneyRepository {
     _subscription = null;
     _watchedYear = null;
     _accountLoaded = false;
+    _approvedOn = const [];
     _data = JourneyData.empty;
     _changed();
 
@@ -248,6 +282,7 @@ class JourneyRepository {
   ReadingOutcome recordFullRead(int hadithNumber, {required int seconds}) {
     final day = today;
     final before = streak;
+    final recordsBefore = _standings;
     final firstTime = !_data.progressOf(hadithNumber).isComplete;
     final countAfter = _data.completeCount + (firstTime ? 1 : 0);
 
@@ -268,8 +303,19 @@ class JourneyRepository {
       completeCount: countAfter,
       days: _data.days.values.where((d) => d.isPresent).length,
       milestone: milestones.isEmpty ? null : milestones.last,
+      record: brokenRecord(recordsBefore, _standings),
     );
   }
+
+  /// The reader stayed with a community post. Once per post per day.
+  void recordCommunityRead(String postId) {
+    final day = today;
+    if (_data.days[day]?.community.contains(postId) ?? false) return;
+    _record(JourneyEvent(dayKey: day, communityId: postId));
+  }
+
+  /// The reader shared a card outside the app.
+  void recordShared() => _record(JourneyEvent(dayKey: today, shared: 1));
 
   /// The reader sent a message to the community.
   void recordWrote() => _record(JourneyEvent(dayKey: today, wrote: 1));

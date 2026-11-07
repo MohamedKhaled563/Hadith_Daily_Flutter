@@ -1446,6 +1446,35 @@ void notificationSchedulerSuite() {
 
       expect(NotificationScheduler.notificationTapped.value, before + 1);
     });
+
+    test('a cold start from the Friday harvest opens the journey only',
+        () async {
+      launchedWith(harvestPayload);
+      final scheduler = schedulerWith(_FakeDataSource());
+
+      expect(await scheduler.wasLaunchedByHarvest(), isTrue);
+      expect(await scheduler.wasLaunchedByNotification(), isFalse,
+          reason: 'it must not also open today\'s message');
+      expect(await scheduler.launchedHadith(), isNull);
+    });
+
+    test('other launches are not the harvest', () async {
+      launchedWith('hadith:16');
+      expect(await schedulerWith(_FakeDataSource()).wasLaunchedByHarvest(),
+          isFalse);
+    });
+
+    test('a live tap on the harvest opens the journey, not a message',
+        () async {
+      final onTap = await tapHandler();
+      final harvest = NotificationScheduler.harvestTapped.value;
+      final message = NotificationScheduler.notificationTapped.value;
+
+      onTap(tap(harvestPayload));
+
+      expect(NotificationScheduler.harvestTapped.value, harvest + 1);
+      expect(NotificationScheduler.notificationTapped.value, message);
+    });
   });
 
   group('NotificationScheduler.requestPermission', () {
