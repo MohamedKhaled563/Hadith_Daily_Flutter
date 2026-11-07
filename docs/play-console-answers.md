@@ -61,7 +61,8 @@ Play asks this in two passes: first *which* data types you collect, then
 - Purpose: **App functionality**
 - Linked to the user: **Yes**
 - Covers `users/{uid}/journey` and `users/{uid}/journeyYears`: which hadiths
-  and messages were read, on which days, and for roughly how long.
+  and messages were read, on which days, and for roughly how long, plus the
+  reader's two reminder times.
 
 ### Do NOT declare these
 

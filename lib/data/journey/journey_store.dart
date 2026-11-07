@@ -26,6 +26,9 @@ abstract class JourneyStore {
 
   /// Folds a guest's reading into the account, once, at sign-in.
   Future<void> absorb(String uid, JourneyData guest);
+
+  /// Replaces the reader's reminder settings.
+  Future<void> savePrefs(String uid, ReminderPrefs prefs);
 }
 
 class FirestoreJourneyStore implements JourneyStore {
@@ -204,6 +207,16 @@ class FirestoreJourneyStore implements JourneyStore {
     unawaited(batch.commit());
   }
 
+  @override
+  Future<void> savePrefs(String uid, ReminderPrefs prefs) => _state(uid).set(
+        {
+          'v': 1,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'prefs': prefs.toJson(),
+        },
+        SetOptions(merge: true),
+      );
+
   Future<JourneyData> _existingState(String uid) async {
     try {
       final snap = await _state(uid).get();
@@ -245,6 +258,12 @@ class InMemoryJourneyStore implements JourneyStore {
   @override
   Future<void> record(String uid, JourneyEvent event) async {
     _data[uid] = dataOf(uid).apply(event);
+    _emit(uid);
+  }
+
+  @override
+  Future<void> savePrefs(String uid, ReminderPrefs prefs) async {
+    _data[uid] = dataOf(uid).withPrefs(prefs);
     _emit(uid);
   }
 

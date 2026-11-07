@@ -100,6 +100,61 @@ class JourneyDay {
       };
 }
 
+/// The reader's two reminders, kept with the account so a new phone starts
+/// with the same ones. Times are `HH:mm`, in whatever zone the phone is in.
+class ReminderPrefs {
+  const ReminderPrefs({
+    required this.morningOn,
+    required this.morning,
+    required this.eveningOn,
+    required this.evening,
+  });
+
+  /// Null unless every field is there: half a setting is not one to adopt.
+  static ReminderPrefs? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final morningOn = raw['morningOn'];
+    final morning = raw['morning'];
+    final eveningOn = raw['eveningOn'];
+    final evening = raw['evening'];
+    if (morningOn is! bool ||
+        morning is! String ||
+        eveningOn is! bool ||
+        evening is! String) {
+      return null;
+    }
+    return ReminderPrefs(
+      morningOn: morningOn,
+      morning: morning,
+      eveningOn: eveningOn,
+      evening: evening,
+    );
+  }
+
+  final bool morningOn;
+  final String morning;
+  final bool eveningOn;
+  final String evening;
+
+  Map<String, dynamic> toJson() => {
+        'morningOn': morningOn,
+        'morning': morning,
+        'eveningOn': eveningOn,
+        'evening': evening,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is ReminderPrefs &&
+      other.morningOn == morningOn &&
+      other.morning == morning &&
+      other.eveningOn == eveningOn &&
+      other.evening == evening;
+
+  @override
+  int get hashCode => Object.hash(morningOn, morning, eveningOn, evening);
+}
+
 /// One thing that just happened. The same event updates the screen at once
 /// and goes to the store, so the two cannot disagree about what it means.
 class JourneyEvent {
@@ -164,6 +219,7 @@ class JourneyData {
     this.days = const {},
     this.seen = const {},
     this.bestStreak = 0,
+    this.prefs,
   });
 
   /// Rebuilds a reader from `journey/state` and their `journeyYears` docs.
@@ -200,6 +256,7 @@ class JourneyData {
       bestStreak: records is Map
           ? (records['bestStreak'] as num?)?.toInt() ?? 0
           : 0,
+      prefs: ReminderPrefs.fromJson(state['prefs']),
     );
   }
 
@@ -220,6 +277,9 @@ class JourneyData {
   /// the current and previous year's days are loaded.
   final int bestStreak;
 
+  /// Null until this account has saved any.
+  final ReminderPrefs? prefs;
+
   bool get isEmpty => startedOn == null && hadith.isEmpty && days.isEmpty;
 
   int get completeCount => hadith.values.where((h) => h.isComplete).length;
@@ -239,6 +299,15 @@ class JourneyData {
         'seen': seen.toList(),
         'records': {'bestStreak': bestStreak},
       };
+
+  JourneyData withPrefs(ReminderPrefs value) => JourneyData(
+        startedOn: startedOn,
+        hadith: hadith,
+        days: days,
+        seen: seen,
+        bestStreak: bestStreak,
+        prefs: value,
+      );
 
   /// This reader after [event]. Safe to apply twice: a message or hadith
   /// already in the day is not added again.
@@ -283,6 +352,7 @@ class JourneyData {
       bestStreak: (event.bestStreak ?? 0) > bestStreak
           ? event.bestStreak!
           : bestStreak,
+      prefs: prefs,
     );
   }
 }

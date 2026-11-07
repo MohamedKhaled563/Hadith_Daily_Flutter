@@ -55,6 +55,31 @@ void main() {
   Future<JourneyData> readBack(String who) =>
       store.watch(who, 2026).first.timeout(const Duration(seconds: 15));
 
+  test('reminder settings go through the rules and leave the rest alone',
+      () async {
+    const prefs = ReminderPrefs(
+      morningOn: true,
+      morning: '07:15',
+      eveningOn: false,
+      evening: '21:30',
+    );
+    await store.record(
+      uid,
+      const JourneyEvent(
+        dayKey: '2026-11-06',
+        messageId: 'msg-1',
+        startedOn: '2026-11-06',
+      ),
+    );
+
+    await store.savePrefs(uid, prefs);
+
+    final data = await readBack(uid);
+    expect(data.prefs, prefs);
+    expect(data.startedOn, '2026-11-06');
+    expect(data.days['2026-11-06']!.messages, ['msg-1']);
+  });
+
   test('a reading goes through the rules and comes back the same', () async {
     await store.record(
       uid,

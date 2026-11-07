@@ -143,10 +143,14 @@ class _SplashScreenState extends State<SplashScreen>
   /// instead, and leaves today's message unopened.
   bool _launchedFromApproval = false;
 
+  /// A reminder about a hadith lands on that hadith.
+  int? _launchedHadith;
+
   Future<void> _resolveLaunch() async {
     try {
       final scheduler = NotificationScheduler.instance;
       _launchedFromApproval = await scheduler.wasLaunchedBySubmissionApproval();
+      _launchedHadith = await scheduler.launchedHadith();
       final launched = await scheduler.wasLaunchedByNotification();
       if (!launched) return;
       await DailyTipService().ensureOpenedToday();
@@ -186,6 +190,7 @@ class _SplashScreenState extends State<SplashScreen>
         child: HomeScreen(
           openMessageOnStart: _launchedFromReminder,
           openSubmissionsOnStart: _launchedFromApproval,
+          openHadithOnStart: _launchedHadith,
         ),
       ),
     );

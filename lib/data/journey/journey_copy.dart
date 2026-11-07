@@ -83,6 +83,32 @@ class JourneyCopy {
     };
   }
 
+  /// The morning reminder of a reader who has not read today.
+  static JourneyMessage todaysHadith(String title, int minutes) =>
+      JourneyMessage(
+        title: 'حديث اليوم',
+        body: '«$title»، ${arabicMinuteCount(minutes)} تقريباً.',
+      );
+
+  /// The evening reminder of a reader with a streak to keep.
+  static JourneyMessage eveningStreak(int days) => JourneyMessage(
+        title: 'لم نقرأ اليوم بعد',
+        body: '${arabicDayCount(days, consecutive: true)}. '
+            'حديث قصير قبل النوم؟',
+      );
+
+  /// The morning after a missed day that a grace day covered.
+  static const graceUsed = JourneyMessage(
+    title: 'لا بأس',
+    body: 'فاتك أمس، وسلسلتك كما هي. نكمل اليوم؟',
+  );
+
+  /// A reader who has been away, with no mention of what they missed.
+  static JourneyMessage placeKept(String title) => JourneyMessage(
+        title: 'مكانك محفوظ',
+        body: 'توقفنا عند «$title». نكمل حين يناسبك.',
+      );
+
   /// A streak line for the completion sheet.
   static String streakLine(int current, int best) {
     if (current <= 1) return 'بداية طيبة، ونلتقي غداً إن شاء الله.';

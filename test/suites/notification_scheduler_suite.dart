@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/data/services/notification_data_source.dart';
+import 'package:hadith_app/data/services/notification_planner.dart';
 import 'package:hadith_app/data/services/notification_schedule.dart';
 import 'package:hadith_app/data/services/notification_scheduler.dart';
 import 'package:mocktail/mocktail.dart';
@@ -124,7 +125,10 @@ void notificationSchedulerSuite() {
         )).thenAnswer((_) async {});
     when(() => plugin.pendingNotificationRequests())
         .thenAnswer((_) async => pending);
+    when(() => plugin.cancelAll()).thenAnswer((_) async {});
     when(() => androidPlugin.requestNotificationsPermission())
+        .thenAnswer((_) async => true);
+    when(() => androidPlugin.areNotificationsEnabled())
         .thenAnswer((_) async => true);
     when(() => androidPlugin.requestExactAlarmsPermission())
         .thenAnswer((_) async => true);
@@ -998,7 +1002,7 @@ void notificationSchedulerSuite() {
         'reports the notification permission back to the caller, so a denied '
         'grant cannot be presented as a healthy 28-notification schedule',
         () async {
-      when(() => androidPlugin.requestNotificationsPermission())
+      when(() => androidPlugin.areNotificationsEnabled())
           .thenAnswer((_) async => false);
       final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
 
@@ -1081,6 +1085,234 @@ void notificationSchedulerSuite() {
 
       expect(result.superseded, isFalse);
       expect(result.scheduledCount, 14);
+    });
+  });
+
+  group('reminders with words of their own', () {
+    const morningLine = PlannedReminder(
+      title: 'حديث اليوم',
+      body: '«لا تغضب»، دقيقتان تقريباً.',
+      payload: 'hadith:16',
+    );
+
+    Future<NotificationScheduleResult> layDay(
+      NotificationScheduler scheduler,
+    ) =>
+        scheduler.reschedule(
+          morningEnabled: true,
+          morningTime: const TimeOfDay(hour: 23, minute: 50),
+          eveningEnabled: true,
+          eveningTime: const TimeOfDay(hour: 23, minute: 55),
+        );
+
+    /// Every (id, title, body, details, payload) that reached the platform.
+    List<List<Object?>> captured() {
+      final calls = verify(() => plugin.zonedSchedule(
+            captureAny(),
+            captureAny(),
+            captureAny(),
+            any(),
+            captureAny(),
+            androidScheduleMode: any(named: 'androidScheduleMode'),
+            uiLocalNotificationDateInterpretation:
+                any(named: 'uiLocalNotificationDateInterpretation'),
+            payload: captureAny(named: 'payload'),
+          )).captured;
+      return [
+        for (var i = 0; i < calls.length; i += 5) calls.sublist(i, i + 5),
+      ];
+    }
+
+    test('a planned slot goes out with its words, payload and channel',
+        () async {
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool))
+        ..planner = (at, slot) =>
+            slot == ReminderSlot.morning ? morningLine : null;
+
+      await layDay(scheduler);
+
+      final today = captured().where((c) => c[0] == 0).single;
+      expect(today[1], 'حديث اليوم');
+      expect(today[2], '«لا تغضب»، دقيقتان تقريباً.');
+      expect(today[4], 'hadith:16');
+      final details = today[3] as NotificationDetails;
+      expect(details.android?.channelId, 'reading_journey');
+    });
+
+    test('a slot the planner leaves alone keeps the pool and its channel',
+        () async {
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool))
+        ..planner = (at, slot) =>
+            slot == ReminderSlot.morning ? morningLine : null;
+
+      await layDay(scheduler);
+
+      final tonight = captured().where((c) => c[0] == 1).single;
+      expect(tonight[1], 'تأمل المساء');
+      expect(['رسالة أولى', 'رسالة ثانية'], contains(tonight[2]));
+      final details = tonight[3] as NotificationDetails;
+      expect(details.android?.channelId, 'daily_reminders');
+    });
+
+    test('the planner is asked about the moment each slot fires', () async {
+      final asked = <(DateTime, ReminderSlot)>[];
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool))
+        ..planner = (at, slot) {
+          asked.add((at, slot));
+          return null;
+        };
+
+      await layDay(scheduler);
+
+      expect(asked, hasLength(28));
+      expect(asked.first, (DateTime(2026, 9, 21, 23, 50), ReminderSlot.morning));
+      expect(asked[1], (DateTime(2026, 9, 21, 23, 55), ReminderSlot.evening));
+    });
+
+    test('with no planner set the schedule is the pool, as before', () async {
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
+
+      await layDay(scheduler);
+
+      expect(
+        captured().every((c) => c[1] == 'رسالة الصباح' || c[1] == 'تأمل المساء'),
+        isTrue,
+      );
+    });
+
+    test('a planned reminder still goes out with an empty pool', () async {
+      final scheduler = schedulerWith(_FakeDataSource())
+        ..planner = (at, slot) => morningLine;
+
+      final result = await layDay(scheduler);
+
+      expect(result.scheduledCount, 28);
+    });
+  });
+
+  group('asking for permission', () {
+    Future<void> lay(NotificationScheduler scheduler) => scheduler.reschedule(
+          morningEnabled: true,
+          morningTime: const TimeOfDay(hour: 23, minute: 59),
+          eveningEnabled: true,
+          eveningTime: const TimeOfDay(hour: 20, minute: 0),
+        );
+
+    test('laying out the window never puts up the system dialog', () async {
+      await lay(schedulerWith(_FakeDataSource(messages: activePool)));
+
+      verifyNever(() => androidPlugin.requestNotificationsPermission());
+    });
+
+    test('askOnce asks a reader who has not answered, a single time',
+        () async {
+      when(() => androidPlugin.areNotificationsEnabled())
+          .thenAnswer((_) async => false);
+      final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
+
+      await scheduler.askOnce();
+      await scheduler.askOnce();
+
+      verify(() => androidPlugin.requestNotificationsPermission()).called(1);
+    });
+
+    test('askOnce stays quiet when the permission is already held', () async {
+      await schedulerWith(_FakeDataSource(messages: activePool)).askOnce();
+
+      verifyNever(() => androidPlugin.requestNotificationsPermission());
+    });
+
+    test('askOnce survives a platform that throws', () async {
+      when(() => androidPlugin.areNotificationsEnabled())
+          .thenThrow(Exception('OEM build'));
+
+      await expectLater(
+        schedulerWith(_FakeDataSource(messages: activePool)).askOnce(),
+        completes,
+      );
+    });
+  });
+
+  group('tapping a reminder', () {
+    void launchedWith(String? payload) {
+      when(() => plugin.getNotificationAppLaunchDetails()).thenAnswer(
+        (_) async => NotificationAppLaunchDetails(
+          payload != null,
+          notificationResponse: payload == null
+              ? null
+              : NotificationResponse(
+                  notificationResponseType:
+                      NotificationResponseType.selectedNotification,
+                  payload: payload,
+                ),
+        ),
+      );
+    }
+
+    test('a cold start from a hadith reminder opens that hadith', () async {
+      launchedWith('hadith:16');
+      final scheduler = schedulerWith(_FakeDataSource());
+
+      expect(await scheduler.launchedHadith(), 16);
+      expect(await scheduler.wasLaunchedByNotification(), isFalse,
+          reason: 'it must not also count as opening today\'s message');
+    });
+
+    test('a cold start from a pool reminder still opens today\'s message',
+        () async {
+      launchedWith('some-message-id');
+      final scheduler = schedulerWith(_FakeDataSource());
+
+      expect(await scheduler.launchedHadith(), isNull);
+      expect(await scheduler.wasLaunchedByNotification(), isTrue);
+    });
+
+    test('an ordinary launch opens nothing', () async {
+      launchedWith(null);
+
+      expect(await schedulerWith(_FakeDataSource()).launchedHadith(), isNull);
+    });
+
+    Future<void Function(NotificationResponse)> tapHandler() async {
+      await schedulerWith(_FakeDataSource(messages: activePool)).pendingCount();
+      final captured = verify(() => plugin.initialize(
+            any(),
+            onDidReceiveNotificationResponse:
+                captureAny(named: 'onDidReceiveNotificationResponse'),
+          )).captured;
+      return captured.last as void Function(NotificationResponse);
+    }
+
+    NotificationResponse tap(String payload) => NotificationResponse(
+          notificationResponseType:
+              NotificationResponseType.selectedNotification,
+          payload: payload,
+        );
+
+    test('a live tap on a hadith reminder names the hadith, every time',
+        () async {
+      final onTap = await tapHandler();
+      final numbers = <int?>[];
+      void listener() =>
+          numbers.add(NotificationScheduler.hadithTapped.value?.number);
+      NotificationScheduler.hadithTapped.addListener(listener);
+      addTearDown(
+        () => NotificationScheduler.hadithTapped.removeListener(listener),
+      );
+
+      onTap(tap('hadith:16'));
+      onTap(tap('hadith:16'));
+
+      expect(numbers, [16, 16]);
+    });
+
+    test('a live tap on a pool reminder opens today\'s message', () async {
+      final onTap = await tapHandler();
+      final before = NotificationScheduler.notificationTapped.value;
+
+      onTap(tap('some-message-id'));
+
+      expect(NotificationScheduler.notificationTapped.value, before + 1);
     });
   });
 
