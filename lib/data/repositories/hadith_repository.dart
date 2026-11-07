@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/crash_reporter.dart';
 import '../models/hadith.dart';
 import '../models/insight.dart';
 import '../models/intro_section.dart';
@@ -53,7 +54,9 @@ class HadithRepository {
           .map((e) => IntroSection.fromJson(e as Map<String, dynamic>))
           .where((s) => s.blocks.isNotEmpty)
           .toList();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      CrashReporter.recordError(error, stackTrace,
+          reason: 'nawawi_intro.json failed to load');
       assert(() {
         debugPrint(
           'HadithRepository: failed to load assets/data/nawawi_intro.json. '
@@ -77,6 +80,8 @@ class HadithRepository {
           .where((i) => i.arabic.isNotEmpty)
           .toList();
     } catch (error, stackTrace) {
+      CrashReporter.recordError(error, stackTrace,
+          reason: 'insights.json failed to load');
       assert(() {
         debugPrint(
           'HadithRepository: failed to load assets/data/insights.json. '
@@ -104,6 +109,8 @@ class HadithRepository {
       // last-resort fallback so a corrupt/missing asset degrades to 1 hadith
       // instead of crashing. This used to be `catch (_) {}`, which hid the
       // failure completely. Keep it loud so a real regression isn't missed.
+      CrashReporter.recordError(error, stackTrace,
+          reason: 'hadiths.json failed to load');
       assert(() {
         debugPrint(
           'HadithRepository: failed to load assets/data/hadiths.json — '

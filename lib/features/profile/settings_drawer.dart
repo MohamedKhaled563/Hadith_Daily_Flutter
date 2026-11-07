@@ -1,6 +1,7 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
 import '../../core/app_info.dart';
+import '../../core/crash_reporter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_state_controller.dart';
@@ -419,6 +420,8 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
       // be actively misleading. Surfacing the actual error is what makes
       // that other cause diagnosable instead of a dead end.
       debugPrint('NotificationScheduler.reschedule failed: ${result.error}');
+      CrashReporter.recordError(result.error, null,
+          reason: 'reminder reschedule failed from settings');
       _toast('تعذّر جدولة التذكيرات: ${result.error}');
     }
   }
@@ -494,6 +497,30 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                             isEnabled: _state.eveningReminderEnabled,
                             onToggle: (value) => _toggleReminder(false, value),
                             onTapTime: () => _pickTime(false),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // The privacy policy promises this switch, so it stays
+                      // visible to guests too — reports are not tied to an
+                      // account either way.
+                      _SectionHeader('الخصوصية'),
+                      _SettingsCard(
+                        children: [
+                          _SwitchTile(
+                            icon: Icons.bug_report_outlined,
+                            title: 'إرسال تقارير الأعطال',
+                            subtitle: 'تقارير تقنية تساعدنا على إصلاح المشكلات، '
+                                'لا تتضمن اسمك ولا بريدك ولا ما تكتبه',
+                            value: CrashReporter.enabled,
+                            // setEnabled flips the flag before its first
+                            // await, so the switch can move right away.
+                            onChanged: (value) {
+                              CrashReporter.setEnabled(value);
+                              setState(() {});
+                            },
                           ),
                         ],
                       ),
@@ -1277,6 +1304,68 @@ class _TimeTile extends StatelessWidget {
             value: isEnabled,
             activeThumbColor: AppColors.primaryGreen,
             onChanged: onToggle,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SwitchTile extends StatelessWidget {
+  const _SwitchTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: palette.goldText, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 11.5,
+                    height: AppLeading.body,
+                    color: palette.mutedText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Switch.adaptive(
+            value: value,
+            activeThumbColor: AppColors.primaryGreen,
+            onChanged: onChanged,
           ),
         ],
       ),

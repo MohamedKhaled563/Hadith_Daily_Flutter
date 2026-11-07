@@ -41,6 +41,23 @@ workflows:
           flutter build ipa --release \
             --build-number=$PROJECT_BUILD_NUMBER \
             --export-options-plist=/Users/builder/export_options.plist
+      - name: Upload debug symbols to Crashlytics
+        script: |
+          # Without the dSYMs, iOS crash reports in the Firebase console show
+          # memory addresses instead of function names. The upload tool ships
+          # inside the FirebaseCrashlytics package, under ios/Pods with
+          # CocoaPods or under DerivedData with Swift Package Manager.
+          # Never fails the build: a release with unreadable crash traces is
+          # still a release worth shipping.
+          UPLOAD=$(find "$CM_BUILD_DIR/ios/Pods" "$HOME/Library/Developer/Xcode/DerivedData" \
+            -name upload-symbols -type f 2>/dev/null | head -1)
+          DSYMS="$CM_BUILD_DIR/build/ios/archive/Runner.xcarchive/dSYMs"
+          if [ -z "$UPLOAD" ] || [ ! -d "$DSYMS" ]; then
+            echo "Crashlytics upload-symbols or dSYMs not found, skipping."
+            exit 0
+          fi
+          "$UPLOAD" -gsp "$CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist" \
+            -p ios "$DSYMS" || echo "dSYM upload failed, continuing."
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

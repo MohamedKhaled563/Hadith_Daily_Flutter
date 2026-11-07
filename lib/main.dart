@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'core/crash_reporter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_state_controller.dart';
 import 'data/repositories/hadith_repository.dart';
@@ -37,6 +38,9 @@ void main() async {
   // AppStateController.init() reads FirebaseAuth.currentUser, so it must run
   // after Firebase is ready.
   await Future.wait([
+    // First, so its error hooks are in place before the loads beside it can
+    // throw. Runs alongside them rather than ahead, so it adds no startup time.
+    CrashReporter.init(),
     HadithRepository().load(),
     AppStateController().init(),
     // The community feed filters on this synchronously while building, so
