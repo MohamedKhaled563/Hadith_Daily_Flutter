@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/app_links.dart';
@@ -15,6 +17,8 @@ import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../core/utils/app_motion.dart';
+import '../../data/journey/journey_repository.dart';
+import '../../data/journey/reading_tracker.dart';
 import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
 import 'hadith_explanation_screen.dart';
@@ -40,14 +44,29 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
 
   bool get _isBookmarked => _repo.isHadithFavorite(hadith.number);
 
+  /// Marks the hadith started once the page has stayed open long enough for
+  /// its text and summary. The leaf turns green; gold takes the full
+  /// explanation, on [HadithExplanationScreen].
+  Timer? _textTimer;
+
   @override
   void initState() {
     super.initState();
     _repo.favoritesListenable.addListener(_onFavoritesChanged);
+    JourneyRepository().listenable.addListener(_onFavoritesChanged);
+    _textTimer = Timer(
+      ReadingRule.neededForSections([
+        ReadingRule.wordCount('${hadith.isnad} ${hadith.text}'),
+        ReadingRule.wordCount(hadith.shortExplanation),
+      ]),
+      () => JourneyRepository().recordTextRead(hadith.number),
+    );
   }
 
   @override
   void dispose() {
+    _textTimer?.cancel();
+    JourneyRepository().listenable.removeListener(_onFavoritesChanged);
     _repo.favoritesListenable.removeListener(_onFavoritesChanged);
     super.dispose();
   }
@@ -578,6 +597,9 @@ class _ExplanationTeaserCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final label = JourneyRepository().data.progressOf(hadith.number).isComplete
+        ? 'قراءة الشرح مرة أخرى'
+        : 'قراءة الشرح كاملاً';
 
     return ParchmentCard(
       child: Column(
@@ -613,12 +635,12 @@ class _ExplanationTeaserCard extends StatelessWidget {
                 child: HadithExplanationScreen(hadith: hadith),
               ),
             ),
-            semanticLabel: 'قراءة الشرح كاملاً',
+            semanticLabel: label,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'قراءة الشرح كاملاً',
+                  label,
                   style: TextStyle(
                     fontFamily: kSans,
                     fontSize: 13,

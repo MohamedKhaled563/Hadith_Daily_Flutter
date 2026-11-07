@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -16,6 +18,7 @@ import '../../core/widgets/like_counter.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
+import '../../data/journey/journey_repository.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
@@ -46,6 +49,7 @@ class DailyMessageCard extends StatefulWidget {
     this.heroTag,
     this.footer,
     this.fillHeight = false,
+    this.countsAsRead = true,
   });
 
   final DailyMessageEntry entry;
@@ -70,6 +74,13 @@ class DailyMessageCard extends StatefulWidget {
   /// Shown under the controls. The home tab puts the day's next step here.
   final Widget? footer;
 
+  /// Whether staying with this message counts as the day's first step. False
+  /// for a saved message reopened from favourites, which is not today's.
+  final bool countsAsRead;
+
+  /// How long a message must stay open to count as read.
+  static const readDelay = Duration(seconds: 4);
+
   @override
   State<DailyMessageCard> createState() => _DailyMessageCardState();
 }
@@ -85,14 +96,28 @@ class _DailyMessageCardState extends State<DailyMessageCard> {
   // after the card is built (right after signing in).
   bool get _isBookmarked => _repo.isInsightFavorite(_insight);
 
+  Timer? _readTimer;
+
+  void _markRead() {
+    final insight = _insight;
+    JourneyRepository().recordMessageRead(
+      insight.id.isNotEmpty ? insight.id : 'hadith-${insight.hadithNumber}',
+      hadithNumber: insight.hadithNumber,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _repo.favoritesListenable.addListener(_onFavoritesChanged);
+    if (widget.countsAsRead) {
+      _readTimer = Timer(DailyMessageCard.readDelay, _markRead);
+    }
   }
 
   @override
   void dispose() {
+    _readTimer?.cancel();
     _repo.favoritesListenable.removeListener(_onFavoritesChanged);
     super.dispose();
   }

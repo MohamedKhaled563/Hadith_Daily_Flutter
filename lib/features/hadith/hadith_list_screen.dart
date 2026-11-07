@@ -13,6 +13,7 @@ import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
+import '../../data/journey/journey_repository.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/intro_section.dart';
 import '../../data/repositories/hadith_repository.dart';
@@ -315,6 +316,43 @@ class _HadithListScreenState extends State<HadithListScreen> {
   }
 }
 
+/// This hadith's place on the reader's tree: nothing until it is started,
+/// green once its text is read, gold once the full explanation is.
+class _LeafMark extends StatelessWidget {
+  const _LeafMark({required this.number});
+
+  final int number;
+
+  @override
+  Widget build(BuildContext context) {
+    final journey = JourneyRepository();
+
+    return AnimatedBuilder(
+      animation: journey.listenable,
+      builder: (context, _) {
+        final palette = context.palette;
+        final progress = journey.data.progressOf(number);
+        if (progress.textOn == null && !progress.isComplete) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsetsDirectional.only(end: 4),
+          child: Semantics(
+            label: progress.isComplete ? 'مكتمل' : 'بدأت قراءته',
+            child: Icon(
+              Icons.eco_rounded,
+              size: 18,
+              color: progress.isComplete
+                  ? palette.ornamentGold
+                  : palette.success,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _HadithListCard extends StatelessWidget {
   const _HadithListCard({
     required this.hadith,
@@ -389,6 +427,7 @@ class _HadithListCard extends StatelessWidget {
                   ),
                 ),
               ),
+              _LeafMark(number: hadith.number),
               // Now an actual control: previously a bare Icon, so there was no
               // way to unfavourite from the list at all.
               TapTarget(

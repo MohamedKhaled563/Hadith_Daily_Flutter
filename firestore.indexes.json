@@ -71,5 +71,21 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "journey",
+      "fieldPath": "hadith",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "journey",
+      "fieldPath": "memo",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "journeyYears",
+      "fieldPath": "days",
+      "indexes": []
+    }
+  ]
 }
