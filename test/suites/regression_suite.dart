@@ -466,6 +466,21 @@ void regressionSuite({
       expect(profile, greaterThan(years));
     });
 
+    test('deleting an account removes the weekly board entry too', () {
+      final source = read('lib/data/services/account_deletion_service.dart');
+      final years = source.indexOf("collection('journeyYears')");
+      final scores = source.indexOf("collection('scores').doc(uid).delete()");
+      final profile = source.indexOf('await _deleteProfileAndUsername(user)');
+
+      expect(scores, greaterThan(years));
+      expect(profile, greaterThan(scores));
+    });
+
+    test('the policy says the board is optional and what it publishes', () {
+      expect(read('web/privacy-policy.html'), contains('لوحة الأسبوع (اختيارية)'));
+      expect(read('web/delete-account.html'), contains('نقاطك في لوحة الأسبوع'));
+    });
+
     test('the rules keep every older path and still end denying the rest',
         () {
       final rules = read('firestore.rules');
@@ -477,6 +492,8 @@ void regressionSuite({
         'match /communityMessages/{messageId}',
         'match /settings/{settingId}',
         'match /notificationMessages/{messageId}',
+        'match /scores/{uid}',
+        'function validWeeklyBoard()',
       ]) {
         expect(rules, contains(path));
       }

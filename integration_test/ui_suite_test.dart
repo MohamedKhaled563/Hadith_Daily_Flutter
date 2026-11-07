@@ -8,10 +8,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/core/share/share_service.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/core/widgets/bottom_navigation.dart';
+import 'package:hadith_app/data/journey/board_service.dart';
+import 'package:hadith_app/data/journey/journey_copy.dart';
 import 'package:hadith_app/data/journey/journey_engine.dart';
 import 'package:hadith_app/data/journey/journey_points.dart';
 import 'package:hadith_app/data/journey/journey_repository.dart';
 import 'package:hadith_app/data/journey/journey_store.dart';
+import 'package:hadith_app/data/journey/weekly_board.dart';
 import 'package:hadith_app/data/journey/reading_tracker.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/data/services/favorites_store.dart';
@@ -25,6 +28,7 @@ import 'package:hadith_app/features/journey/journey_posters.dart';
 import 'package:hadith_app/features/journey/journey_ring.dart';
 import 'package:hadith_app/features/journey/journey_screen.dart';
 import 'package:hadith_app/features/journey/journey_tree.dart';
+import 'package:hadith_app/features/journey/weekly_board_screen.dart';
 import 'package:hadith_app/firebase_options.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -351,11 +355,9 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).last,
       );
-      // Clear of the floating tab bar, as a reader would scroll it.
-      await tester.drag(
-        find.byType(Scrollable).last,
-        const Offset(0, -260),
-      );
+      // To the top of the view, clear of the floating tab bar, however long
+      // the page below it grows.
+      await tester.ensureVisible(find.text('اكتب رسالتك'));
       await wait(tester, 300);
       await tester.tap(find.text('اكتب رسالتك'));
       await wait(tester, 1000);
@@ -667,6 +669,105 @@ void main() {
       ];
       expect(shown, hasLength(1));
       expect(shown.single, isNot(JourneyRecord.streak));
+    });
+  });
+
+  group('the weekly board', () {
+    final board = WeeklyBoardService();
+    late InMemoryBoardStore boardStore;
+
+    setUp(() async {
+      boardStore = InMemoryBoardStore();
+      await board.debugReset(
+        store: boardStore,
+        displayName: () => 'سارة',
+        settle: const Duration(milliseconds: 50),
+      );
+      board.start();
+    });
+
+    tearDown(() => board.debugReset());
+
+    Future<void> openBoard(WidgetTester tester) async {
+      await tester.pumpWidget(
+        app(const WeeklyBoardScreen(displayName: 'سارة')),
+      );
+      await wait(tester, 900);
+    }
+
+    testWidgets('the journey leads to it, and says when none is published',
+        (tester) async {
+      await openJourney(tester);
+      await tester.scrollUntilVisible(
+        find.text('لوحة الأسبوع'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await wait(tester, 300);
+      await tester.tap(find.text('لوحة الأسبوع'));
+      await wait(tester, 1200);
+
+      expect(find.byType(WeeklyBoardScreen), findsOneWidget);
+      expect(find.text(JourneyCopy.boardNotYet), findsOneWidget);
+      expect(find.text(JourneyCopy.boardSignInReason), findsOneWidget,
+          reason: 'a guest is asked to sign in, not shown a switch');
+      expect(find.byType(Switch), findsNothing);
+    });
+
+    testWidgets('a published board shows both lists', (tester) async {
+      boardStore.board = WeeklyBoard(
+        week: boardWeekOf('2026-11-07'),
+        points: const [
+          BoardRow(name: 'فاعل خير', value: 345),
+          BoardRow(name: 'نور', value: 300),
+        ],
+        sharing: const [BoardRow(name: 'نور', value: 2)],
+      );
+      await openBoard(tester);
+
+      expect(find.text('أسبوع ٧ – ١٣ نوفمبر'), findsOneWidget);
+      expect(find.text('٣٤٥'), findsOneWidget);
+      expect(find.text('فاعل خير'), findsOneWidget);
+
+      await tester.tap(find.text('المشاركة'));
+      await wait(tester, 400);
+      expect(find.text('رسالتان'), findsOneWidget);
+      expect(find.text('٣٤٥'), findsNothing);
+    });
+
+    testWidgets('the reader joins, picks a name, and leaves', (tester) async {
+      journey.setUser('reader-a');
+      await wait(tester, 300);
+      await openBoard(tester);
+
+      expect(find.text(JourneyCopy.boardOff), findsOneWidget);
+      expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
+
+      await tester.tap(find.byType(Switch));
+      await wait(tester, 400);
+      expect(board.membership.value?.name, kAnonymousName,
+          reason: 'on, but anonymous until the reader picks their name');
+      expect(find.text(JourneyCopy.boardOn), findsOneWidget);
+      expect(boardStore.scores['reader-a']?.name, kAnonymousName);
+
+      await tester.tap(find.text('باسمي: سارة'));
+      await wait(tester, 400);
+      expect(boardStore.scores['reader-a']?.name, 'سارة');
+
+      await tester.tap(find.byType(Switch));
+      await wait(tester, 400);
+      expect(boardStore.scores, isEmpty);
+      expect(find.text(JourneyCopy.boardOff), findsOneWidget);
+    });
+
+    testWidgets('the reader sees their own points, never a rank',
+        (tester) async {
+      finished([1, 2]);
+      await openBoard(tester);
+
+      expect(find.text('نقاطك هذا الأسبوع'), findsOneWidget);
+      expect(find.text('٢٠'), findsOneWidget);
+      expect(find.textContaining('مركز'), findsNothing);
     });
   });
 

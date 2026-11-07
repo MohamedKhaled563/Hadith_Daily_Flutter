@@ -237,11 +237,24 @@ service cloud.firestore {
                == (resource == null ? 0 : resource.data.get('version', 0)) + 1;
     }
 
+    // settings/weeklyBoard — the board a moderator publishes on Friday
+    // (weekly_board_page.dart). World-readable like every settings doc, so
+    // it holds names and numbers only, ten a list at most, and no uid.
+    function validWeeklyBoard() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['week', 'points', 'sharing', 'publishedAt'])
+          && d.week is int
+          && d.points is list && d.points.size() <= 10
+          && d.sharing is list && d.sharing.size() <= 10
+          && d.publishedAt == request.time;
+    }
+
     match /settings/{settingId} {
       allow read: if true;
       allow create, update: if (isModerator()
                   && (settingId != 'dailyMessageConfig'
-                      || validDailyMessageConfig()))
+                      || validDailyMessageConfig())
+                  && (settingId != 'weeklyBoard' || validWeeklyBoard()))
                   || (settingId == 'dailyPool'
                       && request.auth != null
                       && validPoolBump());
@@ -371,6 +384,43 @@ service cloud.firestore {
                   && request.resource.data.keys().hasOnly(['days'])
                   && request.resource.data.days.size() <= 366;
       }
+    }
+
+    // Phase 4 of the reading journey: the weekly board (WeeklyBoardService,
+    // weekly_board.dart). A doc here means the reader chose to be on the
+    // board; leaving deletes it. The phone sends its own week's points,
+    // which it works out from its day log, so the rules can only bound
+    // them: 300 is what an honest, active reader reaches, so claiming more
+    // is refused and claiming 300 gains no lead. Approved messages are not
+    // stored here at all: a moderator counts them from communityMessages
+    // when publishing, so no reader can award them to themselves.
+    //
+    // Weeks start on Saturday. The phone's week starts at 03:00 local time
+    // and the server's at 00:00 UTC, so the week a phone sends may be one
+    // either side of the server's.
+    function boardWeekNow() {
+      return math.floor((request.time.toMillis() - 172800000) / 604800000);
+    }
+    function validOwnScore() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['week', 'device', 'name', 'updatedAt'])
+          && d.keys().hasAll(['week', 'device', 'name', 'updatedAt'])
+          && d.week is int
+          && d.week >= boardWeekNow() - 1 && d.week <= boardWeekNow() + 1
+          && d.device is int && d.device >= 0 && d.device <= 300
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 40
+          && d.updatedAt == request.time;
+    }
+    match /scores/{uid} {
+      allow read: if request.auth != null
+                  && (request.auth.uid == uid || isModerator());
+      allow create, update: if request.auth != null
+                  && request.auth.uid == uid
+                  && validOwnScore();
+      // The reader leaving, deleting their account, or a moderator
+      // removing an entry that should not be there.
+      allow delete: if request.auth != null
+                  && (request.auth.uid == uid || isModerator());
     }
 
     // Phase 13: normalized-display-name uniqueness registry. Doc id is the
