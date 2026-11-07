@@ -28,6 +28,15 @@ class PointRules {
   static const share = 2;
   static const sharesPerDay = 1;
 
+  /// A hadith newly memorized, on the reader's own word.
+  static const memorized = 15;
+  static const memorizedPerDay = 1;
+
+  /// A review that was due, whatever the answer: saying «نسيت بعضه» must
+  /// never cost the reader anything.
+  static const review = 3;
+  static const reviewsPerDay = 5;
+
   /// A message a moderator approved. The only points the phone cannot give
   /// itself, so the only ones allowed past [deviceWeekCap].
   static const approved = 15;
@@ -36,6 +45,22 @@ class PointRules {
   /// The most a week's reading on the phone can be worth. An honest, active
   /// reader reaches it, so a modified app gains no lead by claiming it.
   static const deviceWeekCap = 300;
+
+  /// The most a week's memorizing and reviewing can be worth: a new hadith
+  /// and five reviews every day.
+  static const memoWeekCap =
+      7 * (memorized * memorizedPerDay + review * reviewsPerDay);
+}
+
+/// The memorization points of the week starting [weekStart], for the
+/// board's memorization list.
+int weekMemoPoints(JourneyData data, String weekStart) {
+  var points = 0;
+  for (var i = 0; i < 7; i++) {
+    final day = data.days[dayKeyPlus(weekStart, i)];
+    if (day != null) points += dayMemoPoints(day);
+  }
+  return math.min(points, PointRules.memoWeekCap);
 }
 
 /// Seconds as the minutes the reader is shown, rounded the way the week bar
@@ -49,7 +74,17 @@ int dayPoints(JourneyDay day) =>
     math.min(day.community.length, PointRules.communityPerDay) *
         PointRules.community +
     math.min(day.hadiths.length, PointRules.hadithsPerDay) * PointRules.hadith +
-    math.min(day.shared, PointRules.sharesPerDay) * PointRules.share;
+    math.min(day.shared, PointRules.sharesPerDay) * PointRules.share +
+    math.min(day.memorized.length, PointRules.memorizedPerDay) *
+        PointRules.memorized +
+    math.min(day.reviewed.length, PointRules.reviewsPerDay) * PointRules.review;
+
+/// Points from memorizing and reviewing alone, for the board's memorization
+/// list. Part of [dayPoints], not added to it.
+int dayMemoPoints(JourneyDay day) =>
+    math.min(day.memorized.length, PointRules.memorizedPerDay) *
+        PointRules.memorized +
+    math.min(day.reviewed.length, PointRules.reviewsPerDay) * PointRules.review;
 
 /// One week's points.
 class WeekPoints {

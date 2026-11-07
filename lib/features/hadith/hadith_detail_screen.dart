@@ -19,7 +19,9 @@ import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../core/utils/app_motion.dart';
+import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_repository.dart';
+import '../../data/journey/memorization.dart';
 import '../../data/journey/reading_tracker.dart';
 import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
@@ -27,6 +29,7 @@ import '../../data/services/journey_reminders.dart';
 import '../journey/completion_sheet.dart';
 import '../journey/journey_links.dart';
 import '../journey/journey_share_sheet.dart';
+import '../memorize/memorize_screen.dart';
 import 'hadith_explanation_screen.dart';
 
 /// The hadith, its short explanation, and the reading the journey counts.
@@ -195,6 +198,7 @@ class _HadithDetailScreenState extends State<HadithDetailScreen>
       hadith: hadith,
       outcome: outcome,
       hasNext: next != null,
+      canMemorize: !journey.data.memoOf(hadith.number).isMemorized,
     );
     if (!mounted) return;
 
@@ -211,6 +215,10 @@ class _HadithDetailScreenState extends State<HadithDetailScreen>
         ));
       case CompletionChoice.share:
         await shareHadith(context, hadith);
+      case CompletionChoice.memorize:
+        unawaited(navigator.push(
+          appPageRoute(child: MemorizeScreen(hadith: hadith)),
+        ));
       case CompletionChoice.next:
       case null:
         break;
@@ -555,6 +563,13 @@ class _HadithDetailScreenState extends State<HadithDetailScreen>
                         MediaQuery.accessibleNavigationOf(context),
                     onConfirm: _confirm,
                   ),
+                  if (JourneyRepository()
+                      .data
+                      .progressOf(hadith.number)
+                      .isComplete) ...[
+                    const SizedBox(height: 14),
+                    _MemoCard(hadith: hadith),
+                  ],
                   if (hadith.explanation.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     Entrance.staggered(
@@ -986,4 +1001,92 @@ class _ThreadPainter extends CustomPainter {
       oldDelegate.track != track ||
       oldDelegate.fill != fill ||
       oldDelegate.textDirection != textDirection;
+}
+
+/// Memorizing this hadith, once it has been read: start, carry on with the
+/// next part, review when due, or recite it for practice.
+class _MemoCard extends StatelessWidget {
+  const _MemoCard({required this.hadith});
+
+  final Hadith hadith;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final journey = JourneyRepository();
+    final memo = journey.data.memoOf(hadith.number);
+    final parts = memoParts(hadith.text).length;
+    final today = journey.today;
+
+    final (line, action, opens) = switch (memo) {
+      MemoProgress(isKept: true) => (
+          'ثبت في حفظك، ولا مراجعة مجدولة له.',
+          'سمّعه',
+          false,
+        ),
+      MemoProgress(isMemorized: true) when memo.isDue(today) => (
+          'مراجعته اليوم.',
+          'راجعه الآن',
+          false,
+        ),
+      MemoProgress(isMemorized: true) => (
+          'في حفظك. المراجعة القادمة ${_when(memo.due!, today)}.',
+          'سمّعه',
+          false,
+        ),
+      MemoProgress(isLearning: true) => (
+          'حفظت ${toArabicDigits(memo.parts)} من ${toArabicDigits(parts)} أجزاء.',
+          'أكمل حفظه',
+          true,
+        ),
+      _ => (
+          parts == 1
+              ? 'يُحفظ في جلسة واحدة.'
+              : parts == 2
+                  ? 'يُحفظ على جلستين.'
+                  : 'يُحفظ على ${toArabicDigits(parts)} جلسات.',
+          'احفظ هذا الحديث',
+          true,
+        ),
+    };
+    final primary = opens || memo.isDue(today);
+
+    return ParchmentCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _CardHeading(
+              icon: Icons.psychology_alt_rounded, title: 'الحفظ'),
+          const SizedBox(height: 10),
+          Text(
+            line,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 14,
+              height: AppLeading.body,
+              color: palette.bodyText,
+            ),
+          ),
+          const SizedBox(height: 12),
+          AppButton(
+            text: action,
+            isSecondary: !primary,
+            onPressed: () => Navigator.push(
+              context,
+              appPageRoute(
+                child: opens
+                    ? MemorizeScreen(hadith: hadith)
+                    : ReviewScreen(hadith: hadith),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _when(String due, String today) {
+    final days = DateTime.parse(due).difference(DateTime.parse(today)).inDays;
+    return days <= 1 ? 'غداً' : 'بعد ${arabicDayCount(days)}';
+  }
 }

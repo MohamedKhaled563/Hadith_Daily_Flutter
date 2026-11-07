@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import 'journey_engine.dart';
+import 'journey_points.dart';
 import 'journey_repository.dart';
 import 'weekly_board.dart';
 
@@ -171,6 +173,7 @@ class WeeklyBoardService {
         uid: uid,
         week: boardWeekOfDay(_journey.today),
         device: _journey.thisWeekPoints.device,
+        memo: weekMemoPoints(_journey.data, weekStartKey(_journey.today)),
         name: boardName(
           useName: useName,
           displayName: _displayName() ?? fallbackName,

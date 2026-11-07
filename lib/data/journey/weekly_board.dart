@@ -62,6 +62,7 @@ class ScoreEntry {
     required this.week,
     required this.device,
     required this.name,
+    this.memo = 0,
   });
 
   factory ScoreEntry.fromJson(String uid, Map<String, dynamic> json) =>
@@ -70,6 +71,7 @@ class ScoreEntry {
         week: (json['week'] as num?)?.toInt() ?? -1,
         device: (json['device'] as num?)?.toInt() ?? 0,
         name: json['name'] as String? ?? kAnonymousName,
+        memo: (json['memo'] as num?)?.toInt() ?? 0,
       );
 
   final String uid;
@@ -77,11 +79,20 @@ class ScoreEntry {
   final int device;
   final String name;
 
+  /// This week's points from memorizing and reviewing, already in [device]
+  /// and sent apart only to rank the memorization list.
+  final int memo;
+
   bool get anonymous => name == kAnonymousName;
 
-  /// Without `updatedAt`, which the store stamps with the server time.
-  Map<String, dynamic> toJson() =>
-      {'week': week, 'device': device, 'name': name};
+  /// Without `updatedAt`, which the store stamps with the server time. No
+  /// `memo` until there is some, so an entry stays the shape it always was.
+  Map<String, dynamic> toJson() => {
+        'week': week,
+        'device': device,
+        'name': name,
+        if (memo > 0) 'memo': memo,
+      };
 
   @override
   bool operator ==(Object other) =>
@@ -89,10 +100,11 @@ class ScoreEntry {
       other.uid == uid &&
       other.week == week &&
       other.device == device &&
-      other.name == name;
+      other.name == name &&
+      other.memo == memo;
 
   @override
-  int get hashCode => Object.hash(uid, week, device, name);
+  int get hashCode => Object.hash(uid, week, device, name, memo);
 }
 
 /// One reader as the moderator sees them before publishing.
@@ -102,6 +114,7 @@ class BoardCandidate {
     required this.name,
     required this.device,
     required this.approved,
+    this.memo = 0,
   });
 
   final String uid;
@@ -112,6 +125,9 @@ class BoardCandidate {
 
   /// Messages approved this week, uncapped (the sharing list counts them all).
   final int approved;
+
+  /// Memorization points this week, for the memorization list's order.
+  final int memo;
 
   int get score =>
       device +
@@ -148,6 +164,7 @@ List<BoardCandidate> rankCandidates({
           name: entry.name,
           device: entry.device.clamp(0, PointRules.deviceWeekCap),
           approved: approvals[entry.uid] ?? 0,
+          memo: entry.memo.clamp(0, PointRules.memoWeekCap),
         ),
   ];
   candidates.sort((a, b) {
@@ -188,6 +205,7 @@ class WeeklyBoard {
     required this.week,
     required this.points,
     required this.sharing,
+    this.memo = const [],
     this.publishedAt,
   });
 
@@ -201,6 +219,7 @@ class WeeklyBoard {
       week: (json['week'] as num?)?.toInt() ?? -1,
       points: rows(json['points']),
       sharing: rows(json['sharing']),
+      memo: rows(json['memo']),
       // The store turns Firestore's Timestamp into a DateTime first.
       publishedAt: published is DateTime ? published : null,
     );
@@ -209,6 +228,10 @@ class WeeklyBoard {
   final int week;
   final List<BoardRow> points;
   final List<BoardRow> sharing;
+
+  /// Names in order only: how much someone memorized is between them and
+  /// their Lord, so no number is published for this list.
+  final List<BoardRow> memo;
   final DateTime? publishedAt;
 
   String get weekStart => boardWeekStart(week);
@@ -218,6 +241,7 @@ class WeeklyBoard {
         'week': week,
         'points': [for (final row in points) row.toJson()],
         'sharing': [for (final row in sharing) row.toJson()],
+        'memo': [for (final row in memo) row.toJson()],
       };
 }
 
@@ -239,8 +263,18 @@ WeeklyBoard publishBoard({
       final byCount = b.approved.compareTo(a.approved);
       return byCount != 0 ? byCount : a.uid.compareTo(b.uid);
     });
+  final memorizing = [
+    for (final c in shown)
+      if (c.memo > 0) c,
+  ]..sort((a, b) {
+      final byMemo = b.memo.compareTo(a.memo);
+      return byMemo != 0 ? byMemo : a.uid.compareTo(b.uid);
+    });
   return WeeklyBoard(
     week: week,
+    memo: [
+      for (final c in memorizing.take(size)) BoardRow(name: c.name, value: 0),
+    ],
     points: [
       for (final c in shown.where((c) => c.score > 0).take(size))
         BoardRow(name: c.name, value: c.score),

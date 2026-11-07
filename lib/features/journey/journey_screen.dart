@@ -6,6 +6,7 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
+import '../../core/widgets/app_button.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/circle_icon_button.dart';
@@ -14,8 +15,10 @@ import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_engine.dart';
+import '../../data/journey/journey_models.dart';
 import '../../data/journey/journey_points.dart';
 import '../../data/journey/journey_repository.dart';
+import '../../data/journey/memorization.dart';
 import '../../data/journey/reading_tracker.dart';
 import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
@@ -24,6 +27,7 @@ import '../hadith/hadith_detail_screen.dart';
 import 'journey_links.dart';
 import 'journey_share_sheet.dart';
 import 'journey_tree.dart';
+import '../memorize/memorize_screen.dart';
 import 'weekly_board_screen.dart';
 
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold
@@ -99,14 +103,14 @@ class _JourneyScreenState extends State<JourneyScreen> {
               // The tree is only worth sending once it has a leaf on it.
               AnimatedBuilder(
                 animation: JourneyRepository().listenable,
-                builder: (context, _) => _section == 0 &&
-                        JourneyRepository().data.completeCount > 0
-                    ? CircleIconButton(
-                        icon: Icons.ios_share_rounded,
-                        semanticLabel: 'مشاركة شجرتي',
-                        onTap: () => shareTree(context),
-                      )
-                    : const SizedBox(width: CircleIconButton.slot),
+                builder: (context, _) =>
+                    _section == 0 && JourneyRepository().data.completeCount > 0
+                        ? CircleIconButton(
+                            icon: Icons.ios_share_rounded,
+                            semanticLabel: 'مشاركة شجرتي',
+                            onTap: () => shareTree(context),
+                          )
+                        : const SizedBox(width: CircleIconButton.slot),
               ),
             ],
           ),
@@ -180,9 +184,8 @@ class _SectionTabs extends StatelessWidget {
                       fontSize: 14,
                       height: AppLeading.chrome,
                       fontWeight: FontWeight.w700,
-                      color: selected == i
-                          ? palette.goldText
-                          : palette.mutedText,
+                      color:
+                          selected == i ? palette.goldText : palette.mutedText,
                     ),
                   ),
                 ),
@@ -268,6 +271,10 @@ class _JourneyBody extends StatelessWidget {
               onOpenMessage: onOpenMessage,
               onOpenHadith: (number) => _openHadith(context, number),
             ),
+            const SizedBox(height: 14),
+            // Given the data, not const: a const card with nothing passed in
+            // is never rebuilt when the journey changes.
+            _MemoJourneyCard(data: data, today: journey.today),
             const SizedBox(height: 14),
             _YouVersusYou(
               streak: streak,
@@ -474,9 +481,8 @@ class _YouVersusYou extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final widest = weeks.thisWeek > weeks.lastWeek
-        ? weeks.thisWeek
-        : weeks.lastWeek;
+    final widest =
+        weeks.thisWeek > weeks.lastWeek ? weeks.thisWeek : weeks.lastWeek;
 
     return ParchmentCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
@@ -597,9 +603,7 @@ class _RecordsCard extends StatelessWidget {
   static String _value(JourneyRecord record, int value) {
     if (value == 0) return '—';
     return switch (record) {
-      JourneyRecord.streak ||
-      JourneyRecord.weekDays =>
-        arabicDayCount(value),
+      JourneyRecord.streak || JourneyRecord.weekDays => arabicDayCount(value),
       JourneyRecord.weekMinutes ||
       JourneyRecord.dayMinutes =>
         arabicMinuteCount(value),
@@ -832,6 +836,143 @@ class _CardTitle extends StatelessWidget {
         height: AppLeading.chrome,
         fontWeight: FontWeight.w700,
         color: context.palette.goldText,
+      ),
+    );
+  }
+}
+
+/// Memorizing, from the journey: how many are held, what is due today, and
+/// what is half learned. With nothing started, the shortest hadith already
+/// read, as the easiest place to begin.
+class _MemoJourneyCard extends StatelessWidget {
+  const _MemoJourneyCard({required this.data, required this.today});
+
+  final JourneyData data;
+  final String today;
+
+  void _open(BuildContext context, Widget screen) {
+    AppHaptics.tap();
+    Navigator.push(context, appPageRoute(child: screen));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final hadiths = HadithRepository();
+    final due = dueReviews(data.memo, today);
+    final learning = [
+      for (final entry in data.memo.entries)
+        if (entry.value.isLearning) entry.key,
+    ]..sort();
+    final body = TextStyle(
+      fontFamily: kSans,
+      fontSize: 14,
+      height: AppLeading.body,
+      color: palette.bodyText,
+    );
+
+    Widget row(String text, String action, VoidCallback onTap,
+            {bool primary = false}) =>
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Row(
+            children: [
+              Expanded(child: Text(text, style: body)),
+              const SizedBox(width: 8),
+              AppButton(
+                text: action,
+                expand: false,
+                isSecondary: !primary,
+                onPressed: onTap,
+              ),
+            ],
+          ),
+        );
+
+    final rows = <Widget>[
+      for (final number in due.take(3))
+        if (hadiths.getByNumber(number) case final hadith?)
+          row(
+            'مراجعة «${hadith.title}»',
+            'راجع',
+            () => _open(context, ReviewScreen(hadith: hadith)),
+            primary: true,
+          ),
+      for (final number in learning.take(2))
+        if (hadiths.getByNumber(number) case final hadith?)
+          row(
+            'أكمل حفظ «${hadith.title}»',
+            'أكمل',
+            () => _open(context, MemorizeScreen(hadith: hadith)),
+          ),
+    ];
+
+    if (rows.isEmpty) {
+      final upcoming = [
+        for (final entry in data.memo.entries)
+          if (entry.value.due != null) entry,
+      ]..sort((a, b) => a.value.due!.compareTo(b.value.due!));
+      if (upcoming.isNotEmpty) {
+        final next = upcoming.first;
+        final title = hadiths.getByNumber(next.key)?.title ?? '';
+        final days = DateTime.parse(next.value.due!)
+            .difference(DateTime.parse(today))
+            .inDays;
+        rows.add(Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            'لا مراجعة اليوم. التالية «$title» '
+            '${days <= 1 ? 'غداً' : 'بعد ${arabicDayCount(days)}'}.',
+            style: body,
+          ),
+        ));
+      } else {
+        final read = [
+          for (final number in data.hadith.keys)
+            if (data.progressOf(number).isComplete &&
+                !data.memoOf(number).isMemorized)
+              if (hadiths.getByNumber(number) case final hadith?) hadith,
+        ]..sort((a, b) => a.text.length.compareTo(b.text.length));
+        rows.add(read.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'بعد أن تقرأ حديثاً تستطيع حفظه من صفحته، جزءاً جزءاً.',
+                  style: body,
+                ),
+              )
+            : row(
+                'ابدأ بحفظ «${read.first.title}»',
+                'ابدأ',
+                () => _open(context, MemorizeScreen(hadith: read.first)),
+                primary: true,
+              ));
+      }
+    }
+
+    return ParchmentCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      showWatermark: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: _CardTitle('الحفظ')),
+              if (data.memorizedCount > 0)
+                Text(
+                  'في حفظك ${toArabicDigits(data.memorizedCount)}',
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: palette.goldText,
+                  ),
+                ),
+            ],
+          ),
+          ...rows,
+        ],
       ),
     );
   }

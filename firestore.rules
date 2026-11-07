@@ -242,10 +242,11 @@ service cloud.firestore {
     // it holds names and numbers only, ten a list at most, and no uid.
     function validWeeklyBoard() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['week', 'points', 'sharing', 'publishedAt'])
+      return d.keys().hasOnly(['week', 'points', 'sharing', 'memo', 'publishedAt'])
           && d.week is int
           && d.points is list && d.points.size() <= 10
           && d.sharing is list && d.sharing.size() <= 10
+          && (!('memo' in d) || (d.memo is list && d.memo.size() <= 10))
           && d.publishedAt == request.time;
     }
 
@@ -403,8 +404,12 @@ service cloud.firestore {
     }
     function validOwnScore() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['week', 'device', 'name', 'updatedAt'])
+      return d.keys().hasOnly(['week', 'device', 'name', 'updatedAt', 'memo'])
           && d.keys().hasAll(['week', 'device', 'name', 'updatedAt'])
+          // This week's points from memorizing and reviewing (Phase 5), at
+          // most a new hadith and five reviews a day. Ranks the board's
+          // memorization list, which publishes names only.
+          && (!('memo' in d) || (d.memo is int && d.memo >= 0 && d.memo <= 210))
           && d.week is int
           && d.week >= boardWeekNow() - 1 && d.week <= boardWeekNow() + 1
           && d.device is int && d.device >= 0 && d.device <= 300

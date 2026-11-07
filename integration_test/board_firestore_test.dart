@@ -139,6 +139,14 @@ void main() {
       await score(uid).set(valid(week: serverWeek() + 1));
     });
 
+    test('may send memorization points, up to a full week of them', () async {
+      await score(uid).set({...valid(), 'memo': 210});
+      final store = FirestoreBoardStore(db);
+      expect((await store.ownScore(uid))!.memo, 210);
+      await refused(() => score(uid).set({...valid(), 'memo': 211}));
+      await refused(() => score(uid).set({...valid(), 'memo': '5'}));
+    });
+
     test('cannot claim more than 300 from the phone', () async {
       await refused(() => score(uid).set(valid(device: 301)));
     });
@@ -221,6 +229,29 @@ void main() {
       expect(
           read.points.map((r) => r.name), containsAllInOrder(['r250', 'r90']));
       expect(read.publishedAt, isNotNull);
+    });
+
+    test('publishes a memorization list of names, ten at most', () async {
+      final uid = await signInNew();
+      await makeModerator(uid);
+      final moderation = FirestoreBoardModeration(db);
+
+      await moderation.publish(WeeklyBoard(
+        week: serverWeek(),
+        points: const [],
+        sharing: const [],
+        memo: [for (var i = 0; i < 10; i++) BoardRow(name: 'm$i', value: 0)],
+      ));
+      expect((await moderation.published())!.memo, hasLength(10));
+
+      await refused(() => moderation.publish(WeeklyBoard(
+            week: serverWeek(),
+            points: const [],
+            sharing: const [],
+            memo: [
+              for (var i = 0; i < 11; i++) BoardRow(name: 'm$i', value: 0),
+            ],
+          )));
     });
 
     test('cannot publish more than ten names a list', () async {

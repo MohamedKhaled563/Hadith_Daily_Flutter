@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'journey_engine.dart';
 import 'journey_models.dart';
 import 'journey_points.dart';
+import 'memorization.dart';
+import 'memorization.dart' as memorization show dueReviews;
 import 'journey_store.dart';
 
 /// What finishing a hadith added up to, for the completion sheet.
@@ -41,6 +43,46 @@ class ReadingOutcome {
 
   /// A personal record this reading beat, if any.
   final JourneyRecord? record;
+}
+
+/// What learning a part added up to, for the memorization sheet.
+@immutable
+class MemoOutcome {
+  const MemoOutcome({
+    required this.hadithNumber,
+    required this.progress,
+    required this.totalParts,
+    required this.memorizedCount,
+    this.milestone,
+  });
+
+  final int hadithNumber;
+  final MemoProgress progress;
+  final int totalParts;
+  final int memorizedCount;
+
+  /// A memorization milestone this reached, if any — see [kMemoMilestones].
+  final int? milestone;
+
+  bool get memorized => progress.isMemorized;
+}
+
+/// What a review added up to.
+@immutable
+class ReviewOutcome {
+  const ReviewOutcome({
+    required this.hadithNumber,
+    required this.progress,
+    required this.counted,
+    required this.remembered,
+  });
+
+  final int hadithNumber;
+  final MemoProgress progress;
+
+  /// False for a review that was not due yet: practice, nothing recorded.
+  final bool counted;
+  final bool remembered;
 }
 
 /// The reader's journey: what the screens read and what they report to.
@@ -304,6 +346,74 @@ class JourneyRepository {
       days: _data.days.values.where((d) => d.isPresent).length,
       milestone: milestones.isEmpty ? null : milestones.last,
       record: brokenRecord(recordsBefore, _standings),
+    );
+  }
+
+  /// The hadiths due for review today, the longest waiting first.
+  List<int> get dueReviews => memorization.dueReviews(_data.memo, today);
+
+  /// One more part of [hadithNumber] learned by heart, out of [totalParts].
+  /// The last part makes it memorized. Nothing changes for a hadith already
+  /// memorized.
+  MemoOutcome learnPart(int hadithNumber, {required int totalParts}) {
+    final day = today;
+    final before = _data.memoOf(hadithNumber);
+    if (before.isMemorized) {
+      return MemoOutcome(
+        hadithNumber: hadithNumber,
+        progress: before,
+        totalParts: totalParts,
+        memorizedCount: _data.memorizedCount,
+      );
+    }
+    final after =
+        afterPartLearned(before, totalParts: totalParts, today: day);
+    final memorized = after.isMemorized;
+    final count = _data.memorizedCount + (memorized ? 1 : 0);
+    final milestones =
+        memorized ? newMemoMilestones(count, _data.seen) : const <int>[];
+    _record(JourneyEvent(
+      dayKey: day,
+      memoHadith: hadithNumber,
+      memo: after,
+      memoPart: !memorized,
+      memorized: memorized,
+      seen: [for (final m in milestones) memoMilestoneId(m)],
+    ));
+    return MemoOutcome(
+      hadithNumber: hadithNumber,
+      progress: after,
+      totalParts: totalParts,
+      memorizedCount: count,
+      milestone: milestones.isEmpty ? null : milestones.last,
+    );
+  }
+
+  /// A review of [hadithNumber]. Only a review that is due moves it on or
+  /// back; reciting one early is practice, and changes nothing.
+  ReviewOutcome review(int hadithNumber, {required bool remembered}) {
+    final day = today;
+    final before = _data.memoOf(hadithNumber);
+    if (!before.isDue(day)) {
+      return ReviewOutcome(
+        hadithNumber: hadithNumber,
+        progress: before,
+        counted: false,
+        remembered: remembered,
+      );
+    }
+    final after = afterReview(before, remembered: remembered, today: day);
+    _record(JourneyEvent(
+      dayKey: day,
+      memoHadith: hadithNumber,
+      memo: after,
+      reviewed: true,
+    ));
+    return ReviewOutcome(
+      hadithNumber: hadithNumber,
+      progress: after,
+      counted: true,
+      remembered: remembered,
     );
   }
 
