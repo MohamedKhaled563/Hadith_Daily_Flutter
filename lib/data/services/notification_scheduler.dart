@@ -10,6 +10,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../models/insight.dart';
 import 'notification_data_source.dart';
+import 'notification_pool_version.dart';
 import 'notification_schedule.dart';
 
 /// Outcome of a [NotificationScheduler.reschedule] call — lets callers (and
@@ -113,6 +114,17 @@ class NotificationScheduler {
   static const _randomSeedKey = 'notificationScheduler.randomSeed';
   static const _cachedPoolKey = 'notificationScheduler.cachedPool';
   static const _cachedScheduleKey = 'notificationScheduler.cachedSchedule';
+
+  // Which NotificationPoolVersion the cached pool was fetched at, and when.
+  // Together they decide whether it can stand in for a fresh read — see
+  // _poolIsCurrent.
+  static const _poolSyncedVersionKey = 'notificationScheduler.poolSyncedVersion';
+  static const _poolSyncedAtKey = 'notificationScheduler.poolSyncedAt';
+
+  /// How old the cached pool may get before it is refetched even though the
+  /// version never moved — the backstop for an edit made straight in the
+  /// Firebase console, or a writer that forgot to bump.
+  static const poolMaxAge = Duration(days: 7);
 
   /// iOS/macOS init settings, named rather than inline so a test can assert
   /// on them — see the notification suite's "iOS initialization settings"
@@ -596,8 +608,17 @@ class NotificationScheduler {
   /// this falls back to the last successfully fetched pool — cached
   /// locally — so a flaky connection degrades to "today's messages might
   /// be a little stale" instead of "reminders stopped working."
+  ///
+  /// That same cached pool is also what makes a refresh cheap. Each message
+  /// is a billed read, and this runs up to once per resume every six hours,
+  /// so the collection is only read when [NotificationPoolVersion] says it
+  /// changed: one doc read in place of the whole pool.
   Future<List<PoolMessage>> _loadPool() async {
     final prefs = await SharedPreferences.getInstance();
+    final version = await _dataSource.loadPoolVersion();
+    final cached = _cachedPool(prefs);
+    if (cached != null && _poolIsCurrent(prefs, version)) return cached;
+
     try {
       final docs = await _dataSource.loadActiveMessages();
       final pool = buildPool(docs);
@@ -608,6 +629,15 @@ class NotificationScheduler {
               .map((m) => {'id': m.id, 'text': m.text, 'order': m.order})
               .toList()),
         );
+        // Only a fetch made against a known version earns the stamp. Without
+        // one this read may have come from Firestore's offline cache, which
+        // proves nothing about how current the pool is.
+        if (version != null) {
+          await Future.wait([
+            prefs.setInt(_poolSyncedVersionKey, version),
+            prefs.setInt(_poolSyncedAtKey, _clock().millisecondsSinceEpoch),
+          ]);
+        }
         return pool;
       }
       // A successful fetch that came back empty (every message deactivated
@@ -616,10 +646,24 @@ class NotificationScheduler {
       // to notice. Treated the same as a failed fetch instead: the reader's
       // reminders are theirs to switch off, not something an empty
       // collection should silently do for them.
-      return _cachedOrBundledPool(prefs);
+      return cached ?? _bundledFallbackPool;
     } catch (_) {
-      return _cachedOrBundledPool(prefs);
+      return cached ?? _bundledFallbackPool;
     }
+  }
+
+  /// Whether the cached pool can stand in for a fresh read.
+  ///
+  /// An unreadable version (offline) also settles for the cached copy: a read
+  /// of the whole pool would only hit the same wall a second time.
+  bool _poolIsCurrent(SharedPreferences prefs, int? version) {
+    if (version == null) return true;
+    final syncedAt = prefs.getInt(_poolSyncedAtKey);
+    if (syncedAt == null || prefs.getInt(_poolSyncedVersionKey) != version) {
+      return false;
+    }
+    final age = _clock().millisecondsSinceEpoch - syncedAt;
+    return age >= 0 && age < poolMaxAge.inMilliseconds;
   }
 
   /// The dashboard's per-day pins, parsed to dateKey → slot → messageId.
@@ -644,16 +688,16 @@ class NotificationScheduler {
     }
   }
 
-  /// The last successfully fetched pool, or the bundled one.
+  /// The last successfully fetched pool, or null when there is none to use.
   ///
   /// The decode is guarded: a truncated or otherwise corrupt cache value
   /// used to throw straight out of the `catch` that called this, past the
   /// bundled fallback entirely, and surface to the reader as
   /// "تعذّر جدولة التذكيرات: FormatException" — the exact dead end the
   /// fallback exists to prevent.
-  List<PoolMessage> _cachedOrBundledPool(SharedPreferences prefs) {
+  List<PoolMessage>? _cachedPool(SharedPreferences prefs) {
     final cached = prefs.getString(_cachedPoolKey);
-    if (cached == null) return _bundledFallbackPool;
+    if (cached == null) return null;
     try {
       final decoded = jsonDecode(cached) as List;
       final pool = decoded
@@ -664,11 +708,11 @@ class NotificationScheduler {
               ))
           .where((m) => m.text.isNotEmpty)
           .toList();
-      return pool.isEmpty ? _bundledFallbackPool : pool;
+      return pool.isEmpty ? null : pool;
     } catch (error) {
       debugPrint('NotificationScheduler: dropping corrupt cached pool: $error');
       unawaited(prefs.remove(_cachedPoolKey));
-      return _bundledFallbackPool;
+      return null;
     }
   }
 

@@ -25,6 +25,9 @@ class _FakeDataSource implements NotificationDataSource {
   Future<List<Map<String, dynamic>>> loadActiveMessages() async => messages;
 
   @override
+  Future<int?> loadPoolVersion() async => 0;
+
+  @override
   Future<Map<String, dynamic>> loadSchedule() async => const {};
 }
 
