@@ -18,7 +18,7 @@ Play asks this in two passes: first *which* data types you collect, then
 | Question | Answer | Why |
 | --- | --- | --- |
 | Does your app collect or share any of the required user data types? | **Yes** | Account creation stores email and display name. |
-| Is all of the user data collected by your app encrypted in transit? | **Yes** | Firestore and Firebase Auth are HTTPS end to end; the app makes no other network calls. |
+| Is all of the user data collected by your app encrypted in transit? | **Yes** | Firestore, Firebase Auth and Crashlytics are HTTPS end to end; the app makes no other network calls. |
 | Do you provide a way for users to request that their data be deleted? | **Yes** | In-app under الإعدادات، plus the web page below. |
 | Deletion request URL | `https://hadithdaily-5fc06.web.app/delete-account.html` | Live and verified. |
 
@@ -54,7 +54,7 @@ Play asks this in two passes: first *which* data types you collect, then
 - Linked to the user: **Yes**
 - Covers `favorites` and `likes` — both keyed by the reader's uid.
 
-**App activity → App interactions**
+**5. App activity → App interactions**
 - Collected: **Yes** · Shared: **No**
 - Required or optional: **Optional** (only for a signed-in reader; a guest's
   copy never leaves the phone)
@@ -63,20 +63,41 @@ Play asks this in two passes: first *which* data types you collect, then
 - Covers `users/{uid}/journey` and `users/{uid}/journeyYears`: which hadiths
   and messages were read, on which days, and for roughly how long.
 
+**6. App info and performance → Crash logs, Diagnostics**
+- Collected: **Yes** · Shared: **No** (Google processes it for us as
+  Firebase Crashlytics — a service provider, which Play does not count as
+  sharing)
+- Required or optional: **Optional** (settings drawer → الخصوصية →
+  إرسال تقارير الأعطال)
+- Purpose: **App functionality** (fixing crashes) — not Analytics
+- Linked to the user: **No** — `CrashReporter` never sets a user id, email
+  or custom key; reports carry only Crashlytics' random install id.
+- Encrypted in transit: **Yes**
+- Covers Firebase Crashlytics (`lib/core/crash_reporter.dart`).
+
+**7. Device or other IDs**
+- Collected: **Yes** · Shared: **No**
+- Required or optional: **Optional** (the same switch)
+- Purpose: **App functionality** (fixing crashes)
+- Linked to the user: **No**
+- Covers the Crashlytics installation UUID. Google's disclosure page lists the
+  UUID but does not map it to a Play category, so declaring it is the cautious
+  answer.
+
 ### Do NOT declare these
 
 - **Location** — never requested, no plugin for it.
-- **Device or other IDs** — `device_info_plus` reads the manufacturer and
+- **`device_info_plus`** adds nothing to item 7. It reads the manufacturer and
   brand string once, in memory, to decide the wording of the
   notification-reliability tip. It is never stored and never transmitted.
   Play's guidance treats that as not collected.
-- **Analytics / Crash logs / Diagnostics** — no `firebase_analytics`, no
-  Crashlytics, no ad SDK anywhere in `pubspec.yaml`.
+- **Analytics** — no `firebase_analytics`, no ad SDK anywhere in
+  `pubspec.yaml`.
 - **Photos, Contacts, Calendar, Audio, Files** — none.
 - **Approximate or precise location** — none.
 
-If you later add Firebase Analytics or Crashlytics, this form must be
-revisited before that release ships.
+If you later add Firebase Analytics, this form must be revisited before
+that release ships.
 
 ---
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/crash_reporter.dart';
 import '../../core/theme/app_state_controller.dart';
 import 'notification_scheduler.dart';
 
@@ -101,6 +102,8 @@ class NotificationLifecycleRefresher with WidgetsBindingObserver {
     _lastResult = result;
     if (!result.succeeded) {
       debugPrint('NotificationLifecycleRefresher: ${result.error}');
+      CrashReporter.recordError(result.error, null,
+          reason: 'reminder reschedule failed on resume');
       // A failed run is not a refresh — let the next resume retry rather
       // than sitting out the whole throttle window on a transient error.
       _lastRefreshAt = null;

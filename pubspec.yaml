@@ -45,6 +45,10 @@ dependencies:
   app_settings: ^9.0.0
   sign_in_with_apple: ^8.2.0
   crypto: ^3.0.7
+  # Phone app only — crash and error reports (lib/core/crash_reporter.dart).
+  # Off in debug builds and when the reader opts out in settings; never
+  # given a uid, email or any text the reader wrote. Free on the Spark plan.
+  firebase_crashlytics: ^5.4.0
 
 dev_dependencies:
   flutter_test:
