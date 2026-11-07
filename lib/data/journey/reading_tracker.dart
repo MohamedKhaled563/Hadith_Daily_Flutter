@@ -9,6 +9,8 @@ library;
 
 import 'dart:math' as math;
 
+import '../models/hadith.dart';
+
 class ReadingRule {
   const ReadingRule._();
 
@@ -20,8 +22,21 @@ class ReadingRule {
   /// The least the hadith text or its summary can ask for.
   static const minimumPerSection = Duration(seconds: 3);
 
+  /// The speed a reader is told to expect, as opposed to [wordsPerMinute],
+  /// which is the fastest that still counts.
+  static const usualWordsPerMinute = 150;
+
   static int wordCount(String text) =>
       text.trim().isEmpty ? 0 : text.trim().split(RegExp(r'\s+')).length;
+
+  /// Roughly how long [hadith] takes to read in full.
+  static int minutesFor(Hadith hadith) {
+    final words = wordCount(
+      '${hadith.isnad} ${hadith.text} ${hadith.shortExplanation} '
+      '${hadith.explanation}',
+    );
+    return (words / usualWordsPerMinute).ceil();
+  }
 
   static Duration _atSpeed(int words) =>
       Duration(milliseconds: (words * 60000 / wordsPerMinute).round());

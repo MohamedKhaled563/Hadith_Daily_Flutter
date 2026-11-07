@@ -2,6 +2,9 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/core/theme/app_state_controller.dart';
+import 'package:hadith_app/data/journey/journey_models.dart';
+import 'package:hadith_app/data/journey/journey_repository.dart';
+import 'package:hadith_app/data/journey/journey_store.dart';
 import 'package:hadith_app/data/services/notification_data_source.dart';
 import 'package:hadith_app/data/services/notification_lifecycle_refresher.dart';
 import 'package:hadith_app/data/services/notification_scheduler.dart';
@@ -64,12 +67,14 @@ void notificationLifecycleSuite() {
   // the second time — which silently turns "did this schedule again?" into
   // an assertion that always looks like "no".
   late int scheduleCalls;
+  late int clearCalls;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     plugin = _MockPlugin();
     androidPlugin = _MockAndroidPlugin();
     scheduleCalls = 0;
+    clearCalls = 0;
 
     when(() => plugin.initialize(
           any(),
@@ -95,7 +100,12 @@ void notificationLifecycleSuite() {
     });
     when(() => plugin.pendingNotificationRequests())
         .thenAnswer((_) async => <PendingNotificationRequest>[]);
+    when(() => plugin.cancelAll()).thenAnswer((_) async {
+      clearCalls++;
+    });
     when(() => androidPlugin.requestNotificationsPermission())
+        .thenAnswer((_) async => true);
+    when(() => androidPlugin.areNotificationsEnabled())
         .thenAnswer((_) async => true);
     when(() => androidPlugin.canScheduleExactNotifications())
         .thenAnswer((_) async => false);
@@ -244,6 +254,195 @@ void notificationLifecycleSuite() {
 
       // Same instant, so only the cleared timestamp can allow this through.
       expect(await refresher.refresh(), isNotNull);
+    });
+  });
+
+  group('when the reader\'s reading changes the reminders', () {
+    late ChangeNotifier changes;
+    late String key;
+    String? user;
+
+    NotificationLifecycleRefresher started() {
+      WidgetsFlutterBinding.ensureInitialized();
+      final refresher = NotificationLifecycleRefresher(
+        scheduler: scheduler,
+        state: state,
+        planChanges: changes,
+        planKey: () => key,
+        currentUser: () => user,
+        planSettle: const Duration(milliseconds: 5),
+      )..start();
+      addTearDown(refresher.dispose);
+      return refresher;
+    }
+
+    Future<void> settle() =>
+        Future<void>.delayed(const Duration(milliseconds: 60));
+
+    void change(String nextKey, {String? nextUser}) {
+      key = nextKey;
+      user = nextUser;
+      // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+      changes.notifyListeners();
+    }
+
+    setUp(() {
+      changes = ChangeNotifier();
+      key = 'before';
+      user = 'reader';
+    });
+
+    test('re-lays the window at once, ignoring the resume throttle', () async {
+      started();
+      await settle();
+      final afterStart = scheduleCalls;
+
+      change('after', nextUser: 'reader');
+      await settle();
+
+      expect(scheduleCalls, greaterThan(afterStart));
+    });
+
+    test('a change that leaves the words alone costs nothing', () async {
+      started();
+      await settle();
+      final afterStart = scheduleCalls;
+
+      change('before', nextUser: 'reader');
+      await settle();
+
+      expect(scheduleCalls, afterStart);
+    });
+
+    test('a burst of changes re-lays the window once', () async {
+      started();
+      await settle();
+      final afterStart = scheduleCalls;
+
+      change('one', nextUser: 'reader');
+      change('two', nextUser: 'reader');
+      change('three', nextUser: 'reader');
+      await settle();
+
+      expect(scheduleCalls, afterStart + 14);
+    });
+
+    test('signing out clears the shade before re-laying the window', () async {
+      started();
+      await settle();
+
+      change('guest', nextUser: null);
+      await settle();
+
+      expect(clearCalls, 1, reason: 'a shown reminder names their reading');
+    });
+
+    test('signing in clears nothing', () async {
+      user = null;
+      started();
+      await settle();
+
+      change('signed-in', nextUser: 'reader');
+      await settle();
+
+      expect(clearCalls, 0);
+    });
+
+    test('reminders switched off elsewhere still come off this phone',
+        () async {
+      started();
+      await settle();
+      state.toggleMorningReminder(false);
+      state.toggleEveningReminder(false);
+
+      change('both-off', nextUser: 'reader');
+      await settle();
+
+      verify(() => plugin.cancel(any(), tag: any(named: 'tag')))
+          .called(greaterThan(0));
+    });
+  });
+
+  group('reminder settings on the account', () {
+    late InMemoryJourneyStore store;
+
+    Future<void> signedInTo(ReminderPrefs? saved) async {
+      store = InMemoryJourneyStore();
+      if (saved != null) await store.savePrefs('reader', saved);
+      await JourneyRepository().debugReset(store: store);
+      JourneyRepository().setUser('reader');
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      state.syncRemindersWithAccount();
+    }
+
+    tearDown(() => JourneyRepository().debugReset());
+
+    test('an account with none takes this phone\'s', () async {
+      await signedInTo(null);
+
+      expect(store.dataOf('reader').prefs, state.reminderPrefs);
+    });
+
+    test('the account\'s settings reach a new phone', () async {
+      await signedInTo(const ReminderPrefs(
+        morningOn: false,
+        morning: '06:15',
+        eveningOn: true,
+        evening: '21:45',
+      ));
+
+      expect(state.morningReminderEnabled, isFalse);
+      expect(state.morningReminderTime, const TimeOfDay(hour: 6, minute: 15));
+      expect(state.eveningReminderEnabled, isTrue);
+      expect(state.eveningReminderTime, const TimeOfDay(hour: 21, minute: 45));
+    });
+
+    test('a change on the phone is saved to the account', () async {
+      await signedInTo(null);
+
+      state.setEveningReminderTime(const TimeOfDay(hour: 22, minute: 5));
+
+      expect(store.dataOf('reader').prefs?.evening, '22:05');
+    });
+
+    test('a guest\'s settings stay on the phone', () async {
+      store = InMemoryJourneyStore();
+      await JourneyRepository().debugReset(store: store);
+
+      state.setEveningReminderTime(const TimeOfDay(hour: 22, minute: 5));
+
+      expect(store.dataOf('reader').prefs, isNull);
+    });
+
+    test('settings that cannot be read are left alone', () async {
+      state.setMorningReminderTime(const TimeOfDay(hour: 7, minute: 0));
+      await signedInTo(const ReminderPrefs(
+        morningOn: true,
+        morning: 'not a time',
+        eveningOn: true,
+        evening: '21:45',
+      ));
+
+      expect(state.morningReminderTime, const TimeOfDay(hour: 7, minute: 0));
+    });
+
+    test('half a setting is not one to adopt', () {
+      expect(ReminderPrefs.fromJson({'morningOn': true}), isNull);
+      expect(ReminderPrefs.fromJson(null), isNull);
+    });
+
+    test('a reading keeps the settings', () {
+      const prefs = ReminderPrefs(
+        morningOn: true,
+        morning: '08:30',
+        eveningOn: true,
+        evening: '20:00',
+      );
+      final data = JourneyData.empty.withPrefs(prefs).apply(
+            const JourneyEvent(dayKey: '2026-11-07', messageId: 'm'),
+          );
+
+      expect(data.prefs, prefs);
     });
   });
 

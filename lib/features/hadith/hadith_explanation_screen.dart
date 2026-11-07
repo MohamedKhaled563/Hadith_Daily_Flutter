@@ -15,6 +15,7 @@ import '../../data/journey/journey_repository.dart';
 import '../../data/journey/reading_tracker.dart';
 import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/journey_reminders.dart';
 import '../journey/completion_sheet.dart';
 import '../journey/journey_links.dart';
 import '../journey/journey_share_sheet.dart';
@@ -172,6 +173,10 @@ class _HadithExplanationScreenState extends State<HadithExplanationScreen>
       hasNext: next != null,
     );
     if (!mounted) return;
+
+    // Left unawaited: the reader's choice goes first, and a system dialog
+    // waiting for an answer must not hold it up.
+    unawaited(JourneyReminders.askAfterReading());
 
     switch (choice) {
       case CompletionChoice.write:

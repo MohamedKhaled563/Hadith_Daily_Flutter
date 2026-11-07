@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/crash_reporter.dart';
 import '../../core/theme/app_state_controller.dart';
+import '../journey/journey_repository.dart';
+import 'journey_reminders.dart';
 import 'notification_scheduler.dart';
 
 /// Keeps the rolling reminder window topped up for as long as the app is
@@ -23,15 +27,30 @@ import 'notification_scheduler.dart';
 /// Refreshing on every single resume would be wasteful — the work is ~56
 /// platform calls plus a Firestore read — so [minRefreshInterval] throttles
 /// it to something that still comfortably outpaces a 14-day window.
+///
+/// Reminders also speak about what the reader has done, so a reading that
+/// changes their words re-lays the window at once, without waiting for a
+/// resume: finishing today's hadith has to take back tonight's streak line.
 class NotificationLifecycleRefresher with WidgetsBindingObserver {
   NotificationLifecycleRefresher({
     NotificationScheduler? scheduler,
     AppStateController? state,
     DateTime Function()? clock,
     this.minRefreshInterval = const Duration(hours: 6),
+    Listenable? planChanges,
+    String Function()? planKey,
+    String? Function()? currentUser,
+    this.planSettle = const Duration(seconds: 2),
   })  : _scheduler = scheduler ?? NotificationScheduler.instance,
         _state = state ?? AppStateController(),
-        _clock = clock ?? DateTime.now;
+        _clock = clock ?? DateTime.now,
+        _planChanges = planChanges ??
+            Listenable.merge([
+              JourneyRepository().listenable,
+              state ?? AppStateController(),
+            ]),
+        _planKey = planKey ?? JourneyReminders.planKey,
+        _currentUser = currentUser ?? (() => JourneyRepository().uid);
 
   final NotificationScheduler _scheduler;
   final AppStateController _state;
@@ -40,7 +59,19 @@ class NotificationLifecycleRefresher with WidgetsBindingObserver {
   /// How long a refresh stays "fresh enough" that a resume is ignored.
   final Duration minRefreshInterval;
 
+  /// How long to let a burst of changes settle before re-laying the window.
+  /// A sign-in brings the reader's data in several steps.
+  final Duration planSettle;
+
+  final Listenable _planChanges;
+  final String Function() _planKey;
+  final String? Function() _currentUser;
+
   DateTime? _lastRefreshAt;
+  String? _lastPlanKey;
+  String? _lastUser;
+  bool _clearPending = false;
+  Timer? _replan;
 
   /// The last refresh's outcome, for callers that want to surface a problem
   /// (the settings drawer reads the equivalent from its own direct call).
@@ -51,11 +82,43 @@ class NotificationLifecycleRefresher with WidgetsBindingObserver {
   /// Call once, from app start.
   void start() {
     WidgetsBinding.instance.addObserver(this);
+    _lastPlanKey = _planKey();
+    _lastUser = _currentUser();
+    _planChanges.addListener(_onPlanChanged);
     refresh();
   }
 
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _planChanges.removeListener(_onPlanChanged);
+    _replan?.cancel();
+  }
+
+  void _onPlanChanged() {
+    final key = _planKey();
+    if (key == _lastPlanKey) return;
+    _lastPlanKey = key;
+
+    final user = _currentUser();
+    if (_lastUser != null && user != _lastUser) _clearPending = true;
+    _lastUser = user;
+
+    _replan?.cancel();
+    _replan = Timer(planSettle, () {
+      unawaited(_replanNow());
+    });
+  }
+
+  Future<void> _replanNow() async {
+    if (_clearPending) {
+      _clearPending = false;
+      try {
+        await _scheduler.clearAll();
+      } catch (error) {
+        debugPrint('NotificationLifecycleRefresher: $error');
+      }
+    }
+    await refresh(force: true);
   }
 
   @override
@@ -86,9 +149,13 @@ class NotificationLifecycleRefresher with WidgetsBindingObserver {
   Future<NotificationScheduleResult?> refresh({bool force = false}) async {
     final now = _clock();
     if (!force && !shouldRefresh(now)) return null;
-    if (!_state.morningReminderEnabled && !_state.eveningReminderEnabled) {
+    if (!force &&
+        !_state.morningReminderEnabled &&
+        !_state.eveningReminderEnabled) {
       // Nothing to top up. Not marked as refreshed, so the first resume
-      // after switching a reminder back on is not throttled away.
+      // after switching a reminder back on is not throttled away. A forced
+      // run still goes through: reminders switched off on another phone reach
+      // this one as a change of plan, and their alarms have to come off.
       return null;
     }
 

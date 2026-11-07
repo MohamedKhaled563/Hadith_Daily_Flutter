@@ -3,6 +3,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../data/journey/journey_models.dart';
 import '../../data/journey/journey_repository.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../auth/auth_service.dart';
@@ -56,6 +57,7 @@ class AppStateController extends ChangeNotifier {
           TimeOfDay(hour: eveningHour, minute: eveningMinute);
     }
 
+    JourneyRepository().listenable.addListener(syncRemindersWithAccount);
     _applyUser(AuthService.instance.currentUser);
     AuthService.instance.authStateChanges.listen(_applyUser);
 
@@ -177,30 +179,88 @@ class AppStateController extends ChangeNotifier {
   // a fresh channel id per combination, which is a feature decision rather
   // than something to smuggle in behind a dead field.
 
-  void toggleMorningReminder(bool value) {
-    _morningReminderEnabled = value;
-    _prefs?.setBool(_keyMorningReminderEnabled, value);
+  /// The two reminders as the account stores them.
+  ReminderPrefs get reminderPrefs => ReminderPrefs(
+        morningOn: _morningReminderEnabled,
+        morning: _formatTime(_morningReminderTime),
+        eveningOn: _eveningReminderEnabled,
+        evening: _formatTime(_eveningReminderTime),
+      );
+
+  static String _formatTime(TimeOfDay time) =>
+      '${time.hour.toString().padLeft(2, '0')}:'
+      '${time.minute.toString().padLeft(2, '0')}';
+
+  static TimeOfDay? _parseTime(String value) {
+    final parts = value.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  /// The account's reminders win, which is what lets a new phone start with
+  /// the reader's own times. An account with none yet takes this phone's.
+  @visibleForTesting
+  void syncRemindersWithAccount() {
+    final journey = JourneyRepository();
+    if (!journey.accountLoaded) return;
+    final account = journey.data.prefs;
+    if (account == null) {
+      journey.saveReminderPrefs(reminderPrefs);
+      return;
+    }
+    if (account == reminderPrefs) return;
+
+    final morning = _parseTime(account.morning);
+    final evening = _parseTime(account.evening);
+    if (morning == null || evening == null) return;
+    _storeMorningReminder(account.morningOn, morning);
+    _storeEveningReminder(account.eveningOn, evening);
     notifyListeners();
+  }
+
+  void _storeMorningReminder(bool enabled, TimeOfDay time) {
+    _morningReminderEnabled = enabled;
+    _morningReminderTime = time;
+    _prefs?.setBool(_keyMorningReminderEnabled, enabled);
+    _prefs?.setInt(_keyMorningReminderHour, time.hour);
+    _prefs?.setInt(_keyMorningReminderMinute, time.minute);
+  }
+
+  void _storeEveningReminder(bool enabled, TimeOfDay time) {
+    _eveningReminderEnabled = enabled;
+    _eveningReminderTime = time;
+    _prefs?.setBool(_keyEveningReminderEnabled, enabled);
+    _prefs?.setInt(_keyEveningReminderHour, time.hour);
+    _prefs?.setInt(_keyEveningReminderMinute, time.minute);
+  }
+
+  void _remindersChanged() {
+    JourneyRepository().saveReminderPrefs(reminderPrefs);
+    notifyListeners();
+  }
+
+  void toggleMorningReminder(bool value) {
+    _storeMorningReminder(value, _morningReminderTime);
+    _remindersChanged();
   }
 
   void setMorningReminderTime(TimeOfDay time) {
-    _morningReminderTime = time;
-    _prefs?.setInt(_keyMorningReminderHour, time.hour);
-    _prefs?.setInt(_keyMorningReminderMinute, time.minute);
-    notifyListeners();
+    _storeMorningReminder(_morningReminderEnabled, time);
+    _remindersChanged();
   }
 
   void toggleEveningReminder(bool value) {
-    _eveningReminderEnabled = value;
-    _prefs?.setBool(_keyEveningReminderEnabled, value);
-    notifyListeners();
+    _storeEveningReminder(value, _eveningReminderTime);
+    _remindersChanged();
   }
 
   void setEveningReminderTime(TimeOfDay time) {
-    _eveningReminderTime = time;
-    _prefs?.setInt(_keyEveningReminderHour, time.hour);
-    _prefs?.setInt(_keyEveningReminderMinute, time.minute);
-    notifyListeners();
+    _storeEveningReminder(_eveningReminderEnabled, time);
+    _remindersChanged();
   }
 
   // Reading size. Applied in MaterialApp.builder on top of the reader's OS

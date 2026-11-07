@@ -77,6 +77,10 @@ class JourneyRepository {
   StreamSubscription<JourneyData>? _subscription;
   JourneyData _data = JourneyData.empty;
 
+  /// Whether this account's own data has arrived yet. Until then [data] is
+  /// empty because nothing has loaded, not because the reader has done nothing.
+  bool _accountLoaded = false;
+
   final ValueNotifier<int> _revision = ValueNotifier<int>(0);
 
   /// Fires whenever the journey changes — a reading here, the account's data
@@ -85,6 +89,8 @@ class JourneyRepository {
 
   JourneyData get data => _data;
   bool get isGuest => _uid == null;
+  String? get uid => _uid;
+  bool get accountLoaded => _uid != null && _accountLoaded;
 
   String get today => journeyDayKey(_clock());
 
@@ -113,6 +119,7 @@ class JourneyRepository {
     await _subscription?.cancel();
     _subscription = null;
     _watchedYear = null;
+    _accountLoaded = false;
     _data = JourneyData.empty;
     _changed();
 
@@ -144,6 +151,7 @@ class JourneyRepository {
     _subscription = _store.watch(uid, year).listen(
       (data) {
         if (_uid != uid) return;
+        _accountLoaded = true;
         _data = data;
         _changed();
       },
@@ -265,4 +273,16 @@ class JourneyRepository {
 
   /// The reader sent a message to the community.
   void recordWrote() => _record(JourneyEvent(dayKey: today, wrote: 1));
+
+  /// Keeps the reader's reminder settings with their account. A guest's stay
+  /// on the phone.
+  void saveReminderPrefs(ReminderPrefs prefs) {
+    final uid = _uid;
+    if (uid == null || _data.prefs == prefs) return;
+    _data = _data.withPrefs(prefs);
+    _changed();
+    unawaited(_store.savePrefs(uid, prefs).catchError((Object error) {
+      debugPrint('JourneyRepository: reminder settings not saved: $error');
+    }));
+  }
 }

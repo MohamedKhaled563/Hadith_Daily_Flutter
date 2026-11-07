@@ -319,14 +319,6 @@ class _TodayCard extends StatelessWidget {
   final VoidCallback onOpenMessage;
   final ValueChanged<int> onOpenHadith;
 
-  static int _minutesFor(Hadith hadith) {
-    final words = ReadingRule.wordCount(
-      '${hadith.isnad} ${hadith.text} ${hadith.shortExplanation} '
-      '${hadith.explanation}',
-    );
-    return (words / 150).ceil();
-  }
-
   @override
   Widget build(BuildContext context) {
     final hadith = next;
@@ -355,7 +347,7 @@ class _TodayCard extends StatelessWidget {
             title: hadithStep,
             detail: hadith == null || steps.hadith
                 ? null
-                : arabicMinuteCount(_minutesFor(hadith)),
+                : arabicMinuteCount(ReadingRule.minutesFor(hadith)),
             onTap: hadith == null ? null : () => onOpenHadith(hadith.number),
           ),
           _StepRow(

@@ -13,6 +13,7 @@ import 'package:hadith_app/data/journey/journey_store.dart';
 import 'package:hadith_app/data/journey/reading_tracker.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/data/services/favorites_store.dart';
+import 'package:hadith_app/data/services/notification_scheduler.dart';
 import 'package:hadith_app/features/favorites/favorites_screen.dart';
 import 'package:hadith_app/features/hadith/hadith_detail_screen.dart';
 import 'package:hadith_app/features/hadith/hadith_explanation_screen.dart';
@@ -191,6 +192,36 @@ void main() {
       expect(find.text('اقرأ حديث «الأعمال بالنيات»'), findsOneWidget);
       expect(find.byIcon(Icons.ios_share_rounded), findsNothing);
       expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+    });
+
+    testWidgets('a tapped reminder about a hadith opens that hadith',
+        (tester) async {
+      await tester.pumpWidget(app(const HomeScreen()));
+      await wait(tester);
+      await tester.tap(tab('رحلتي'));
+      await wait(tester);
+
+      NotificationScheduler.hadithTapped.value = HadithReminderTap(16);
+      await wait(tester);
+
+      final opened =
+          tester.widget<HadithDetailScreen>(find.byType(HadithDetailScreen));
+      expect(opened.hadith.number, 16);
+
+      Navigator.of(tester.element(find.byType(HadithDetailScreen))).pop();
+      await wait(tester, 1500);
+      expect(find.byType(HadithDetailScreen), findsNothing);
+      expect(find.byType(HomeScreen), findsOneWidget);
+    });
+
+    testWidgets('a reminder that started the app lands on its hadith',
+        (tester) async {
+      await tester.pumpWidget(app(const HomeScreen(openHadithOnStart: 7)));
+      await wait(tester);
+
+      final opened =
+          tester.widget<HadithDetailScreen>(find.byType(HadithDetailScreen));
+      expect(opened.hadith.number, 7);
     });
 
     testWidgets('sees a leaf in the ring, which opens the journey',

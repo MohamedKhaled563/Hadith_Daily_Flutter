@@ -10,6 +10,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../models/insight.dart';
 import 'notification_data_source.dart';
+import 'notification_planner.dart';
 import 'notification_pool_version.dart';
 import 'notification_schedule.dart';
 
@@ -43,6 +44,13 @@ class NotificationScheduleResult {
   final Object? error;
 
   bool get succeeded => error == null;
+}
+
+/// A reminder tap that opens hadith [number]. A new object per tap, so tapping
+/// the same reminder twice still notifies.
+class HadithReminderTap {
+  HadithReminderTap(this.number);
+  final int number;
 }
 
 /// Schedules the morning/evening reminder notifications from
@@ -114,6 +122,8 @@ class NotificationScheduler {
   static const _randomSeedKey = 'notificationScheduler.randomSeed';
   static const _cachedPoolKey = 'notificationScheduler.cachedPool';
   static const _cachedScheduleKey = 'notificationScheduler.cachedSchedule';
+  static const _askedKey = 'notificationScheduler.askedForPermission';
+  static const _offeredKey = 'notificationScheduler.offeredReminders';
 
   // Which NotificationPoolVersion the cached pool was fetched at, and when.
   // Together they decide whether it can stand in for a fresh read — see
@@ -172,6 +182,12 @@ class NotificationScheduler {
   final DateTime Function() _clock;
   Future<void>? _initFuture;
 
+  /// Gives a slot words of its own instead of a pool message, or null to keep
+  /// the pool. Set once at app start, and every [reschedule] asks it, whoever
+  /// called: the settings drawer re-lays the window too, and must not put the
+  /// generic text back.
+  PlannedReminder? Function(DateTime at, ReminderSlot slot)? planner;
+
   /// Fires whenever the reader taps a reminder while the app is running
   /// (foreground or backgrounded) — a plain tap signal, not the tapped
   /// notification's own text: the reminder pool (`notificationMessages`) is
@@ -191,6 +207,11 @@ class NotificationScheduler {
   static final ValueNotifier<int> submissionApprovalTapped =
       ValueNotifier<int>(0);
 
+  /// A reminder about a hadith was tapped while the app was running. A cold
+  /// start instead goes through [launchedHadith].
+  static final ValueNotifier<HadithReminderTap?> hadithTapped =
+      ValueNotifier<HadithReminderTap?>(null);
+
   /// How a tap tells an approval from a reminder — a reminder's payload is a
   /// `notificationMessages` doc id, which this can't be mistaken for.
   @visibleForTesting
@@ -205,6 +226,11 @@ class NotificationScheduler {
   static void _onNotificationResponse(NotificationResponse response) {
     if (response.payload == submissionApprovedPayload) {
       submissionApprovalTapped.value++;
+      return;
+    }
+    final hadith = hadithOfPayload(response.payload);
+    if (hadith != null) {
+      hadithTapped.value = HadithReminderTap(hadith);
       return;
     }
     notificationTapped.value++;
@@ -254,12 +280,23 @@ class NotificationScheduler {
   /// [_onNotificationResponse]. Safe to call before [_ensureInitialized]:
   /// this reads native launch state directly, no plugin init required.
   ///
-  /// False for an approval notification, which opens the reader's submissions
-  /// and must not count as having opened today's message.
+  /// False for an approval notification, which opens the reader's submissions,
+  /// and for a reminder about a hadith, which opens that hadith. Neither counts
+  /// as having opened today's message.
   Future<bool> wasLaunchedByNotification() async {
     final details = await _plugin.getNotificationAppLaunchDetails();
     if (!(details?.didNotificationLaunchApp ?? false)) return false;
-    return details?.notificationResponse?.payload != submissionApprovedPayload;
+    final payload = details?.notificationResponse?.payload;
+    return payload != submissionApprovedPayload &&
+        hadithOfPayload(payload) == null;
+  }
+
+  /// The hadith to open, when the app was launched by tapping a reminder about
+  /// one while fully terminated — the cold-start half of [hadithTapped].
+  Future<int?> launchedHadith() async {
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    if (!(details?.didNotificationLaunchApp ?? false)) return null;
+    return hadithOfPayload(details?.notificationResponse?.payload);
   }
 
   /// Whether the app was launched by tapping an approval notification while
@@ -296,6 +333,74 @@ class NotificationScheduler {
           false;
     }
     return true;
+  }
+
+  /// Whether the OS will show what gets scheduled, without asking the reader.
+  /// Scheduling never prompts: the question belongs to [acceptReminderOffer]
+  /// and [askOnce], which come at moments the reader can make sense of it.
+  Future<bool> hasPermission() async {
+    await _ensureInitialized();
+    final android = _android;
+    if (android != null) {
+      return await android.areNotificationsEnabled() ?? false;
+    }
+    final ios = _plugin.resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin>();
+    if (ios != null) {
+      return (await ios.checkPermissions())?.isEnabled ?? false;
+    }
+    return true;
+  }
+
+  /// Asks for the notification permission if it has not been asked here
+  /// before and is not already held. Never throws.
+  Future<void> askOnce() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(_askedKey) ?? false) return;
+      await prefs.setBool(_askedKey, true);
+      if (await hasPermission()) return;
+      await requestPermission();
+    } catch (error) {
+      debugPrint('NotificationScheduler.askOnce failed: $error');
+    }
+  }
+
+  /// Whether a new reader should see the app's own offer of reminders. True
+  /// once at most, and only for someone the OS would otherwise keep silent.
+  /// Never throws: a platform that cannot answer simply skips the offer.
+  Future<bool> claimReminderOffer() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(_offeredKey) ?? false) return false;
+      if (prefs.getBool(_askedKey) ?? false) return false;
+      await prefs.setBool(_offeredKey, true);
+      return !await hasPermission();
+    } catch (error) {
+      debugPrint('NotificationScheduler.claimReminderOffer failed: $error');
+      return false;
+    }
+  }
+
+  /// The reader said yes to the offer, so the system dialog follows, and
+  /// [askOnce] has nothing left to do. Never throws.
+  Future<void> acceptReminderOffer() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_askedKey, true);
+      await requestPermission();
+    } catch (error) {
+      debugPrint('NotificationScheduler.acceptReminderOffer failed: $error');
+    }
+  }
+
+  /// Takes everything out of the notification shade and the queue, for when
+  /// the person holding the phone may have changed. [reschedule] leaves a
+  /// delivered reminder alone on purpose, but one that names someone's reading
+  /// must not outlive their sign-out.
+  Future<void> clearAll() async {
+    await _ensureInitialized();
+    await _plugin.cancelAll();
   }
 
   /// Shows the "your message was approved" notification right away. Unlike
@@ -362,23 +467,18 @@ class NotificationScheduler {
 
       var permissionGranted = true;
       if (morningEnabled || eveningEnabled) {
-        // Reminders default to enabled, so the very first reschedule() call
-        // (HomeScreen's initState, on the reader's first-ever app launch)
-        // needs at least one reminder on — and that call never went through
-        // requestPermission() at all, since only the settings-drawer toggle
-        // used to call it. Without POST_NOTIFICATIONS actually granted, every
-        // notification scheduled below is silently never shown by the OS, no
-        // matter how successful this method itself reports. Requesting here
-        // covers every caller instead of relying on each one to remember to.
+        // Only reads the permission. This used to request it, which put the
+        // system dialog on a new install's first screen, before the reader
+        // had seen any reason to say yes. See [askOnce].
         //
         // Guarded on its own: some OEM builds throw from the underlying
         // platform call itself (rather than just returning false) — that
         // must not abort scheduling outright and get blamed on connectivity
         // by the generic catch below, when it has nothing to do with it.
         try {
-          permissionGranted = await requestPermission();
+          permissionGranted = await hasPermission();
         } catch (error) {
-          debugPrint('NotificationScheduler.requestPermission threw: $error');
+          debugPrint('NotificationScheduler.hasPermission threw: $error');
         }
       }
 
@@ -451,15 +551,20 @@ class NotificationScheduler {
               );
         final morning = picks?.morning;
         final evening = picks?.evening;
+        final plannedMorning =
+            planner?.call(resolveScheduledTime(day, morningTime), ReminderSlot.morning);
+        final plannedEvening =
+            planner?.call(resolveScheduledTime(day, eveningTime), ReminderSlot.evening);
 
         final morningScheduled = await _syncOne(
           id: offset * 2,
           day: day,
           time: morningTime,
-          enabled: morningEnabled && morning != null,
-          title: 'رسالة الصباح',
-          body: displayMessageText(morning?.text ?? ''),
-          payload: morning?.id ?? '',
+          enabled: morningEnabled && (plannedMorning != null || morning != null),
+          title: plannedMorning?.title ?? 'رسالة الصباح',
+          body: plannedMorning?.body ?? displayMessageText(morning?.text ?? ''),
+          payload: plannedMorning?.payload ?? morning?.id ?? '',
+          personal: plannedMorning != null,
           now: now,
           scheduleMode: scheduleMode,
           pending: pending,
@@ -470,10 +575,11 @@ class NotificationScheduler {
           id: offset * 2 + 1,
           day: day,
           time: eveningTime,
-          enabled: eveningEnabled && evening != null,
-          title: 'تأمل المساء',
-          body: displayMessageText(evening?.text ?? ''),
-          payload: evening?.id ?? '',
+          enabled: eveningEnabled && (plannedEvening != null || evening != null),
+          title: plannedEvening?.title ?? 'تأمل المساء',
+          body: plannedEvening?.body ?? displayMessageText(evening?.text ?? ''),
+          payload: plannedEvening?.payload ?? evening?.id ?? '',
+          personal: plannedEvening != null,
           now: now,
           scheduleMode: scheduleMode,
           pending: pending,
@@ -544,6 +650,7 @@ class NotificationScheduler {
     required String title,
     required String body,
     required String payload,
+    required bool personal,
     required DateTime now,
     required AndroidScheduleMode scheduleMode,
     required Set<int> pending,
@@ -559,16 +666,9 @@ class NotificationScheduler {
     await _plugin.cancel(id);
     if (!enabled) return false;
 
-    const details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        'daily_reminders',
-        'تذكيرات يومية',
-        channelDescription: 'تذكير برسالة الصباح وتأمل المساء',
-        importance: Importance.high,
-        priority: Priority.high,
-      ),
-      iOS: DarwinNotificationDetails(),
-    );
+    // Its own channel for lines about the reader's progress, so someone can
+    // mute those in the OS and keep their daily messages.
+    final details = personal ? progressDetails : _dailyDetails;
 
     // Tagged with a location built from the device's own live offset
     // (_deviceLocation), not a named IANA zone: flutter_local_notifications'
@@ -589,15 +689,36 @@ class NotificationScheduler {
       androidScheduleMode: scheduleMode,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      // Kept only as a flutter_local_notifications-required field, not read
-      // by the app: tapping a reminder no longer resolves back to this
-      // notificationMessages doc — see NotificationScheduler.notificationTapped's
-      // doc for why (that pool's text is a generic blurb, not "today's
-      // message").
+      // A planned reminder's says which hadith a tap opens. A pool message's
+      // is only its notificationMessages id, which nothing reads: tapping one
+      // opens today's message — see notificationTapped for why.
       payload: payload,
     );
     return true;
   }
+
+  static const _dailyDetails = NotificationDetails(
+    android: AndroidNotificationDetails(
+      'daily_reminders',
+      'تذكيرات يومية',
+      channelDescription: 'تذكير برسالة الصباح وتأمل المساء',
+      importance: Importance.high,
+      priority: Priority.high,
+    ),
+    iOS: DarwinNotificationDetails(),
+  );
+
+  @visibleForTesting
+  static const progressDetails = NotificationDetails(
+    android: AndroidNotificationDetails(
+      'reading_journey',
+      'تقدّم القراءة',
+      channelDescription: 'تذكير بحديث اليوم وبسلسلة قراءتك',
+      importance: Importance.high,
+      priority: Priority.high,
+    ),
+    iOS: DarwinNotificationDetails(),
+  );
 
   /// The reader thinks of reminders as a fully on-device feature (see the
   /// class doc) — a scheduled alarm does live entirely on the phone — but

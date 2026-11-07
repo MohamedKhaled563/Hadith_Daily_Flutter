@@ -9,6 +9,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/app_state_controller.dart';
 import 'data/repositories/hadith_repository.dart';
 import 'data/services/daily_tip_service.dart';
+import 'data/services/journey_reminders.dart';
 import 'data/services/moderation_service.dart';
 import 'data/services/notification_lifecycle_refresher.dart';
 import 'data/services/notification_scheduler.dart';
@@ -77,6 +78,7 @@ class _HadithAppState extends State<HadithApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    NotificationScheduler.instance.planner = JourneyReminders.plan;
     _reminders.start();
     _submissionApprovals.start();
   }

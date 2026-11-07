@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
@@ -16,9 +18,11 @@ import '../../core/utils/app_motion.dart';
 import '../../core/utils/notification_reliability_tip.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/daily_tip_service.dart';
+import '../../data/services/journey_reminders.dart';
 import '../../data/services/notification_scheduler.dart';
 import '../messages/daily_message_card.dart';
 import '../messages/today_message_screen.dart';
+import '../hadith/hadith_detail_screen.dart';
 import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
 import '../community/my_submissions_screen.dart';
@@ -27,12 +31,15 @@ import '../journey/journey_links.dart';
 import '../journey/journey_ring.dart';
 import '../journey/journey_screen.dart';
 import '../profile/settings_drawer.dart';
+import 'reminder_offer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     this.openMessageOnStart = false,
     this.openSubmissionsOnStart = false,
+    this.openHadithOnStart,
+    this.offerRemindersOnStart = false,
   });
 
   /// Open today's message as soon as home is up, instead of waiting for the
@@ -42,6 +49,15 @@ class HomeScreen extends StatefulWidget {
   /// Open the reader's submissions on top of Home. Only for a launch from
   /// tapping an approval notification — see SplashScreen.
   final bool openSubmissionsOnStart;
+
+  /// Open this hadith on top of Home. Only for a launch from tapping a
+  /// reminder about it — see SplashScreen.
+  final int? openHadithOnStart;
+
+  /// Offer reminders once Home is up, if this reader has never been offered
+  /// them. Only for an ordinary launch: someone who arrived by tapping a
+  /// notification already has them.
+  final bool offerRemindersOnStart;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -79,11 +95,29 @@ class _HomeScreenState extends State<HomeScreen>
     NotificationScheduler.notificationTapped.addListener(_onReminderTapped);
     NotificationScheduler.submissionApprovalTapped
         .addListener(_openMySubmissions);
+    NotificationScheduler.hadithTapped.addListener(_onHadithReminderTapped);
     JourneyLinks.writeAbout.addListener(_onWriteAbout);
     if (widget.openSubmissionsOnStart) {
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _openMySubmissions());
     }
+    final hadith = widget.openHadithOnStart;
+    if (hadith != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openHadith(hadith));
+    }
+    if (widget.offerRemindersOnStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _offerReminders());
+    }
+  }
+
+  /// Waits a moment so the reader sees Home first, and stays out of the way
+  /// if they have already moved on from it.
+  Future<void> _offerReminders() async {
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    final state = AppStateController();
+    if (!state.morningReminderEnabled && !state.eveningReminderEnabled) return;
+    await offerReminders(context);
   }
 
   @override
@@ -91,6 +125,7 @@ class _HomeScreenState extends State<HomeScreen>
     NotificationScheduler.notificationTapped.removeListener(_onReminderTapped);
     NotificationScheduler.submissionApprovalTapped
         .removeListener(_openMySubmissions);
+    NotificationScheduler.hadithTapped.removeListener(_onHadithReminderTapped);
     JourneyLinks.writeAbout.removeListener(_onWriteAbout);
     _tabFade.dispose();
     super.dispose();
@@ -128,6 +163,21 @@ class _HomeScreenState extends State<HomeScreen>
     final navigator = Navigator.of(context);
     navigator.popUntil((route) => route.isFirst);
     navigator.push(appPageRoute(child: const MySubmissionsScreen()));
+  }
+
+  void _onHadithReminderTapped() {
+    final tap = NotificationScheduler.hadithTapped.value;
+    if (tap != null) _openHadith(tap.number);
+  }
+
+  /// A reminder named this hadith: open it from wherever the reader was.
+  void _openHadith(int number) {
+    final hadith = _repo.getByNumber(number);
+    if (hadith == null || !mounted) return;
+    final navigator = Navigator.of(context);
+    navigator.popUntil((route) => route.isFirst);
+    _goToTab(0);
+    navigator.push(appPageRoute(child: HadithDetailScreen(hadith: hadith)));
   }
 
   Future<List<DailyMessageEntry>> _loadTodayEntries() async {
@@ -174,11 +224,14 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     if (alreadyRevealed < 1) DailyTipService().saveRevealedCount(1);
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       appMessageRoute(
         child: TodayMessageScreen(entries: entries, revealed: alreadyRevealed),
       ),
     );
+    // Back from reading their first message: the reader now has a reason to
+    // want a reminder, and nothing is on screen for the dialog to interrupt.
+    unawaited(JourneyReminders.askAfterReading());
   }
 
   @override
