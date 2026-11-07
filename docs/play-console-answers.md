@@ -22,7 +22,7 @@ Play asks this in two passes: first *which* data types you collect, then
 | Do you provide a way for users to request that their data be deleted? | **Yes** | In-app under الإعدادات، plus the web page below. |
 | Deletion request URL | `https://hadithdaily-5fc06.web.app/delete-account.html` | Live and verified. |
 
-### Data types — declare exactly these four
+### Data types — declare exactly these
 
 **1. Personal info → Email address**
 - Collected: **Yes** · Shared: **No**
@@ -53,6 +53,15 @@ Play asks this in two passes: first *which* data types you collect, then
 - Purpose: **App functionality**
 - Linked to the user: **Yes**
 - Covers `favorites` and `likes` — both keyed by the reader's uid.
+
+**App activity → App interactions**
+- Collected: **Yes** · Shared: **No**
+- Required or optional: **Optional** (only for a signed-in reader; a guest's
+  copy never leaves the phone)
+- Purpose: **App functionality**
+- Linked to the user: **Yes**
+- Covers `users/{uid}/journey` and `users/{uid}/journeyYears`: which hadiths
+  and messages were read, on which days, and for roughly how long.
 
 ### Do NOT declare these
 

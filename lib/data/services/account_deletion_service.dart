@@ -30,8 +30,8 @@ enum ReauthMethod { password, google, unsupported }
 ///     on the parent. Removing the like through the same transaction the app
 ///     normally uses keeps the count honest; doing it after their own posts
 ///     were deleted would strand their like docs under missing parents.
-///  3. **Their posts, then their feedback, then their favourites, then the
-///     profile doc, then the username claim.** Each later step's rule depends on `request.auth`
+///  3. **Their posts, then their feedback, then their favourites and reading
+///     journey, then the profile doc, then the username claim.** Each later step's rule depends on `request.auth`
 ///     still being this user, so the Auth account goes last.
 ///  4. **The Auth account.**
 ///
@@ -141,6 +141,14 @@ class AccountDeletionService {
     // this subcollection behind, unreachable but still stored.
     await _deleteOwnedDocs(
       _db.collection('users').doc(uid).collection('favorites'),
+    );
+
+    onProgress('جارٍ حذف رحلتك…');
+    await _deleteOwnedDocs(
+      _db.collection('users').doc(uid).collection('journey'),
+    );
+    await _deleteOwnedDocs(
+      _db.collection('users').doc(uid).collection('journeyYears'),
     );
 
     onProgress('جارٍ حذف ملفك الشخصي…');

@@ -23,7 +23,9 @@ import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
 import '../community/my_submissions_screen.dart';
 import '../share/add_message_screen.dart';
-import '../favorites/favorites_screen.dart';
+import '../journey/journey_links.dart';
+import '../journey/journey_ring.dart';
+import '../journey/journey_screen.dart';
 import '../profile/settings_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -77,6 +79,7 @@ class _HomeScreenState extends State<HomeScreen>
     NotificationScheduler.notificationTapped.addListener(_onReminderTapped);
     NotificationScheduler.submissionApprovalTapped
         .addListener(_openMySubmissions);
+    JourneyLinks.writeAbout.addListener(_onWriteAbout);
     if (widget.openSubmissionsOnStart) {
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _openMySubmissions());
@@ -88,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen>
     NotificationScheduler.notificationTapped.removeListener(_onReminderTapped);
     NotificationScheduler.submissionApprovalTapped
         .removeListener(_openMySubmissions);
+    JourneyLinks.writeAbout.removeListener(_onWriteAbout);
     _tabFade.dispose();
     super.dispose();
   }
@@ -101,6 +105,20 @@ class _HomeScreenState extends State<HomeScreen>
     Navigator.of(context).popUntil((route) => route.isFirst);
     if (mounted) _goToTab(0);
     await _openDailyMessage();
+  }
+
+  /// A finished hadith led the reader to write about it: back to this shell
+  /// and on to the writing tab, which selects that hadith itself.
+  void _onWriteAbout() {
+    if (JourneyLinks.writeAbout.value == null || !mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    _goToTab(3);
+  }
+
+  /// The journey's first step: back to the emblem, and open today's message.
+  void _openMessageFromJourney() {
+    _goToTab(0);
+    _openDailyMessage();
   }
 
   /// An approval notification was tapped: show the reader the message itself,
@@ -203,6 +221,7 @@ class _HomeScreenState extends State<HomeScreen>
                         enabled: _currentTabIndex == 0,
                         child: _HomeMainView(
                           onOpenDrawer: _openDrawer,
+                          onOpenJourney: () => _goToTab(1),
                           onOpenAllHadiths: () => Navigator.push(
                             context,
                             appPageRoute(child: const HadithListScreen()),
@@ -211,7 +230,10 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                     ),
-                    FavoritesScreen(onOpenDrawer: _openDrawer),
+                    JourneyScreen(
+                      onOpenDrawer: _openDrawer,
+                      onOpenMessage: _openMessageFromJourney,
+                    ),
                     CommunityScreen(
                       onOpenDrawer: _openDrawer,
                       onSwitchToShareTab: () => _goToTab(3),
@@ -271,11 +293,13 @@ class _TabFadeThrough extends StatelessWidget {
 class _HomeMainView extends StatelessWidget {
   const _HomeMainView({
     required this.onOpenDrawer,
+    required this.onOpenJourney,
     required this.onOpenAllHadiths,
     required this.onHeartClick,
   });
 
   final VoidCallback onOpenDrawer;
+  final VoidCallback onOpenJourney;
   final VoidCallback onOpenAllHadiths;
   final VoidCallback onHeartClick;
 
@@ -324,10 +348,9 @@ class _HomeMainView extends StatelessWidget {
                   titleColor: titleColor,
                 ),
               ),
-              // Matches the leading button's width so the pill stays
-              // centred. Favorites already has its own bottom-nav tab —
-              // this header used to duplicate it with a second control.
-              const SizedBox(width: CircleIconButton.slot),
+              // Fills the same 48dp slot as the leading button, so the pill
+              // stays centred.
+              JourneyRing(onTap: onOpenJourney),
             ],
           ),
         );

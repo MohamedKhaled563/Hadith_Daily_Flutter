@@ -339,6 +339,38 @@ service cloud.firestore {
                           && request.resource.data.sourceCollection is string
                           && request.resource.data.sourceCollection.size() <= 100));
       }
+
+      // Phase 20: the reading journey, per account (JourneyRepository +
+      // JourneyStore). Owner-only both ways — not even a moderator reads
+      // what someone has read. One small `state` doc plus one doc of days
+      // per year, so the sizes checked here are all that can grow. Streaks
+      // are calculated from the days rather than stored, so a forged day
+      // only misleads the person who forged it.
+      match /journey/{docId} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+
+        allow create, update: if request.auth != null
+                  && request.auth.uid == uid
+                  && docId == 'state'
+                  && request.resource.data.keys().hasOnly(
+                       ['v', 'round', 'startedOn', 'hadith', 'memo', 'seen',
+                        'records', 'prefs', 'updatedAt'])
+                  && request.resource.data.updatedAt == request.time
+                  && (!('hadith' in request.resource.data)
+                      || request.resource.data.hadith.size() <= 42)
+                  && (!('memo' in request.resource.data)
+                      || request.resource.data.memo.size() <= 42);
+      }
+
+      match /journeyYears/{year} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+
+        allow create, update: if request.auth != null
+                  && request.auth.uid == uid
+                  && year.matches('^[0-9]{4}$')
+                  && request.resource.data.keys().hasOnly(['days'])
+                  && request.resource.data.days.size() <= 366;
+      }
     }
 
     // Phase 13: normalized-display-name uniqueness registry. Doc id is the

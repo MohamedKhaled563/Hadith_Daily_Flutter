@@ -66,7 +66,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final selectedHome = _labelCentre(tester, 'الرئيسية');
-      final unselectedSaved = _labelCentre(tester, 'المفضلة');
+      final unselectedSaved = _labelCentre(tester, 'رحلتي');
 
       await tester.pumpWidget(
         _wrap(
@@ -81,7 +81,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final unselectedHome = _labelCentre(tester, 'الرئيسية');
-      final selectedSaved = _labelCentre(tester, 'المفضلة');
+      final selectedSaved = _labelCentre(tester, 'رحلتي');
 
       expect(
         selectedHome,

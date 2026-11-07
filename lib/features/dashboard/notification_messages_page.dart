@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../data/services/notification_pool_version.dart';
 import '../../data/services/notification_schedule.dart';
 import 'bulk_select_bar.dart';
 import 'dashboard_refresh.dart';
@@ -192,6 +195,10 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage>
       _snack('تعذّر تغيير الحالة: $error');
       return;
     }
+    // Not through DashboardRefresh, which would reload this page for a row
+    // it already shows correctly — but the phones still need telling, or a
+    // message switched off here keeps going out from their cached pool.
+    unawaited(NotificationPoolVersion.bump());
     if (mounted) setState(() => entry.active = value);
   }
 
@@ -221,6 +228,8 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage>
       _snack('تعذّر الحذف: $error');
       return;
     }
+    // Same as _toggleActive: the row is already gone from this page.
+    unawaited(NotificationPoolVersion.bump());
     if (mounted) {
       setState(() {
         _messages?.remove(entry);

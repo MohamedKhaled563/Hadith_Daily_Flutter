@@ -23,9 +23,16 @@ import '../messages/daily_message_screen.dart';
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold
 /// and the background.
 class FavoritesScreen extends StatefulWidget {
-  const FavoritesScreen({super.key, this.onOpenDrawer});
+  const FavoritesScreen({
+    super.key,
+    this.onOpenDrawer,
+    this.showHeader = true,
+  });
 
   final VoidCallback? onOpenDrawer;
+
+  /// False inside the journey tab, which supplies the title itself.
+  final bool showHeader;
 
   @override
   State<FavoritesScreen> createState() => _FavoritesScreenState();
@@ -81,56 +88,58 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     return Column(
       children: [
-        const SizedBox(height: 6),
+        if (widget.showHeader) ...[
+          const SizedBox(height: 6),
 
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (widget.onOpenDrawer != null)
-                CircleIconButton(
-                  icon: Icons.menu_rounded,
-                  semanticLabel: 'فتح قائمة الإعدادات',
-                  onTap: widget.onOpenDrawer!,
-                )
-              else
-                const SizedBox(width: CircleIconButton.slot),
-              Flexible(
-                child: Semantics(
-                  header: true,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'المفضلة والمحفوظات',
-                        textAlign: TextAlign.center,
-                        style: textTheme.titleMedium?.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (widget.onOpenDrawer != null)
+                  CircleIconButton(
+                    icon: Icons.menu_rounded,
+                    semanticLabel: 'فتح قائمة الإعدادات',
+                    onTap: widget.onOpenDrawer!,
+                  )
+                else
+                  const SizedBox(width: CircleIconButton.slot),
+                Flexible(
+                  child: Semantics(
+                    header: true,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'المفضلة والمحفوظات',
+                          textAlign: TextAlign.center,
+                          style: textTheme.titleMedium?.copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      AssetHelper.assetOrFallback(
-                        assetPath: 'assets/images/golden_divider.png',
-                        width: 80,
-                        height: 10,
-                        fallback: Container(
-                          width: 40,
-                          height: 1.5,
-                          color: const Color(0xFFD6BE88),
+                        const SizedBox(height: 2),
+                        AssetHelper.assetOrFallback(
+                          assetPath: 'assets/images/golden_divider.png',
+                          width: 80,
+                          height: 10,
+                          fallback: Container(
+                            width: 40,
+                            height: 1.5,
+                            color: const Color(0xFFD6BE88),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: CircleIconButton.slot),
-            ],
+                const SizedBox(width: CircleIconButton.slot),
+              ],
+            ),
           ),
-        ),
 
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
+        ],
 
         // Favourites belong to an account, so a guest has none to list —
         // say why, and offer the way in, rather than an empty tab that tells

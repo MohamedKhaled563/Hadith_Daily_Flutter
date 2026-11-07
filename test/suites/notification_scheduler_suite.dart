@@ -38,12 +38,20 @@ class _FakeDataSource implements NotificationDataSource {
     this.messagesError,
     this.schedule = const {},
     this.scheduleError,
+    this.poolVersion = 0,
   });
 
   List<Map<String, dynamic>> messages;
   Map<String, dynamic> schedule;
   Object? scheduleError;
   Object? messagesError;
+
+  /// What [loadPoolVersion] answers. Null is "the server cannot be reached".
+  int? poolVersion;
+
+  /// How many times the whole pool was read — each of those is a bill for
+  /// every message in it, which is what the version check exists to avoid.
+  int fetchCount = 0;
 
   /// When set, [loadActiveMessages] blocks on it. Lets a test park one `reschedule()`
   /// mid-flight — deterministically, at a known point — and run a second one
@@ -53,11 +61,15 @@ class _FakeDataSource implements NotificationDataSource {
 
   @override
   Future<List<Map<String, dynamic>>> loadActiveMessages() async {
+    fetchCount++;
     final gate = messagesGate;
     if (gate != null) await gate.future;
     if (messagesError != null) throw messagesError!;
     return messages;
   }
+
+  @override
+  Future<int?> loadPoolVersion() async => poolVersion;
 
   @override
   Future<Map<String, dynamic>> loadSchedule() async {
@@ -490,8 +502,12 @@ void notificationSchedulerSuite() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('notificationScheduler.cachedPool'), isNotNull);
 
-      // ...then fail the live fetch and confirm the cache carried it.
-      final offline = schedulerWith(_FakeDataSource(messagesError: Exception('offline')));
+      // ...then fail the live fetch and confirm the cache carried it. The
+      // version has moved, or the unchanged pool would never be fetched.
+      final offline = schedulerWith(_FakeDataSource(
+        messagesError: Exception('offline'),
+        poolVersion: 1,
+      ));
       final result = await offline.reschedule(
         morningEnabled: true,
         morningTime: const TimeOfDay(hour: 23, minute: 59),
@@ -501,6 +517,201 @@ void notificationSchedulerSuite() {
 
       expect(result.succeeded, isTrue);
       expect(result.scheduledCount, 14);
+    });
+
+    group('pool version', () {
+      // Moved forward by the age test; reset for each test by the setUp below.
+      var now = DateTime(2026, 9, 27, 9);
+
+      setUp(() => now = DateTime(2026, 9, 27, 9));
+
+      NotificationScheduler schedulerAt(NotificationDataSource dataSource) =>
+          NotificationScheduler.test(
+            plugin: plugin,
+            dataSource: dataSource,
+            clock: () => now,
+          );
+
+      Future<NotificationScheduleResult> refresh(
+        NotificationScheduler scheduler,
+      ) =>
+          scheduler.reschedule(
+            morningEnabled: true,
+            morningTime: const TimeOfDay(hour: 23, minute: 59),
+            eveningEnabled: false,
+            eveningTime: const TimeOfDay(hour: 20, minute: 0),
+          );
+
+      /// The body of everything scheduled since the last clearInteractions.
+      List<String?> scheduledBodies() => verify(() => plugin.zonedSchedule(
+            any(),
+            any(),
+            captureAny(),
+            any(),
+            any(),
+            androidScheduleMode: any(named: 'androidScheduleMode'),
+            uiLocalNotificationDateInterpretation:
+                any(named: 'uiLocalNotificationDateInterpretation'),
+            payload: any(named: 'payload'),
+          )).captured.cast<String?>();
+
+      test('an unchanged version does not read the pool again', () async {
+        final dataSource = _FakeDataSource(messages: activePool);
+        final scheduler = schedulerAt(dataSource);
+
+        await refresh(scheduler);
+        final second = await refresh(scheduler);
+
+        expect(dataSource.fetchCount, 1);
+        expect(second.scheduledCount, 14);
+      });
+
+      test('a moved version reads the pool and schedules the new text',
+          () async {
+        final dataSource = _FakeDataSource(messages: activePool);
+        final scheduler = schedulerAt(dataSource);
+        await refresh(scheduler);
+        clearInteractions(plugin);
+        stubPluginDefaults();
+
+        dataSource
+          ..messages = const [
+            {'text': 'رسالة جديدة', 'order': 0, 'active': true},
+          ]
+          ..poolVersion = 1;
+        await refresh(scheduler);
+
+        expect(dataSource.fetchCount, 2);
+        expect(scheduledBodies(), everyElement('رسالة جديدة'));
+      });
+
+      test(
+          'a message switched off reaches the schedule once the version '
+          'moves, and not before — the bump is what the dashboard switch '
+          'relies on', () async {
+        final dataSource = _FakeDataSource(messages: [
+          const {'text': 'تبقى', 'order': 0, 'active': true},
+          const {'text': 'تُوقَف', 'order': 1, 'active': true},
+        ]);
+        final scheduler = schedulerAt(dataSource);
+        await refresh(scheduler);
+        dataSource.messages = const [
+          {'text': 'تبقى', 'order': 0, 'active': true},
+        ];
+
+        await refresh(scheduler);
+        expect(dataSource.fetchCount, 1, reason: 'no bump, no read');
+
+        clearInteractions(plugin);
+        stubPluginDefaults();
+        dataSource.poolVersion = 1;
+        await refresh(scheduler);
+
+        expect(scheduledBodies(), everyElement('تبقى'));
+      });
+
+      test('an unreadable version settles for the cached pool', () async {
+        final dataSource = _FakeDataSource(messages: activePool);
+        final scheduler = schedulerAt(dataSource);
+        await refresh(scheduler);
+
+        dataSource.poolVersion = null;
+        final result = await refresh(scheduler);
+
+        expect(dataSource.fetchCount, 1);
+        expect(result.scheduledCount, 14);
+      });
+
+      test('with no cached pool an unreadable version still tries the fetch',
+          () async {
+        final dataSource =
+            _FakeDataSource(messages: activePool, poolVersion: null);
+
+        final result = await refresh(schedulerAt(dataSource));
+
+        expect(dataSource.fetchCount, 1);
+        expect(result.scheduledCount, 14);
+      });
+
+      test('a fetch with no readable version earns no stamp', () async {
+        final dataSource =
+            _FakeDataSource(messages: activePool, poolVersion: null);
+        final scheduler = schedulerAt(dataSource);
+        await refresh(scheduler);
+
+        dataSource.poolVersion = 0;
+        await refresh(scheduler);
+        await refresh(scheduler);
+
+        expect(dataSource.fetchCount, 2,
+            reason: 'one unstamped read, then one stamped, then none');
+      });
+
+      test('a pool older than poolMaxAge is read again without a bump',
+          () async {
+        final dataSource = _FakeDataSource(messages: activePool);
+        final scheduler = schedulerAt(dataSource);
+        await refresh(scheduler);
+
+        now = now.add(
+          NotificationScheduler.poolMaxAge - const Duration(minutes: 1),
+        );
+        await refresh(scheduler);
+        expect(dataSource.fetchCount, 1);
+
+        now = now.add(const Duration(minutes: 2));
+        await refresh(scheduler);
+        expect(dataSource.fetchCount, 2);
+      });
+
+      test('a clock set back past the last fetch forces a read', () async {
+        final dataSource = _FakeDataSource(messages: activePool);
+        final scheduler = schedulerAt(dataSource);
+        await refresh(scheduler);
+
+        now = now.subtract(const Duration(days: 1));
+        await refresh(scheduler);
+
+        expect(dataSource.fetchCount, 2);
+      });
+
+      test('an install upgrading with a pool but no stamp reads once',
+          () async {
+        SharedPreferences.setMockInitialValues({
+          'notificationScheduler.cachedPool':
+              '[{"id":"a","text":"رسالة قديمة","order":0}]',
+        });
+        final dataSource = _FakeDataSource(messages: activePool);
+        final scheduler = schedulerAt(dataSource);
+
+        await refresh(scheduler);
+        await refresh(scheduler);
+
+        expect(dataSource.fetchCount, 1);
+      });
+
+      test('an empty server pool keeps the cached one and earns no stamp',
+          () async {
+        final dataSource = _FakeDataSource(messages: activePool);
+        final scheduler = schedulerAt(dataSource);
+        await refresh(scheduler);
+        clearInteractions(plugin);
+        stubPluginDefaults();
+
+        dataSource
+          ..messages = const []
+          ..poolVersion = 1;
+        await refresh(scheduler);
+        final fetchesAfterEmpty = dataSource.fetchCount;
+
+        expect(scheduledBodies(), isNot(contains('')));
+        expect(fetchesAfterEmpty, 2);
+
+        dataSource.messages = activePool;
+        await refresh(scheduler);
+        expect(dataSource.fetchCount, 3,
+            reason: 'the empty answer must not look like a finished sync');
+      });
     });
 
     test(

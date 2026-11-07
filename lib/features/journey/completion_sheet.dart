@@ -1,0 +1,177 @@
+import 'package:flutter/material.dart';
+
+import '../../core/auth/sign_in_gate.dart';
+import '../../core/theme/app_palette.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/arabic_numerals.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/botanical_sheet.dart';
+import '../../data/journey/journey_copy.dart';
+import '../../data/journey/journey_repository.dart';
+import '../../data/models/hadith.dart';
+import 'journey_tree.dart';
+
+/// What the reader chose from the completion sheet.
+enum CompletionChoice { write, next, share }
+
+/// The moment a hadith is finished: the leaf turns gold, and the day's next
+/// step is one tap away. Null when the sheet is just dismissed.
+Future<CompletionChoice?> showCompletionSheet({
+  required BuildContext context,
+  required Hadith hadith,
+  required ReadingOutcome outcome,
+  required bool hasNext,
+}) {
+  final milestone = outcome.milestone == null
+      ? null
+      : JourneyCopy.milestone(
+          outcome.milestone!,
+          lastTitle: hadith.title,
+          days: outcome.days,
+        );
+
+  return showBotanicalSheet<CompletionChoice>(
+    context: context,
+    title: milestone?.title ??
+        (outcome.firstTime
+            ? 'اكتمل حديث «${hadith.title}»'
+            : 'أتممت قراءته مرة أخرى'),
+    subtitle: milestone?.body ??
+        JourneyCopy.streakLine(outcome.streak.current, outcome.streak.best),
+    child: _CompletionBody(
+      outcome: outcome,
+      hasNext: hasNext,
+      showsStreak: milestone != null,
+    ),
+  );
+}
+
+class _CompletionBody extends StatelessWidget {
+  const _CompletionBody({
+    required this.outcome,
+    required this.hasNext,
+    required this.showsStreak,
+  });
+
+  final ReadingOutcome outcome;
+  final bool hasNext;
+
+  /// A milestone's message takes the subtitle, so the streak line moves here.
+  final bool showsStreak;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Center(child: CompletedLeaf()),
+        const SizedBox(height: 8),
+        Text(
+          '${toArabicDigits(outcome.completeCount)} من ٤٢ حديثاً',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: kSans,
+            fontSize: 14,
+            height: AppLeading.chrome,
+            fontWeight: FontWeight.w700,
+            color: palette.goldText,
+          ),
+        ),
+        if (showsStreak) ...[
+          const SizedBox(height: 4),
+          Text(
+            JourneyCopy.streakLine(outcome.streak.current, outcome.streak.best),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 13,
+              height: AppLeading.chrome,
+              color: palette.mutedText,
+            ),
+          ),
+        ],
+        if (outcome.newBest) ...[
+          const SizedBox(height: 10),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              decoration: BoxDecoration(
+                color: palette.warmWash,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                'أطول سلسلة لك حتى الآن',
+                style: TextStyle(
+                  fontFamily: kSans,
+                  fontSize: 12.5,
+                  height: AppLeading.chrome,
+                  fontWeight: FontWeight.w700,
+                  color: palette.warmText,
+                ),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 18),
+        Text(
+          JourneyCopy.writePrompt,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: kSans,
+            fontSize: 14,
+            height: AppLeading.body,
+            color: palette.bodyText,
+          ),
+        ),
+        const SizedBox(height: 12),
+        AppButton(
+          text: 'اكتب رسالة من هذا الحديث',
+          icon: Icons.edit_note_rounded,
+          onPressed: () => Navigator.pop(context, CompletionChoice.write),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            if (hasNext) ...[
+              Expanded(
+                child: AppButton(
+                  text: 'الحديث التالي',
+                  isSecondary: true,
+                  onPressed: () =>
+                      Navigator.pop(context, CompletionChoice.next),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: AppButton(
+                text: 'مشاركة',
+                isSecondary: true,
+                icon: Icons.ios_share_rounded,
+                onPressed: () =>
+                    Navigator.pop(context, CompletionChoice.share),
+              ),
+            ),
+          ],
+        ),
+        if (JourneyRepository().isGuest) ...[
+          const SizedBox(height: 6),
+          TextButton(
+            onPressed: () async {
+              await requireSignIn(context, reason: JourneyCopy.signInReason);
+              if (context.mounted) Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 48),
+              foregroundColor: palette.goldText,
+            ),
+            child: const Text('سجّل الدخول لتبقى شجرتك معك'),
+          ),
+        ],
+      ],
+    );
+  }
+}

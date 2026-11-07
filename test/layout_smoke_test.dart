@@ -221,7 +221,7 @@ void main() {
       const Size(360, 640),
     );
 
-    expect(find.textContaining(insight.message), findsOneWidget);
+    expect(find.text('« ${insight.displayMessage} »'), findsOneWidget);
     expect(find.text('رسالة أخرى'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
