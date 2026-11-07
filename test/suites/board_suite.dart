@@ -421,6 +421,20 @@ void boardSuite() {
       expect(flaky.scores['reader'], isNotNull);
     });
 
+    test('an account being deleted sends nothing more', () async {
+      await signIn('reader');
+      service.join(useName: false);
+      await settle();
+      final before = board.writes;
+
+      service.forget();
+      journey.recordFullRead(2, seconds: 60);
+      await settle();
+
+      expect(board.writes, before);
+      expect(service.membership.value, isNull);
+    });
+
     test('the published board is fetched when asked for', () async {
       board.board = const WeeklyBoard(
         week: 3000,
