@@ -366,7 +366,7 @@ void pointsSuite() {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     });
 
-    tearDown(() => journey.debugReset());
+    tearDown(journey.debugReset);
 
     test('records a community read once per post and day', () async {
       journey.recordCommunityRead('p');

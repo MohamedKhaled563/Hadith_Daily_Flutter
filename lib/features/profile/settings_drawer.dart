@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/app_info.dart';
+import '../../core/auth/sign_in_gate.dart';
 import '../../core/crash_reporter.dart';
+import '../../core/legal/legal_documents.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_state_controller.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
-import '../../core/utils/notification_reliability_tip.dart';
 import '../../core/utils/arabic_numerals.dart';
+import '../../core/utils/notification_reliability_tip.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/botanical_sheet.dart';
@@ -19,8 +23,6 @@ import '../../data/services/community_service.dart';
 import '../../data/services/feedback_service.dart';
 import '../../data/services/moderation_service.dart';
 import '../../data/services/notification_scheduler.dart';
-import '../../core/auth/sign_in_gate.dart';
-import '../../core/legal/legal_documents.dart';
 import '../auth/login_screen.dart';
 import '../community/my_submissions_screen.dart';
 import '../community/report_sheet.dart';
@@ -240,8 +242,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                       final text = msgCtrl.text.trim();
                       if (text.isEmpty) {
                         setFieldState(
-                          () => error =
-                              'اكتب ملاحظتك أولاً لتتمكن من إرسالها',
+                          () => error = 'اكتب ملاحظتك أولاً لتتمكن من إرسالها',
                         );
                         return;
                       }
@@ -296,7 +297,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
       'تم حفظ وقتك المفضل لـ ${isMorning ? "تذكير الصباح" : "تذكير المساء"} '
       '(${_formatTime(picked)})',
     );
-    _syncNotifications();
+    unawaited(_syncNotifications());
   }
 
   // Per-slot generation counters: guard against a rapid flip-flop (toggle
@@ -336,7 +337,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
         ? _state.toggleMorningReminder(effective)
         : _state.toggleEveningReminder(effective);
     setState(() {});
-    _syncNotifications();
+    unawaited(_syncNotifications());
 
     if (value && !granted) {
       _promptForNotificationPermission();
@@ -347,11 +348,11 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
     // about something the reader just did, so it skips the launch-count wait
     // that keeps it off a new install's first screen. Still once ever.
     if (effective && mounted) {
-      NotificationReliabilityTip.maybeShow(
+      unawaited(NotificationReliabilityTip.maybeShow(
         context,
         anyReminderEnabled: true,
         force: true,
-      );
+      ));
     }
   }
 
@@ -395,7 +396,8 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
   }
 
   Future<void> _syncNotifications() async {
-    final enabled = _state.morningReminderEnabled || _state.eveningReminderEnabled;
+    final enabled =
+        _state.morningReminderEnabled || _state.eveningReminderEnabled;
     final result = await NotificationScheduler.instance.reschedule(
       morningEnabled: _state.morningReminderEnabled,
       morningTime: _state.morningReminderTime,
@@ -450,7 +452,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
-                      _SectionHeader('المظهر والقراءة'),
+                      const _SectionHeader('المظهر والقراءة'),
                       _SettingsCard(
                         children: [
                           _ThemeModeTile(state: _state),
@@ -463,7 +465,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
 
                       const SizedBox(height: 14),
 
-                      _SectionHeader('مواعيد التنبيهات اليومية'),
+                      const _SectionHeader('مواعيد التنبيهات اليومية'),
                       Padding(
                         padding: const EdgeInsetsDirectional.only(
                           start: 6,
@@ -506,13 +508,14 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                       // The privacy policy promises this switch, so it stays
                       // visible to guests too — reports are not tied to an
                       // account either way.
-                      _SectionHeader('الخصوصية'),
+                      const _SectionHeader('الخصوصية'),
                       _SettingsCard(
                         children: [
                           _SwitchTile(
                             icon: Icons.bug_report_outlined,
                             title: 'إرسال تقارير الأعطال',
-                            subtitle: 'تقارير تقنية تساعدنا على إصلاح المشكلات، '
+                            subtitle:
+                                'تقارير تقنية تساعدنا على إصلاح المشكلات، '
                                 'لا تتضمن اسمك ولا بريدك ولا ما تكتبه',
                             value: CrashReporter.enabled,
                             // setEnabled flips the flag before its first
@@ -527,7 +530,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
 
                       const SizedBox(height: 14),
 
-                      _SectionHeader('المعلومات والتواصل'),
+                      const _SectionHeader('المعلومات والتواصل'),
                       _SettingsCard(
                         children: [
                           _NavTile(
@@ -572,8 +575,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                           _NavTile(
                             icon: Icons.gavel_rounded,
                             title: LegalDocuments.termsTitle,
-                            onTap: () =>
-                                LegalDocumentScreen.openTerms(context),
+                            onTap: () => LegalDocumentScreen.openTerms(context),
                           ),
                         ],
                       ),
@@ -584,7 +586,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                       // name: tapping your own name should show you your
                       // account, not offer to end the session.
                       if (_state.isLoggedIn) ...[
-                        _SectionHeader('الحساب'),
+                        const _SectionHeader('الحساب'),
                         _SettingsCard(
                           children: [
                             _NavTile(
@@ -1121,7 +1123,7 @@ class _FontSizeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
-    final steps = AppStateController.fontSizeSteps;
+    const steps = AppStateController.fontSizeSteps;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),

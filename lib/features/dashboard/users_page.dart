@@ -37,13 +37,15 @@ class _UsersPageState extends State<UsersPage> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: TextField(
             controller: _searchController,
-            onChanged: (value) => setState(() => _query = value.trim().toLowerCase()),
+            onChanged: (value) =>
+                setState(() => _query = value.trim().toLowerCase()),
             decoration: InputDecoration(
               hintText: 'ابحث بالاسم أو البريد الإلكتروني',
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: _query.isEmpty
                   ? null
                   : IconButton(
+                      tooltip: 'مسح البحث',
                       icon: const Icon(Icons.close_rounded),
                       onPressed: () => setState(() {
                         _searchController.clear();
@@ -60,7 +62,8 @@ class _UsersPageState extends State<UsersPage> {
             stream: stream,
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return Center(child: Text('تعذّر تحميل المستخدمين: ${snapshot.error}'));
+                return Center(
+                    child: Text('تعذّر تحميل المستخدمين: ${snapshot.error}'));
               }
               if (!snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
@@ -70,14 +73,17 @@ class _UsersPageState extends State<UsersPage> {
                 docs = docs.where((doc) {
                   final data = doc.data();
                   final email = (data['email'] as String? ?? '').toLowerCase();
-                  final name = (data['displayName'] as String? ?? '').toLowerCase();
+                  final name =
+                      (data['displayName'] as String? ?? '').toLowerCase();
                   return email.contains(_query) || name.contains(_query);
                 }).toList();
               }
               if (docs.isEmpty) {
                 return Center(
                   child: Text(
-                    _query.isEmpty ? 'لا يوجد مستخدمون بعد' : 'لا نتائج مطابقة للبحث',
+                    _query.isEmpty
+                        ? 'لا يوجد مستخدمون بعد'
+                        : 'لا نتائج مطابقة للبحث',
                   ),
                 );
               }
@@ -221,10 +227,11 @@ class _UserCardState extends State<_UserCard> {
                       ),
                       if (widget.isSelf) ...[
                         const SizedBox(width: 6),
-                        Chip(
-                          label: const Text('أنت', style: TextStyle(fontSize: 11)),
+                        const Chip(
+                          label: Text('أنت', style: TextStyle(fontSize: 11)),
                           visualDensity: VisualDensity.compact,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                         ),
                       ],
                     ],
@@ -255,16 +262,19 @@ class _UserCardState extends State<_UserCard> {
               DropdownButton<String>(
                 value: _roles.contains(role) ? role : 'user',
                 items: _roles
-                    .map((r) => DropdownMenuItem(value: r, child: Text(_roleLabels[r]!)))
+                    .map((r) => DropdownMenuItem(
+                        value: r, child: Text(_roleLabels[r]!)))
                     .toList(),
                 onChanged: (value) {
                   if (value != null && value != role) _changeRole(value);
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                icon:
+                    const Icon(Icons.delete_outline_rounded, color: Colors.red),
                 tooltip: 'حذف المستخدم',
-                onPressed: () => _removeUser(displayName.isNotEmpty ? displayName : email),
+                onPressed: () =>
+                    _removeUser(displayName.isNotEmpty ? displayName : email),
               ),
             ],
           ],

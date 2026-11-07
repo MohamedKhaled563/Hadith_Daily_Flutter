@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import '../../core/auth/auth_service.dart';
 import 'bulk_add_page.dart';
 import 'bulk_change_requests_page.dart';
+import 'content_reports_page.dart';
 import 'daily_message_schedule_page.dart';
 import 'feedback_messages_page.dart';
 import 'notification_messages_page.dart';
-import 'content_reports_page.dart';
 import 'pending_queue_page.dart';
 import 'users_page.dart';
 import 'weekly_board_page.dart';
@@ -120,7 +120,7 @@ class _AccessDeniedScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               OutlinedButton(
-                onPressed: () => AuthService.instance.signOut(),
+                onPressed: AuthService.instance.signOut,
                 child: const Text('تسجيل الخروج'),
               ),
             ],
@@ -462,7 +462,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
             IconButton(
               icon: const Icon(Icons.logout_rounded),
               tooltip: 'تسجيل الخروج',
-              onPressed: () => AuthService.instance.signOut(),
+              onPressed: AuthService.instance.signOut,
             ),
           ],
           // The AppBar/app chrome stays LTR (see DashboardApp's builder), but

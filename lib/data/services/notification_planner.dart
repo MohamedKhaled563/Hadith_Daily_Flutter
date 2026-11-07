@@ -143,7 +143,8 @@ PlannedReminder? planReminder(
   // Friday morning sums up the week, if there is a week to sum up. Fridays
   // ahead are planned from what is known now, so a reader who stops before
   // one gets the ordinary lines instead of an empty harvest.
-  if (slot == ReminderSlot.morning && _isFriday(day) &&
+  if (slot == ReminderSlot.morning &&
+      _isFriday(day) &&
       missed <= kGentleAwayDays) {
     final harvest = harvestFor(data, day);
     if (harvest.days > 0) {

@@ -3,19 +3,18 @@ import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/core/theme/app_state_controller.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
-import 'package:hadith_app/features/home/home_screen.dart';
-import 'package:hadith_app/features/hadith/hadith_list_screen.dart';
 import 'package:hadith_app/features/hadith/hadith_detail_screen.dart';
+import 'package:hadith_app/features/hadith/hadith_list_screen.dart';
 import 'package:hadith_app/features/hadith/intro_section_screen.dart';
+import 'package:hadith_app/features/home/home_screen.dart';
 import 'package:hadith_app/features/messages/daily_message_card.dart';
 import 'package:hadith_app/features/messages/daily_message_screen.dart';
 import 'package:hadith_app/features/messages/today_message_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Device sizes that previously broke the Home hero (F-07). 360x640 is the
 /// stock small Android phone the audit measured a 6dp deficit on.
@@ -240,7 +239,8 @@ void main() {
     );
 
     for (final hadith in repo.getAll()) {
-      expect(hadith.title.trim(), isNotEmpty, reason: '#${hadith.number} title');
+      expect(hadith.title.trim(), isNotEmpty,
+          reason: '#${hadith.number} title');
       expect(hadith.text.trim(), isNotEmpty, reason: '#${hadith.number} text');
       expect(hadith.reference.trim(), isNotEmpty,
           reason: '#${hadith.number} reference');

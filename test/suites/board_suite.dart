@@ -79,7 +79,7 @@ void boardSuite() {
     });
 
     test('no name to use means «فاعل خير»', () {
-      expect(boardName(useName: true, displayName: null), kAnonymousName);
+      expect(boardName(useName: true), kAnonymousName);
       expect(boardName(useName: true, displayName: '   '), kAnonymousName);
     });
 

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/data/models/hadith.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/hadith/hadith_detail_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Arabic script has no italic form. Slanting it is a Latin convention, and
 /// no oblique Amiri is bundled — so `FontStyle.italic` did not select a face,

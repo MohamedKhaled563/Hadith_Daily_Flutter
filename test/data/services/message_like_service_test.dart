@@ -67,7 +67,10 @@ void main() {
         (uid) {
           late final StreamController<int> inner;
           inner = StreamController<int>(
-            onCancel: () => cancelled.add(uid),
+            onCancel: () {
+              cancelled.add(uid);
+              return inner.close();
+            },
           );
           return inner.stream;
         },

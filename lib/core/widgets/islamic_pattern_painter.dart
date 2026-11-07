@@ -34,7 +34,6 @@ class IslamicWatermarkPainter extends CustomPainter {
       bounds,
       Paint()
         ..shader = RadialGradient(
-          center: Alignment.center,
           radius: 0.95,
           colors: [
             color.withValues(alpha: 0.0),
@@ -119,16 +118,22 @@ class CornerOrnamentPainter extends CustomPainter {
     canvas.drawLine(Offset(inset, inset), Offset(inset + length, inset), paint);
 
     // Top-Right
-    canvas.drawLine(Offset(size.width - inset - length, inset), Offset(size.width - inset, inset), paint);
-    canvas.drawLine(Offset(size.width - inset, inset), Offset(size.width - inset, inset + length), paint);
+    canvas.drawLine(Offset(size.width - inset - length, inset),
+        Offset(size.width - inset, inset), paint);
+    canvas.drawLine(Offset(size.width - inset, inset),
+        Offset(size.width - inset, inset + length), paint);
 
     // Bottom-Left
-    canvas.drawLine(Offset(inset, size.height - inset - length), Offset(inset, size.height - inset), paint);
-    canvas.drawLine(Offset(inset, size.height - inset), Offset(inset + length, size.height - inset), paint);
+    canvas.drawLine(Offset(inset, size.height - inset - length),
+        Offset(inset, size.height - inset), paint);
+    canvas.drawLine(Offset(inset, size.height - inset),
+        Offset(inset + length, size.height - inset), paint);
 
     // Bottom-Right
-    canvas.drawLine(Offset(size.width - inset - length, size.height - inset), Offset(size.width - inset, size.height - inset), paint);
-    canvas.drawLine(Offset(size.width - inset, size.height - inset), Offset(size.width - inset, size.height - inset - length), paint);
+    canvas.drawLine(Offset(size.width - inset - length, size.height - inset),
+        Offset(size.width - inset, size.height - inset), paint);
+    canvas.drawLine(Offset(size.width - inset, size.height - inset),
+        Offset(size.width - inset, size.height - inset - length), paint);
   }
 
   @override

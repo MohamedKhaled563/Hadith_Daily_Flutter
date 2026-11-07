@@ -180,7 +180,8 @@ Future<List<String>> applySheetDiff(
       skipped.add(entry.key);
       continue;
     }
-    await writer.merge(db.collection(diff.collection).doc(entry.key), entry.value);
+    await writer.merge(
+        db.collection(diff.collection).doc(entry.key), entry.value);
   }
 
   for (final fields in diff.creates) {

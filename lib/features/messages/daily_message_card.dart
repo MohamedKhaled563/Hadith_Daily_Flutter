@@ -372,8 +372,7 @@ class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
   void didUpdateWidget(_LiveMessageToolbar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.insight.id != widget.insight.id ||
-        oldWidget.insight.sourceCollection !=
-            widget.insight.sourceCollection) {
+        oldWidget.insight.sourceCollection != widget.insight.sourceCollection) {
       _subscribe();
       _optimisticLiked = null;
     }
@@ -411,7 +410,7 @@ class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
     // streams echo it within a frame; offline it waits for the connection.
     // The future only settles on the server's verdict, so it is watched
     // for a rejection rather than held behind.
-    _likeService
+    unawaited(_likeService
         .setLiked(
       widget.insight.sourceCollection,
       widget.insight.id,
@@ -431,7 +430,7 @@ class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
             : 'تعذّر تسجيل الإعجاب، حاول مجدداً',
         tone: gone ? SnackTone.warning : SnackTone.danger,
       );
-    });
+    }));
   }
 
   @override

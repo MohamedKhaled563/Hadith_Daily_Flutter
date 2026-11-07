@@ -34,7 +34,8 @@ class NotificationMessagesPage extends StatefulWidget {
   final bool isAdmin;
 
   @override
-  State<NotificationMessagesPage> createState() => _NotificationMessagesPageState();
+  State<NotificationMessagesPage> createState() =>
+      _NotificationMessagesPageState();
 }
 
 class _MsgEntry {
@@ -88,10 +89,8 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage>
   }
 
   Future<List<_MsgEntry>> _loadMessages() async {
-    final snapshot = await _db
-        .collection('notificationMessages')
-        .orderBy('order')
-        .get();
+    final snapshot =
+        await _db.collection('notificationMessages').orderBy('order').get();
     return snapshot.docs
         .map(
           (doc) => _MsgEntry(
@@ -270,7 +269,8 @@ class _NotificationMessagesPageState extends State<NotificationMessagesPage>
   /// one, so nothing is overwritten by surprise.
   Future<void> _scheduleMessage(_MsgEntry entry) async {
     if (!entry.active) {
-      _snack('فعّل الرسالة أولاً — الرسائل المعطّلة لا تُرسل حتى لو كانت محددة ليوم');
+      _snack(
+          'فعّل الرسالة أولاً — الرسائل المعطّلة لا تُرسل حتى لو كانت محددة ليوم');
       return;
     }
     final now = DateTime.now();
@@ -708,7 +708,8 @@ class _MessageRow extends StatelessWidget {
                     ),
                   )
                 : IconButton(
-                    icon: const Icon(Icons.event_available_rounded, color: Colors.green),
+                    icon: const Icon(Icons.event_available_rounded,
+                        color: Colors.green),
                     tooltip: 'تحديد ليوم معيّن',
                     onPressed: onSchedule,
                   ),

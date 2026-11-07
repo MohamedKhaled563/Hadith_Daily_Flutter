@@ -2,13 +2,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/auth/login_screen.dart';
 import 'package:hadith_app/features/home/home_screen.dart';
 import 'package:hadith_app/features/splash/splash_screen.dart';
 import 'package:hadith_app/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Long enough to clear the splash screen's 2.8s auto-advance timer and the
 /// route transition that follows it.

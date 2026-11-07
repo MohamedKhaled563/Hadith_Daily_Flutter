@@ -92,9 +92,7 @@ StreakResult computeStreak(
   var grace = 0;
   var counted = 0;
 
-  for (var day = first;
-      day.compareTo(today) <= 0;
-      day = dayKeyPlus(day, 1)) {
+  for (var day = first; day.compareTo(today) <= 0; day = dayKeyPlus(day, 1)) {
     if (present.contains(day)) {
       streak++;
       counted++;
@@ -189,7 +187,8 @@ class WeekCompare {
 /// account, when just the last is worth showing.
 List<int> newMilestones(int completeCount, Set<String> seen) => [
       for (final milestone in kJourneyMilestones)
-        if (completeCount >= milestone && !seen.contains(milestoneId(milestone)))
+        if (completeCount >= milestone &&
+            !seen.contains(milestoneId(milestone)))
           milestone,
     ];
 

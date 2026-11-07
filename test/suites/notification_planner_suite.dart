@@ -8,7 +8,7 @@ import 'package:hadith_app/data/services/notification_planner.dart';
 void notificationPlannerSuite() {
   const today = '2026-11-07';
   final morning = DateTime(2026, 11, 7, 8, 30);
-  final evening = DateTime(2026, 11, 7, 20, 0);
+  final evening = DateTime(2026, 11, 7, 20);
 
   /// A reader who read on the days [daysAgo] before today.
   JourneyData readOn(Iterable<int> daysAgo, {Set<int> complete = const {}}) {
@@ -77,8 +77,7 @@ void notificationPlannerSuite() {
       });
 
       test('the morning falls back to the pool once all 42 are read', () {
-        final data =
-            readOn([1], complete: {for (var n = 1; n <= 42; n++) n});
+        final data = readOn([1], complete: {for (var n = 1; n <= 42; n++) n});
 
         expect(plan(data, ReminderSlot.morning), isNull);
       });
@@ -106,8 +105,7 @@ void notificationPlannerSuite() {
     });
 
     group('after a short absence', () {
-      test('one missed day covered by a grace day says the streak is safe',
-          () {
+      test('one missed day covered by a grace day says the streak is safe', () {
         // Seven days in a row earn a grace day, and yesterday used it.
         final reminder = plan(
           readOn([for (var ago = 2; ago <= 9; ago++) ago]),
@@ -127,7 +125,7 @@ void notificationPlannerSuite() {
       });
 
       test('only days 1, 3 and 7 say anything', () {
-        Map<int, String?> titles = {
+        final Map<int, String?> titles = {
           for (var missed = 1; missed <= 8; missed++)
             missed: plan(readOn([missed + 1]), ReminderSlot.morning)?.title,
         };
@@ -190,7 +188,7 @@ void notificationPlannerSuite() {
 
     test('a reminder after midnight belongs to the evening still running', () {
       // 01:00 on the 8th is still the 7th's reading day, already read.
-      final late = DateTime(2026, 11, 8, 1, 0);
+      final late = DateTime(2026, 11, 8, 1);
 
       expect(plan(readOn([0, 1, 2]), ReminderSlot.evening, at: late), isNull);
     });
@@ -250,7 +248,8 @@ void notificationPlannerSuite() {
     });
 
     test('is the same for every guest', () {
-      expect(key(readOn([1]), signedIn: false), key(readOn([3]), signedIn: false));
+      expect(
+          key(readOn([1]), signedIn: false), key(readOn([3]), signedIn: false));
     });
   });
 }

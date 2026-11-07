@@ -1,15 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
 import '../../core/auth/sign_in_gate.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
-import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/like_counter.dart';

@@ -1,37 +1,38 @@
 import 'dart:async';
-
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
-import '../../core/widgets/app_snack.dart';
-import '../../core/theme/app_text_styles.dart';
-import '../../core/widgets/app_background.dart';
-import '../../core/widgets/bottom_navigation.dart';
-import '../../core/widgets/asset_helper.dart';
-import '../../core/widgets/circle_icon_button.dart';
-import '../../core/widgets/app_loading_overlay.dart';
-import '../../core/widgets/smooth_page_route.dart';
-import '../../core/widgets/tap_target.dart';
 import '../../core/theme/app_state_controller.dart';
+import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
 import '../../core/utils/notification_reliability_tip.dart';
+import '../../core/widgets/app_background.dart';
+import '../../core/widgets/app_loading_overlay.dart';
+import '../../core/widgets/app_snack.dart';
+import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/bottom_navigation.dart';
+import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/smooth_page_route.dart';
+import '../../core/widgets/tap_target.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/daily_tip_service.dart';
 import '../../data/services/journey_reminders.dart';
 import '../../data/services/notification_scheduler.dart';
-import '../messages/daily_message_card.dart';
-import '../messages/today_message_screen.dart';
-import '../hadith/hadith_detail_screen.dart';
-import '../hadith/hadith_list_screen.dart';
 import '../community/community_screen.dart';
 import '../community/my_submissions_screen.dart';
-import '../share/add_message_screen.dart';
+import '../hadith/hadith_detail_screen.dart';
+import '../hadith/hadith_list_screen.dart';
 import '../journey/journey_links.dart';
 import '../journey/journey_ring.dart';
 import '../journey/journey_screen.dart';
 import '../memorize/memorize_screen.dart';
+import '../messages/daily_message_card.dart';
+import '../messages/today_message_screen.dart';
 import '../profile/settings_drawer.dart';
+import '../share/add_message_screen.dart';
 import 'reminder_offer.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -112,8 +113,7 @@ class _HomeScreenState extends State<HomeScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) => _openJourney());
     }
     if (widget.openSubmissionsOnStart) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _openMySubmissions());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openMySubmissions());
     }
     final hadith = widget.openHadithOnStart;
     if (hadith != null) {
@@ -255,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    if (alreadyRevealed < 1) DailyTipService().saveRevealedCount(1);
+    if (alreadyRevealed < 1) unawaited(DailyTipService().saveRevealedCount(1));
     await Navigator.of(context).push(
       appMessageRoute(
         child: TodayMessageScreen(entries: entries, revealed: alreadyRevealed),
@@ -292,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen>
                 animation: _tabFade,
                 child: IndexedStack(
                   index: _currentTabIndex,
-                    children: [
+                  children: [
                     // TickerMode pauses the home screen's ambient animations
                     // while another tab is showing — IndexedStack does not do
                     // this for us.
@@ -652,10 +652,10 @@ class _HeartbeatHadithCircleState extends State<_HeartbeatHadithCircle>
       // The State's own mounted, not context.mounted: this is a State.context
       // being used after an await, and the two are not interchangeable.
       if (!mounted) return;
-      NotificationReliabilityTip.maybeShow(
+      unawaited(NotificationReliabilityTip.maybeShow(
         context,
         anyReminderEnabled: anyReminderEnabled,
-      );
+      ));
     });
 
     _heartbeat = AnimationController(

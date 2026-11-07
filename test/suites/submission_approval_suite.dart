@@ -18,7 +18,7 @@ class _MockReminderSource extends Mock implements NotificationDataSource {}
 /// answers and when a pending message gets decided.
 class _FakeSubmissions implements SubmissionDataSource {
   List<ApprovedSubmission> approved = [];
-  Object? error;
+  Error? error;
   int loads = 0;
 
   /// When set, [loadApproved] blocks on it, parking a check mid-read.
@@ -37,6 +37,8 @@ class _FakeSubmissions implements SubmissionDataSource {
 
   @override
   Stream<void> pendingDecided(String uid) => decided.stream;
+
+  Future<void> dispose() => decided.close();
 }
 
 ApprovedSubmission _message(String id) =>
@@ -65,10 +67,12 @@ void submissionApprovalSuite() {
       started = [];
     });
 
-    tearDown(() {
+    tearDown(() async {
       for (final watcher in started) {
         watcher.dispose();
       }
+      await auth.close();
+      await submissions.dispose();
     });
 
     /// A fresh watcher, which is what a new launch of the app amounts to.
@@ -79,8 +83,7 @@ void submissionApprovalSuite() {
         dataSource: submissions,
         uidChanges: () => auth.stream,
         notify: notify ??
-            (approved) async =>
-                notified.add([for (final s in approved) s.id]),
+            (approved) async => notified.add([for (final s in approved) s.id]),
       )..start();
       started.add(watcher);
       return watcher;
@@ -119,7 +122,8 @@ void submissionApprovalSuite() {
       expect(notified, isEmpty);
     });
 
-    test('a message approved while the app was closed is announced at the '
+    test(
+        'a message approved while the app was closed is announced at the '
         'next start', () async {
       submissions.approved = [_message('old')];
       (await signedIn()).dispose();
@@ -132,7 +136,8 @@ void submissionApprovalSuite() {
       ]);
     });
 
-    test('a message approved while the app is running is announced as it '
+    test(
+        'a message approved while the app is running is announced as it '
         'happens', () async {
       final watcher = await signedIn();
 
@@ -339,16 +344,16 @@ void submissionApprovalSuite() {
         notificationResponseType: NotificationResponseType.selectedNotification,
         payload: NotificationScheduler.submissionApprovedPayload,
       ));
-      expect(NotificationScheduler.submissionApprovalTapped.value,
-          approvals + 1);
+      expect(
+          NotificationScheduler.submissionApprovalTapped.value, approvals + 1);
       expect(NotificationScheduler.notificationTapped.value, reminders);
 
       onTap(const NotificationResponse(
         notificationResponseType: NotificationResponseType.selectedNotification,
         payload: 'some-reminder-doc-id',
       ));
-      expect(NotificationScheduler.submissionApprovalTapped.value,
-          approvals + 1);
+      expect(
+          NotificationScheduler.submissionApprovalTapped.value, approvals + 1);
       expect(NotificationScheduler.notificationTapped.value, reminders + 1);
     });
 

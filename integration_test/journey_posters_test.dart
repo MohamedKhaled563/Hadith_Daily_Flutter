@@ -83,8 +83,7 @@ void main() {
   }
 
   final data = JourneyData(hadith: {
-    for (var n = 1; n <= 15; n++)
-      n: const HadithProgress(fullOn: '2026-11-06'),
+    for (var n = 1; n <= 15; n++) n: const HadithProgress(fullOn: '2026-11-06'),
     16: const HadithProgress(textOn: '2026-11-07'),
   });
 

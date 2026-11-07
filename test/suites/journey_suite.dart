@@ -20,7 +20,7 @@ void journeySuite() {
   group('reading day', () {
     test('turns over at 03:00, not midnight', () {
       expect(journeyDayKey(DateTime(2026, 11, 7, 2, 59)), '2026-11-06');
-      expect(journeyDayKey(DateTime(2026, 11, 7, 3, 0)), '2026-11-07');
+      expect(journeyDayKey(DateTime(2026, 11, 7, 3)), '2026-11-07');
     });
 
     test('dayKeyPlus crosses months and years', () {
@@ -70,7 +70,8 @@ void journeySuite() {
         '2026-11-09': _present(),
       };
       final s = computeStreak(days, '2026-11-09');
-      expect(s.current, 8, reason: 'the covered day adds nothing, the 9th does');
+      expect(s.current, 8,
+          reason: 'the covered day adds nothing, the 9th does');
       expect(s.graceBanked, 0);
     });
 
@@ -94,8 +95,8 @@ void journeySuite() {
     });
 
     test('a stored best from older years is kept', () {
-      final s = computeStreak(_run('2026-11-05', 2), '2026-11-06',
-          storedBest: 40);
+      final s =
+          computeStreak(_run('2026-11-05', 2), '2026-11-06', storedBest: 40);
       expect(s.best, 40);
     });
   });
@@ -305,17 +306,16 @@ void journeySuite() {
     });
 
     test('survives a trip through JSON', () {
-      final data = JourneyData.empty
-          .apply(const JourneyEvent(
-            dayKey: '2026-11-06',
-            messageId: 'a',
-            messageHadith: 5,
-            fullHadith: 7,
-            seconds: 90,
-            seen: ['read5'],
-            bestStreak: 4,
-            startedOn: '2026-11-06',
-          ));
+      final data = JourneyData.empty.apply(const JourneyEvent(
+        dayKey: '2026-11-06',
+        messageId: 'a',
+        messageHadith: 5,
+        fullHadith: 7,
+        seconds: 90,
+        seen: ['read5'],
+        bestStreak: 4,
+        startedOn: '2026-11-06',
+      ));
       final back = JourneyData.fromJson(data.toJson());
       expect(back.startedOn, '2026-11-06');
       expect(back.progressOf(7).isComplete, isTrue);

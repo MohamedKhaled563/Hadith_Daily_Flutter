@@ -1,15 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+
 import '../../core/auth/sign_in_gate.dart';
-import '../../core/utils/app_motion.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
-import '../../core/widgets/bottom_navigation.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
-import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_empty_state.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/like_counter.dart';
 import '../../core/widgets/parchment_card.dart';
@@ -125,7 +127,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
     showAppSnack(
       context,
       'لن تظهر لك مشاركات هذا الكاتب على هذا الجهاز',
-      tone: SnackTone.neutral,
     );
   }
 
@@ -160,7 +161,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
     return Column(
       children: [
         const SizedBox(height: 8),
-
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
@@ -185,22 +185,17 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ],
           ),
         ),
-
         const SizedBox(height: 10),
-
         Semantics(
           header: true,
           child: Text('مجتمع الحديث', style: textTheme.headlineMedium),
         ),
         const SizedBox(height: 6),
-
         _SortToggle(
           sortByLikes: _sortByLikes,
           onChanged: _setSort,
         ),
-
         const SizedBox(height: 12),
-
         Expanded(
           child: StreamBuilder<List<CommunityPost>>(
             stream: CommunityService().approvedMessages(
@@ -212,7 +207,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 // Refreshable, because "try again" with nothing to try it
                 // with is the same defect as a message with no way out of it.
                 return _refreshable(
-                  AppEmptyState(
+                  const AppEmptyState(
                     icon: Icons.wifi_off_rounded,
                     title: 'تعذّر تحميل المشاركات',
                     subtitle: 'اسحب للأسفل للمحاولة مرة أخرى، بعد التحقق من '
@@ -241,22 +236,22 @@ class _CommunityScreenState extends State<CommunityScreen> {
               if (posts.isEmpty) {
                 return _refreshable(
                   fetched.isEmpty
-                    ? AppEmptyState(
-                        icon: Icons.forum_outlined,
-                        title: 'لا توجد مشاركات بعد',
-                        subtitle:
-                            'كن أول من يشارك خاطرة أو تأملاً مربوطاً بحديث نبوي شريف، واجعلها سبباً في نشر الخير.',
-                        actionLabel: 'شارك أول رسالة',
-                        onAction: _openAddMessage,
-                      )
-                    : AppEmptyState(
-                        icon: Icons.visibility_off_outlined,
-                        title: 'كل المشاركات هنا من كُتّاب أخفيتهم',
-                        subtitle:
-                            'يمكنك إظهارهم مرة أخرى من الإعدادات، أو تشارك أنت خاطرة جديدة.',
-                        actionLabel: 'شارك رسالة',
-                        onAction: _openAddMessage,
-                      ),
+                      ? AppEmptyState(
+                          icon: Icons.forum_outlined,
+                          title: 'لا توجد مشاركات بعد',
+                          subtitle:
+                              'كن أول من يشارك خاطرة أو تأملاً مربوطاً بحديث نبوي شريف، واجعلها سبباً في نشر الخير.',
+                          actionLabel: 'شارك أول رسالة',
+                          onAction: _openAddMessage,
+                        )
+                      : AppEmptyState(
+                          icon: Icons.visibility_off_outlined,
+                          title: 'كل المشاركات هنا من كُتّاب أخفيتهم',
+                          subtitle:
+                              'يمكنك إظهارهم مرة أخرى من الإعدادات، أو تشارك أنت خاطرة جديدة.',
+                          actionLabel: 'شارك رسالة',
+                          onAction: _openAddMessage,
+                        ),
                 );
               }
 
@@ -527,7 +522,8 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
     // streams echo it within a frame; offline it waits for the connection.
     // The future only settles on the server's verdict, so it is watched
     // for a rejection rather than held behind.
-    _service.setLiked(widget.post.id, liked: next).catchError((Object _) {
+    unawaited(
+        _service.setLiked(widget.post.id, liked: next).catchError((Object _) {
       if (!mounted) return;
       setState(() => _optimisticLiked = null);
       showAppSnack(
@@ -535,7 +531,7 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
         'تعذّر تسجيل الإعجاب، حاول مجدداً',
         tone: SnackTone.danger,
       );
-    });
+    }));
   }
 
   @override
@@ -560,77 +556,76 @@ class _CommunityPostCardState extends State<_CommunityPostCard> {
             // side by side.
             width: double.infinity,
             child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Centred regardless of the side widths — a spaceBetween Row
-              // here used to shift the avatar off-centre whenever the like
-              // counter's variable width didn't match the share icon's.
-              _AuthorAvatar(
-                rank: widget.rank,
-                authorName: widget.post.authorName,
-              ),
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: StreamBuilder<bool>(
-                  stream: _likeStatus,
-                  builder: (context, snapshot) {
-                    final serverLiked = snapshot.data ?? false;
-                    if (_optimisticLiked != null &&
-                        _optimisticLiked == serverLiked) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted && _optimisticLiked == serverLiked) {
-                          setState(() => _optimisticLiked = null);
-                        }
-                      });
-                    }
-                    final isLiked = _optimisticLiked ?? serverLiked;
-                    final displayedLikes =
-                        widget.post.likes +
-                        (_optimisticLiked != null &&
-                                _optimisticLiked != serverLiked
-                            ? (_optimisticLiked! ? 1 : -1)
-                            : 0);
-                    return LikeCounter(
-                      likes: displayedLikes,
-                      isLiked: isLiked,
-                      onTap: () => _handleLike(serverLiked),
-                    );
-                  },
+              alignment: Alignment.center,
+              children: [
+                // Centred regardless of the side widths — a spaceBetween Row
+                // here used to shift the avatar off-centre whenever the like
+                // counter's variable width didn't match the share icon's.
+                _AuthorAvatar(
+                  rank: widget.rank,
+                  authorName: widget.post.authorName,
                 ),
-              ),
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _CardCircleAction(
-                      icon: Icons.ios_share_rounded,
-                      semanticLabel: 'مشاركة المشاركة كصورة',
-                      onTap: () => showShareSheet(
-                        context: context,
-                        message: widget.post.displayMessage,
-                        hadithTitle: hadith?.title,
-                        hadithNumber: toArabicDigits(widget.post.hadithNumber),
-                        attribution: widget.post.authorName,
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: StreamBuilder<bool>(
+                    stream: _likeStatus,
+                    builder: (context, snapshot) {
+                      final serverLiked = snapshot.data ?? false;
+                      if (_optimisticLiked != null &&
+                          _optimisticLiked == serverLiked) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && _optimisticLiked == serverLiked) {
+                            setState(() => _optimisticLiked = null);
+                          }
+                        });
+                      }
+                      final isLiked = _optimisticLiked ?? serverLiked;
+                      final displayedLikes = widget.post.likes +
+                          (_optimisticLiked != null &&
+                                  _optimisticLiked != serverLiked
+                              ? (_optimisticLiked! ? 1 : -1)
+                              : 0);
+                      return LikeCounter(
+                        likes: displayedLikes,
+                        isLiked: isLiked,
+                        onTap: () => _handleLike(serverLiked),
+                      );
+                    },
+                  ),
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _CardCircleAction(
+                        icon: Icons.ios_share_rounded,
+                        semanticLabel: 'مشاركة المشاركة كصورة',
+                        onTap: () => showShareSheet(
+                          context: context,
+                          message: widget.post.displayMessage,
+                          hadithTitle: hadith?.title,
+                          hadithNumber:
+                              toArabicDigits(widget.post.hadithNumber),
+                          attribution: widget.post.authorName,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    // Furthest into the corner, matching the post screen.
-                    // A reader scrolling past something they object to should
-                    // not have to open it in order to stop seeing it — that
-                    // is the one moment they least want a closer look. Its
-                    // own hit test is opaque, so it wins the gesture arena
-                    // ahead of the card's own tap.
-                    _CardCircleAction(
-                      icon: Icons.more_horiz_rounded,
-                      semanticLabel:
-                          'خيارات أخرى: الإبلاغ أو إخفاء الكاتب',
-                      onTap: widget.onReport,
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      // Furthest into the corner, matching the post screen.
+                      // A reader scrolling past something they object to should
+                      // not have to open it in order to stop seeing it — that
+                      // is the one moment they least want a closer look. Its
+                      // own hit test is opaque, so it wins the gesture arena
+                      // ahead of the card's own tap.
+                      _CardCircleAction(
+                        icon: Icons.more_horiz_rounded,
+                        semanticLabel: 'خيارات أخرى: الإبلاغ أو إخفاء الكاتب',
+                        onTap: widget.onReport,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -890,4 +885,3 @@ class _BrandSignature extends StatelessWidget {
     );
   }
 }
-

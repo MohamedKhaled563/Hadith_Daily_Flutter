@@ -74,8 +74,7 @@ class _TodayMessageScreenState extends State<TodayMessageScreen> {
               // so two cards are briefly alive together, and both claiming
               // the tag would be two Heroes on one route — an assertion if
               // the reader leaves during the fade.
-              heroTag:
-                  _revealed == _openedOn ? 'heart_leaf_emblem_hero' : null,
+              heroTag: _revealed == _openedOn ? 'heart_leaf_emblem_hero' : null,
               hasMore: _revealed < widget.entries.length,
               onRevealNext: _revealNextMessage,
             ),

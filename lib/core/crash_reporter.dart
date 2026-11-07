@@ -94,8 +94,8 @@ class CrashReporter {
 
   /// The native SDK keeps this flag across launches, so a reader who opted
   /// out stays opted out even for a crash before Dart has started.
-  static Future<void> _apply() => _guard(() => FirebaseCrashlytics.instance
-      .setCrashlyticsCollectionEnabled(_active));
+  static Future<void> _apply() => _guard(() =>
+      FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(_active));
 
   /// Reporting must never be the thing that breaks the app — nor a widget
   /// test, where there is no Crashlytics plugin to answer.

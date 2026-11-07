@@ -24,10 +24,10 @@ import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../favorites/favorites_screen.dart';
 import '../hadith/hadith_detail_screen.dart';
+import '../memorize/memorize_screen.dart';
 import 'journey_links.dart';
 import 'journey_share_sheet.dart';
 import 'journey_tree.dart';
-import '../memorize/memorize_screen.dart';
 import 'weekly_board_screen.dart';
 
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold
@@ -93,7 +93,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                         fallback: Container(
                           width: 40,
                           height: 1.5,
-                          color: const Color(0xFFD6BE88),
+                          color: context.palette.cardBorderStrong,
                         ),
                       ),
                     ],

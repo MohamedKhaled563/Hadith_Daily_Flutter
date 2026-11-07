@@ -76,8 +76,7 @@ void showAppSnack(
         // An undo needs longer than a plain acknowledgement: the reader has
         // to notice it, read it, and decide, not just register that
         // something happened.
-        duration: duration ??
-            Duration(seconds: action != null ? 5 : 3),
+        duration: duration ?? Duration(seconds: action != null ? 5 : 3),
         // Overrides the theme's own shape/behaviour so a toned snack can't
         // half-inherit the old green one.
         behavior: SnackBarBehavior.floating,

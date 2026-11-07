@@ -165,7 +165,9 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage>
       builder: (context) => AlertDialog(
         title: const Text('حذف الرسالة نهائياً؟'),
         content: Text(
-          entry.text.length > 120 ? '${entry.text.substring(0, 120)}…' : entry.text,
+          entry.text.length > 120
+              ? '${entry.text.substring(0, 120)}…'
+              : entry.text,
         ),
         actions: [
           TextButton(
@@ -335,9 +337,12 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage>
           'setAt': Timestamp.now(),
         });
 
-        tx.set(_scheduleRef, {
-          'days': {dateKey: current},
-        }, SetOptions(merge: true));
+        tx.set(
+            _scheduleRef,
+            {
+              'days': {dateKey: current},
+            },
+            SetOptions(merge: true));
       });
       if (!mounted) return;
       final slot = existing.length + 1;
@@ -373,9 +378,12 @@ class _DailyMessageSchedulePageState extends State<DailyMessageSchedulePage>
         if (current.isEmpty) {
           tx.update(_scheduleRef, {'days.$dateKey': FieldValue.delete()});
         } else {
-          tx.set(_scheduleRef, {
-            'days': {dateKey: current},
-          }, SetOptions(merge: true));
+          tx.set(
+              _scheduleRef,
+              {
+                'days': {dateKey: current},
+              },
+              SetOptions(merge: true));
         }
       });
     } catch (e) {
@@ -637,8 +645,7 @@ class _ScheduleSummary extends StatelessWidget {
                                     dateKey: day.key,
                                     isToday: day.key == today,
                                     perDay: perDay,
-                                    pins:
-                                        DailyTipService.normaliseScheduledDay(
+                                    pins: DailyTipService.normaliseScheduledDay(
                                       day.value,
                                     ),
                                     onRemove: (messageId) =>
@@ -790,7 +797,7 @@ class _PoolRow extends StatelessWidget {
     final everShown = entry.timesShown > 0;
     final isCommunity = entry.source == 'communityMessages';
 
-    final spinner = const SizedBox(
+    const spinner = SizedBox(
       width: 36,
       height: 36,
       child: Padding(
@@ -854,7 +861,9 @@ class _PoolRow extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: isCommunity ? Colors.blue[800] : Colors.brown[700],
+                          color: isCommunity
+                              ? Colors.blue[800]
+                              : Colors.brown[700],
                         ),
                       ),
                     ),
@@ -871,7 +880,9 @@ class _PoolRow extends StatelessWidget {
                     Chip(
                       visualDensity: VisualDensity.compact,
                       label: Text(
-                        everShown ? 'عُرضت ${entry.timesShown} مرة' : 'لم تُعرض بعد',
+                        everShown
+                            ? 'عُرضت ${entry.timesShown} مرة'
+                            : 'لم تُعرض بعد',
                       ),
                       backgroundColor: everShown
                           ? Colors.green.withValues(alpha: 0.12)
@@ -882,7 +893,9 @@ class _PoolRow extends StatelessWidget {
                       label: Text(
                         '♥ ${entry.likeCount}',
                         style: TextStyle(
-                          color: entry.likeCount > 0 ? Colors.red[700] : Colors.grey[700],
+                          color: entry.likeCount > 0
+                              ? Colors.red[700]
+                              : Colors.grey[700],
                         ),
                       ),
                       backgroundColor: entry.likeCount > 0

@@ -139,9 +139,9 @@ class _WeeklyBoardPageState extends State<WeeklyBoardPage> {
         _moderation.published(),
       ]);
       if (!mounted || week != _week) return;
-      final scores = results[0] as List<ScoreEntry>;
+      final scores = results[0]! as List<ScoreEntry>;
       final approved =
-          results[1] as List<({String authorUid, DateTime reviewedAt})>;
+          results[1]! as List<({String authorUid, DateTime reviewedAt})>;
       setState(() {
         _ranked = rankCandidates(
           week: week,

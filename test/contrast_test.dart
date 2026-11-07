@@ -18,8 +18,10 @@ import 'package:hadith_app/core/theme/app_theme.dart';
 /// WCAG 2.1 relative luminance.
 double _luminance(Color c) {
   double channel(double v) {
-    v = v; // already 0..1 in Flutter's component accessors
-    return v <= 0.04045 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4) as double;
+    // v is already 0..1 in Flutter's component accessors.
+    return v <= 0.04045
+        ? v / 12.92
+        : math.pow((v + 0.055) / 1.055, 2.4) as double;
   }
 
   return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
@@ -102,8 +104,10 @@ void main() {
       final mode = entry.key;
       final p = entry.value;
 
-      test('$mode · success', () => expectAA('success', p.success, p.successWash));
-      test('$mode · warning', () => expectAA('warning', p.warning, p.warningWash));
+      test('$mode · success',
+          () => expectAA('success', p.success, p.successWash));
+      test('$mode · warning',
+          () => expectAA('warning', p.warning, p.warningWash));
       test('$mode · danger', () => expectAA('danger', p.danger, p.dangerWash));
     }
   });

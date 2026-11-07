@@ -41,7 +41,9 @@ String? headerMismatchNote(xls.Sheet sheet, List<String> expected) {
         'الإضافة من جديد';
   }
   final header = sheet.rows.first;
-  final actual = [for (var i = 0; i < expected.length; i++) cellString(header, i)];
+  final actual = [
+    for (var i = 0; i < expected.length; i++) cellString(header, i)
+  ];
   var matches = true;
   for (var i = 0; i < expected.length; i++) {
     if (actual[i] != expected[i]) {
@@ -155,7 +157,8 @@ CommunityRowsParseResult parseCommunityRows(xls.Sheet sheet) {
       continue;
     }
 
-    final order = orderRaw.isEmpty ? null : int.tryParse(normalizeDigits(orderRaw));
+    final order =
+        orderRaw.isEmpty ? null : int.tryParse(normalizeDigits(orderRaw));
 
     creates.add({
       'authorName': authorName.isEmpty ? 'لوحة الإشراف' : authorName,
@@ -214,7 +217,8 @@ NotificationRowsParseResult parseNotificationRows(
       }
     }
 
-    final order = orderRaw.isEmpty ? null : int.tryParse(normalizeDigits(orderRaw));
+    final order =
+        orderRaw.isEmpty ? null : int.tryParse(normalizeDigits(orderRaw));
 
     creates.add({
       'text': text,

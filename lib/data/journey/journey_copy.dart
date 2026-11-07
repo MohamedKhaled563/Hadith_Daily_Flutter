@@ -173,7 +173,8 @@ class JourneyCopy {
 
   /// After one part of a longer hadith.
   static JourneyMessage partLearned(int learned, int total) => JourneyMessage(
-        title: 'حفظت الجزء ${toArabicDigits(learned)} من ${toArabicDigits(total)}',
+        title:
+            'حفظت الجزء ${toArabicDigits(learned)} من ${toArabicDigits(total)}',
         body: 'نكمل الجزء التالي في جلسة أخرى، اليوم أو غداً.',
       );
 
@@ -215,8 +216,18 @@ class JourneyCopy {
   }
 
   static const _months = [
-    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+    'يناير',
+    'فبراير',
+    'مارس',
+    'أبريل',
+    'مايو',
+    'يونيو',
+    'يوليو',
+    'أغسطس',
+    'سبتمبر',
+    'أكتوبر',
+    'نوفمبر',
+    'ديسمبر',
   ];
 
   /// A streak line for the completion sheet.

@@ -1,9 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/data/services/favorites_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Favourites belong to the account, not the phone.
 ///

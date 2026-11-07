@@ -222,7 +222,7 @@ void main() {
       ),
     );
 
-    final guest = const JourneyData()
+    final guest = JourneyData.empty
         .apply(const JourneyEvent(
           dayKey: '2026-11-06',
           fullHadith: 1,

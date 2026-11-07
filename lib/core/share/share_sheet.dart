@@ -50,7 +50,6 @@ Future<void> showShareSheet({
                     width: ShareCard.width * 0.62,
                     height: ShareCard.height * 0.62,
                     child: FittedBox(
-                      fit: BoxFit.contain,
                       child: ShareCard(
                         message: message,
                         hadithTitle: hadithTitle,

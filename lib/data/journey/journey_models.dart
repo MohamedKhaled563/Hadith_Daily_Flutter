@@ -338,10 +338,11 @@ class JourneyData {
       startedOn: state['startedOn'] as String?,
       hadith: hadith,
       days: days,
-      seen: {for (final id in state['seen'] as List? ?? const []) id.toString()},
-      bestStreak: records is Map
-          ? (records['bestStreak'] as num?)?.toInt() ?? 0
-          : 0,
+      seen: {
+        for (final id in state['seen'] as List? ?? const []) id.toString()
+      },
+      bestStreak:
+          records is Map ? (records['bestStreak'] as num?)?.toInt() ?? 0 : 0,
       prefs: ReminderPrefs.fromJson(state['prefs']),
       memo: memo,
     );
@@ -468,9 +469,8 @@ class JourneyData {
       hadith: nextHadith,
       days: {...days, event.dayKey: nextDay},
       seen: {...seen, ...event.seen},
-      bestStreak: (event.bestStreak ?? 0) > bestStreak
-          ? event.bestStreak!
-          : bestStreak,
+      bestStreak:
+          (event.bestStreak ?? 0) > bestStreak ? event.bestStreak! : bestStreak,
       prefs: prefs,
       memo: nextMemo,
     );

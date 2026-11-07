@@ -137,9 +137,7 @@ class _ReportFormState extends State<_ReportForm> {
                     },
             ),
           ),
-
         const SizedBox(height: 6),
-
         Container(
           constraints: const BoxConstraints(minHeight: 72),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -170,13 +168,13 @@ class _ReportFormState extends State<_ReportForm> {
             ),
           ),
         ),
-
         if (_error != null) ...[
           const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.error_outline_rounded, size: 16, color: palette.danger),
+              Icon(Icons.error_outline_rounded,
+                  size: 16, color: palette.danger),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -187,19 +185,15 @@ class _ReportFormState extends State<_ReportForm> {
             ],
           ),
         ],
-
         const SizedBox(height: 16),
-
         AppButton(
           text: _busy ? 'جارٍ الإرسال…' : 'إرسال البلاغ',
           icon: _busy ? null : Icons.flag_outlined,
           onPressed: _busy ? null : _submit,
         ),
-
         const SizedBox(height: 18),
         Divider(color: palette.cardBorder, height: 1),
         const SizedBox(height: 14),
-
         Text(
           'أو أخفِ كل مشاركات «${widget.post.authorName}» عن هذا الجهاز. '
           'لن يُبلَّغ بذلك، ويمكنك التراجع من الإعدادات.',
@@ -246,7 +240,6 @@ class _ReasonOption extends StatelessWidget {
       onTap: onTap ?? () {},
       semanticLabel: label,
       selected: selected,
-      minSize: 48,
       pressScale: AppPress.cardScale,
       child: AnimatedContainer(
         duration: context.motion(AppDurations.control),
@@ -395,7 +388,6 @@ void showModerationOutcome(BuildContext context, ModerationOutcome outcome) {
       showAppSnack(
         context,
         'لن تظهر لك مشاركات هذا الكاتب على هذا الجهاز',
-        tone: SnackTone.neutral,
       );
     case ModerationOutcome.none:
       break;

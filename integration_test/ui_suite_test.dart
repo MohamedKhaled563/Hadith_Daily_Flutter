@@ -14,8 +14,8 @@ import 'package:hadith_app/data/journey/journey_engine.dart';
 import 'package:hadith_app/data/journey/journey_points.dart';
 import 'package:hadith_app/data/journey/journey_repository.dart';
 import 'package:hadith_app/data/journey/journey_store.dart';
-import 'package:hadith_app/data/journey/weekly_board.dart';
 import 'package:hadith_app/data/journey/reading_tracker.dart';
+import 'package:hadith_app/data/journey/weekly_board.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/data/services/favorites_store.dart';
 import 'package:hadith_app/data/services/notification_scheduler.dart';
@@ -428,7 +428,7 @@ void main() {
       );
 
       await tester.tap(find.text('نسخ النص'));
-      await wait(tester, 500);
+      await wait(tester);
       expect(copied, contains(hadiths.getByNumber(12)!.title));
       await wait(tester, 4500);
     });
@@ -443,7 +443,7 @@ void main() {
       expect(find.text('٣ من ٤٢ حديثاً'), findsWidgets);
 
       await tester.tap(find.text('نسخ النص'));
-      await wait(tester, 500);
+      await wait(tester);
       expect(copied, contains('قرأت ٣ من ٤٢ حديثاً'));
       await wait(tester, 4500);
     });
@@ -481,7 +481,7 @@ void main() {
       expect(sent!['text'], contains('قرأت ٣ من ٤٢ حديثاً'));
       final files = sent!['paths'] as List<dynamic>;
       expect(files.single, endsWith('.png'));
-      await wait(tester, 500);
+      await wait(tester);
     });
   });
 
@@ -562,7 +562,7 @@ void main() {
       expect(find.byType(HarvestPoster), findsOneWidget);
 
       await tester.tap(find.text('نسخ النص'));
-      await wait(tester, 500);
+      await wait(tester);
       expect(copied, startsWith('هذا الأسبوع: يوم واحد'));
       await wait(tester, 4500);
     });
@@ -589,7 +589,7 @@ void main() {
 
       expect(journey.data.days[journey.today]!.shared, 1);
       expect(journey.thisWeekPoints.total, before + PointRules.share);
-      await wait(tester, 500);
+      await wait(tester);
     });
 
     testWidgets('a card the reader backs out of does not count',
@@ -669,7 +669,7 @@ void main() {
       board.start();
     });
 
-    tearDown(() => board.debugReset());
+    tearDown(board.debugReset);
 
     Future<void> openBoard(WidgetTester tester) async {
       await tester.pumpWidget(
@@ -761,7 +761,7 @@ void main() {
       await tester.ensureVisible(target);
       await wait(tester, 200);
       await tester.tap(target);
-      await wait(tester, 500);
+      await wait(tester);
     }
 
     Finder blanks() => find.byWidgetPredicate(

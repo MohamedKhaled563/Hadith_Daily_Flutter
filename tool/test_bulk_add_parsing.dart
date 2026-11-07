@@ -83,7 +83,8 @@ void main() {
       ['abc123', '1', 'نص قديم', '100'],
     ]);
     final note = parsing.headerMismatchNote(sheet, parsing.dailyAddHeaders);
-    expect(note != null, 'current-data export header is rejected, not silently misread');
+    expect(note != null,
+        'current-data export header is rejected, not silently misread');
     expect(
       note != null && note.contains('البيانات الحالية'),
       'rejection message specifically names the current-data export',
@@ -175,7 +176,8 @@ void main() {
     ]);
     final result = parsing.parseCommunityRows(sheet);
 
-    expectEquals(result.creates.length, 2, 'exactly 2 valid community rows parsed');
+    expectEquals(
+        result.creates.length, 2, 'exactly 2 valid community rows parsed');
     expectEquals(
       result.creates[0]['authorName'],
       'لوحة الإشراف',
@@ -185,9 +187,12 @@ void main() {
       !result.creates[0].containsKey('order'),
       'omitted order column means no order key at all (no default for community)',
     );
-    expectEquals(result.creates[1]['authorName'], 'فاعل خير', 'explicit author name is kept');
-    expectEquals(result.creates[1]['order'], 250, 'explicit order value is parsed as an int');
-    expectEquals(result.creates[0]['status'], 'approved', 'every bulk-added community row is approved by default');
+    expectEquals(result.creates[1]['authorName'], 'فاعل خير',
+        'explicit author name is kept');
+    expectEquals(result.creates[1]['order'], 250,
+        'explicit order value is parsed as an int');
+    expectEquals(result.creates[0]['status'], 'approved',
+        'every bulk-added community row is approved by default');
     expect(
       result.invalidRows.any((r) => r.contains('رقم حديث غير صحيح')),
       'hadith number 0 is rejected as out of range',
@@ -215,12 +220,18 @@ void main() {
     ]);
     final result = parsing.parseNotificationRows(sheet, startSeq: 10);
 
-    expectEquals(result.creates.length, 3, 'exactly 3 valid notification rows parsed');
-    expectEquals(result.creates[0]['active'], true, 'blank "نشطة" defaults to active=true');
-    expectEquals(result.creates[0]['order'], 10, 'first row with no explicit order gets startSeq');
-    expectEquals(result.creates[1]['active'], false, '"لا" maps to active=false');
-    expectEquals(result.creates[1]['order'], 11, 'sequential order increments per row lacking an explicit value');
-    expectEquals(result.creates[2]['order'], 999, 'an explicit order value is not overridden by the sequence counter');
+    expectEquals(
+        result.creates.length, 3, 'exactly 3 valid notification rows parsed');
+    expectEquals(result.creates[0]['active'], true,
+        'blank "نشطة" defaults to active=true');
+    expectEquals(result.creates[0]['order'], 10,
+        'first row with no explicit order gets startSeq');
+    expectEquals(
+        result.creates[1]['active'], false, '"لا" maps to active=false');
+    expectEquals(result.creates[1]['order'], 11,
+        'sequential order increments per row lacking an explicit value');
+    expectEquals(result.creates[2]['order'], 999,
+        'an explicit order value is not overridden by the sequence counter');
     expect(
       result.invalidRows.any((r) => r.contains('أطول من')),
       'a notification text over 300 chars is rejected',

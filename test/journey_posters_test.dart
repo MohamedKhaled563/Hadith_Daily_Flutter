@@ -30,8 +30,7 @@ void main() {
   }
 
   final data = JourneyData(hadith: {
-    for (var n = 1; n <= 15; n++)
-      n: const HadithProgress(fullOn: '2026-11-06'),
+    for (var n = 1; n <= 15; n++) n: const HadithProgress(fullOn: '2026-11-06'),
   });
 
   for (final format in PosterFormat.values) {
@@ -62,7 +61,7 @@ void main() {
   }
 
   testWidgets('no name shows unless the reader passes one', (tester) async {
-    final format = PosterFormat.feed;
+    const format = PosterFormat.feed;
     await layOut(
       tester,
       TreePoster(format: format, data: data),
@@ -79,7 +78,7 @@ void main() {
   });
 
   testWidgets('every poster says how to find the app', (tester) async {
-    final format = PosterFormat.story;
+    const format = PosterFormat.story;
     await layOut(
       tester,
       TreePoster(format: format, data: data),

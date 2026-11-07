@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/services/moderation_service.dart';
 import 'package:hadith_app/features/community/report_sheet.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// The reader-facing half of guideline 1.2. Filing a report is a Firestore
 /// write and cannot run here, but everything up to that point can: the reasons
@@ -69,7 +68,6 @@ void main() {
     moderation = ModerationService();
     await moderation.load();
   });
-
 
   for (final mode in [ThemeMode.light, ThemeMode.dark]) {
     testWidgets('every reason is offered, and both remedies — $mode',

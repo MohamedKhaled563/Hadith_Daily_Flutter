@@ -27,7 +27,8 @@ class TreeLeaf {
 
   /// Middle of the leaf, which is where a tap lands.
   Offset get centre =>
-      at + Offset(math.cos(radians), math.sin(radians)) * TreeLayout.leafLength / 2;
+      at +
+      Offset(math.cos(radians), math.sin(radians)) * TreeLayout.leafLength / 2;
 }
 
 class TreeBranch {

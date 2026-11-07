@@ -39,7 +39,8 @@ class MySubmissionsScreen extends StatelessWidget {
                   semanticLabel: 'رجوع',
                   onTap: () => Navigator.maybePop(context),
                 ),
-                Text('مشاركاتي', style: textTheme.titleMedium?.copyWith(fontSize: 18)),
+                Text('مشاركاتي',
+                    style: textTheme.titleMedium?.copyWith(fontSize: 18)),
                 const SizedBox(width: CircleIconButton.slot),
               ],
             ),
@@ -47,7 +48,7 @@ class MySubmissionsScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Expanded(
             child: uid == null
-                ? AppEmptyState(
+                ? const AppEmptyState(
                     icon: Icons.person_off_rounded,
                     title: 'سجّل الدخول لعرض مشاركاتك',
                     subtitle: '',
@@ -65,7 +66,7 @@ class MySubmissionsScreen extends StatelessWidget {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
-                        return AppEmptyState(
+                        return const AppEmptyState(
                           icon: Icons.wifi_off_rounded,
                           title: 'تعذّر تحميل مشاركاتك',
                           subtitle: 'تحقق من الاتصال بالإنترنت وحاول مرة أخرى.',
@@ -74,7 +75,8 @@ class MySubmissionsScreen extends StatelessWidget {
                       if (!snapshot.hasData) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      final docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
+                      final docs = List<
+                          QueryDocumentSnapshot<Map<String, dynamic>>>.from(
                         snapshot.data!.docs,
                       )..sort((a, b) {
                           final ta = a.data()['createdAt'] as Timestamp?;
@@ -83,7 +85,7 @@ class MySubmissionsScreen extends StatelessWidget {
                           return tb.compareTo(ta);
                         });
                       if (docs.isEmpty) {
-                        return AppEmptyState(
+                        return const AppEmptyState(
                           icon: Icons.edit_note_rounded,
                           title: 'لم تشارك رسالة بعد',
                           subtitle: 'أول مشاركة منك ستظهر هنا بمجرد إرسالها.',
@@ -99,7 +101,8 @@ class MySubmissionsScreen extends StatelessWidget {
                             message: data['message'] as String? ?? '',
                             hadithNumber: data['hadithNumber'] as int? ?? 0,
                             status: data['status'] as String? ?? 'pending',
-                            createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+                            createdAt:
+                                (data['createdAt'] as Timestamp?)?.toDate(),
                             timesShown:
                                 (data['timesShown'] as num?)?.toInt() ?? 0,
                             likeCount:
@@ -228,13 +231,11 @@ class _StatusBadge extends StatelessWidget {
         fg = palette.success;
         icon = Icons.check_circle_outline_rounded;
         label = 'مقبولة';
-        break;
       case 'rejected':
         bg = palette.dangerWash;
         fg = palette.danger;
         icon = Icons.cancel_outlined;
         label = 'غير مقبولة';
-        break;
       default:
         bg = palette.warningWash;
         fg = palette.warning;
@@ -249,7 +250,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         // The wash alone is close in luminance to the card behind it; the rim
         // is what makes the badge read as its own object.
-        border: Border.all(color: fg.withValues(alpha: 0.35), width: 1),
+        border: Border.all(color: fg.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

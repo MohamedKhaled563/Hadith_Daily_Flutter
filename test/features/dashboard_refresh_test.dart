@@ -28,11 +28,13 @@ class _PageState extends State<_Page> with DashboardAutoRefresh {
   Widget build(BuildContext context) => const SizedBox();
 }
 
-Widget _host(List<int> loads, {required bool visible, Completer<void>? Function()? gate}) =>
+Widget _host(List<int> loads,
+        {required bool visible, Completer<void>? Function()? gate}) =>
     TickerMode(enabled: visible, child: _Page(loads: loads, gate: gate));
 
 void main() {
-  testWidgets('a visible tab reloads once for a burst of changes', (tester) async {
+  testWidgets('a visible tab reloads once for a burst of changes',
+      (tester) async {
     final loads = <int>[];
     await tester.pumpWidget(_host(loads, visible: true));
     expect(loads, hasLength(1)); // initial load

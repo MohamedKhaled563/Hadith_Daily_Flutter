@@ -20,7 +20,8 @@ void main() {
     test('a day whose messages all still exist is left as it is', () {
       final day = [tip('a', 'أولى'), tip('b', 'ثانية')];
 
-      final repaired = DailyTipService.repairDay(day, [...day, tip('c', 'ثالثة')]);
+      final repaired =
+          DailyTipService.repairDay(day, [...day, tip('c', 'ثالثة')]);
 
       expect(ids(repaired.day), ['a', 'b']);
       expect(repaired.drawn, isEmpty);
@@ -67,7 +68,8 @@ void main() {
     test('an edited message takes its new text', () {
       final day = [tip('a', 'قبل التعديل')];
 
-      final repaired = DailyTipService.repairDay(day, [tip('a', 'بعد التعديل')]);
+      final repaired =
+          DailyTipService.repairDay(day, [tip('a', 'بعد التعديل')]);
 
       expect(repaired.day.single.text, 'بعد التعديل');
     });

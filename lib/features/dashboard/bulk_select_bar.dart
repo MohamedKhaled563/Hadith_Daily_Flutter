@@ -29,9 +29,8 @@ class BulkSelectBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final allSelected =
         visibleCount > 0 && selectedVisibleCount == visibleCount;
-    final checkboxValue = selectedVisibleCount == 0
-        ? false
-        : (allSelected ? true : null);
+    final checkboxValue =
+        selectedVisibleCount == 0 ? false : (allSelected ? true : null);
 
     return Row(
       children: [

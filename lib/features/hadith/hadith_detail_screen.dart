@@ -3,22 +3,23 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../core/app_links.dart';
 import '../../core/auth/sign_in_gate.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/share/share_sheet.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
-import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/entrance.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
-import '../../core/utils/app_motion.dart';
 import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_repository.dart';
 import '../../data/journey/memorization.dart';
@@ -941,7 +942,6 @@ class _ThreadedSection extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       tween: Tween(end: progress),
       duration: context.motion(AppDurations.content),
-      curve: Curves.linear,
       builder: (context, value, child) => CustomPaint(
         painter: _ThreadPainter(
           progress: value,

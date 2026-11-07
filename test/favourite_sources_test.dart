@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/core/widgets/tap_target.dart';
 import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
-import 'package:hadith_app/data/services/favorites_store.dart';
 import 'package:hadith_app/data/services/daily_tip_service.dart';
+import 'package:hadith_app/data/services/favorites_store.dart';
 import 'package:hadith_app/features/favorites/favorites_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// A message saved from «مجتمع الحديث» has to land in the same Favourites
 /// list as one saved from «رسائل اليوم». The repository always supported
@@ -93,8 +92,7 @@ void main() {
     expect(repo.getFavoriteInsights(), hasLength(1));
   });
 
-  test('a community post is stored in the account, with its source',
-      () async {
+  test('a community post is stored in the account, with its source', () async {
     repo.toggleFavoriteInsight(post().toInsight());
 
     // Signing out and back in drops the in-memory list and rebuilds it from

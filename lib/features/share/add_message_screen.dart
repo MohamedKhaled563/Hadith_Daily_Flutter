@@ -1,16 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+
 import '../../core/auth/sign_in_gate.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/bottom_navigation.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_state_controller.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_button.dart';
-import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/app_loading_overlay.dart';
+import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/asset_helper.dart';
+import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/journey/journey_repository.dart';
 import '../../data/models/hadith.dart';
@@ -167,8 +169,8 @@ class _AddMessageScreenState extends State<AddMessageScreen>
 
     final authorName = _authorController.text.trim().isEmpty
         ? (_state.isLoggedIn && _state.userName.isNotEmpty
-              ? _state.userName
-              : 'فاعل خير')
+            ? _state.userName
+            : 'فاعل خير')
         : _authorController.text.trim();
 
     setState(() => _submitting = true);
@@ -221,7 +223,11 @@ class _AddMessageScreenState extends State<AddMessageScreen>
     // both reminders off has never been asked for it. This is the moment the
     // ask makes sense; it shows nothing once granted. Left unawaited so the
     // dialog can't hold up clearing the form behind it.
-    NotificationScheduler.instance.requestPermission().catchError((_) => false);
+    unawaited(
+      NotificationScheduler.instance
+          .requestPermission()
+          .catchError((_) => false),
+    );
 
     _messageController.clear();
     setState(() => _selectedHadith = null);
@@ -242,244 +248,244 @@ class _AddMessageScreenState extends State<AddMessageScreen>
       visible: _submitting,
       message: 'جارٍ إرسال رسالتك…',
       child: Column(
-      children: [
-        const SizedBox(height: 8),
+        children: [
+          const SizedBox(height: 8),
 
-        Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AssetHelper.assetOrFallback(
-                assetPath: 'assets/images/heart_leaf_emblem.png',
-                width: 40,
-                height: 40,
-                fallback: const Icon(
-                  Icons.favorite_rounded,
-                  color: AppColors.primaryGreen,
-                  size: 28,
-                ),
-              ),
-              AssetHelper.assetOrFallback(
-                assetPath: 'assets/images/golden_divider.png',
-                width: 60,
-                height: 10,
-                fallback: const SizedBox(height: 2),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 10),
-
-        Semantics(
-          header: true,
-          child: Text('شارك رسالتك', style: textTheme.headlineMedium),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'شارك خاطرة أو تأملاً مربوطاً بحديث نبوي شريف',
-          textAlign: TextAlign.center,
-          style: textTheme.bodySmall,
-        ),
-
-        const SizedBox(height: 14),
-
-        Expanded(
-          // A plain Column here doesn't shrink with the keyboard the way
-          // Expanded/BottomNavigation-scoped screens elsewhere do — this one
-          // has no Scaffold of its own to resize it, so on a small screen the
-          // keyboard opening left less height than the fixed-size fields above
-          // the message box needed, and the Column overflowed instead of
-          // shrinking. Scrolling is the backstop: whatever the keyboard takes,
-          // the reader can still reach every field by scrolling instead of the
-          // layout breaking.
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+          Center(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _Label('اختر الحديث المرتبط بالرسالة'),
-                const SizedBox(height: 6),
-                _FieldShell(
-                  borderColor: _hadithError != null
-                      ? const Color(0xFFB3261E)
-                      : null,
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<Hadith>(
-                      isExpanded: true,
-                      value: _selectedHadith,
-                      hint: Text(
-                        'اختر حديثاً...',
-                        style: TextStyle(
-                          fontFamily: kSans,
-                          fontSize: 13,
-                          color: palette.mutedText,
-                        ),
-                      ),
-                      dropdownColor: palette.surface,
-                      borderRadius: BorderRadius.circular(AppRadii.listItem),
-                      // 48dp rows keep the list itself tappable.
-                      itemHeight: 48,
-                      style: TextStyle(
-                        fontFamily: kSans,
-                        fontSize: 13,
-                        color: palette.bodyText,
-                      ),
-                      items: [
-                        for (final h in hadithsList)
-                          DropdownMenuItem(
-                            value: h,
-                            child: Text(
-                              'الحديث ${toArabicDigits(h.number)}: ${h.title}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedHadith = val;
-                          if (val != null) _hadithError = null;
-                        });
-                      },
-                    ),
+                AssetHelper.assetOrFallback(
+                  assetPath: 'assets/images/heart_leaf_emblem.png',
+                  width: 40,
+                  height: 40,
+                  fallback: const Icon(
+                    Icons.favorite_rounded,
+                    color: AppColors.primaryGreen,
+                    size: 28,
                   ),
                 ),
-                if (_hadithError != null) ...[
-                  const SizedBox(height: 8),
-                  _InlineError(_hadithError!),
-                ],
-
-                const SizedBox(height: 16),
-
-                _Label('اسمك أو لقبك (اختياري)'),
-                const SizedBox(height: 6),
-                _FieldShell(
-                  child: TextField(
-                    controller: _authorController,
-                    textInputAction: TextInputAction.next,
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      color: palette.bodyText,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'مثال: سارة، فاعل خير...',
-                      hintStyle: TextStyle(
-                        color: palette.mutedText,
-                        fontSize: 13,
-                        fontFamily: kSans,
-                      ),
-                      border: InputBorder.none,
-                    ),
-                  ),
+                AssetHelper.assetOrFallback(
+                  assetPath: 'assets/images/golden_divider.png',
+                  width: 60,
+                  height: 10,
+                  fallback: const SizedBox(height: 2),
                 ),
-
-                const SizedBox(height: 16),
-
-                _Label('نص الرسالة أو التأمل'),
-                const SizedBox(height: 6),
-
-                // minLines/maxLines rather than Expanded+expands:true: this
-                // field now lives in a SingleChildScrollView, which gives its
-                // children unbounded height — Expanded needs a bounded parent
-                // and would assert. Sizing to its own content (with a floor
-                // and a cap) is also what the fullscreen editor below already
-                // does successfully under the same keyboard-inset pressure.
-                Stack(
-                  children: [
-                    _FieldShell(
-                      padding: const EdgeInsetsDirectional.fromSTEB(
-                        16, 16, 44, 16,
-                      ),
-                      borderColor: _messageError != null
-                          ? const Color(0xFFB3261E)
-                          : null,
-                      child: TextField(
-                        controller: _messageController,
-                        minLines: 6,
-                        maxLines: 12,
-                        textAlignVertical: TextAlignVertical.top,
-                        onChanged: (_) {
-                          if (_messageError != null) {
-                            setState(() => _messageError = null);
-                          }
-                        },
-                        style: TextStyle(
-                          fontFamily: kSans,
-                          color: palette.bodyText,
-                          height: AppLeading.body,
-                        ),
-                        decoration: InputDecoration(
-                          hintText:
-                              'اكتب ما فتح الله به عليك من أثر هذا الحديث في حياتك...',
-                          hintStyle: TextStyle(
-                            color: palette.mutedText,
-                            fontSize: 13,
-                            height: AppLeading.body,
-                            fontFamily: kSans,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                    PositionedDirectional(
-                      top: 8,
-                      end: 8,
-                      child: TapTarget(
-                        onTap: _openExpandedEditor,
-                        semanticLabel: 'تكبير مربع النص',
-                        minSize: 32,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: palette.surfaceSunken,
-                          ),
-                          child: Icon(
-                            Icons.open_in_full_rounded,
-                            size: 15,
-                            color: palette.goldText,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                if (_messageError != null) ...[
-                  const SizedBox(height: 8),
-                  _InlineError(_messageError!),
-                ],
               ],
             ),
           ),
-        ),
 
-        // Pinned outside the scroll area so the submit button stays put
-        // instead of travelling with the fields above it.
-        // Plain Padding, not AnimatedPadding: the inset this is computed from
-        // already animates with the keyboard, and the two branches of
-        // _bottomClearance meet at the same on-screen position, so the button
-        // tracks the keyboard exactly. An implicit animation on top would only
-        // make it lag behind.
-        Padding(
-          padding: EdgeInsets.fromLTRB(20, 10, 20, 16 + _bottomClearance),
-          child: DecoratedBox(
-            // The button is a stadium sitting on the background painting,
-            // directly above the equally dark nav pill — without a shadow the
-            // two greens merge into one slab and the button loses its edge.
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadii.pill),
-              boxShadow: AppElevation.card,
-            ),
-            child: AppButton(
-              text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة',
-              icon: _submitting ? null : Icons.send_rounded,
-              onPressed: _submitting ? null : () => _submit(),
+          const SizedBox(height: 10),
+
+          Semantics(
+            header: true,
+            child: Text('شارك رسالتك', style: textTheme.headlineMedium),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'شارك خاطرة أو تأملاً مربوطاً بحديث نبوي شريف',
+            textAlign: TextAlign.center,
+            style: textTheme.bodySmall,
+          ),
+
+          const SizedBox(height: 14),
+
+          Expanded(
+            // A plain Column here doesn't shrink with the keyboard the way
+            // Expanded/BottomNavigation-scoped screens elsewhere do — this one
+            // has no Scaffold of its own to resize it, so on a small screen the
+            // keyboard opening left less height than the fixed-size fields above
+            // the message box needed, and the Column overflowed instead of
+            // shrinking. Scrolling is the backstop: whatever the keyboard takes,
+            // the reader can still reach every field by scrolling instead of the
+            // layout breaking.
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _Label('اختر الحديث المرتبط بالرسالة'),
+                  const SizedBox(height: 6),
+                  _FieldShell(
+                    borderColor:
+                        _hadithError != null ? const Color(0xFFB3261E) : null,
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<Hadith>(
+                        isExpanded: true,
+                        value: _selectedHadith,
+                        hint: Text(
+                          'اختر حديثاً...',
+                          style: TextStyle(
+                            fontFamily: kSans,
+                            fontSize: 13,
+                            color: palette.mutedText,
+                          ),
+                        ),
+                        dropdownColor: palette.surface,
+                        borderRadius: BorderRadius.circular(AppRadii.listItem),
+                        style: TextStyle(
+                          fontFamily: kSans,
+                          fontSize: 13,
+                          color: palette.bodyText,
+                        ),
+                        items: [
+                          for (final h in hadithsList)
+                            DropdownMenuItem(
+                              value: h,
+                              child: Text(
+                                'الحديث ${toArabicDigits(h.number)}: ${h.title}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedHadith = val;
+                            if (val != null) _hadithError = null;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  if (_hadithError != null) ...[
+                    const SizedBox(height: 8),
+                    _InlineError(_hadithError!),
+                  ],
+
+                  const SizedBox(height: 16),
+
+                  const _Label('اسمك أو لقبك (اختياري)'),
+                  const SizedBox(height: 6),
+                  _FieldShell(
+                    child: TextField(
+                      controller: _authorController,
+                      textInputAction: TextInputAction.next,
+                      style: TextStyle(
+                        fontFamily: kSans,
+                        color: palette.bodyText,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'مثال: سارة، فاعل خير...',
+                        hintStyle: TextStyle(
+                          color: palette.mutedText,
+                          fontSize: 13,
+                          fontFamily: kSans,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  const _Label('نص الرسالة أو التأمل'),
+                  const SizedBox(height: 6),
+
+                  // minLines/maxLines rather than Expanded+expands:true: this
+                  // field now lives in a SingleChildScrollView, which gives its
+                  // children unbounded height — Expanded needs a bounded parent
+                  // and would assert. Sizing to its own content (with a floor
+                  // and a cap) is also what the fullscreen editor below already
+                  // does successfully under the same keyboard-inset pressure.
+                  Stack(
+                    children: [
+                      _FieldShell(
+                        padding: const EdgeInsetsDirectional.fromSTEB(
+                          16,
+                          16,
+                          44,
+                          16,
+                        ),
+                        borderColor: _messageError != null
+                            ? const Color(0xFFB3261E)
+                            : null,
+                        child: TextField(
+                          controller: _messageController,
+                          minLines: 6,
+                          maxLines: 12,
+                          textAlignVertical: TextAlignVertical.top,
+                          onChanged: (_) {
+                            if (_messageError != null) {
+                              setState(() => _messageError = null);
+                            }
+                          },
+                          style: TextStyle(
+                            fontFamily: kSans,
+                            color: palette.bodyText,
+                            height: AppLeading.body,
+                          ),
+                          decoration: InputDecoration(
+                            hintText:
+                                'اكتب ما فتح الله به عليك من أثر هذا الحديث في حياتك...',
+                            hintStyle: TextStyle(
+                              color: palette.mutedText,
+                              fontSize: 13,
+                              height: AppLeading.body,
+                              fontFamily: kSans,
+                            ),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      PositionedDirectional(
+                        top: 8,
+                        end: 8,
+                        child: TapTarget(
+                          onTap: _openExpandedEditor,
+                          semanticLabel: 'تكبير مربع النص',
+                          minSize: 32,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: palette.surfaceSunken,
+                            ),
+                            child: Icon(
+                              Icons.open_in_full_rounded,
+                              size: 15,
+                              color: palette.goldText,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  if (_messageError != null) ...[
+                    const SizedBox(height: 8),
+                    _InlineError(_messageError!),
+                  ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+
+          // Pinned outside the scroll area so the submit button stays put
+          // instead of travelling with the fields above it.
+          // Plain Padding, not AnimatedPadding: the inset this is computed from
+          // already animates with the keyboard, and the two branches of
+          // _bottomClearance meet at the same on-screen position, so the button
+          // tracks the keyboard exactly. An implicit animation on top would only
+          // make it lag behind.
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, 10, 20, 16 + _bottomClearance),
+            child: DecoratedBox(
+              // The button is a stadium sitting on the background painting,
+              // directly above the equally dark nav pill — without a shadow the
+              // two greens merge into one slab and the button loses its edge.
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+                boxShadow: AppElevation.card,
+              ),
+              child: AppButton(
+                text: _submitting ? 'جارٍ الإرسال…' : 'إرسال الرسالة',
+                icon: _submitting ? null : Icons.send_rounded,
+                onPressed: _submitting ? null : _submit,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -510,7 +516,7 @@ class _AddMessageScreenState extends State<AddMessageScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _Label('نص الرسالة أو التأمل'),
+                const _Label('نص الرسالة أو التأمل'),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _messageController,

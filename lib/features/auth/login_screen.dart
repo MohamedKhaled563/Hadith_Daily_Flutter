@@ -26,7 +26,6 @@ class LoginScreen extends StatefulWidget {
   /// were part-way through.
   final bool returnOnSuccess;
 
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -224,7 +223,6 @@ class _LoginScreenState extends State<LoginScreen>
       visible: _submitting,
       message: _loadingMessage,
       child: AppScreen(
-        showBottomLandscape: true,
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
@@ -418,12 +416,14 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _showForgotPasswordSheet() {
-    final emailCtrl = TextEditingController(text: _usernameController.text.trim());
+    final emailCtrl =
+        TextEditingController(text: _usernameController.text.trim());
 
     showBotanicalSheet<void>(
       context: context,
       title: 'نسيت كلمة المرور؟',
-      subtitle: 'أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور',
+      subtitle:
+          'أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور',
       child: Builder(
         builder: (sheetContext) {
           final palette = sheetContext.palette;

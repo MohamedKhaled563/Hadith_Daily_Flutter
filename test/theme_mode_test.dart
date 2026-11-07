@@ -2,9 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/core/theme/app_state_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Dark mode used to be a bool, so "follow the phone" could not be chosen.
 /// Widening it to a three-way [ThemeMode] has to not quietly re-decide for
