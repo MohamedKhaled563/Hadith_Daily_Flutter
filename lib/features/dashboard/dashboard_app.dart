@@ -11,6 +11,7 @@ import 'notification_messages_page.dart';
 import 'content_reports_page.dart';
 import 'pending_queue_page.dart';
 import 'users_page.dart';
+import 'weekly_board_page.dart';
 
 class DashboardApp extends StatelessWidget {
   const DashboardApp({super.key});
@@ -344,10 +345,82 @@ class _DashboardHomeState extends State<_DashboardHome> {
   @override
   Widget build(BuildContext context) {
     final email = AuthService.instance.currentUser?.email ?? '';
-    final tabCount = widget.isAdmin ? 7 : 4;
+    // Each tab beside its page, so the controller's length can never drift
+    // from the tabs again (the reports tab once went in without it, leaving
+    // the controller one short).
+    final tabs = <(Tab, Widget)>[
+      (
+        const Tab(
+          text: 'قائمة المراجعة',
+          icon: Icon(Icons.pending_actions_rounded),
+        ),
+        const PendingQueuePage(),
+      ),
+      // Second, not last: intake is reviewed before it is published, but a
+      // report is about something readers are already seeing, so it is the
+      // more urgent of the two.
+      (
+        const Tab(text: 'البلاغات', icon: Icon(Icons.flag_outlined)),
+        const ContentReportsPage(),
+      ),
+      (
+        const Tab(
+          text: 'تعديل بالجملة',
+          icon: Icon(Icons.playlist_add_rounded),
+        ),
+        BulkAddPage(isAdmin: widget.isAdmin),
+      ),
+      (
+        const Tab(
+          text: 'رسائل التنبيه',
+          icon: Icon(Icons.notifications_active_outlined),
+        ),
+        NotificationMessagesPage(isAdmin: widget.isAdmin),
+      ),
+      (
+        const Tab(text: 'تواصل معنا', icon: Icon(Icons.mail_outline_rounded)),
+        const FeedbackMessagesPage(),
+      ),
+      // The Friday board. Moderators publish it too: they already review
+      // every message the sharing list counts.
+      (
+        const Tab(
+          text: 'لوحة الأسبوع',
+          icon: Icon(Icons.format_list_numbered_rtl_rounded),
+        ),
+        const WeeklyBoardPage(),
+      ),
+      // Rotation ordering, role management, and approving a moderator's bulk
+      // edits all touch things only an admin should control, so all three
+      // stay admin-only — a moderator never sees these tabs, matching what
+      // tool/set_role.py has always required.
+      if (widget.isAdmin) ...[
+        (
+          const Tab(
+            text: 'رسائل اليوم ومشاركات المجتمع',
+            icon: Icon(Icons.event_available_rounded),
+          ),
+          const DailyMessageSchedulePage(),
+        ),
+        (
+          const Tab(
+            text: 'طلبات المراجعة',
+            icon: Icon(Icons.rule_folder_rounded),
+          ),
+          const BulkChangeRequestsPage(),
+        ),
+        (
+          const Tab(
+            text: 'المستخدمون',
+            icon: Icon(Icons.admin_panel_settings_rounded),
+          ),
+          const UsersPage(),
+        ),
+      ],
+    ];
 
     return DefaultTabController(
-      length: tabCount,
+      length: tabs.length,
       child: Scaffold(
         appBar: AppBar(
           // AppBar's own `centerTitle` centers the title only relative to
@@ -404,46 +477,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
               child: TabBar(
                 isScrollable: true,
                 tabAlignment: TabAlignment.start,
-                tabs: [
-                  const Tab(
-                    text: 'قائمة المراجعة',
-                    icon: Icon(Icons.pending_actions_rounded),
-                  ),
-                  // Second, not last: intake is reviewed before it is
-                  // published, but a report is about something readers are
-                  // already seeing, so it is the more urgent of the two.
-                  const Tab(
-                    text: 'البلاغات',
-                    icon: Icon(Icons.flag_outlined),
-                  ),
-                  const Tab(
-                      text: 'تعديل بالجملة',
-                      icon: Icon(Icons.playlist_add_rounded)),
-                  const Tab(
-                      text: 'رسائل التنبيه',
-                      icon: Icon(Icons.notifications_active_outlined)),
-                  const Tab(
-                      text: 'تواصل معنا',
-                      icon: Icon(Icons.mail_outline_rounded)),
-                  // Rotation ordering, role management, and approving a
-                  // moderator's bulk edits all touch things only an admin should
-                  // control, so all three stay admin-only — a moderator never
-                  // sees these tabs, matching what tool/set_role.py has always
-                  // required.
-                  if (widget.isAdmin)
-                    const Tab(
-                      text: 'رسائل اليوم ومشاركات المجتمع',
-                      icon: Icon(Icons.event_available_rounded),
-                    ),
-                  if (widget.isAdmin)
-                    const Tab(
-                        text: 'طلبات المراجعة',
-                        icon: Icon(Icons.rule_folder_rounded)),
-                  if (widget.isAdmin)
-                    const Tab(
-                        text: 'المستخدمون',
-                        icon: Icon(Icons.admin_panel_settings_rounded)),
-                ],
+                tabs: [for (final (tab, _) in tabs) tab],
                 onTap: (i) => setState(() => _tab = i),
               ),
             ),
@@ -456,16 +490,7 @@ class _DashboardHomeState extends State<_DashboardHome> {
         body: IndexedStack(
           index: _tab,
           children: [
-            for (final (i, page) in [
-              const PendingQueuePage(),
-              const ContentReportsPage(),
-              BulkAddPage(isAdmin: widget.isAdmin),
-              NotificationMessagesPage(isAdmin: widget.isAdmin),
-              const FeedbackMessagesPage(),
-              if (widget.isAdmin) const DailyMessageSchedulePage(),
-              if (widget.isAdmin) const BulkChangeRequestsPage(),
-              if (widget.isAdmin) const UsersPage(),
-            ].indexed)
+            for (final (i, (_, page)) in tabs.indexed)
               TickerMode(enabled: i == _tab, child: page),
           ],
         ),

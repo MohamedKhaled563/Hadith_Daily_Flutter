@@ -24,6 +24,7 @@ import '../hadith/hadith_detail_screen.dart';
 import 'journey_links.dart';
 import 'journey_share_sheet.dart';
 import 'journey_tree.dart';
+import 'weekly_board_screen.dart';
 
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold
 /// and the background.
@@ -277,6 +278,8 @@ class _JourneyBody extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             _RecordsCard(records: journey.records),
+            const SizedBox(height: 14),
+            const _BoardEntry(),
           ],
         );
       },
@@ -749,6 +752,66 @@ class _WeekBar extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The way in to the weekly board. Quiet on purpose: the board is optional,
+/// and the journey above it is the point.
+class _BoardEntry extends StatelessWidget {
+  const _BoardEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return ParchmentCard(
+      padding: EdgeInsets.zero,
+      showWatermark: false,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            AppHaptics.tap();
+            Navigator.push(
+              context,
+              appPageRoute(child: const WeeklyBoardScreen()),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.format_list_numbered_rtl_rounded,
+                  size: 22,
+                  color: palette.goldText,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _CardTitle('لوحة الأسبوع'),
+                      Text(
+                        'اختيارية، وتُنشر كل جمعة',
+                        style: TextStyle(
+                          fontFamily: kSans,
+                          fontSize: 13,
+                          height: AppLeading.chrome,
+                          color: palette.mutedText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_left_rounded, color: palette.mutedText),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

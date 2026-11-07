@@ -8,6 +8,7 @@ import 'core/crash_reporter.dart';
 import 'core/share/share_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_state_controller.dart';
+import 'data/journey/board_service.dart';
 import 'data/journey/journey_repository.dart';
 import 'data/repositories/hadith_repository.dart';
 import 'data/services/daily_tip_service.dart';
@@ -84,6 +85,8 @@ class _HadithAppState extends State<HadithApp> with WidgetsBindingObserver {
     ShareService.onShared = JourneyRepository().recordShared;
     _reminders.start();
     _submissionApprovals.start();
+    // Only does anything for a reader who chose to be on the weekly board.
+    WeeklyBoardService().start();
   }
 
   @override
@@ -109,6 +112,8 @@ class _HadithAppState extends State<HadithApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(DailyTipService().warmUp());
+      // A new week may have started while the app was in the background.
+      unawaited(WeeklyBoardService().syncNow());
     }
   }
 
