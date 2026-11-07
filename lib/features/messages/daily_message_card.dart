@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -22,6 +23,7 @@ import '../../data/journey/journey_repository.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/daily_tip_service.dart';
 import '../../data/services/message_like_service.dart';
 import '../hadith/hadith_detail_screen.dart';
 
@@ -415,13 +417,19 @@ class _LiveMessageToolbarState extends State<_LiveMessageToolbar> {
       widget.insight.id,
       liked: next,
     )
-        .catchError((Object _) {
+        .catchError((Object error) {
       if (!mounted) return;
       setState(() => _optimisticLiked = null);
+      // Removed from the dashboard after today's messages were chosen. Trying
+      // again would only fail again, so say what happened and replace it.
+      final gone = error is FirebaseException && error.code == 'not-found';
+      if (gone) unawaited(DailyTipService().repairToday());
       showAppSnack(
         context,
-        'تعذّر تسجيل الإعجاب، حاول مجدداً',
-        tone: SnackTone.danger,
+        gone
+            ? 'لم تعد هذه الرسالة متاحة، وستجد غيرها مكانها في المرة القادمة'
+            : 'تعذّر تسجيل الإعجاب، حاول مجدداً',
+        tone: gone ? SnackTone.warning : SnackTone.danger,
       );
     });
   }

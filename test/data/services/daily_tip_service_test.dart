@@ -6,6 +6,73 @@ import 'package:hadith_app/data/services/daily_tip_service.dart';
 /// reaches straight for FirebaseFirestore.instance and has no seam to fake
 /// it through (unlike NotificationScheduler.test).
 void main() {
+  group('DailyTipService.repairDay', () {
+    DailyTip tip(String id, String text) => DailyTip(
+          id: id,
+          sourceCollection: 'dailyMessages',
+          text: text,
+          hadithNumber: 1,
+          category: 'رسالة اليوم',
+        );
+
+    List<String> ids(List<DailyTip> tips) => [for (final t in tips) t.id];
+
+    test('a day whose messages all still exist is left as it is', () {
+      final day = [tip('a', 'أولى'), tip('b', 'ثانية')];
+
+      final repaired = DailyTipService.repairDay(day, [...day, tip('c', 'ثالثة')]);
+
+      expect(ids(repaired.day), ['a', 'b']);
+      expect(repaired.drawn, isEmpty);
+    });
+
+    test('a message uploaded again keeps its place under its new id', () {
+      final day = [tip('a', 'أولى'), tip('old', 'رسالة  أعيد رفعها ')];
+      final pool = [tip('a', 'أولى'), tip('new', 'رسالة أعيد رفعها')];
+
+      final repaired = DailyTipService.repairDay(day, pool);
+
+      expect(ids(repaired.day), ['a', 'new']);
+      expect(repaired.drawn, isEmpty, reason: 'it was already shown today');
+    });
+
+    test('a deleted message is replaced in its place by one not in the day',
+        () {
+      final day = [tip('gone', 'حُذفت'), tip('b', 'ثانية')];
+      final pool = [tip('b', 'ثانية'), tip('c', 'ثالثة')];
+
+      final repaired = DailyTipService.repairDay(day, pool);
+
+      expect(ids(repaired.day), ['c', 'b']);
+      expect(ids(repaired.drawn), ['c']);
+    });
+
+    test('two missing messages never get the same replacement', () {
+      final day = [tip('x', 'حُذفت'), tip('y', 'حُذفت أيضاً')];
+      final pool = [tip('c', 'ثالثة'), tip('d', 'رابعة')];
+
+      final repaired = DailyTipService.repairDay(day, pool);
+
+      expect(ids(repaired.day).toSet(), {'c', 'd'});
+    });
+
+    test('with nothing left to draw, a missing message is dropped', () {
+      final day = [tip('gone', 'حُذفت'), tip('b', 'ثانية')];
+
+      final repaired = DailyTipService.repairDay(day, [tip('b', 'ثانية')]);
+
+      expect(ids(repaired.day), ['b']);
+    });
+
+    test('an edited message takes its new text', () {
+      final day = [tip('a', 'قبل التعديل')];
+
+      final repaired = DailyTipService.repairDay(day, [tip('a', 'بعد التعديل')]);
+
+      expect(repaired.day.single.text, 'بعد التعديل');
+    });
+  });
+
   group('DailyTipService.normaliseScheduledDay', () {
     test('a date with nothing pinned yields a growable list', () {
       final entries = DailyTipService.normaliseScheduledDay(null);
