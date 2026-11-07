@@ -1,7 +1,20 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/insight.dart';
 import 'message_like_service.dart';
+
+/// What became of a message the reader sent.
+enum MessageDelivery {
+  /// The server has it.
+  confirmed,
+
+  /// The server did not answer in time. Firestore keeps the message on the
+  /// phone and sends it once it can reach the server, even after a restart.
+  queued,
+}
 
 /// Firestore-backed community messages — submissions land as `pending` and
 /// only become visible to everyone once a moderator approves them (phase 4;
@@ -91,28 +104,58 @@ class CommunityService {
         .timeout(const Duration(seconds: 12));
   }
 
+  /// How long sending waits to hear back from the server.
+  static const sendBudget = Duration(seconds: 12);
+
+  /// Waits for [write], but not forever.
+  ///
+  /// A Firestore write completes only when the server confirms it. A phone
+  /// that cannot reach the server gets neither a confirmation nor an error,
+  /// so awaiting the write alone left the send overlay up with no way out.
+  /// Seen on a network whose DNS pointed firestore.googleapis.com at an
+  /// address that does not answer. Sign-in still worked there, so nothing
+  /// looked offline.
+  ///
+  /// The write itself is not cancelled by this. It stays in Firestore's queue,
+  /// which is why a caller must not send the message again. A rejection that
+  /// arrives in time still throws.
+  @visibleForTesting
+  static Future<MessageDelivery> awaitDelivery(
+    Future<void> write, {
+    Duration budget = sendBudget,
+  }) async {
+    try {
+      await write.timeout(budget);
+      return MessageDelivery.confirmed;
+    } on TimeoutException {
+      return MessageDelivery.queued;
+    }
+  }
+
   /// Throws if nobody is signed in — every screen that calls this already
   /// sits behind the app's sign-in gate at splash, so that should never
   /// actually happen in practice.
-  Future<void> submit({
+  Future<MessageDelivery> submit({
     required int hadithNumber,
     required String message,
     required String authorName,
-  }) async {
+  }) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw StateError('Must be signed in to submit a community message.');
     }
 
-    await _db.collection(_collection).add({
-      'authorUid': user.uid,
-      'authorName': authorName,
-      'hadithNumber': hadithNumber,
-      'message': message,
-      'status': 'pending',
-      'likeCount': 0,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    return awaitDelivery(
+      _db.collection(_collection).add({
+        'authorUid': user.uid,
+        'authorName': authorName,
+        'hadithNumber': hadithNumber,
+        'message': message,
+        'status': 'pending',
+        'likeCount': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+      }),
+    );
   }
 
   /// Live count of every message the signed-in user has ever submitted,
@@ -137,18 +180,8 @@ class CommunityService {
   /// Live "have I liked this" status for the signed-in user, sourced
   /// straight from their own `likes/{uid}` doc rather than a local cache —
   /// stays correct across devices and survives clearing local storage.
-  Stream<bool> likeStatus(String messageId) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return Stream.value(false);
-
-    return _db
-        .collection(_collection)
-        .doc(messageId)
-        .collection('likes')
-        .doc(user.uid)
-        .snapshots()
-        .map((doc) => doc.exists);
-  }
+  Stream<bool> likeStatus(String messageId) =>
+      MessageLikeService().likeStatus(_collection, messageId);
 
   /// See [MessageLikeService.setLiked] — same batch, same rules, for a
   /// community post.

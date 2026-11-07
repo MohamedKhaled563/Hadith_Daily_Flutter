@@ -18,8 +18,12 @@
 ///   * `device_info_plus` reads only the manufacturer/brand string, once, to
 ///     decide the wording of the notification-reliability tip —
 ///     `NotificationReliabilityTip`. It is never stored or transmitted.
+///   * Crash and error reports go to Firebase Crashlytics — `CrashReporter`.
+///     Stack trace, app version, device model/OS and Crashlytics' own random
+///     install id only: no uid, email, name or user text. Off in debug
+///     builds; the reader can switch it off in the settings drawer.
 ///   * Reminders are scheduled locally by `flutter_local_notifications`.
-///     There is no FCM, no analytics SDK, no crash reporter, no ad network.
+///     There is no FCM, no analytics SDK, no ad network.
 ///   * Preferences live on the device in SharedPreferences.
 ///   * `users/{uid}/journey` and `users/{uid}/journeyYears` hold what the
 ///     reader has read and when — `JourneyStore`. A guest's copy stays in
@@ -35,8 +39,8 @@ class LegalDocuments {
 
   /// Bump when the wording changes materially, so a future "you accepted
   /// version X" record has something to point at.
-  static const version = '1.0';
-  static const lastUpdated = '٢٦ سبتمبر ٢٠٢٦';
+  static const version = '1.1';
+  static const lastUpdated = '٧ نوفمبر ٢٠٢٦';
 
   static const privacyTitle = 'سياسة الخصوصية';
   static const termsTitle = 'شروط الاستخدام';
@@ -58,6 +62,8 @@ class LegalDocuments {
 
 **ملاحظاتك.** إذا راسلتنا من «تواصل معنا» نحفظ نص ملاحظتك مع اسمك وبريدك، ليتمكن فريق الإشراف من الرد.
 
+**تقارير الأعطال.** إذا توقف التطبيق أو واجه خطأً، يُرسَل تقرير تقني عبر خدمة Firebase Crashlytics من Google: موضع الخطأ في الكود، وإصدار التطبيق، وطراز الجهاز ونظام تشغيله، ومُعرّف عشوائي لهذا التثبيت. لا يتضمن التقرير اسمك ولا بريدك ولا مُعرّف حسابك ولا أي نص كتبته، ونستخدمه لإصلاح الأعطال فقط، ويُحذف بعد ٩٠ يوماً. يمكنك إيقاف هذه التقارير في أي وقت من القائمة ← «الخصوصية» ← «إرسال تقارير الأعطال».
+
 **إعداداتك.** الوضع الليلي وحجم القراءة تُحفظ على جهازك وحده ولا تُرسل إلى أي خادم. أما مواعيد التذكيرين وتشغيلهما فتُحفظ في حسابك إذا سجّلت الدخول، لتبقى معك على أي جهاز.
 
 ## ما الذي لا نجمعه
@@ -68,11 +74,11 @@ class LegalDocuments {
 
 ## التذكيرات
 
-تذكيرات الصباح والمساء تُجدوَل على جهازك محلياً. لا يُرسل أي إشعار من خادم، ولا نعرف متى قرأت رسالة أو إن كنت قرأتها.
+تذكيرات الصباح والمساء تُجدوَل على جهازك محلياً، ولا يُرسل أي إشعار من خادم.
 
 ## أين تُحفظ البيانات
 
-على خوادم Google Cloud Firestore وFirebase Authentication، وتحكمها سياسة خصوصية Google إضافة إلى هذه السياسة.
+على خوادم Google Cloud Firestore وFirebase Authentication، وتقارير الأعطال على Firebase Crashlytics، وتحكمها سياسة خصوصية Google إضافة إلى هذه السياسة.
 
 ## حذف بياناتك
 
