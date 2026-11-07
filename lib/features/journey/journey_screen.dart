@@ -60,9 +60,9 @@ class _JourneyScreenState extends State<JourneyScreen> {
 
     return Column(
       children: [
-        const SizedBox(height: 6),
+        const SizedBox(height: 2),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -115,7 +115,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: _SectionTabs(
@@ -126,7 +126,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
             },
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Expanded(
           child: IndexedStack(
             index: _section,
@@ -171,7 +171,7 @@ class _SectionTabs extends StatelessWidget {
                 child: AnimatedContainer(
                   duration: context.motion(AppDurations.control),
                   curve: AppDurations.curve,
-                  height: 38,
+                  height: 34,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: selected == i ? palette.surface : Colors.transparent,
@@ -239,15 +239,28 @@ class _JourneyBody extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
               child: Column(
                 children: [
-                  JourneyTree(
-                    data: data,
-                    next: next,
-                    titleOf: (number) =>
-                        hadiths.getByNumber(number)?.title ?? '',
-                    onLeafTap: (number) => _openHadith(context, number),
+                  // About two fifths of the screen: the hero, without
+                  // pushing the day's steps below the fold.
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(context).height * .42,
+                    ),
+                    child: Center(
+                      child: JourneyTree(
+                        data: data,
+                        next: next,
+                        titleOf: (number) =>
+                            hadiths.getByNumber(number)?.title ?? '',
+                        onLeafTap: (number) => _openHadith(context, number),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  _TreeCaption(count: data.completeCount),
+                  const SizedBox(height: 8),
+                  _TreeSummary(
+                    read: data.completeCount,
+                    memorized: data.memorizedCount,
+                    streak: streak.current,
+                  ),
                   if (journey.isGuest && !data.isEmpty) ...[
                     const SizedBox(height: 4),
                     TextButton(
@@ -261,7 +274,7 @@ class _JourneyBody extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _TodayCard(
               steps: steps,
               next: next == null ? null : hadiths.getByNumber(next),
@@ -271,11 +284,11 @@ class _JourneyBody extends StatelessWidget {
               onOpenMessage: onOpenMessage,
               onOpenHadith: (number) => _openHadith(context, number),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             // Given the data, not const: a const card with nothing passed in
             // is never rebuilt when the journey changes.
             _MemoJourneyCard(data: data, today: journey.today),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _YouVersusYou(
               streak: streak,
               weeks: weeks,
@@ -283,38 +296,13 @@ class _JourneyBody extends StatelessWidget {
               lastPoints: journey.lastWeekPoints,
               canShare: weeks.thisWeek > 0,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _RecordsCard(records: journey.records),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             const _BoardEntry(),
           ],
         );
       },
-    );
-  }
-}
-
-class _TreeCaption extends StatelessWidget {
-  const _TreeCaption({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Text(
-      count == 0
-          ? 'كل ورقة هنا حديث. ابدأ برسالة اليوم، وستنمو شجرتك مع قراءتك.'
-          : '${toArabicDigits(count)} من ٤٢ حديثاً',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontFamily: kSans,
-        fontSize: count == 0 ? 13.5 : 15,
-        height: AppLeading.body,
-        fontWeight: count == 0 ? FontWeight.w500 : FontWeight.w800,
-        color: count == 0 ? palette.mutedText : palette.goldText,
-      ),
     );
   }
 }
@@ -342,28 +330,50 @@ class _TodayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hadith = next;
     final writing = writeAbout;
-    final hadithStep = switch ((hadith, steps.hadith)) {
-      (null, _) => 'أتممت الأربعين',
-      (final waiting?, true) => 'أتممت حديث اليوم. التالي: «${waiting.title}»',
-      (final waiting?, false) => 'اقرأ حديث «${waiting.title}»',
+    final (hadithStep, hadithNext) = switch ((hadith, steps.hadith)) {
+      (null, _) => ('أتممت الأربعين', null),
+      (final waiting?, true) => (
+          'أتممت حديث اليوم',
+          'التالي: «${waiting.title}»',
+        ),
+      (final waiting?, false) => ('اقرأ حديث «${waiting.title}»', null),
     };
+    // The first step not done is the one to do now.
+    final current = [steps.message, steps.hadith, steps.wrote].indexOf(false);
 
     return ParchmentCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
       showWatermark: false,
+      showCornerOrnaments: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CardTitle('خطوات اليوم'),
+          Row(
+            children: [
+              const Expanded(child: _CardTitle('خطوات اليوم')),
+              Text(
+                '${toArabicDigits(steps.done)} / ٣',
+                style: TextStyle(
+                  fontFamily: kSans,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: context.palette.mutedText,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 6),
           _StepRow(
             done: steps.message,
+            current: current == 0,
             title: 'اقرأ رسالة اليوم',
             onTap: onOpenMessage,
           ),
           _StepRow(
             done: steps.hadith,
+            current: current == 1,
             title: hadithStep,
+            subtitle: hadithNext,
             detail: hadith == null || steps.hadith
                 ? null
                 : arabicMinuteCount(ReadingRule.minutesFor(hadith)),
@@ -371,6 +381,7 @@ class _TodayCard extends StatelessWidget {
           ),
           _StepRow(
             done: steps.wrote,
+            current: current == 2,
             title: 'اكتب رسالتك',
             onTap: writing == null
                 ? null
@@ -386,12 +397,20 @@ class _StepRow extends StatelessWidget {
   const _StepRow({
     required this.done,
     required this.title,
+    this.current = false,
+    this.subtitle,
     this.detail,
     this.onTap,
   });
 
   final bool done;
+
+  /// The step to do now: picked out so the eye lands on it.
+  final bool current;
   final String title;
+
+  /// A quieter second line, so a long step never wraps into a paragraph.
+  final String? subtitle;
   final String? detail;
   final VoidCallback? onTap;
 
@@ -402,8 +421,16 @@ class _StepRow extends StatelessWidget {
         ? AppColors.primaryGreenDark
         : AppColors.primaryGreen;
 
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final row = AnimatedContainer(
+      duration: context.motion(AppDurations.control),
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      decoration: BoxDecoration(
+        color: current
+            ? palette.surfaceSunken
+            : palette.surface.withValues(alpha: 0),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           Icon(
@@ -413,17 +440,34 @@ class _StepRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 14.5,
-                height: AppLeading.chrome,
-                fontWeight: FontWeight.w700,
-                color: done ? palette.mutedText : palette.bodyText,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 14.5,
+                    height: AppLeading.chrome,
+                    fontWeight: current ? FontWeight.w800 : FontWeight.w700,
+                    color: done ? palette.mutedText : palette.bodyText,
+                  ),
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 12.5,
+                      height: AppLeading.chrome,
+                      color: palette.goldText,
+                    ),
+                  ),
+              ],
             ),
           ),
           if (detail != null) ...[
@@ -439,7 +483,9 @@ class _StepRow extends StatelessWidget {
               ),
             ),
           ],
-          if (onTap != null)
+          // Only a step still to do points onward; a done one stays tappable
+          // but quiet.
+          if (onTap != null && !done)
             Icon(
               // chevron_left: "forward" in a right-to-left app.
               Icons.chevron_left_rounded,
@@ -487,6 +533,7 @@ class _YouVersusYou extends StatelessWidget {
     return ParchmentCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       showWatermark: false,
+      showCornerOrnaments: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -497,6 +544,7 @@ class _YouVersusYou extends StatelessWidget {
               Expanded(
                 child: _Figure(
                   value: streak.current,
+                  unit: _dayUnit(streak.current),
                   label: 'سلسلتك الآن',
                   color: palette.warmText,
                 ),
@@ -504,6 +552,7 @@ class _YouVersusYou extends StatelessWidget {
               Expanded(
                 child: _Figure(
                   value: streak.best,
+                  unit: _dayUnit(streak.best),
                   label: 'أفضل سلسلة',
                   color: palette.goldText,
                 ),
@@ -511,6 +560,7 @@ class _YouVersusYou extends StatelessWidget {
               Expanded(
                 child: _Figure(
                   value: streak.graceBanked,
+                  unit: _dayUnit(streak.graceBanked),
                   label: 'أيام سماح',
                   color: palette.bodyText,
                 ),
@@ -614,48 +664,51 @@ class _RecordsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final any = records.values.any((value) => value > 0);
 
     return ParchmentCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       showWatermark: false,
+      showCornerOrnaments: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _CardTitle('أرقامك'),
-          const SizedBox(height: 6),
-          for (final record in JourneyRecord.values)
-            Semantics(
-              label: '${record.label}: '
-                  '${_value(record, records[record] ?? 0)}',
-              excludeSemantics: true,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                child: Row(
+          const SizedBox(height: 8),
+          if (!any)
+            Text(
+              'أرقامك تظهر هنا بعد أول قراءة: أطول سلسلة، وأكثر أسبوع، وغيرها.',
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 13.5,
+                height: AppLeading.body,
+                color: palette.mutedText,
+              ),
+            )
+          else
+            // Label above value, in tiles: the eye no longer crosses the
+            // card for every pair.
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth < 300 ? 1 : 2;
+                const gap = 8.0;
+                final width =
+                    (constraints.maxWidth - gap * (columns - 1)) / columns;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
                   children: [
-                    Expanded(
-                      child: Text(
-                        record.label,
-                        style: TextStyle(
-                          fontFamily: kSans,
-                          fontSize: 13.5,
-                          height: AppLeading.chrome,
-                          color: palette.bodyText,
+                    for (final record in JourneyRecord.values)
+                      SizedBox(
+                        width: width,
+                        child: _RecordTile(
+                          label: record.label,
+                          value: _value(record, records[record] ?? 0),
                         ),
                       ),
-                    ),
-                    Text(
-                      _value(record, records[record] ?? 0),
-                      style: TextStyle(
-                        fontFamily: kSans,
-                        fontSize: 13.5,
-                        height: AppLeading.chrome,
-                        fontWeight: FontWeight.w800,
-                        color: palette.goldText,
-                      ),
-                    ),
                   ],
-                ),
-              ),
+                );
+              },
             ),
         ],
       ),
@@ -668,11 +721,15 @@ class _Figure extends StatelessWidget {
     required this.value,
     required this.label,
     required this.color,
+    this.unit,
   });
 
   final int value;
   final String label;
   final Color color;
+
+  /// Said beside the number, so a lone «١» never reads as a bar.
+  final String? unit;
 
   @override
   Widget build(BuildContext context) {
@@ -680,9 +737,22 @@ class _Figure extends StatelessWidget {
 
     return Column(
       children: [
-        Text(
-          // The Arabic zero is a small dot, easy to miss at the top of a card.
-          value == 0 ? '—' : toArabicDigits(value),
+        Text.rich(
+          TextSpan(
+            // The Arabic zero is a small dot, easy to miss at the top of a
+            // card.
+            text: value == 0 ? '—' : toArabicDigits(value),
+            children: [
+              if (value != 0 && unit != null)
+                TextSpan(
+                  text: ' $unit',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
           style: TextStyle(
             fontFamily: kSans,
             fontSize: 24,
@@ -773,6 +843,7 @@ class _BoardEntry extends StatelessWidget {
     return ParchmentCard(
       padding: EdgeInsets.zero,
       showWatermark: false,
+      showCornerOrnaments: false,
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
@@ -953,6 +1024,7 @@ class _MemoJourneyCard extends StatelessWidget {
     return ParchmentCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       showWatermark: false,
+      showCornerOrnaments: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -973,6 +1045,127 @@ class _MemoJourneyCard extends StatelessWidget {
           ),
           ...rows,
         ],
+      ),
+    );
+  }
+}
+
+/// Days in the form the number takes, to sit beside a figure.
+String _dayUnit(int days) => switch (days) {
+      1 => 'يوم',
+      2 => 'يومان',
+      >= 3 && <= 10 => 'أيام',
+      _ => 'يوماً',
+    };
+
+/// The facts under the tree, in a line of small pills.
+class _TreeSummary extends StatelessWidget {
+  const _TreeSummary({
+    required this.read,
+    required this.memorized,
+    required this.streak,
+  });
+
+  final int read;
+  final int memorized;
+  final int streak;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    if (read == 0 && memorized == 0) {
+      return Text(
+        'كل ورقة هنا حديث. ابدأ برسالة اليوم، وستنمو شجرتك مع قراءتك.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: kSans,
+          fontSize: 13.5,
+          height: AppLeading.body,
+          fontWeight: FontWeight.w500,
+          color: palette.mutedText,
+        ),
+      );
+    }
+
+    Widget pill(String text, {required bool strong}) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: palette.surfaceSunken,
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: strong ? 15 : 13,
+              height: AppLeading.chrome,
+              fontWeight: strong ? FontWeight.w800 : FontWeight.w700,
+              color: palette.goldText,
+            ),
+          ),
+        );
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 6,
+      children: [
+        pill('${toArabicDigits(read)} من ٤٢ حديثاً', strong: true),
+        if (memorized > 0)
+          pill('في حفظك ${toArabicDigits(memorized)}', strong: false),
+        if (streak > 0) pill('سلسلة ${arabicDayCount(streak)}', strong: false),
+      ],
+    );
+  }
+}
+
+/// One record: what it is, then the reader's best.
+class _RecordTile extends StatelessWidget {
+  const _RecordTile({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Semantics(
+      label: '$label: $value',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+        decoration: BoxDecoration(
+          color: palette.surfaceSunken,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 12,
+                height: AppLeading.chrome,
+                color: palette.mutedText,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 15,
+                height: AppLeading.chrome,
+                fontWeight: FontWeight.w800,
+                color: palette.goldText,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -129,7 +129,7 @@ class TreeColors {
     return TreeColors(
       wood: palette.goldText.withValues(alpha: .6),
       emptyFill: palette.surfaceSunken,
-      emptyEdge: palette.cardBorder,
+      emptyEdge: palette.cardBorderStrong,
       started: context.isDarkMode
           ? AppColors.primaryGreenDark
           : AppColors.primaryGreen,
@@ -294,7 +294,11 @@ class JourneyTreePainter extends CustomPainter {
           Paint()
             ..color = edge
             ..style = PaintingStyle.stroke
-            ..strokeWidth = look == LeafLook.next ? 2.4 : 1,
+            ..strokeWidth = switch (look) {
+              LeafLook.next => 2.4,
+              LeafLook.empty => 1.3,
+              _ => 1,
+            },
         );
       if (memorized.contains(leaf.number)) {
         canvas.drawCircle(

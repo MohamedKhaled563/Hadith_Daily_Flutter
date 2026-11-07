@@ -511,12 +511,41 @@ void main() {
       expect(find.text('الماضي ٠'), findsOneWidget);
       expect(find.text('شارك حصاد أسبوعك'), findsNothing);
 
-      await scrollTo(tester, find.text(JourneyRecord.weekWrote.label));
+      // Before any record, one line rather than eight dashes.
+      await scrollTo(tester, find.textContaining('أرقامك تظهر هنا'));
       expect(find.text('أرقامك'), findsOneWidget);
+      expect(find.text(JourneyRecord.weekWrote.label), findsNothing);
+    });
+
+    testWidgets('records are tiles once there are any', (tester) async {
+      finished([1]);
+      await openJourney(tester);
+
+      await scrollTo(tester, find.text(JourneyRecord.weekWrote.label));
       for (final record in JourneyRecord.values) {
         expect(find.text(record.label), findsOneWidget);
       }
-      expect(find.text('—'), findsWidgets);
+      expect(find.text('—'), findsWidgets, reason: 'records not yet set');
+      expect(find.textContaining('أرقامك تظهر هنا'), findsNothing);
+    });
+
+    testWidgets('the day\'s next step is the one picked out', (tester) async {
+      journey.recordMessageRead('m', hadithNumber: 1);
+      await openJourney(tester);
+
+      await scrollTo(tester, find.text('خطوات اليوم'));
+      expect(find.text('١ / ٣'), findsOneWidget);
+      // The message is done: no chevron on it, one on each step to do.
+      expect(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text('اقرأ رسالة اليوم'),
+            matching: find.byType(Row),
+          ),
+          matching: find.byIcon(Icons.chevron_left_rounded),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('a week of reading shows its points and records',
@@ -955,7 +984,7 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).last,
       );
-      expect(find.text('في حفظك ١'), findsOneWidget);
+      expect(find.text('في حفظك ١'), findsWidgets);
 
       // Back up to the tree, which the list let go of further down.
       await tester.scrollUntilVisible(
@@ -1119,7 +1148,8 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).last,
       );
-      expect(find.text('٨'), findsWidgets);
+      expect(find.text('٨ أيام'), findsWidgets,
+          reason: 'a figure says its unit');
       expect(find.text('أيام سماح'), findsOneWidget);
     });
 

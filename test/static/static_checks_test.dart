@@ -340,8 +340,10 @@ void main() {
         } on FileSystemException {
           continue; // not text
         }
-        expect(text, isNot(contains('-----BEGIN PRIVATE KEY')), reason: path);
-        expect(text, isNot(contains('"private_key"')), reason: path);
+        // Joined here so this file, once committed, is not its own match.
+        expect(text, isNot(contains('-----BEGIN ' 'PRIVATE KEY')),
+            reason: path);
+        expect(text, isNot(contains('"private' '_key"')), reason: path);
       }
     });
   });
