@@ -5,6 +5,7 @@ import 'package:hadith_app/data/journey/journey_models.dart';
 import 'package:hadith_app/data/journey/journey_repository.dart';
 import 'package:hadith_app/data/journey/journey_store.dart';
 import 'package:hadith_app/data/journey/reading_tracker.dart';
+import 'package:hadith_app/data/models/hadith.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Shared between the host and device entry points, like the notification
@@ -234,6 +235,37 @@ void journeySuite() {
       tracker.tick(const Duration(minutes: 1), [2]);
       expect(tracker.isComplete, isFalse);
       expect(tracker.firstUnread, 1);
+    });
+
+    test('a page section asks at least three seconds', () {
+      final tracker = ReadingTracker.sections([2, 260]);
+      expect(tracker.neededAt(0), ReadingRule.minimumPerSection);
+      expect(tracker.neededAt(1), const Duration(minutes: 1));
+      tracker.tick(const Duration(milliseconds: 2900), [0]);
+      expect(tracker.isRead(0), isFalse);
+    });
+
+    test('the page counts the hadith and its short explanation only', () {
+      const hadith = Hadith(
+        number: 99,
+        title: 't',
+        isnad: 'عن أبي',
+        text: 'نص الحديث هنا',
+        shortExplanation: 'خلاصة من أربع كلمات',
+        explanation: 'شرح طويل جداً لا يحسب في الوقت المطلوب',
+      );
+      expect(ReadingRule.pageSections(hadith), [5, 4]);
+      expect(ReadingRule.minutesFor(hadith), 1);
+    });
+
+    test('a hadith with no short explanation asks for its text alone', () {
+      const hadith = Hadith(
+        number: 98,
+        title: 't',
+        text: 'نص',
+        explanation: 'شرح',
+      );
+      expect(ReadingRule.pageSections(hadith), [1]);
     });
 
     test('completes once every paragraph has had its time', () {

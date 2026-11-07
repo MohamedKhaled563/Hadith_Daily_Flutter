@@ -29,14 +29,23 @@ class ReadingRule {
   static int wordCount(String text) =>
       text.trim().isEmpty ? 0 : text.trim().split(RegExp(r'\s+')).length;
 
-  /// Roughly how long [hadith] takes to read in full.
+  /// Roughly how long the reading that counts takes: the hadith and its
+  /// short explanation, on its own page. The full explanation is there for
+  /// whoever wants it, and is not asked of anyone.
   static int minutesFor(Hadith hadith) {
-    final words = wordCount(
-      '${hadith.isnad} ${hadith.text} ${hadith.shortExplanation} '
-      '${hadith.explanation}',
-    );
-    return (words / usualWordsPerMinute).ceil();
+    final words = pageSections(hadith).fold(0, (sum, w) => sum + w);
+    final minutes = (words / usualWordsPerMinute).ceil();
+    return minutes < 1 ? 1 : minutes;
   }
+
+  /// The word count of each part of the hadith page that has to be read:
+  /// the hadith with its chain of narration, then the short explanation
+  /// when there is one.
+  static List<int> pageSections(Hadith hadith) => [
+        wordCount('${hadith.isnad} ${hadith.text}'),
+        if (hadith.shortExplanation.trim().isNotEmpty)
+          wordCount(hadith.shortExplanation),
+      ];
 
   static Duration _atSpeed(int words) =>
       Duration(milliseconds: (words * 60000 / wordsPerMinute).round());
@@ -72,12 +81,22 @@ class ReadingRule {
 }
 
 class ReadingTracker {
-  ReadingTracker(Iterable<int> paragraphWords)
-      : _needed = [
+  ReadingTracker(
+    Iterable<int> paragraphWords, {
+    Duration minimum = ReadingRule.minimumPerParagraph,
+  })  : _needed = [
           for (final words in paragraphWords)
-            ReadingRule.neededFor(words).inMilliseconds,
+            math.max(
+              ReadingRule._atSpeed(words).inMilliseconds,
+              minimum.inMilliseconds,
+            ),
         ],
         _spent = List<int>.filled(paragraphWords.length, 0);
+
+  /// For the hadith page: each section asks at least
+  /// [ReadingRule.minimumPerSection], as the page always has.
+  ReadingTracker.sections(Iterable<int> sectionWords)
+      : this(sectionWords, minimum: ReadingRule.minimumPerSection);
 
   final List<int> _needed;
   final List<int> _spent;
@@ -97,6 +116,9 @@ class ReadingTracker {
 
   bool get isComplete =>
       [for (var i = 0; i < length; i++) isRead(i)].every((read) => read);
+
+  /// How long paragraph [index] asks for.
+  Duration neededAt(int index) => Duration(milliseconds: _needed[index]);
 
   /// The first paragraph still waiting, for the finish button to scroll to.
   int? get firstUnread {
