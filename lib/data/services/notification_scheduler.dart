@@ -123,6 +123,7 @@ class NotificationScheduler {
   static const _cachedPoolKey = 'notificationScheduler.cachedPool';
   static const _cachedScheduleKey = 'notificationScheduler.cachedSchedule';
   static const _askedKey = 'notificationScheduler.askedForPermission';
+  static const _offeredKey = 'notificationScheduler.offeredReminders';
 
   // Which NotificationPoolVersion the cached pool was fetched at, and when.
   // Together they decide whether it can stand in for a fresh read — see
@@ -335,8 +336,8 @@ class NotificationScheduler {
   }
 
   /// Whether the OS will show what gets scheduled, without asking the reader.
-  /// Scheduling never prompts: a new install's first screen is no place for a
-  /// permission dialog, so the question waits for [askOnce].
+  /// Scheduling never prompts: the question belongs to [acceptReminderOffer]
+  /// and [askOnce], which come at moments the reader can make sense of it.
   Future<bool> hasPermission() async {
     await _ensureInitialized();
     final android = _android;
@@ -362,6 +363,34 @@ class NotificationScheduler {
       await requestPermission();
     } catch (error) {
       debugPrint('NotificationScheduler.askOnce failed: $error');
+    }
+  }
+
+  /// Whether a new reader should see the app's own offer of reminders. True
+  /// once at most, and only for someone the OS would otherwise keep silent.
+  /// Never throws: a platform that cannot answer simply skips the offer.
+  Future<bool> claimReminderOffer() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(_offeredKey) ?? false) return false;
+      if (prefs.getBool(_askedKey) ?? false) return false;
+      await prefs.setBool(_offeredKey, true);
+      return !await hasPermission();
+    } catch (error) {
+      debugPrint('NotificationScheduler.claimReminderOffer failed: $error');
+      return false;
+    }
+  }
+
+  /// The reader said yes to the offer, so the system dialog follows, and
+  /// [askOnce] has nothing left to do. Never throws.
+  Future<void> acceptReminderOffer() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_askedKey, true);
+      await requestPermission();
+    } catch (error) {
+      debugPrint('NotificationScheduler.acceptReminderOffer failed: $error');
     }
   }
 

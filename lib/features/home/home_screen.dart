@@ -31,6 +31,7 @@ import '../journey/journey_links.dart';
 import '../journey/journey_ring.dart';
 import '../journey/journey_screen.dart';
 import '../profile/settings_drawer.dart';
+import 'reminder_offer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -38,6 +39,7 @@ class HomeScreen extends StatefulWidget {
     this.openMessageOnStart = false,
     this.openSubmissionsOnStart = false,
     this.openHadithOnStart,
+    this.offerRemindersOnStart = false,
   });
 
   /// Open today's message as soon as home is up, instead of waiting for the
@@ -51,6 +53,11 @@ class HomeScreen extends StatefulWidget {
   /// Open this hadith on top of Home. Only for a launch from tapping a
   /// reminder about it — see SplashScreen.
   final int? openHadithOnStart;
+
+  /// Offer reminders once Home is up, if this reader has never been offered
+  /// them. Only for an ordinary launch: someone who arrived by tapping a
+  /// notification already has them.
+  final bool offerRemindersOnStart;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -98,6 +105,19 @@ class _HomeScreenState extends State<HomeScreen>
     if (hadith != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _openHadith(hadith));
     }
+    if (widget.offerRemindersOnStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _offerReminders());
+    }
+  }
+
+  /// Waits a moment so the reader sees Home first, and stays out of the way
+  /// if they have already moved on from it.
+  Future<void> _offerReminders() async {
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    final state = AppStateController();
+    if (!state.morningReminderEnabled && !state.eveningReminderEnabled) return;
+    await offerReminders(context);
   }
 
   @override

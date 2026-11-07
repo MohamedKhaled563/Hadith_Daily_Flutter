@@ -3,10 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/data/services/notification_data_source.dart';
 import 'package:hadith_app/data/services/notification_planner.dart';
 import 'package:hadith_app/data/services/notification_schedule.dart';
 import 'package:hadith_app/data/services/notification_scheduler.dart';
+import 'package:hadith_app/features/home/reminder_offer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
@@ -1230,6 +1232,136 @@ void notificationSchedulerSuite() {
         schedulerWith(_FakeDataSource(messages: activePool)).askOnce(),
         completes,
       );
+    });
+  });
+
+  group('offering reminders at the start', () {
+    void notAllowedYet() => when(() => androidPlugin.areNotificationsEnabled())
+        .thenAnswer((_) async => false);
+
+    test('a new reader is offered them once', () async {
+      notAllowedYet();
+      final scheduler = schedulerWith(_FakeDataSource());
+
+      expect(await scheduler.claimReminderOffer(), isTrue);
+      expect(await scheduler.claimReminderOffer(), isFalse);
+    });
+
+    test('making the offer shows nothing from the system', () async {
+      notAllowedYet();
+
+      await schedulerWith(_FakeDataSource()).claimReminderOffer();
+
+      verifyNever(() => androidPlugin.requestNotificationsPermission());
+    });
+
+    test('a reader who is already allowed is not offered them', () async {
+      expect(
+        await schedulerWith(_FakeDataSource()).claimReminderOffer(),
+        isFalse,
+      );
+    });
+
+    test('a reader who was already asked is not offered them', () async {
+      notAllowedYet();
+      final scheduler = schedulerWith(_FakeDataSource());
+      await scheduler.askOnce();
+
+      expect(await scheduler.claimReminderOffer(), isFalse);
+    });
+
+    test('yes goes straight on to the system dialog, once', () async {
+      notAllowedYet();
+      final scheduler = schedulerWith(_FakeDataSource());
+      await scheduler.claimReminderOffer();
+
+      await scheduler.acceptReminderOffer();
+      await scheduler.askOnce();
+
+      verify(() => androidPlugin.requestNotificationsPermission()).called(1);
+    });
+
+    test('no keeps the real question for after the first reading', () async {
+      notAllowedYet();
+      final scheduler = schedulerWith(_FakeDataSource());
+      await scheduler.claimReminderOffer();
+
+      await scheduler.askOnce();
+
+      verify(() => androidPlugin.requestNotificationsPermission()).called(1);
+    });
+
+    test('a platform that throws skips the offer', () async {
+      when(() => androidPlugin.areNotificationsEnabled())
+          .thenThrow(Exception('OEM build'));
+
+      expect(
+        await schedulerWith(_FakeDataSource()).claimReminderOffer(),
+        isFalse,
+      );
+    });
+
+    Future<void> openOffer(
+      WidgetTester tester, {
+      bool offered = true,
+      VoidCallback? onAccept,
+    }) async {
+      tester.view.physicalSize = const Size(1080, 2340);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => offerReminders(
+                context,
+                claim: () async => offered,
+                accept: () async => onAccept?.call(),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the sheet asks in the app\'s own words', (tester) async {
+      await openOffer(tester);
+
+      expect(find.text('نذكّرك بحديث كل يوم؟'), findsOneWidget);
+      expect(find.text('نعم، ذكّرني'), findsOneWidget);
+      expect(find.text('ليس الآن'), findsOneWidget);
+    });
+
+    testWidgets('nothing appears when there is nothing to offer',
+        (tester) async {
+      await openOffer(tester, offered: false);
+
+      expect(find.text('نذكّرك بحديث كل يوم؟'), findsNothing);
+    });
+
+    testWidgets('yes accepts', (tester) async {
+      var accepted = false;
+      await openOffer(tester, onAccept: () => accepted = true);
+
+      await tester.tap(find.text('نعم، ذكّرني'));
+      await tester.pumpAndSettle();
+
+      expect(accepted, isTrue);
+    });
+
+    testWidgets('no does not', (tester) async {
+      var accepted = false;
+      await openOffer(tester, onAccept: () => accepted = true);
+
+      await tester.tap(find.text('ليس الآن'));
+      await tester.pumpAndSettle();
+
+      expect(accepted, isFalse);
+      expect(find.text('نذكّرك بحديث كل يوم؟'), findsNothing);
     });
   });
 

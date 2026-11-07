@@ -191,6 +191,9 @@ class _SplashScreenState extends State<SplashScreen>
           openMessageOnStart: _launchedFromReminder,
           openSubmissionsOnStart: _launchedFromApproval,
           openHadithOnStart: _launchedHadith,
+          offerRemindersOnStart: !_launchedFromReminder &&
+              !_launchedFromApproval &&
+              _launchedHadith == null,
         ),
       ),
     );
