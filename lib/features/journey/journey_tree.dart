@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -119,6 +120,7 @@ class TreeColors {
     required this.emptyEdge,
     required this.started,
     required this.complete,
+    required this.memorized,
   });
 
   factory TreeColors.of(BuildContext context) {
@@ -131,6 +133,7 @@ class TreeColors {
           ? AppColors.primaryGreenDark
           : AppColors.primaryGreen,
       complete: palette.ornamentGold,
+      memorized: palette.warm,
     );
   }
 
@@ -142,6 +145,7 @@ class TreeColors {
         emptyEdge: const Color(0xFFC9B58A),
         started: AppColors.primaryGreen,
         complete: BotanicalPalette.light.ornamentGold,
+        memorized: BotanicalPalette.light.warm,
       );
 
   final Color wood;
@@ -150,6 +154,9 @@ class TreeColors {
   final Color started;
   final Color complete;
 
+  /// The dot on a memorized leaf.
+  final Color memorized;
+
   @override
   bool operator ==(Object other) =>
       other is TreeColors &&
@@ -157,12 +164,19 @@ class TreeColors {
       other.emptyFill == emptyFill &&
       other.emptyEdge == emptyEdge &&
       other.started == started &&
-      other.complete == complete;
+      other.complete == complete &&
+      other.memorized == memorized;
 
   @override
   int get hashCode =>
-      Object.hash(wood, emptyFill, emptyEdge, started, complete);
+      Object.hash(wood, emptyFill, emptyEdge, started, complete, memorized);
 }
+
+/// The hadiths a reader has memorized, which get a dot on their leaf.
+Set<int> memorizedLeaves(JourneyData data) => {
+      for (final entry in data.memo.entries)
+        if (entry.value.isMemorized) entry.key,
+    };
 
 /// The look of every leaf for a reader, with [next] picked out as the leaf
 /// waiting today.
@@ -180,12 +194,16 @@ class JourneyTreePainter extends CustomPainter {
   const JourneyTreePainter({
     required this.looks,
     required this.colors,
+    this.memorized = const {},
     this.titleOf,
     this.onLeafTap,
   });
 
   final Map<int, LeafLook> looks;
   final TreeColors colors;
+
+  /// Leaves with a dot: the hadiths held by heart.
+  final Set<int> memorized;
 
   /// Announces each leaf to a screen reader. Null on a poster.
   final String Function(int number)? titleOf;
@@ -276,8 +294,15 @@ class JourneyTreePainter extends CustomPainter {
             ..color = edge
             ..style = PaintingStyle.stroke
             ..strokeWidth = look == LeafLook.next ? 2.4 : 1,
-        )
-        ..restore();
+        );
+      if (memorized.contains(leaf.number)) {
+        canvas.drawCircle(
+          const Offset(TreeLayout.leafLength / 2, 0),
+          3.4,
+          Paint()..color = colors.memorized,
+        );
+      }
+      canvas.restore();
     }
     canvas.restore();
   }
@@ -311,7 +336,9 @@ class JourneyTreePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(JourneyTreePainter oldDelegate) =>
-      oldDelegate.colors != colors || !_sameLooks(oldDelegate.looks);
+      oldDelegate.colors != colors ||
+      !_sameLooks(oldDelegate.looks) ||
+      !setEquals(oldDelegate.memorized, memorized);
 
   @override
   bool shouldRebuildSemantics(JourneyTreePainter oldDelegate) =>
@@ -343,19 +370,21 @@ class JourneyTree extends StatelessWidget {
   final String Function(int number) titleOf;
   final ValueChanged<int> onLeafTap;
 
-  String _describe(int number, LeafLook look) {
+  String _describe(int number, LeafLook look, {required bool memorized}) {
     final state = switch (look) {
       LeafLook.complete => 'مكتمل',
       LeafLook.next => 'خطوة اليوم',
       LeafLook.started => 'بدأت قراءته',
       LeafLook.empty => 'لم يُقرأ بعد',
     };
-    return 'الحديث ${toArabicDigits(number)}: ${titleOf(number)}، $state';
+    final held = memorized ? '، في حفظك' : '';
+    return 'الحديث ${toArabicDigits(number)}: ${titleOf(number)}، $state$held';
   }
 
   @override
   Widget build(BuildContext context) {
     final looks = leafLooks(data, next: next);
+    final memorized = memorizedLeaves(data);
 
     return AspectRatio(
       aspectRatio: TreeLayout.width / TreeLayout.height,
@@ -374,7 +403,12 @@ class JourneyTree extends StatelessWidget {
               painter: JourneyTreePainter(
                 looks: looks,
                 colors: TreeColors.of(context),
-                titleOf: (number) => _describe(number, looks[number]!),
+                memorized: memorized,
+                titleOf: (number) => _describe(
+                  number,
+                  looks[number]!,
+                  memorized: memorized.contains(number),
+                ),
                 onLeafTap: onLeafTap,
               ),
             ),

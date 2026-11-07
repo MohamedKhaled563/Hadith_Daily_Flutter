@@ -46,11 +46,12 @@ class NotificationScheduleResult {
   bool get succeeded => error == null;
 }
 
-/// A reminder tap that opens hadith [number]. A new object per tap, so tapping
-/// the same reminder twice still notifies.
+/// A reminder tap that opens hadith [number], or its review when [review].
+/// A new object per tap, so tapping the same reminder twice still notifies.
 class HadithReminderTap {
-  HadithReminderTap(this.number);
+  HadithReminderTap(this.number, {this.review = false});
   final int number;
+  final bool review;
 }
 
 /// Schedules the morning/evening reminder notifications from
@@ -237,6 +238,11 @@ class NotificationScheduler {
       hadithTapped.value = HadithReminderTap(hadith);
       return;
     }
+    final review = reviewOfPayload(response.payload);
+    if (review != null) {
+      hadithTapped.value = HadithReminderTap(review, review: true);
+      return;
+    }
     if (response.payload == harvestPayload) {
       harvestTapped.value++;
       return;
@@ -297,7 +303,16 @@ class NotificationScheduler {
     final payload = details?.notificationResponse?.payload;
     return payload != submissionApprovedPayload &&
         payload != harvestPayload &&
-        hadithOfPayload(payload) == null;
+        hadithOfPayload(payload) == null &&
+        reviewOfPayload(payload) == null;
+  }
+
+  /// The hadith whose review to open, when the app was launched by tapping
+  /// a review reminder while fully terminated.
+  Future<int?> launchedReview() async {
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    if (!(details?.didNotificationLaunchApp ?? false)) return null;
+    return reviewOfPayload(details?.notificationResponse?.payload);
   }
 
   /// Whether the app was launched by tapping the Friday harvest.

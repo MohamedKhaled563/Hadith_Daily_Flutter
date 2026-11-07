@@ -30,6 +30,7 @@ import '../share/add_message_screen.dart';
 import '../journey/journey_links.dart';
 import '../journey/journey_ring.dart';
 import '../journey/journey_screen.dart';
+import '../memorize/memorize_screen.dart';
 import '../profile/settings_drawer.dart';
 import 'reminder_offer.dart';
 
@@ -41,7 +42,12 @@ class HomeScreen extends StatefulWidget {
     this.openHadithOnStart,
     this.offerRemindersOnStart = false,
     this.openJourneyOnStart = false,
+    this.openReviewOnStart,
   });
+
+  /// Open the review of this hadith. Only for a launch from a review
+  /// reminder.
+  final int? openReviewOnStart;
 
   /// Start on the journey tab. Only for a launch from the Friday harvest.
   final bool openJourneyOnStart;
@@ -113,6 +119,11 @@ class _HomeScreenState extends State<HomeScreen>
     if (hadith != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _openHadith(hadith));
     }
+    final review = widget.openReviewOnStart;
+    if (review != null) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _openHadith(review, review: true));
+    }
     if (widget.offerRemindersOnStart) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _offerReminders());
     }
@@ -183,17 +194,22 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _onHadithReminderTapped() {
     final tap = NotificationScheduler.hadithTapped.value;
-    if (tap != null) _openHadith(tap.number);
+    if (tap != null) _openHadith(tap.number, review: tap.review);
   }
 
-  /// A reminder named this hadith: open it from wherever the reader was.
-  void _openHadith(int number) {
+  /// A reminder named this hadith: open it, or its review, from wherever the
+  /// reader was.
+  void _openHadith(int number, {bool review = false}) {
     final hadith = _repo.getByNumber(number);
     if (hadith == null || !mounted) return;
     final navigator = Navigator.of(context);
     navigator.popUntil((route) => route.isFirst);
-    _goToTab(0);
-    navigator.push(appPageRoute(child: HadithDetailScreen(hadith: hadith)));
+    _goToTab(review ? 1 : 0);
+    navigator.push(appPageRoute(
+      child: review
+          ? ReviewScreen(hadith: hadith)
+          : HadithDetailScreen(hadith: hadith),
+    ));
   }
 
   Future<List<DailyMessageEntry>> _loadTodayEntries() async {
