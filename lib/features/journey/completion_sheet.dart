@@ -93,7 +93,7 @@ class _CompletionBody extends StatelessWidget {
             ),
           ),
         ],
-        if (outcome.newBest) ...[
+        if (outcome.record != null || outcome.newBest) ...[
           const SizedBox(height: 10),
           Center(
             child: Container(
@@ -103,7 +103,7 @@ class _CompletionBody extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                'أطول سلسلة لك حتى الآن',
+                outcome.record?.brokenLine ?? 'أطول سلسلة لك حتى الآن',
                 style: TextStyle(
                   fontFamily: kSans,
                   fontSize: 12.5,

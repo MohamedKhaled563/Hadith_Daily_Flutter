@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../core/auth/sign_in_gate.dart';
 import '../../core/theme/app_colors.dart';
@@ -14,6 +16,7 @@ import '../../core/widgets/like_counter.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
+import '../../data/journey/journey_repository.dart';
 import '../../data/models/insight.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../../data/services/community_service.dart';
@@ -55,14 +58,23 @@ class _CommunityPostScreenState extends State<CommunityPostScreen> {
   /// called it from here.
   bool get _isBookmarked => _repo.isInsightFavorite(widget.post.toInsight());
 
+  /// Staying with a post counts as reading it, the same few seconds a daily
+  /// message asks for.
+  Timer? _readTimer;
+
   @override
   void initState() {
     super.initState();
     _repo.favoritesListenable.addListener(_onFavoritesChanged);
+    _readTimer = Timer(
+      const Duration(seconds: 4),
+      () => JourneyRepository().recordCommunityRead(widget.post.id),
+    );
   }
 
   @override
   void dispose() {
+    _readTimer?.cancel();
     _repo.favoritesListenable.removeListener(_onFavoritesChanged);
     super.dispose();
   }

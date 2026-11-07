@@ -122,6 +122,9 @@ class FirestoreJourneyStore implements JourneyStore {
               'h': FieldValue.arrayUnion([event.fullHadith]),
             if (event.seconds > 0) 's': FieldValue.increment(event.seconds),
             if (event.wrote > 0) 'w': FieldValue.increment(event.wrote),
+            if (event.communityId != null)
+              'c': FieldValue.arrayUnion([event.communityId]),
+            if (event.shared > 0) 'x': FieldValue.increment(event.shared),
           },
         },
       };
@@ -133,7 +136,9 @@ class FirestoreJourneyStore implements JourneyStore {
     final isDayEvent = event.messageId != null ||
         event.fullHadith != null ||
         event.seconds > 0 ||
-        event.wrote > 0;
+        event.wrote > 0 ||
+        event.communityId != null ||
+        event.shared > 0;
     if (isDayEvent) {
       batch.set(
         _year(uid, event.dayKey.substring(0, 4)),
@@ -195,6 +200,12 @@ class FirestoreJourneyStore implements JourneyStore {
                   'h': FieldValue.arrayUnion(day.value.hadiths),
                 if (day.value.seconds > 0)
                   's': FieldValue.increment(day.value.seconds),
+                if (day.value.wrote > 0)
+                  'w': FieldValue.increment(day.value.wrote),
+                if (day.value.community.isNotEmpty)
+                  'c': FieldValue.arrayUnion(day.value.community),
+                if (day.value.shared > 0)
+                  'x': FieldValue.increment(day.value.shared),
               },
           },
         },

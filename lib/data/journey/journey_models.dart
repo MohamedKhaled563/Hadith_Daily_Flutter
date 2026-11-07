@@ -53,6 +53,8 @@ class JourneyDay {
     this.hadiths = const [],
     this.seconds = 0,
     this.wrote = 0,
+    this.community = const [],
+    this.shared = 0,
   });
 
   factory JourneyDay.fromJson(Object? raw) {
@@ -68,6 +70,10 @@ class JourneyDay {
       ],
       seconds: (raw['s'] as num?)?.toInt() ?? 0,
       wrote: (raw['w'] as num?)?.toInt() ?? 0,
+      community: [
+        for (final id in raw['c'] as List? ?? const []) id.toString(),
+      ],
+      shared: (raw['x'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -88,6 +94,12 @@ class JourneyDay {
   /// How many messages the reader sent to the community this day.
   final int wrote;
 
+  /// Ids of the community posts read this day.
+  final List<String> community;
+
+  /// How many cards were shared outside the app this day.
+  final int shared;
+
   /// Whether this day keeps the streak alive.
   bool get isPresent => messages.isNotEmpty || hadiths.isNotEmpty;
 
@@ -97,6 +109,8 @@ class JourneyDay {
         if (hadiths.isNotEmpty) 'h': hadiths,
         if (seconds > 0) 's': seconds,
         if (wrote > 0) 'w': wrote,
+        if (community.isNotEmpty) 'c': community,
+        if (shared > 0) 'x': shared,
       };
 }
 
@@ -169,6 +183,8 @@ class JourneyEvent {
     this.seen = const [],
     this.bestStreak,
     this.startedOn,
+    this.communityId,
+    this.shared = 0,
   });
 
   final String dayKey;
@@ -192,6 +208,12 @@ class JourneyEvent {
   /// Set on the reader's very first event.
   final String? startedOn;
 
+  /// A community post the reader stayed with.
+  final String? communityId;
+
+  /// A card shared outside the app.
+  final int shared;
+
   JourneyEvent copyWith({
     List<String>? seen,
     int? bestStreak,
@@ -208,6 +230,8 @@ class JourneyEvent {
         seen: seen ?? this.seen,
         bestStreak: bestStreak ?? this.bestStreak,
         startedOn: startedOn ?? this.startedOn,
+        communityId: communityId,
+        shared: shared,
       );
 }
 
@@ -332,6 +356,7 @@ class JourneyData {
 
     final day = days[event.dayKey] ?? const JourneyDay();
     final id = event.messageId;
+    final post = event.communityId;
     final nextDay = JourneyDay(
       messages: id == null || day.messages.contains(id)
           ? day.messages
@@ -342,6 +367,10 @@ class JourneyData {
           : [...day.hadiths, full],
       seconds: day.seconds + event.seconds,
       wrote: day.wrote + event.wrote,
+      community: post == null || day.community.contains(post)
+          ? day.community
+          : [...day.community, post],
+      shared: day.shared + event.shared,
     );
 
     return JourneyData(

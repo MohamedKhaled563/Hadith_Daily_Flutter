@@ -11,6 +11,7 @@ library;
 import '../journey/journey_copy.dart';
 import '../journey/journey_engine.dart';
 import '../journey/journey_models.dart';
+import '../journey/journey_points.dart';
 
 /// The day's two reminders.
 enum ReminderSlot { morning, evening }
@@ -49,6 +50,9 @@ class ReminderFacts {
 }
 
 const _hadithPrefix = 'hadith:';
+
+/// The payload of the Friday harvest, which opens the journey tab.
+const harvestPayload = 'harvest';
 
 /// The payload of a reminder that opens hadith [number].
 String hadithPayload(int number) => '$_hadithPrefix$number';
@@ -124,6 +128,26 @@ PlannedReminder? planReminder(
   if (last == null) return null;
   final missed = _missedBefore(last, day);
 
+  // Friday morning sums up the week, if there is a week to sum up. Fridays
+  // ahead are planned from what is known now, so a reader who stops before
+  // one gets the ordinary lines instead of an empty harvest.
+  if (slot == ReminderSlot.morning && _isFriday(day) &&
+      missed <= kGentleAwayDays) {
+    final harvest = harvestFor(data, day);
+    if (harvest.days > 0) {
+      final words = JourneyCopy.harvest(
+        days: harvest.days,
+        minutes: harvest.minutes,
+        lastWeekMinutes: harvest.lastWeekMinutes,
+      );
+      return PlannedReminder(
+        title: words.title,
+        body: words.body,
+        payload: harvestPayload,
+      );
+    }
+  }
+
   if (missed == 0) {
     return switch (slot) {
       ReminderSlot.morning => _forHadith(
@@ -144,6 +168,11 @@ PlannedReminder? planReminder(
     return _forHadith(facts, day, (_, __) => JourneyCopy.graceUsed);
   }
   return _forHadith(facts, day, (title, _) => JourneyCopy.placeKept(title));
+}
+
+bool _isFriday(String day) {
+  final parts = day.split('-').map(int.parse).toList();
+  return DateTime.utc(parts[0], parts[1], parts[2]).weekday == DateTime.friday;
 }
 
 PlannedReminder? _eveningStreak(ReminderFacts facts, String day) {

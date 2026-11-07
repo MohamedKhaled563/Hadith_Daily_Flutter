@@ -133,6 +133,26 @@ void main() {
     expect(day.messages, ['a']);
   });
 
+  test('community reads and shares go through the rules and add up',
+      () async {
+    for (final post in ['post-1', 'post-2', 'post-1']) {
+      await store.record(
+        uid,
+        JourneyEvent(dayKey: '2026-11-07', communityId: post),
+      );
+    }
+    for (var i = 0; i < 2; i++) {
+      await store.record(
+        uid,
+        const JourneyEvent(dayKey: '2026-11-07', shared: 1),
+      );
+    }
+
+    final day = (await readBack(uid)).days['2026-11-07']!;
+    expect(day.community, unorderedEquals(['post-1', 'post-2']));
+    expect(day.shared, 2);
+  });
+
   test('a guest reading joins the account without replacing it', () async {
     await store.record(
       uid,
@@ -152,7 +172,10 @@ void main() {
       fullHadith: 2,
       seconds: 40,
       seen: ['read5'],
-    ));
+    )).apply(const JourneyEvent(
+      dayKey: '2026-11-06',
+      communityId: 'post-9',
+    )).apply(const JourneyEvent(dayKey: '2026-11-06', shared: 1));
     await store.absorb(uid, guest);
 
     final data = await readBack(uid);
@@ -161,6 +184,8 @@ void main() {
     expect(data.progressOf(2).isComplete, isTrue);
     expect(data.seen, {'read5'});
     expect(data.days.keys, containsAll(['2026-11-01', '2026-11-06']));
+    expect(data.days['2026-11-06']!.community, ['post-9']);
+    expect(data.days['2026-11-06']!.shared, 1);
   });
 
   test("another reader cannot read or write someone's journey", () async {

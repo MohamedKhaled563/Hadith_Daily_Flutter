@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hadith_app/core/share/share_service.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/core/widgets/bottom_navigation.dart';
 import 'package:hadith_app/data/journey/journey_engine.dart';
+import 'package:hadith_app/data/journey/journey_points.dart';
 import 'package:hadith_app/data/journey/journey_repository.dart';
 import 'package:hadith_app/data/journey/journey_store.dart';
 import 'package:hadith_app/data/journey/reading_tracker.dart';
@@ -202,7 +204,11 @@ void main() {
       await wait(tester);
 
       NotificationScheduler.hadithTapped.value = HadithReminderTap(16);
-      await wait(tester);
+      final deadline = DateTime.now().add(const Duration(seconds: 5));
+      while (find.byType(HadithDetailScreen).evaluate().isEmpty &&
+          DateTime.now().isBefore(deadline)) {
+        await wait(tester, 200);
+      }
 
       final opened =
           tester.widget<HadithDetailScreen>(find.byType(HadithDetailScreen));
@@ -443,7 +449,7 @@ void main() {
       finished([1, 2, 3]);
       await openJourney(tester);
 
-      await tester.tap(find.byIcon(Icons.ios_share_rounded));
+      await tester.tap(find.byIcon(Icons.ios_share_rounded).first);
       await wait(tester, 900);
       expect(find.byType(TreePoster), findsOneWidget);
       expect(find.text('٣ من ٤٢ حديثاً'), findsWidgets);
@@ -474,7 +480,7 @@ void main() {
 
       finished([1, 2, 3]);
       await openJourney(tester);
-      await tester.tap(find.byIcon(Icons.ios_share_rounded));
+      await tester.tap(find.byIcon(Icons.ios_share_rounded).first);
       await wait(tester, 900);
 
       await tester.tap(find.text('مشاركة الصورة'));
@@ -488,6 +494,179 @@ void main() {
       final files = sent!['paths'] as List<dynamic>;
       expect(files.single, endsWith('.png'));
       await wait(tester, 500);
+    });
+  });
+
+  group('points, records and the harvest', () {
+    const channel = MethodChannel('dev.fluttercommunity.plus/share');
+
+    tearDown(() {
+      ShareService.onShared = null;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    Future<void> scrollTo(WidgetTester tester, Finder target) async {
+      await tester.scrollUntilVisible(
+        target,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await wait(tester, 300);
+    }
+
+    testWidgets('a new reader has no points and no records yet',
+        (tester) async {
+      await openJourney(tester);
+
+      await scrollTo(tester, find.text('نقاطك هذا الأسبوع'));
+      expect(find.text('الماضي ٠'), findsOneWidget);
+      expect(find.text('شارك حصاد أسبوعك'), findsNothing);
+
+      await scrollTo(tester, find.text(JourneyRecord.weekWrote.label));
+      expect(find.text('أرقامك'), findsOneWidget);
+      for (final record in JourneyRecord.values) {
+        expect(find.text(record.label), findsOneWidget);
+      }
+      expect(find.text('—'), findsWidgets);
+    });
+
+    testWidgets('a week of reading shows its points and records',
+        (tester) async {
+      final now = DateTime(2026, 11, 14, 12);
+      await journey.debugReset(store: store, clock: () => now);
+      journey.recordMessageRead('a', hadithNumber: 1);
+      journey.recordMessageRead('b', hadithNumber: 2);
+      journey.recordFullRead(1, seconds: 300);
+      // What a screen reader is told, read from the widget that says it.
+      Finder said(String label) => find.byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == label,
+          );
+
+      await openJourney(tester);
+      await scrollTo(tester, find.text('نقاطك هذا الأسبوع'));
+      // Two messages and a hadith: 2 + 2 + 10.
+      expect(
+        said('نقاطك هذا الأسبوع ١٤، والأسبوع الماضي ٠'),
+        findsOneWidget,
+      );
+      expect(find.text('شارك حصاد أسبوعك'), findsOneWidget);
+
+      await scrollTo(tester, find.text(JourneyRecord.weekWrote.label));
+      expect(
+        said('${JourneyRecord.dayMinutes.label}: ٥ دقائق'),
+        findsOneWidget,
+      );
+      expect(
+        said('${JourneyRecord.weekWrote.label}: —'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the harvest of the week can be previewed and copied',
+        (tester) async {
+      finished([1]);
+      await openJourney(tester);
+
+      await scrollTo(tester, find.text('شارك حصاد أسبوعك'));
+      await tester.tap(find.text('شارك حصاد أسبوعك'));
+      await wait(tester, 900);
+      expect(find.byType(HarvestPoster), findsOneWidget);
+
+      await tester.tap(find.text('نسخ النص'));
+      await wait(tester, 500);
+      expect(copied, startsWith('هذا الأسبوع: يوم واحد'));
+      await wait(tester, 4500);
+    });
+
+    testWidgets('a card that leaves the app counts as a share', (tester) async {
+      ShareService.onShared = journey.recordShared;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        channel,
+        (call) async => 'dev.fluttercommunity.plus/share/unavailable',
+      );
+
+      finished([1, 2, 3]);
+      final before = journey.thisWeekPoints.total;
+      await openJourney(tester);
+      await tester.tap(find.byIcon(Icons.ios_share_rounded).first);
+      await wait(tester, 900);
+      await tester.tap(find.text('مشاركة الصورة'));
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      while ((journey.data.days[journey.today]?.shared ?? 0) == 0 &&
+          DateTime.now().isBefore(deadline)) {
+        await wait(tester, 200);
+      }
+
+      expect(journey.data.days[journey.today]!.shared, 1);
+      expect(journey.thisWeekPoints.total, before + PointRules.share);
+      await wait(tester, 500);
+    });
+
+    testWidgets('a card the reader backs out of does not count',
+        (tester) async {
+      ShareService.onShared = journey.recordShared;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async => '');
+
+      finished([1]);
+      await openJourney(tester);
+      await tester.tap(find.byIcon(Icons.ios_share_rounded).first);
+      await wait(tester, 900);
+      await tester.tap(find.text('مشاركة الصورة'));
+      await wait(tester, 3000);
+
+      expect(journey.data.days[journey.today]?.shared ?? 0, 0);
+    });
+
+    testWidgets('a tapped harvest closes what is open and shows the journey',
+        (tester) async {
+      await tester.pumpWidget(app(const HomeScreen()));
+      await wait(tester);
+      Navigator.of(tester.element(find.byType(HomeScreen))).push(
+        MaterialPageRoute<void>(
+          builder: (_) => HadithDetailScreen(hadith: hadiths.getByNumber(3)!),
+        ),
+      );
+      await wait(tester, 900);
+      expect(find.byType(HadithDetailScreen), findsOneWidget);
+
+      NotificationScheduler.harvestTapped.value++;
+      await wait(tester, 1500);
+
+      expect(find.byType(HadithDetailScreen), findsNothing);
+      expect(find.byType(JourneyTree).hitTestable(), findsOneWidget);
+    });
+
+    testWidgets('a harvest that started the app lands on the journey',
+        (tester) async {
+      await tester.pumpWidget(app(const HomeScreen(openJourneyOnStart: true)));
+      await wait(tester);
+
+      expect(find.byType(JourneyTree).hitTestable(), findsOneWidget);
+    });
+
+    testWidgets('the sheet names the record a reading beat', (tester) async {
+      var now = DateTime(2026, 11, 7, 12);
+      await journey.debugReset(store: store, clock: () => now);
+      journey.recordFullRead(1, seconds: 60);
+      now = DateTime(2026, 11, 14, 12);
+      journey.recordFullRead(2, seconds: 60);
+
+      await openJourney(tester, accessible: true);
+      await tapLeaf(tester, 3);
+      await openExplanation(tester);
+      await scrollToFinish(tester);
+      await tester.tap(find.text(finish));
+      await wait(tester, 900);
+
+      final shown = [
+        for (final record in JourneyRecord.values)
+          if (find.text(record.brokenLine).evaluate().isNotEmpty) record,
+      ];
+      expect(shown, hasLength(1));
+      expect(shown.single, isNot(JourneyRecord.streak));
     });
   });
 

@@ -14,6 +14,7 @@ import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/botanical_sheet.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/journey/journey_copy.dart';
+import '../../data/journey/journey_points.dart';
 import '../../data/journey/journey_repository.dart';
 import '../../data/models/hadith.dart';
 import 'journey_posters.dart';
@@ -42,6 +43,18 @@ Future<void> shareHadith(BuildContext context, Hadith hadith) {
     ),
     builder: (format, name) =>
         HadithPoster(format: format, hadith: hadith, name: name),
+  );
+}
+
+/// Shares the week so far.
+Future<void> shareHarvest(BuildContext context) {
+  final journey = JourneyRepository();
+  final harvest = harvestFor(journey.data, journey.today);
+  return _showPosterSheet(
+    context: context,
+    caption: JourneyCopy.harvestCaption(harvest, AppLinks.storeLink),
+    builder: (format, name) =>
+        HarvestPoster(format: format, harvest: harvest, name: name),
   );
 }
 
