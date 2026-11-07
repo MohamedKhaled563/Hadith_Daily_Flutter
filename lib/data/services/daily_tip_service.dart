@@ -214,7 +214,10 @@ class DailyTipService {
       final drawn = prefs.getString(_pickedOnDateKey) == today &&
           _readCachedSet(prefs).length >= _knownMessagesPerDay(prefs);
       if (drawn) {
-        await _messagesPerDay(prefs);
+        await Future.wait([
+          _messagesPerDay(prefs),
+          _repairToday(prefs, today),
+        ]);
       } else {
         await _prepare(today);
       }
@@ -267,6 +270,106 @@ class DailyTipService {
       pool: pool.tips,
       pinnedIds: pinnedIds,
     );
+  }
+
+  /// Checks today's set against the live pool now, rather than at the next
+  /// launch or resume. For a screen that has just found one of its messages
+  /// gone. Never throws.
+  Future<void> repairToday() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await _repairToday(prefs, _todayString());
+    } catch (_) {
+      // Best effort: the next warm-up tries again.
+    }
+  }
+
+  /// Swaps out messages in today's set that no longer exist. See [repairDay].
+  Future<void> _repairToday(SharedPreferences prefs, String today) async {
+    if (prefs.getString(_pickedOnDateKey) != today) return;
+    final day = _readCachedSet(prefs);
+    if (day.isEmpty) return;
+
+    final pool = await _loadPool(prefs);
+    // Only a pool known to be current can say a message is gone. A cache
+    // read while offline may simply not have it yet.
+    if (!pool.current || pool.tips.isEmpty) return;
+
+    final repaired = repairDay(day, pool.tips, random: _random);
+    final unchanged = repaired.day.length == day.length &&
+        [
+          for (var i = 0; i < day.length; i++)
+            repaired.day[i].id == day[i].id &&
+                repaired.day[i].text == day[i].text,
+        ].every((same) => same);
+    if (unchanged) return;
+
+    final seen = (prefs.getStringList(_seenIdsKey) ?? const []).toSet()
+      ..addAll(repaired.drawn.map((tip) => tip.id));
+    await Future.wait([
+      prefs.setString(
+        _todaySetKey,
+        jsonEncode([for (final tip in repaired.day) tip.toCacheJson()]),
+      ),
+      prefs.setStringList(_seenIdsKey, seen.toList()),
+    ]);
+    for (final tip in repaired.drawn) {
+      unawaited(_recordShown(tip));
+    }
+  }
+
+  /// [day] checked against [pool], which must be current.
+  ///
+  /// A set is drawn once and kept for the whole day, so a message deleted from
+  /// the dashboard after the draw, or uploaded again under a new id, stayed in
+  /// it. Liking one then failed on the server with "no document to update",
+  /// and its counters never moved. Each missing message is replaced in the
+  /// same place, so the reader's position in the day holds: by the same text
+  /// under its new id if there is one, or else by a message not already in
+  /// the day. A message whose text was edited takes the new text. With
+  /// nothing left to draw from, a missing message is simply dropped.
+  ///
+  /// [drawn] lists the replacements that were newly drawn, which count as
+  /// shown.
+  @visibleForTesting
+  static ({List<DailyTip> day, List<DailyTip> drawn}) repairDay(
+    List<DailyTip> day,
+    List<DailyTip> pool, {
+    Random? random,
+  }) {
+    String key(String text) => text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final byId = {for (final tip in pool) tip.id: tip};
+    final byText = <String, DailyTip>{};
+    for (final tip in pool) {
+      byText.putIfAbsent(key(tip.text), () => tip);
+    }
+    final used = {
+      for (final tip in day)
+        if (byId.containsKey(tip.id)) tip.id,
+    };
+    final pick = random ?? Random();
+
+    final repaired = <DailyTip>[];
+    final drawn = <DailyTip>[];
+    for (final tip in day) {
+      final live = byId[tip.id];
+      if (live != null) {
+        repaired.add(live);
+        continue;
+      }
+      final moved = byText[key(tip.text)];
+      if (moved != null && used.add(moved.id)) {
+        repaired.add(moved);
+        continue;
+      }
+      final candidates = pool.where((t) => !used.contains(t.id)).toList();
+      if (candidates.isEmpty) continue;
+      final fresh = candidates[pick.nextInt(candidates.length)];
+      used.add(fresh.id);
+      repaired.add(fresh);
+      drawn.add(fresh);
+    }
+    return (day: repaired, drawn: drawn);
   }
 
   /// Convenience for callers that only ever show one card — the notification
@@ -566,7 +669,9 @@ class DailyTipService {
         if (cached.tips.isNotEmpty) {
           debugLastPoolSource = 'cache';
           debugLastPoolSize = cached.tips.length;
-          return cached;
+          // Trusted because the server's version matched, not because the
+          // server could not be asked.
+          return _Pool(cached.tips, fromCache: true, current: version != null);
         }
       }
     }
@@ -586,7 +691,11 @@ class DailyTipService {
         ),
       ]);
     }
-    return fetched;
+    return _Pool(
+      fetched.tips,
+      fromCache: fetched.fromCache,
+      current: !fetched.fromCache,
+    );
   }
 
   /// Whether Firestore's local copy of the pool can stand in for a server
@@ -753,8 +862,12 @@ class _PreparedDraw {
 /// A loaded pool, and whether any of it came from the local cache rather
 /// than the server.
 class _Pool {
-  const _Pool(this.tips, {required this.fromCache});
+  const _Pool(this.tips, {required this.fromCache, this.current = false});
 
   final List<DailyTip> tips;
   final bool fromCache;
+
+  /// Whether this is known to match the server right now: fetched from it,
+  /// or a local copy whose version it just confirmed.
+  final bool current;
 }
