@@ -137,18 +137,8 @@ class CommunityService {
   /// Live "have I liked this" status for the signed-in user, sourced
   /// straight from their own `likes/{uid}` doc rather than a local cache —
   /// stays correct across devices and survives clearing local storage.
-  Stream<bool> likeStatus(String messageId) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return Stream.value(false);
-
-    return _db
-        .collection(_collection)
-        .doc(messageId)
-        .collection('likes')
-        .doc(user.uid)
-        .snapshots()
-        .map((doc) => doc.exists);
-  }
+  Stream<bool> likeStatus(String messageId) =>
+      MessageLikeService().likeStatus(_collection, messageId);
 
   /// See [MessageLikeService.setLiked] — same batch, same rules, for a
   /// community post.

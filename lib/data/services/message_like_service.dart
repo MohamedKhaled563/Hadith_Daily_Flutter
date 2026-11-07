@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 /// Per-user, Firestore-backed likes for a message living in either
 /// `dailyMessages` or `communityMessages` — the same pattern
@@ -20,17 +23,75 @@ class MessageLikeService {
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  /// Live "have I liked this", following whoever is signed in.
+  ///
+  /// This used to read `currentUser` once, when the stream was made, and
+  /// hand back a permanent `false` for nobody. Screens hold these streams for
+  /// their whole life, and at a cold start the home screen builds every tab,
+  /// the community feed included, a moment before Firebase has restored the
+  /// saved sign-in. Those cards stayed "not liked" for good: like a post from
+  /// its detail screen, come back, and the feed showed the new count beside a
+  /// white heart; tapping it sent a second like, which the rules rejected.
+  /// Signing in from the "sign in to like" sheet hit the same wall.
+  ///
+  /// So it re-subscribes on every sign-in and sign-out instead.
   Stream<bool> likeStatus(String collection, String messageId) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return Stream.value(false);
+    return followingUser(
+      () => FirebaseAuth.instance.authStateChanges().map((user) => user?.uid),
+      (uid) {
+        if (uid == null) return Stream.value(false);
+        return _db
+            .collection(collection)
+            .doc(messageId)
+            .collection('likes')
+            .doc(uid)
+            .snapshots()
+            .map((doc) => doc.exists);
+      },
+    );
+  }
 
-    return _db
-        .collection(collection)
-        .doc(messageId)
-        .collection('likes')
-        .doc(user.uid)
-        .snapshots()
-        .map((doc) => doc.exists);
+  /// [build]'s stream for the current user, swapped for a fresh one whenever
+  /// [users] names someone else. `authStateChanges` emits the current state
+  /// on listen, so the first value never waits for a change.
+  ///
+  /// Each listener gets its own subscriptions, so a stream a screen holds
+  /// can be listened to again, as Firestore's own streams can.
+  @visibleForTesting
+  static Stream<T> followingUser<T>(
+    Stream<String?> Function() users,
+    Stream<T> Function(String? uid) build,
+  ) {
+    return Stream<T>.multi((controller) {
+      StreamSubscription<T>? inner;
+      var started = false;
+      String? current;
+
+      final auth = users().listen((uid) {
+        if (started && uid == current) return;
+        started = true;
+        current = uid;
+        inner?.cancel();
+        inner = build(uid).listen(
+          controller.add,
+          onError: controller.addError,
+        );
+      }, onError: controller.addError);
+
+      controller
+        ..onPause = () {
+          auth.pause();
+          inner?.pause();
+        }
+        ..onResume = () {
+          auth.resume();
+          inner?.resume();
+        }
+        ..onCancel = () async {
+          await inner?.cancel();
+          await auth.cancel();
+        };
+    });
   }
 
   Stream<int> likeCount(String collection, String messageId) {
