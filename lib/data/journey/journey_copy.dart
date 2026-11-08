@@ -139,6 +139,33 @@ class JourneyCopy {
       '${arabicMinuteCount(harvest.minutes)} مع الأربعين النووية في تطبيق '
       '«طيّب قلبك»، فاقرأ معي.${_linkLine(link)}';
 
+  /// The weekly board. Joining is optional and off until the reader turns it
+  /// on, so every line here says what will be shown, and to whom.
+  static const boardSignInReason =
+      'سجّل الدخول لتظهر في لوحة الأسبوع، باسمك أو باسم «فاعل خير».';
+  static const boardNote = 'النقاط تحسب نشاطك في التطبيق، لا أكثر.';
+  static const boardNotYet =
+      'لم تُنشر لوحة بعد. تُنشر يوم الجمعة حين يكثر القراء.';
+  static const boardOff = 'اسمك لا يظهر لأحد ما دام هذا مغلقاً.';
+  static const boardOn = 'يظهر الاسم الذي اخترته إن كان بين العشرة الأوائل '
+      'حين تُنشر اللوحة يوم الجمعة. تستطيع الخروج متى شئت.';
+
+  /// The reading week starting [saturday], as «٧ – ١٣ نوفمبر».
+  static String boardWeek(String saturday) {
+    final parts = saturday.split('-').map(int.parse).toList();
+    final start = DateTime.utc(parts[0], parts[1], parts[2]);
+    final end = start.add(const Duration(days: 6));
+    final from = start.month == end.month
+        ? toArabicDigits(start.day)
+        : '${toArabicDigits(start.day)} ${_months[start.month - 1]}';
+    return '$from – ${toArabicDigits(end.day)} ${_months[end.month - 1]}';
+  }
+
+  static const _months = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+  ];
+
   /// A streak line for the completion sheet.
   static String streakLine(int current, int best) {
     if (current <= 1) return 'بداية طيبة، ونلتقي غداً إن شاء الله.';
@@ -171,4 +198,14 @@ String arabicDayCount(int count, {bool consecutive = false}) {
   };
   final suffix = consecutive ? ' متتالية' : '';
   return '${toArabicDigits(count)} $noun$suffix';
+}
+
+/// [count] messages in the form that number takes: رسالة واحدة، رسالتان،
+/// ٣ رسائل، ١١ رسالة.
+String arabicMessageCount(int count) {
+  if (count == 1) return 'رسالة واحدة';
+  if (count == 2) return 'رسالتان';
+  final tail = count % 100;
+  final noun = tail >= 3 && tail <= 10 ? 'رسائل' : 'رسالة';
+  return '${toArabicDigits(count)} $noun';
 }

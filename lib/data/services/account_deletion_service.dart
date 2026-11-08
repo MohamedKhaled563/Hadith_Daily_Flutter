@@ -150,6 +150,10 @@ class AccountDeletionService {
     await _deleteOwnedDocs(
       _db.collection('users').doc(uid).collection('journeyYears'),
     );
+    // The weekly board entry, if the reader joined. A board already
+    // published keeps the name until the next one replaces it, as the
+    // privacy policy says.
+    await _db.collection('scores').doc(uid).delete();
 
     onProgress('جارٍ حذف ملفك الشخصي…');
     await _deleteProfileAndUsername(user);
