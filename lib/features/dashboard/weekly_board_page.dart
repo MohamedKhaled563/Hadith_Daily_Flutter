@@ -169,7 +169,8 @@ class _WeeklyBoardPageState extends State<WeeklyBoardPage> {
         title: const Text('نشر لوحة الأسبوع'),
         content: Text(
           'ستظهر ${board.points.length} أسماء في النقاط و'
-          '${board.sharing.length} في المشاركة لكل القراء'
+          '${board.sharing.length} في المشاركة و${board.memo.length} في الحفظ '
+          '(أسماء بلا أرقام) لكل القراء'
           '${replacing == null ? '' : '، وتحل محل لوحة أسبوع ${JourneyCopy.boardWeek(replacing.weekStart)}'}.',
         ),
         actions: [
@@ -285,6 +286,7 @@ class _WeeklyBoardPageState extends State<WeeklyBoardPage> {
                     DataColumn(label: Text('الاسم')),
                     DataColumn(label: Text('من الهاتف'), numeric: true),
                     DataColumn(label: Text('مقبولة'), numeric: true),
+                    DataColumn(label: Text('الحفظ'), numeric: true),
                     DataColumn(label: Text('المجموع'), numeric: true),
                     DataColumn(label: Text('إخفاء')),
                   ],
@@ -303,6 +305,7 @@ class _WeeklyBoardPageState extends State<WeeklyBoardPage> {
                           DataCell(Text(c.name)),
                           DataCell(Text('${c.device}')),
                           DataCell(Text('${c.approved}')),
+                          DataCell(Text('${c.memo}')),
                           DataCell(Text('${c.score}')),
                           DataCell(
                             Checkbox(

@@ -224,6 +224,7 @@ class TreePoster extends StatelessWidget {
               size: Size.infinite,
               painter: JourneyTreePainter(
                 looks: leafLooks(data),
+                memorized: memorizedLeaves(data),
                 colors: colors,
               ),
             ),

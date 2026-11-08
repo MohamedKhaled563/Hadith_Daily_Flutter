@@ -1464,6 +1464,29 @@ void notificationSchedulerSuite() {
           isFalse);
     });
 
+    test('a cold start from a review reminder opens that review only',
+        () async {
+      launchedWith(reviewPayload(13));
+      final scheduler = schedulerWith(_FakeDataSource());
+
+      expect(await scheduler.launchedReview(), 13);
+      expect(await scheduler.launchedHadith(), isNull);
+      expect(await scheduler.wasLaunchedByNotification(), isFalse,
+          reason: 'it must not also open today\'s message');
+    });
+
+    test('a live tap on a review reminder names the review', () async {
+      final onTap = await tapHandler();
+      final message = NotificationScheduler.notificationTapped.value;
+
+      onTap(tap(reviewPayload(13)));
+
+      final tapped = NotificationScheduler.hadithTapped.value!;
+      expect(tapped.number, 13);
+      expect(tapped.review, isTrue);
+      expect(NotificationScheduler.notificationTapped.value, message);
+    });
+
     test('a live tap on the harvest opens the journey, not a message',
         () async {
       final onTap = await tapHandler();

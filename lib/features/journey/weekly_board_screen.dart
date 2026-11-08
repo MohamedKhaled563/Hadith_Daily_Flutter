@@ -13,6 +13,9 @@ import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_repository.dart';
 import '../../data/journey/weekly_board.dart';
 
+/// The board's three published lists.
+enum BoardList { points, sharing, memo }
+
 /// The weekly board, opened from the journey tab.
 ///
 /// The published lists, the reader's own points against last week (never a
@@ -32,7 +35,7 @@ class WeeklyBoardScreen extends StatefulWidget {
 class _WeeklyBoardScreenState extends State<WeeklyBoardScreen> {
   final _service = WeeklyBoardService();
   bool _loading = true;
-  bool _sharing = false;
+  BoardList _list = BoardList.points;
 
   @override
   void initState() {
@@ -82,11 +85,14 @@ class _WeeklyBoardScreenState extends State<WeeklyBoardScreen> {
                   _BoardCard(
                     board: _service.board.value,
                     loading: _loading,
-                    sharing: _sharing,
-                    onSection: (sharing) => setState(() => _sharing = sharing),
+                    list: _list,
+                    onSection: (list) => setState(() => _list = list),
                   ),
                   const SizedBox(height: 14),
-                  const _OwnPoints(),
+                  _OwnPoints(
+                    now: JourneyRepository().thisWeekPoints.total,
+                    last: JourneyRepository().lastWeekPoints.total,
+                  ),
                   const SizedBox(height: 14),
                   _JoinCard(
                     // The account's own name, never the email the app shows
@@ -110,14 +116,17 @@ class _BoardCard extends StatelessWidget {
   const _BoardCard({
     required this.board,
     required this.loading,
-    required this.sharing,
+    required this.list,
     required this.onSection,
   });
 
   final WeeklyBoard? board;
   final bool loading;
-  final bool sharing;
-  final ValueChanged<bool> onSection;
+  final BoardList list;
+  final ValueChanged<BoardList> onSection;
+
+  bool get sharing => list == BoardList.sharing;
+  bool get memo => list == BoardList.memo;
 
   @override
   Widget build(BuildContext context) {
@@ -163,17 +172,36 @@ class _BoardCard extends StatelessWidget {
                     ),
             )
           else ...[
-            SegmentedButton<bool>(
+            SegmentedButton<BoardList>(
               segments: const [
-                ButtonSegment(value: false, label: Text('النقاط')),
-                ButtonSegment(value: true, label: Text('المشاركة')),
+                ButtonSegment(value: BoardList.points, label: Text('النقاط')),
+                ButtonSegment(
+                  value: BoardList.sharing,
+                  label: Text('المشاركة'),
+                ),
+                ButtonSegment(value: BoardList.memo, label: Text('الحفظ')),
               ],
-              selected: {sharing},
+              selected: {list},
               showSelectedIcon: false,
               onSelectionChanged: (s) => onSection(s.first),
             ),
             const SizedBox(height: 10),
-            ..._rows(context, sharing ? board.sharing : board.points),
+            if (memo)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  'أسماء بالترتيب فقط، بلا أعداد: ما يحفظه القارئ بينه وبين ربه.',
+                  style: muted,
+                ),
+              ),
+            ..._rows(
+              context,
+              switch (list) {
+                BoardList.points => board.points,
+                BoardList.sharing => board.sharing,
+                BoardList.memo => board.memo,
+              },
+            ),
           ],
         ],
       ),
@@ -189,7 +217,9 @@ class _BoardCard extends StatelessWidget {
           child: Text(
             sharing
                 ? 'لا رسائل مقبولة في هذا الأسبوع.'
-                : 'لا أسماء هذا الأسبوع.',
+                : memo
+                    ? 'لا أسماء في الحفظ هذا الأسبوع.'
+                    : 'لا أسماء هذا الأسبوع.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: kSans,
@@ -203,8 +233,8 @@ class _BoardCard extends StatelessWidget {
     return [
       for (final (i, row) in rows.indexed)
         Semantics(
-          label: '${toArabicDigits(i + 1)}، ${row.name}، '
-              '${sharing ? arabicMessageCount(row.value) : '${toArabicDigits(row.value)} نقطة'}',
+          label: '${toArabicDigits(i + 1)}، ${row.name}'
+              '${memo ? '' : '، ${sharing ? arabicMessageCount(row.value) : '${toArabicDigits(row.value)} نقطة'}'}',
           excludeSemantics: true,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -236,17 +266,18 @@ class _BoardCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  sharing
-                      ? arabicMessageCount(row.value)
-                      : toArabicDigits(row.value),
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: palette.mutedText,
+                if (!memo)
+                  Text(
+                    sharing
+                        ? arabicMessageCount(row.value)
+                        : toArabicDigits(row.value),
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: palette.mutedText,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -258,14 +289,15 @@ class _BoardCard extends StatelessWidget {
 /// The reader's own week, against the last. No rank: below the first ten,
 /// a number would only say how far behind someone is.
 class _OwnPoints extends StatelessWidget {
-  const _OwnPoints();
+  const _OwnPoints({required this.now, required this.last});
+
+  /// Passed in rather than read here, so the row is rebuilt when they move.
+  final int now;
+  final int last;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final journey = JourneyRepository();
-    final now = journey.thisWeekPoints.total;
-    final last = journey.lastWeekPoints.total;
     final style = TextStyle(
       fontFamily: kSans,
       fontSize: 14,

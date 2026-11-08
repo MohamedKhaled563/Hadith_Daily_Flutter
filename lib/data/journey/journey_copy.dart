@@ -139,6 +139,59 @@ class JourneyCopy {
       '${arabicMinuteCount(harvest.minutes)} مع الأربعين النووية في تطبيق '
       '«طيّب قلبك»، فاقرأ معي.${_linkLine(link)}';
 
+  /// Memorizing. Plain about what the app can know: the reader says whether
+  /// they had it, and the app keeps the dates.
+  static JourneyMessage memoMilestone(int count, {required String lastTitle}) =>
+      switch (count) {
+        1 => JourneyMessage(
+            title: 'أول حديث في حفظك',
+            body: '«$lastTitle» معك الآن. نراجعه غداً، ثم تتباعد المراجعة.',
+          ),
+        5 => const JourneyMessage(
+            title: 'خمسة أحاديث في حفظك',
+            body: 'مراجعة قصيرة حين يحين موعدها تكفي لتبقى معك.',
+          ),
+        10 => JourneyMessage(
+            title: 'عشرة أحاديث في حفظك',
+            body: 'آخرها «$lastTitle». ما تكرره يبقى.',
+          ),
+        20 => const JourneyMessage(
+            title: 'عشرون حديثاً في حفظك',
+            body: 'قرابة نصف الأربعين، حديثاً بعد حديث.',
+          ),
+        _ => const JourneyMessage(
+            title: 'حفظت الأحاديث كلها',
+            body: 'اثنان وأربعون حديثاً. المراجعات تتباعد الآن حتى تثبت.',
+          ),
+      };
+
+  /// After learning a hadith's last part, without a milestone.
+  static JourneyMessage memorized(String title) => JourneyMessage(
+        title: 'حفظت «$title»',
+        body: 'نراجعه غداً، ثم تتباعد المراجعة شيئاً فشيئاً.',
+      );
+
+  /// After one part of a longer hadith.
+  static JourneyMessage partLearned(int learned, int total) => JourneyMessage(
+        title: 'حفظت الجزء ${toArabicDigits(learned)} من ${toArabicDigits(total)}',
+        body: 'نكمل الجزء التالي في جلسة أخرى، اليوم أو غداً.',
+      );
+
+  /// After a review. [days] is null once the hadith is kept.
+  static String reviewed({required bool remembered, int? days}) {
+    if (days == null) return 'ثبت في حفظك، ولا مراجعة له بعد اليوم.';
+    final when = days == 1 ? 'غداً' : 'بعد ${arabicDayCount(days)}';
+    return remembered
+        ? 'تذكرته. المراجعة القادمة $when.'
+        : 'لا بأس، لهذا وُضعت المراجعة. نعود إليه $when.';
+  }
+
+  /// The morning reminder when a review is due.
+  static JourneyMessage reviewDue(String title) => JourneyMessage(
+        title: 'مراجعة قصيرة',
+        body: 'هل ما زلت تذكر «$title»؟ دقيقة واحدة تكفي.',
+      );
+
   /// The weekly board. Joining is optional and off until the reader turns it
   /// on, so every line here says what will be shown, and to whom.
   static const boardSignInReason =

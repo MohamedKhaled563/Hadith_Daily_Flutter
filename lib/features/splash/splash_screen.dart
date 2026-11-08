@@ -146,6 +146,9 @@ class _SplashScreenState extends State<SplashScreen>
   /// A reminder about a hadith lands on that hadith.
   int? _launchedHadith;
 
+  /// A review reminder lands on that review.
+  int? _launchedReview;
+
   /// The Friday harvest lands on the journey.
   bool _launchedFromHarvest = false;
 
@@ -154,6 +157,7 @@ class _SplashScreenState extends State<SplashScreen>
       final scheduler = NotificationScheduler.instance;
       _launchedFromApproval = await scheduler.wasLaunchedBySubmissionApproval();
       _launchedHadith = await scheduler.launchedHadith();
+      _launchedReview = await scheduler.launchedReview();
       _launchedFromHarvest = await scheduler.wasLaunchedByHarvest();
       final launched = await scheduler.wasLaunchedByNotification();
       if (!launched) return;
@@ -195,11 +199,13 @@ class _SplashScreenState extends State<SplashScreen>
           openMessageOnStart: _launchedFromReminder,
           openSubmissionsOnStart: _launchedFromApproval,
           openHadithOnStart: _launchedHadith,
+          openReviewOnStart: _launchedReview,
           openJourneyOnStart: _launchedFromHarvest,
           offerRemindersOnStart: !_launchedFromReminder &&
               !_launchedFromApproval &&
               !_launchedFromHarvest &&
-              _launchedHadith == null,
+              _launchedHadith == null &&
+              _launchedReview == null,
         ),
       ),
     );

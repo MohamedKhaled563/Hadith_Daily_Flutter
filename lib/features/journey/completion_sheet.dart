@@ -12,7 +12,7 @@ import '../../data/models/hadith.dart';
 import 'journey_tree.dart';
 
 /// What the reader chose from the completion sheet.
-enum CompletionChoice { write, next, share }
+enum CompletionChoice { write, next, share, memorize }
 
 /// The moment a hadith is finished: the leaf turns gold, and the day's next
 /// step is one tap away. Null when the sheet is just dismissed.
@@ -21,6 +21,7 @@ Future<CompletionChoice?> showCompletionSheet({
   required Hadith hadith,
   required ReadingOutcome outcome,
   required bool hasNext,
+  bool canMemorize = false,
 }) {
   final milestone = outcome.milestone == null
       ? null
@@ -41,6 +42,7 @@ Future<CompletionChoice?> showCompletionSheet({
     child: _CompletionBody(
       outcome: outcome,
       hasNext: hasNext,
+      canMemorize: canMemorize,
       showsStreak: milestone != null,
     ),
   );
@@ -51,10 +53,14 @@ class _CompletionBody extends StatelessWidget {
     required this.outcome,
     required this.hasNext,
     required this.showsStreak,
+    this.canMemorize = false,
   });
 
   final ReadingOutcome outcome;
   final bool hasNext;
+
+  /// Offers to learn the hadith by heart, unless it already is.
+  final bool canMemorize;
 
   /// A milestone's message takes the subtitle, so the streak line moves here.
   final bool showsStreak;
@@ -151,12 +157,23 @@ class _CompletionBody extends StatelessWidget {
                 text: 'مشاركة',
                 isSecondary: true,
                 icon: Icons.ios_share_rounded,
-                onPressed: () =>
-                    Navigator.pop(context, CompletionChoice.share),
+                onPressed: () => Navigator.pop(context, CompletionChoice.share),
               ),
             ),
           ],
         ),
+        if (canMemorize) ...[
+          const SizedBox(height: 4),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, CompletionChoice.memorize),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 48),
+              foregroundColor: palette.goldText,
+            ),
+            icon: const Icon(Icons.psychology_alt_rounded, size: 20),
+            label: const Text('احفظ هذا الحديث'),
+          ),
+        ],
         if (JourneyRepository().isGuest) ...[
           const SizedBox(height: 6),
           TextButton(

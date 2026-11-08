@@ -29,6 +29,7 @@ import 'package:hadith_app/features/journey/journey_ring.dart';
 import 'package:hadith_app/features/journey/journey_screen.dart';
 import 'package:hadith_app/features/journey/journey_tree.dart';
 import 'package:hadith_app/features/journey/weekly_board_screen.dart';
+import 'package:hadith_app/features/memorize/memorize_screen.dart';
 import 'package:hadith_app/firebase_options.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -99,7 +100,8 @@ void main() {
         matching: find.text(label),
       );
 
-  Future<void> openJourney(WidgetTester tester, {bool accessible = false}) async {
+  Future<void> openJourney(WidgetTester tester,
+      {bool accessible = false}) async {
     await tester.pumpWidget(app(const HomeScreen(), accessible: accessible));
     await wait(tester);
     await tester.tap(tab('رحلتي'));
@@ -752,6 +754,270 @@ void main() {
     });
   });
 
+  group('memorizing', () {
+    /// Taps [label], bringing it on screen first.
+    Future<void> press(WidgetTester tester, String label) async {
+      final target = find.text(label).last;
+      await tester.ensureVisible(target);
+      await wait(tester, 200);
+      await tester.tap(target);
+      await wait(tester, 500);
+    }
+
+    Finder blanks() => find.byWidgetPredicate(
+          (w) =>
+              w is Semantics &&
+              w.properties.label == 'كلمة مخفية، المس لإظهارها',
+        );
+
+    Future<void> throughReading(WidgetTester tester) async {
+      for (var i = 0; i < 40; i++) {
+        if (find.text('أخفِ بعض الكلمات').evaluate().isNotEmpty) break;
+        await press(tester, 'الجملة التالية');
+      }
+      await press(tester, 'أخفِ بعض الكلمات');
+    }
+
+    testWidgets('a short hadith is learned in three steps', (tester) async {
+      finished([13]);
+      final hadith = hadiths.getByNumber(13)!;
+      await tester.pumpWidget(app(MemorizeScreen(hadith: hadith)));
+      await wait(tester);
+
+      expect(find.text('اقرأ'), findsOneWidget);
+      await throughReading(tester);
+      expect(blanks(), findsWidgets, reason: 'one word in three hidden');
+      await press(tester, 'أخفِ أكثر');
+      await press(tester, 'سمّعه كاملاً');
+      expect(find.text('حفظته'), findsNothing,
+          reason: 'the text is shown before the reader answers');
+      await press(tester, 'أظهر النص');
+      await press(tester, 'حفظته');
+      await wait(tester, 600);
+
+      expect(find.text('أول حديث في حفظك'), findsOneWidget);
+      await press(tester, 'تم');
+      await wait(tester, 600);
+      expect(journey.data.memoOf(13).isMemorized, isTrue);
+      expect(journey.data.memoOf(13).due, dayKeyPlus(journey.today, 1));
+    });
+
+    testWidgets('a hidden word comes back when touched', (tester) async {
+      finished([1]);
+      await tester.pumpWidget(
+        app(MemorizeScreen(hadith: hadiths.getByNumber(1)!)),
+      );
+      await wait(tester);
+      await throughReading(tester);
+
+      final before = blanks().evaluate().length;
+      await tester.tap(blanks().first);
+      await wait(tester, 300);
+      expect(blanks().evaluate().length, before - 1);
+    });
+
+    testWidgets('«ليس بعد» goes back a step and records nothing',
+        (tester) async {
+      finished([13]);
+      await tester.pumpWidget(
+        app(MemorizeScreen(hadith: hadiths.getByNumber(13)!)),
+      );
+      await wait(tester);
+      await throughReading(tester);
+      await press(tester, 'أخفِ أكثر');
+      await press(tester, 'سمّعه كاملاً');
+      await press(tester, 'أظهر النص');
+      await press(tester, 'ليس بعد');
+
+      expect(find.text('أخفِ أكثر'), findsOneWidget);
+      expect(journey.data.memo, isEmpty);
+    });
+
+    testWidgets('a long hadith is one part a session', (tester) async {
+      finished([2]);
+      await tester.pumpWidget(
+        app(MemorizeScreen(hadith: hadiths.getByNumber(2)!)),
+      );
+      await wait(tester);
+
+      expect(find.text('الجزء ١ من ٣'), findsOneWidget);
+      await throughReading(tester);
+      await press(tester, 'أخفِ أكثر');
+      await press(tester, 'سمّعه كاملاً');
+      await press(tester, 'أظهر النص');
+      await press(tester, 'حفظته');
+      await wait(tester, 600);
+
+      expect(find.text('حفظت الجزء ١ من ٣'), findsOneWidget);
+      expect(journey.data.memoOf(2).isLearning, isTrue);
+      expect(journey.data.memoOf(2).parts, 1);
+    });
+
+    testWidgets('a due review is recorded, and says when the next one is',
+        (tester) async {
+      var now = DateTime(2026, 11, 7, 12);
+      await journey.debugReset(store: store, clock: () => now);
+      journey.learnPart(13, totalParts: 1);
+      now = DateTime(2026, 11, 8, 12);
+
+      await tester.pumpWidget(
+        app(ReviewScreen(hadith: hadiths.getByNumber(13)!)),
+      );
+      await wait(tester);
+      expect(find.textContaining('مراجعة حرة'), findsNothing);
+      await press(tester, 'أظهر النص');
+      await press(tester, 'تذكرته');
+
+      expect(
+        find.text(JourneyCopy.reviewed(remembered: true, days: 3)),
+        findsOneWidget,
+      );
+      expect(journey.data.memoOf(13).box, 1);
+    });
+
+    testWidgets('an early review is practice', (tester) async {
+      journey.learnPart(13, totalParts: 1);
+      await tester.pumpWidget(
+        app(ReviewScreen(hadith: hadiths.getByNumber(13)!)),
+      );
+      await wait(tester);
+
+      expect(find.text('ليست مستحقة اليوم، فهذه مراجعة حرة'), findsOneWidget);
+      await press(tester, 'أظهر النص');
+      await press(tester, 'نسيت بعضه');
+      expect(find.textContaining('مراجعة حرة، لم تُسجَّل'), findsOneWidget);
+      expect(journey.data.memoOf(13).misses, 0);
+    });
+
+    testWidgets('a read hadith offers to be memorized from its page',
+        (tester) async {
+      finished([13]);
+      await tester.pumpWidget(
+        app(HadithDetailScreen(hadith: hadiths.getByNumber(13)!)),
+      );
+      await wait(tester);
+
+      await tester.scrollUntilVisible(
+        find.text('احفظ هذا الحديث'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('يُحفظ في جلسة واحدة.'), findsOneWidget);
+      await press(tester, 'احفظ هذا الحديث');
+      await wait(tester, 600);
+      expect(find.byType(MemorizeScreen), findsOneWidget);
+    });
+
+    testWidgets('an unread hadith does not offer it yet', (tester) async {
+      await tester.pumpWidget(
+        app(HadithDetailScreen(hadith: hadiths.getByNumber(14)!)),
+      );
+      await wait(tester);
+      await tester.drag(
+        find.byType(Scrollable).first,
+        const Offset(0, -3000),
+      );
+      await wait(tester, 300);
+      expect(find.text('احفظ هذا الحديث'), findsNothing);
+    });
+
+    testWidgets('the completion sheet offers to memorize what was just read',
+        (tester) async {
+      await openJourney(tester, accessible: true);
+      await tapLeaf(tester, 12);
+      await confirmReading(tester);
+
+      await press(tester, 'احفظ هذا الحديث');
+      await wait(tester, 800);
+      expect(find.byType(MemorizeScreen), findsOneWidget);
+    });
+
+    testWidgets('the journey suggests where to start, then what is due',
+        (tester) async {
+      var now = DateTime(2026, 11, 7, 12);
+      await journey.debugReset(store: store, clock: () => now);
+      finished([2, 13]);
+      await openJourney(tester);
+
+      final shortest = hadiths.getByNumber(13)!.title;
+      await tester.scrollUntilVisible(
+        find.text('ابدأ بحفظ «$shortest»'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+
+      journey.learnPart(13, totalParts: 1);
+      now = DateTime(2026, 11, 8, 12);
+      journey.recordMessageRead('m', hadithNumber: 1);
+      await wait(tester, 600);
+      await tester.scrollUntilVisible(
+        find.text('مراجعة «$shortest»'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('في حفظك ١'), findsOneWidget);
+
+      // Back up to the tree, which the list let go of further down.
+      await tester.scrollUntilVisible(
+        find.byType(JourneyTree),
+        -200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      final painter = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((p) => p.painter)
+          .whereType<JourneyTreePainter>()
+          .single;
+      expect(painter.memorized, {13}, reason: 'its leaf has the dot');
+    });
+
+    testWidgets('a review reminder opens that review', (tester) async {
+      journey.learnPart(13, totalParts: 1);
+      await tester.pumpWidget(app(const HomeScreen()));
+      await wait(tester);
+
+      NotificationScheduler.hadithTapped.value =
+          HadithReminderTap(13, review: true);
+      await wait(tester, 1500);
+
+      final opened = tester.widget<ReviewScreen>(find.byType(ReviewScreen));
+      expect(opened.hadith.number, 13);
+    });
+
+    testWidgets('the board\'s memorization list shows names, no numbers',
+        (tester) async {
+      final boardStore = InMemoryBoardStore()
+        ..board = WeeklyBoard(
+          week: boardWeekOf('2026-11-07'),
+          points: const [BoardRow(name: 'سارة', value: 300)],
+          sharing: const [],
+          memo: const [
+            BoardRow(name: 'نور', value: 0),
+            BoardRow(name: 'فاعل خير', value: 0),
+          ],
+        );
+      await WeeklyBoardService().debugReset(
+        store: boardStore,
+        displayName: () => null,
+      );
+      addTearDown(() => WeeklyBoardService().debugReset());
+      await tester.pumpWidget(app(const WeeklyBoardScreen(displayName: '')));
+      await wait(tester, 900);
+
+      await tester.tap(find.text('الحفظ'));
+      await wait(tester, 400);
+      expect(find.text('نور'), findsOneWidget);
+      expect(find.text('فاعل خير'), findsOneWidget);
+      // A rank and a name, and nothing after it.
+      Finder row(String label) => find.byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == label,
+          );
+      expect(row('١، نور'), findsOneWidget);
+      expect(row('٢، فاعل خير'), findsOneWidget);
+      expect(find.textContaining('بلا أعداد'), findsOneWidget);
+    });
+  });
+
   group('the journey around the app', () {
     testWidgets('the hadith list marks what was read', (tester) async {
       finished([1]);
@@ -814,10 +1080,12 @@ void main() {
       expect(find.byType(FavoritesScreen), findsOneWidget);
 
       await tester.tap(
-        find.descendant(
-          of: find.byType(JourneyScreen),
-          matching: find.text('رحلتي'),
-        ).at(1),
+        find
+            .descendant(
+              of: find.byType(JourneyScreen),
+              matching: find.text('رحلتي'),
+            )
+            .at(1),
       );
       await wait(tester);
       expect(find.byType(JourneyTree).hitTestable(), findsOneWidget);

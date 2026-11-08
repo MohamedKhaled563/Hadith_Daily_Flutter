@@ -7,6 +7,8 @@
 /// phones.
 library;
 
+import 'memorization.dart';
+
 /// How far a reader has got with one hadith.
 class HadithProgress {
   const HadithProgress({this.textOn, this.fullOn, this.reads = 0});
@@ -55,6 +57,9 @@ class JourneyDay {
     this.wrote = 0,
     this.community = const [],
     this.shared = 0,
+    this.memoParts = const [],
+    this.memorized = const [],
+    this.reviewed = const [],
   });
 
   factory JourneyDay.fromJson(Object? raw) {
@@ -74,8 +79,16 @@ class JourneyDay {
         for (final id in raw['c'] as List? ?? const []) id.toString(),
       ],
       shared: (raw['x'] as num?)?.toInt() ?? 0,
+      memoParts: _numbers(raw['p']),
+      memorized: _numbers(raw['mz']),
+      reviewed: _numbers(raw['r']),
     );
   }
+
+  static List<int> _numbers(Object? raw) => [
+        for (final n in raw as List? ?? const [])
+          if (n is num) n.toInt(),
+      ];
 
   /// Ids of the messages read this day.
   final List<String> messages;
@@ -100,8 +113,23 @@ class JourneyDay {
   /// How many cards were shared outside the app this day.
   final int shared;
 
-  /// Whether this day keeps the streak alive.
-  bool get isPresent => messages.isNotEmpty || hadiths.isNotEmpty;
+  /// Hadiths a part of which was learned by heart this day.
+  final List<int> memoParts;
+
+  /// Hadiths whose last part was learned this day: newly memorized.
+  final List<int> memorized;
+
+  /// Hadiths reviewed this day, when their review was due.
+  final List<int> reviewed;
+
+  /// Whether this day keeps the streak alive. Memorizing and reviewing ask
+  /// more of the reader than a message does, so they count too.
+  bool get isPresent =>
+      messages.isNotEmpty ||
+      hadiths.isNotEmpty ||
+      memoParts.isNotEmpty ||
+      memorized.isNotEmpty ||
+      reviewed.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
         if (messages.isNotEmpty) 'm': messages,
@@ -111,6 +139,9 @@ class JourneyDay {
         if (wrote > 0) 'w': wrote,
         if (community.isNotEmpty) 'c': community,
         if (shared > 0) 'x': shared,
+        if (memoParts.isNotEmpty) 'p': memoParts,
+        if (memorized.isNotEmpty) 'mz': memorized,
+        if (reviewed.isNotEmpty) 'r': reviewed,
       };
 }
 
@@ -185,6 +216,11 @@ class JourneyEvent {
     this.startedOn,
     this.communityId,
     this.shared = 0,
+    this.memoHadith,
+    this.memo,
+    this.memoPart = false,
+    this.memorized = false,
+    this.reviewed = false,
   });
 
   final String dayKey;
@@ -214,6 +250,17 @@ class JourneyEvent {
   /// A card shared outside the app.
   final int shared;
 
+  /// The hadith whose memorization changed, and where it stands now. The
+  /// event carries the result rather than the step, so two phones agree.
+  final int? memoHadith;
+  final MemoProgress? memo;
+
+  /// What the change was, for the day log: a part learned, the last part
+  /// learned, or a due review done.
+  final bool memoPart;
+  final bool memorized;
+  final bool reviewed;
+
   JourneyEvent copyWith({
     List<String>? seen,
     int? bestStreak,
@@ -232,6 +279,11 @@ class JourneyEvent {
         startedOn: startedOn ?? this.startedOn,
         communityId: communityId,
         shared: shared,
+        memoHadith: memoHadith,
+        memo: memo,
+        memoPart: memoPart,
+        memorized: memorized,
+        reviewed: reviewed,
       );
 }
 
@@ -244,6 +296,7 @@ class JourneyData {
     this.seen = const {},
     this.bestStreak = 0,
     this.prefs,
+    this.memo = const {},
   });
 
   /// Rebuilds a reader from `journey/state` and their `journeyYears` docs.
@@ -271,6 +324,15 @@ class JourneyData {
       }
     }
 
+    final memo = <int, MemoProgress>{};
+    final rawMemo = state['memo'];
+    if (rawMemo is Map) {
+      for (final entry in rawMemo.entries) {
+        final number = int.tryParse(entry.key.toString());
+        if (number != null) memo[number] = MemoProgress.fromJson(entry.value);
+      }
+    }
+
     final records = state['records'];
     return JourneyData(
       startedOn: state['startedOn'] as String?,
@@ -281,6 +343,7 @@ class JourneyData {
           ? (records['bestStreak'] as num?)?.toInt() ?? 0
           : 0,
       prefs: ReminderPrefs.fromJson(state['prefs']),
+      memo: memo,
     );
   }
 
@@ -304,7 +367,15 @@ class JourneyData {
   /// Null until this account has saved any.
   final ReminderPrefs? prefs;
 
-  bool get isEmpty => startedOn == null && hadith.isEmpty && days.isEmpty;
+  /// Memorization, by hadith number.
+  final Map<int, MemoProgress> memo;
+
+  bool get isEmpty =>
+      startedOn == null && hadith.isEmpty && days.isEmpty && memo.isEmpty;
+
+  int get memorizedCount => memo.values.where((m) => m.isMemorized).length;
+
+  MemoProgress memoOf(int number) => memo[number] ?? const MemoProgress();
 
   int get completeCount => hadith.values.where((h) => h.isComplete).length;
 
@@ -322,6 +393,11 @@ class JourneyData {
         },
         'seen': seen.toList(),
         'records': {'bestStreak': bestStreak},
+        if (memo.isNotEmpty)
+          'memo': {
+            for (final entry in memo.entries)
+              '${entry.key}': entry.value.toJson(),
+          },
       };
 
   JourneyData withPrefs(ReminderPrefs value) => JourneyData(
@@ -331,6 +407,7 @@ class JourneyData {
         seen: seen,
         bestStreak: bestStreak,
         prefs: value,
+        memo: memo,
       );
 
   /// This reader after [event]. Safe to apply twice: a message or hadith
@@ -354,6 +431,16 @@ class JourneyData {
       );
     }
 
+    final nextMemo = Map<int, MemoProgress>.of(memo);
+    final memoHadith = event.memoHadith;
+    if (memoHadith != null && event.memo != null) {
+      nextMemo[memoHadith] = event.memo!;
+    }
+    List<int> plus(List<int> list, bool add) =>
+        !add || memoHadith == null || list.contains(memoHadith)
+            ? list
+            : [...list, memoHadith];
+
     final day = days[event.dayKey] ?? const JourneyDay();
     final id = event.messageId;
     final post = event.communityId;
@@ -371,6 +458,9 @@ class JourneyData {
           ? day.community
           : [...day.community, post],
       shared: day.shared + event.shared,
+      memoParts: plus(day.memoParts, event.memoPart),
+      memorized: plus(day.memorized, event.memorized),
+      reviewed: plus(day.reviewed, event.reviewed),
     );
 
     return JourneyData(
@@ -382,6 +472,7 @@ class JourneyData {
           ? event.bestStreak!
           : bestStreak,
       prefs: prefs,
+      memo: nextMemo,
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/data/journey/journey_models.dart';
 import 'package:hadith_app/data/journey/journey_store.dart';
+import 'package:hadith_app/data/journey/memorization.dart';
 import 'package:hadith_app/firebase_options.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -133,8 +134,7 @@ void main() {
     expect(day.messages, ['a']);
   });
 
-  test('community reads and shares go through the rules and add up',
-      () async {
+  test('community reads and shares go through the rules and add up', () async {
     for (final post in ['post-1', 'post-2', 'post-1']) {
       await store.record(
         uid,
@@ -153,6 +153,65 @@ void main() {
     expect(day.shared, 2);
   });
 
+  test('memorizing goes through the rules, and a kept hadith loses its date',
+      () async {
+    const learning = MemoProgress(parts: 1);
+    await store.record(
+      uid,
+      const JourneyEvent(
+        dayKey: '2026-11-07',
+        memoHadith: 2,
+        memo: learning,
+        memoPart: true,
+      ),
+    );
+    const memorized = MemoProgress(
+      parts: 1,
+      box: 0,
+      due: '2026-11-08',
+      memorizedOn: '2026-11-07',
+    );
+    await store.record(
+      uid,
+      const JourneyEvent(
+        dayKey: '2026-11-07',
+        memoHadith: 13,
+        memo: memorized,
+        memorized: true,
+      ),
+    );
+    await store.record(
+      uid,
+      const JourneyEvent(
+        dayKey: '2026-11-08',
+        memoHadith: 13,
+        memo: MemoProgress(
+            parts: 1, box: 1, due: '2026-11-11', memorizedOn: '2026-11-07'),
+        reviewed: true,
+      ),
+    );
+
+    var data = await readBack(uid);
+    expect(data.memoOf(2), learning);
+    expect(data.memoOf(13).due, '2026-11-11');
+    expect(data.days['2026-11-07']!.memoParts, [2]);
+    expect(data.days['2026-11-07']!.memorized, [13]);
+    expect(data.days['2026-11-08']!.reviewed, [13]);
+
+    await store.record(
+      uid,
+      const JourneyEvent(
+        dayKey: '2026-11-11',
+        memoHadith: 13,
+        memo: MemoProgress(parts: 1, box: 6, memorizedOn: '2026-11-07'),
+        reviewed: true,
+      ),
+    );
+    data = await readBack(uid);
+    expect(data.memoOf(13).isKept, isTrue);
+    expect(data.memoOf(13).due, isNull, reason: 'the old date is deleted');
+  });
+
   test('a guest reading joins the account without replacing it', () async {
     await store.record(
       uid,
@@ -163,19 +222,23 @@ void main() {
       ),
     );
 
-    final guest = const JourneyData().apply(const JourneyEvent(
-      dayKey: '2026-11-06',
-      fullHadith: 1,
-      startedOn: '2026-11-06',
-    )).apply(const JourneyEvent(
-      dayKey: '2026-11-06',
-      fullHadith: 2,
-      seconds: 40,
-      seen: ['read5'],
-    )).apply(const JourneyEvent(
-      dayKey: '2026-11-06',
-      communityId: 'post-9',
-    )).apply(const JourneyEvent(dayKey: '2026-11-06', shared: 1));
+    final guest = const JourneyData()
+        .apply(const JourneyEvent(
+          dayKey: '2026-11-06',
+          fullHadith: 1,
+          startedOn: '2026-11-06',
+        ))
+        .apply(const JourneyEvent(
+          dayKey: '2026-11-06',
+          fullHadith: 2,
+          seconds: 40,
+          seen: ['read5'],
+        ))
+        .apply(const JourneyEvent(
+          dayKey: '2026-11-06',
+          communityId: 'post-9',
+        ))
+        .apply(const JourneyEvent(dayKey: '2026-11-06', shared: 1));
     await store.absorb(uid, guest);
 
     final data = await readBack(uid);

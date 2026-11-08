@@ -12,6 +12,7 @@ import '../journey/journey_copy.dart';
 import '../journey/journey_engine.dart';
 import '../journey/journey_models.dart';
 import '../journey/journey_points.dart';
+import '../journey/memorization.dart';
 
 /// The day's two reminders.
 enum ReminderSlot { morning, evening }
@@ -53,6 +54,17 @@ const _hadithPrefix = 'hadith:';
 
 /// The payload of the Friday harvest, which opens the journey tab.
 const harvestPayload = 'harvest';
+
+const _reviewPrefix = 'review:';
+
+/// The payload of a reminder that opens the review of hadith [number].
+String reviewPayload(int number) => '$_reviewPrefix$number';
+
+/// The hadith whose review [payload] opens, or null.
+int? reviewOfPayload(String? payload) {
+  if (payload == null || !payload.startsWith(_reviewPrefix)) return null;
+  return int.tryParse(payload.substring(_reviewPrefix.length));
+}
 
 /// The payload of a reminder that opens hadith [number].
 String hadithPayload(int number) => '$_hadithPrefix$number';
@@ -149,6 +161,12 @@ PlannedReminder? planReminder(
   }
 
   if (missed == 0) {
+    // A review due that day comes first in the morning: it is short, and it
+    // is what keeps a memorized hadith.
+    if (slot == ReminderSlot.morning) {
+      final review = _review(facts, day);
+      if (review != null) return review;
+    }
     return switch (slot) {
       ReminderSlot.morning => _forHadith(
           facts,
@@ -168,6 +186,20 @@ PlannedReminder? planReminder(
     return _forHadith(facts, day, (_, __) => JourneyCopy.graceUsed);
   }
   return _forHadith(facts, day, (title, _) => JourneyCopy.placeKept(title));
+}
+
+PlannedReminder? _review(ReminderFacts facts, String day) {
+  for (final number in dueReviews(facts.data.memo, day)) {
+    final title = facts.hadithTitle(number);
+    if (title == null) continue;
+    final words = JourneyCopy.reviewDue(title);
+    return PlannedReminder(
+      title: words.title,
+      body: words.body,
+      payload: reviewPayload(number),
+    );
+  }
+  return null;
 }
 
 bool _isFriday(String day) {
@@ -191,5 +223,10 @@ String reminderPlanKey(ReminderFacts facts, String today) {
     _lastPresent(data, today) ?? '-',
     nextHadith(data, today) ?? '-',
     computeStreak(data.days, today).current,
+    // When the next review falls, which decides a morning's words.
+    [
+      for (final entry in data.memo.entries)
+        if (entry.value.due != null) '${entry.key}@${entry.value.due}',
+    ].join(','),
   ].join('|');
 }

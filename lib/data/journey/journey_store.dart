@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'journey_models.dart';
+import 'memorization.dart';
 
 /// Where a signed-in reader's journey lives:
 /// `users/{uid}/journey/state` and `users/{uid}/journeyYears/{yyyy}`.
@@ -101,14 +102,29 @@ class FirestoreJourneyStore implements JourneyStore {
       };
     }
 
+    final memoHadith = event.memoHadith;
+    final memo = event.memo;
+
     return {
       'v': 1,
       'updatedAt': FieldValue.serverTimestamp(),
       if (event.startedOn != null) 'startedOn': event.startedOn,
       if (hadith.isNotEmpty) 'hadith': hadith,
+      if (memoHadith != null && memo != null)
+        'memo': {'$memoHadith': _memoFields(memo)},
       if (event.seen.isNotEmpty) 'seen': FieldValue.arrayUnion(event.seen),
       if (event.bestStreak != null)
         'records': {'bestStreak': event.bestStreak},
+    };
+  }
+
+  /// Every field of [memo], with the ones it no longer has deleted: a merge
+  /// would otherwise keep an old `due` after the hadith is kept.
+  static Map<String, dynamic> _memoFields(MemoProgress memo) {
+    final json = memo.toJson();
+    return {
+      for (final key in const ['parts', 'box', 'due', 'misses', 'on'])
+        key: json[key] ?? FieldValue.delete(),
     };
   }
 
@@ -125,6 +141,12 @@ class FirestoreJourneyStore implements JourneyStore {
             if (event.communityId != null)
               'c': FieldValue.arrayUnion([event.communityId]),
             if (event.shared > 0) 'x': FieldValue.increment(event.shared),
+            if (event.memoPart && event.memoHadith != null)
+              'p': FieldValue.arrayUnion([event.memoHadith]),
+            if (event.memorized && event.memoHadith != null)
+              'mz': FieldValue.arrayUnion([event.memoHadith]),
+            if (event.reviewed && event.memoHadith != null)
+              'r': FieldValue.arrayUnion([event.memoHadith]),
           },
         },
       };
@@ -138,7 +160,10 @@ class FirestoreJourneyStore implements JourneyStore {
         event.seconds > 0 ||
         event.wrote > 0 ||
         event.communityId != null ||
-        event.shared > 0;
+        event.shared > 0 ||
+        event.memoPart ||
+        event.memorized ||
+        event.reviewed;
     if (isDayEvent) {
       batch.set(
         _year(uid, event.dayKey.substring(0, 4)),
@@ -166,6 +191,13 @@ class FirestoreJourneyStore implements JourneyStore {
       };
     }
 
+    // Memorization the account already has stands; the guest's fills gaps.
+    final memo = <String, dynamic>{
+      for (final entry in guest.memo.entries)
+        if (!existing.memo.containsKey(entry.key))
+          '${entry.key}': entry.value.toJson(),
+    };
+
     final batch = _db.batch()
       ..set(
         _state(uid),
@@ -175,6 +207,7 @@ class FirestoreJourneyStore implements JourneyStore {
           if (existing.startedOn == null && guest.startedOn != null)
             'startedOn': guest.startedOn,
           if (hadith.isNotEmpty) 'hadith': hadith,
+          if (memo.isNotEmpty) 'memo': memo,
           if (guest.seen.isNotEmpty)
             'seen': FieldValue.arrayUnion(guest.seen.toList()),
         },
@@ -206,6 +239,12 @@ class FirestoreJourneyStore implements JourneyStore {
                   'c': FieldValue.arrayUnion(day.value.community),
                 if (day.value.shared > 0)
                   'x': FieldValue.increment(day.value.shared),
+                if (day.value.memoParts.isNotEmpty)
+                  'p': FieldValue.arrayUnion(day.value.memoParts),
+                if (day.value.memorized.isNotEmpty)
+                  'mz': FieldValue.arrayUnion(day.value.memorized),
+                if (day.value.reviewed.isNotEmpty)
+                  'r': FieldValue.arrayUnion(day.value.reviewed),
               },
           },
         },
@@ -299,6 +338,11 @@ class InMemoryJourneyStore implements JourneyStore {
         hadiths: {...known.hadiths, ...entry.value.hadiths}.toList(),
         seconds: known.seconds + entry.value.seconds,
         wrote: known.wrote + entry.value.wrote,
+        community: {...known.community, ...entry.value.community}.toList(),
+        shared: known.shared + entry.value.shared,
+        memoParts: {...known.memoParts, ...entry.value.memoParts}.toList(),
+        memorized: {...known.memorized, ...entry.value.memorized}.toList(),
+        reviewed: {...known.reviewed, ...entry.value.reviewed}.toList(),
       );
     }
     _data[uid] = JourneyData(
@@ -307,6 +351,8 @@ class InMemoryJourneyStore implements JourneyStore {
       days: days,
       seen: {...account.seen, ...guest.seen},
       bestStreak: account.bestStreak,
+      prefs: account.prefs,
+      memo: {...guest.memo, ...account.memo},
     );
     _emit(uid);
   }
