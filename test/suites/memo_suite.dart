@@ -266,6 +266,18 @@ void memoSuite() {
       expect(journey.streak.current, 1);
     });
 
+    test('the fifth and tenth hadith memorized bring their messages', () {
+      final short = [
+        for (var n = 1; n <= 42; n++)
+          if (partsOf(n) == 1) n,
+      ].take(10).toList();
+      final milestones = [
+        for (final n in short) journey.learnPart(n, totalParts: 1).milestone,
+      ];
+      expect(milestones, [1, null, null, null, 5, null, null, null, null, 10]);
+      expect(journey.data.memorizedCount, 10);
+    });
+
     test('a long one is learned part by part', () {
       expect(partsOf(2), 3);
       final first = journey.learnPart(2, totalParts: 3);

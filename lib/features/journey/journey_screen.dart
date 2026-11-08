@@ -261,6 +261,11 @@ class _JourneyBody extends StatelessWidget {
                     memorized: data.memorizedCount,
                     streak: streak.current,
                   ),
+                  const SizedBox(height: 10),
+                  _LeafKey(
+                    looks: leafLooks(data, next: next).values.toSet(),
+                    memorized: data.memorizedCount > 0,
+                  ),
                   if (journey.isGuest && !data.isEmpty) ...[
                     const SizedBox(height: 4),
                     TextButton(
@@ -1114,6 +1119,55 @@ class _TreeSummary extends StatelessWidget {
         if (memorized > 0)
           pill('في حفظك ${toArabicDigits(memorized)}', strong: false),
         if (streak > 0) pill('سلسلة ${arabicDayCount(streak)}', strong: false),
+      ],
+    );
+  }
+}
+
+/// What each leaf means, for the kinds of leaf this tree has right now.
+class _LeafKey extends StatelessWidget {
+  const _LeafKey({required this.looks, required this.memorized});
+
+  final Set<LeafLook> looks;
+  final bool memorized;
+
+  static const _labels = {
+    LeafLook.complete: 'مكتمل',
+    LeafLook.started: 'بدأت قراءته',
+    LeafLook.next: 'حديث اليوم',
+    LeafLook.empty: 'لم يُقرأ بعد',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    Widget entry(LeafLook look, String label, {bool dot = false}) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LeafSwatch(look, memorized: dot),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 12,
+                height: AppLeading.chrome,
+                fontWeight: FontWeight.w600,
+                color: palette.mutedText,
+              ),
+            ),
+          ],
+        );
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 14,
+      runSpacing: 6,
+      children: [
+        for (final MapEntry(key: look, value: label) in _labels.entries)
+          if (looks.contains(look)) entry(look, label),
+        if (memorized) entry(LeafLook.complete, 'في حفظك', dot: true),
       ],
     );
   }

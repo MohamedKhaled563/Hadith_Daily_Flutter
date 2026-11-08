@@ -220,7 +220,13 @@ void main() {
     testWidgets('a reminder that started the app lands on its hadith',
         (tester) async {
       await tester.pumpWidget(app(const HomeScreen(openHadithOnStart: 7)));
-      await wait(tester);
+      // Until it is there, not a fixed time: a busy machine's first frames
+      // can take seconds.
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      while (find.byType(HadithDetailScreen).evaluate().isEmpty &&
+          DateTime.now().isBefore(deadline)) {
+        await wait(tester, 200);
+      }
 
       final opened =
           tester.widget<HadithDetailScreen>(find.byType(HadithDetailScreen));
@@ -527,6 +533,36 @@ void main() {
       }
       expect(find.text('—'), findsWidgets, reason: 'records not yet set');
       expect(find.textContaining('أرقامك تظهر هنا'), findsNothing);
+    });
+
+    testWidgets('a key under the tree says what each leaf means',
+        (tester) async {
+      finished([1]);
+      journey.recordTextRead(3);
+      journey.learnPart(1, totalParts: 1);
+      await openJourney(tester);
+
+      // Hadith 1 is read, 2 is next, 3 is started and the rest are not.
+      for (final label in [
+        'مكتمل',
+        'حديث اليوم',
+        'بدأت قراءته',
+        'لم يُقرأ بعد',
+        'في حفظك',
+      ]) {
+        expect(find.text(label), findsOneWidget, reason: label);
+      }
+      expect(find.byType(LeafSwatch), findsNWidgets(5));
+    });
+
+    testWidgets('the key shows only the leaves the tree has', (tester) async {
+      await openJourney(tester);
+
+      expect(find.text('حديث اليوم'), findsOneWidget);
+      expect(find.text('لم يُقرأ بعد'), findsOneWidget);
+      expect(find.text('مكتمل'), findsNothing);
+      expect(find.text('بدأت قراءته'), findsNothing);
+      expect(find.text('في حفظك'), findsNothing);
     });
 
     testWidgets('the day\'s next step is the one picked out', (tester) async {
@@ -1259,7 +1295,7 @@ void main() {
       );
       expect(
         labels.where((l) => l.startsWith('الحديث ٢:')).single,
-        endsWith('خطوة اليوم'),
+        endsWith('حديث اليوم'),
       );
       expect(
         labels.where((l) => l.startsWith('الحديث ٤٢:')).single,

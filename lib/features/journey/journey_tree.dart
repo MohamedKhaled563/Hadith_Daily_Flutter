@@ -191,6 +191,95 @@ Map<int, LeafLook> leafLooks(JourneyData data, {int? next}) => {
         },
     };
 
+/// One leaf as [look] shows it, lying along the x axis from the origin. The
+/// tree and its key both draw with this, so the key always matches.
+void paintLeaf(
+  Canvas canvas,
+  LeafLook look,
+  TreeColors colors, {
+  bool memorized = false,
+}) {
+  final path = TreeLayout.leafPath();
+  final fill = switch (look) {
+    LeafLook.empty => colors.emptyFill,
+    LeafLook.next => colors.emptyFill,
+    LeafLook.started => colors.started,
+    LeafLook.complete => colors.complete,
+  };
+  final edge = switch (look) {
+    LeafLook.empty => colors.emptyEdge,
+    LeafLook.next => colors.started,
+    LeafLook.started => colors.started,
+    LeafLook.complete => colors.complete,
+  };
+
+  canvas
+    ..drawPath(path, Paint()..color = fill)
+    ..drawPath(
+      path,
+      Paint()
+        ..color = edge
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = switch (look) {
+          LeafLook.next => 2.4,
+          LeafLook.empty => 1.3,
+          _ => 1,
+        },
+    );
+  if (memorized) {
+    canvas.drawCircle(
+      const Offset(TreeLayout.leafLength / 2, 0),
+      3.4,
+      Paint()..color = colors.memorized,
+    );
+  }
+}
+
+/// One leaf drawn as it is on the tree, for the key under it.
+class LeafSwatch extends StatelessWidget {
+  const LeafSwatch(this.look, {super.key, this.memorized = false});
+
+  final LeafLook look;
+  final bool memorized;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+        size: const Size(24, 14),
+        painter: _SwatchPainter(
+          look,
+          TreeColors.of(context),
+          memorized: memorized,
+        ),
+      );
+}
+
+class _SwatchPainter extends CustomPainter {
+  const _SwatchPainter(this.look, this.colors, {required this.memorized});
+
+  final LeafLook look;
+  final TreeColors colors;
+  final bool memorized;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // A little room for the outline, which is drawn on the leaf's edge.
+    final scale = size.width / (TreeLayout.leafLength + 3);
+    canvas
+      ..save()
+      ..translate(size.width / 2, size.height / 2)
+      ..scale(scale)
+      ..translate(-TreeLayout.leafLength / 2, 0);
+    paintLeaf(canvas, look, colors, memorized: memorized);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_SwatchPainter oldDelegate) =>
+      oldDelegate.look != look ||
+      oldDelegate.colors != colors ||
+      oldDelegate.memorized != memorized;
+}
+
 class JourneyTreePainter extends CustomPainter {
   const JourneyTreePainter({
     required this.looks,
@@ -268,45 +357,17 @@ class JourneyTreePainter extends CustomPainter {
       );
     }
 
-    final leafPath = TreeLayout.leafPath();
     for (final leaf in TreeLayout.instance.leaves) {
-      final look = looks[leaf.number] ?? LeafLook.empty;
-      final fill = switch (look) {
-        LeafLook.empty => colors.emptyFill,
-        LeafLook.next => colors.emptyFill,
-        LeafLook.started => colors.started,
-        LeafLook.complete => colors.complete,
-      };
-      final edge = switch (look) {
-        LeafLook.empty => colors.emptyEdge,
-        LeafLook.next => colors.started,
-        LeafLook.started => colors.started,
-        LeafLook.complete => colors.complete,
-      };
-
       canvas
         ..save()
         ..translate(leaf.at.dx, leaf.at.dy)
-        ..rotate(leaf.radians)
-        ..drawPath(leafPath, Paint()..color = fill)
-        ..drawPath(
-          leafPath,
-          Paint()
-            ..color = edge
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = switch (look) {
-              LeafLook.next => 2.4,
-              LeafLook.empty => 1.3,
-              _ => 1,
-            },
-        );
-      if (memorized.contains(leaf.number)) {
-        canvas.drawCircle(
-          const Offset(TreeLayout.leafLength / 2, 0),
-          3.4,
-          Paint()..color = colors.memorized,
-        );
-      }
+        ..rotate(leaf.radians);
+      paintLeaf(
+        canvas,
+        looks[leaf.number] ?? LeafLook.empty,
+        colors,
+        memorized: memorized.contains(leaf.number),
+      );
       canvas.restore();
     }
     canvas.restore();
@@ -378,7 +439,7 @@ class JourneyTree extends StatelessWidget {
   String _describe(int number, LeafLook look, {required bool memorized}) {
     final state = switch (look) {
       LeafLook.complete => 'مكتمل',
-      LeafLook.next => 'خطوة اليوم',
+      LeafLook.next => 'حديث اليوم',
       LeafLook.started => 'بدأت قراءته',
       LeafLook.empty => 'لم يُقرأ بعد',
     };
