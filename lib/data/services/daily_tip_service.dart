@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -129,8 +130,29 @@ class DailyTipService {
   // _todaySetKey because the two answer different questions: that one is
   // which messages today holds, this one is how many of them have been
   // revealed. Dated, so a new day starts back at one message shown.
+  //
+  // Kept per account, not per phone: two people signing in on the same
+  // device each have their own place in the day. Which messages the day
+  // holds stays shared — that is the device's draw — but how far each
+  // reader has gone through it is theirs. Signed out (and in tests, where
+  // Firebase is not up) the keys carry no suffix.
   static const _revealedCountKey = 'dailyTip.revealedCount';
   static const _revealedOnDateKey = 'dailyTip.revealedOnDate';
+
+  /// Test seam: who is signed in, without Firebase. Null means ask
+  /// FirebaseAuth.
+  @visibleForTesting
+  static String? Function()? debugCurrentUid;
+
+  static String _perAccount(String key) {
+    String? uid;
+    try {
+      uid = (debugCurrentUid ?? () => FirebaseAuth.instance.currentUser?.uid)();
+    } catch (_) {
+      uid = null;
+    }
+    return (uid == null || uid.isEmpty) ? key : '$key.$uid';
+  }
 
   // Superseded by the single JSON list in _todaySetKey. Still read once, so
   // an install upgrading mid-day keeps the message it was already showing,
@@ -390,8 +412,10 @@ class DailyTipService {
   /// over. Resets with the day, like the set itself.
   Future<int> revealedCount() async {
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString(_revealedOnDateKey) != _todayString()) return 0;
-    final stored = prefs.getInt(_revealedCountKey) ?? 0;
+    final dateKey = _perAccount(_revealedOnDateKey);
+    final countKey = _perAccount(_revealedCountKey);
+    if (prefs.getString(dateKey) != _todayString()) return 0;
+    final stored = prefs.getInt(countKey) ?? 0;
     return stored < 0 ? 0 : stored;
   }
 
@@ -400,11 +424,13 @@ class DailyTipService {
   /// must not un-reveal what was already read.
   Future<void> saveRevealedCount(int count) async {
     final prefs = await SharedPreferences.getInstance();
-    final isToday = prefs.getString(_revealedOnDateKey) == _todayString();
-    final previous = isToday ? (prefs.getInt(_revealedCountKey) ?? 0) : 0;
+    final dateKey = _perAccount(_revealedOnDateKey);
+    final countKey = _perAccount(_revealedCountKey);
+    final isToday = prefs.getString(dateKey) == _todayString();
+    final previous = isToday ? (prefs.getInt(countKey) ?? 0) : 0;
     if (count <= previous) return;
-    await prefs.setString(_revealedOnDateKey, _todayString());
-    await prefs.setInt(_revealedCountKey, count);
+    await prefs.setString(dateKey, _todayString());
+    await prefs.setInt(countKey, count);
   }
 
   /// Marks today's message as opened if it was not already, and reports how
