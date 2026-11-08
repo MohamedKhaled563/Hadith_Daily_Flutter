@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
 import '../theme/app_colors.dart';
 import '../theme/app_palette.dart';
-import '../utils/app_motion.dart';
 import '../theme/app_text_styles.dart';
+import '../utils/app_motion.dart';
 import '../utils/arabic_numerals.dart';
 import 'tap_target.dart';
 

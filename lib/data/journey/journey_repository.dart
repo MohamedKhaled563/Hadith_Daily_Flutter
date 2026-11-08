@@ -7,9 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'journey_engine.dart';
 import 'journey_models.dart';
 import 'journey_points.dart';
-import 'memorization.dart';
-import 'memorization.dart' as memorization show dueReviews;
 import 'journey_store.dart';
+import 'memorization.dart' as memorization show dueReviews;
+import 'memorization.dart';
 
 /// What finishing a hadith added up to, for the completion sheet.
 @immutable
@@ -366,8 +366,7 @@ class JourneyRepository {
         memorizedCount: _data.memorizedCount,
       );
     }
-    final after =
-        afterPartLearned(before, totalParts: totalParts, today: day);
+    final after = afterPartLearned(before, totalParts: totalParts, today: day);
     final memorized = after.isMemorized;
     final count = _data.memorizedCount + (memorized ? 1 : 0);
     final milestones =

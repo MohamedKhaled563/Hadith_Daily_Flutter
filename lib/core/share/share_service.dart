@@ -193,7 +193,6 @@ class ShareService {
     final renderView = RenderView(
       view: flutterView,
       child: RenderPositionedBox(
-        alignment: Alignment.center,
         child: boundary,
       ),
       configuration: ViewConfiguration(
@@ -230,7 +229,9 @@ class ShareService {
       // first poster of a session out with its corners missing. So this
       // waits for every image to arrive, and gives up rather than hold the
       // share if one never does.
-      for (var i = 0; i < _imageWaitTries && _waitingOnImage(rootElement); i++) {
+      for (var i = 0;
+          i < _imageWaitTries && _waitingOnImage(rootElement);
+          i++) {
         await Future<void>.delayed(const Duration(milliseconds: 20));
         buildOwner
           ..buildScope(rootElement)

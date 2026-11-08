@@ -65,9 +65,8 @@ class ParchmentCard extends StatelessWidget {
           color: borderColor ?? palette.cardBorder,
           width: 1.4,
         ),
-        boxShadow: elevated
-            ? AppElevation.hero(isDark: isDark)
-            : AppElevation.card,
+        boxShadow:
+            elevated ? AppElevation.hero(isDark: isDark) : AppElevation.card,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
@@ -139,7 +138,6 @@ class ParchmentCard extends StatelessWidget {
                 assetPath: 'assets/images/$asset.png',
                 width: 86,
                 height: 96,
-                fit: BoxFit.contain,
               ),
             ),
           ),

@@ -61,7 +61,8 @@ void main() {
     await HadithRepository().load();
   });
 
-  testWidgets('a single message screen keeps the shared tag, so the flight '
+  testWidgets(
+      'a single message screen keeps the shared tag, so the flight '
       'from the home emblem still matches', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));

@@ -49,9 +49,7 @@ class AppButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         textStyle: AppTextStyles.buttonText,
         shape: StadiumBorder(
-          side: isSecondary
-              ? BorderSide(color: green, width: 1)
-              : BorderSide.none,
+          side: isSecondary ? BorderSide(color: green) : BorderSide.none,
         ),
       ),
       child: Row(

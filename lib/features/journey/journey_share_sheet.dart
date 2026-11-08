@@ -151,7 +151,6 @@ class _PosterSheetBodyState extends State<_PosterSheetBody> {
               height: _previewHeight,
               width: _previewHeight * size.width / size.height,
               child: FittedBox(
-                fit: BoxFit.contain,
                 child: widget.builder(_format, _name),
               ),
             ),

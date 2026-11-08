@@ -14,8 +14,8 @@ import 'package:hadith_app/data/journey/journey_engine.dart';
 import 'package:hadith_app/data/journey/journey_points.dart';
 import 'package:hadith_app/data/journey/journey_repository.dart';
 import 'package:hadith_app/data/journey/journey_store.dart';
-import 'package:hadith_app/data/journey/weekly_board.dart';
 import 'package:hadith_app/data/journey/reading_tracker.dart';
+import 'package:hadith_app/data/journey/weekly_board.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/data/services/favorites_store.dart';
 import 'package:hadith_app/data/services/notification_scheduler.dart';
@@ -428,7 +428,7 @@ void main() {
       );
 
       await tester.tap(find.text('نسخ النص'));
-      await wait(tester, 500);
+      await wait(tester);
       expect(copied, contains(hadiths.getByNumber(12)!.title));
       await wait(tester, 4500);
     });
@@ -443,7 +443,7 @@ void main() {
       expect(find.text('٣ من ٤٢ حديثاً'), findsWidgets);
 
       await tester.tap(find.text('نسخ النص'));
-      await wait(tester, 500);
+      await wait(tester);
       expect(copied, contains('قرأت ٣ من ٤٢ حديثاً'));
       await wait(tester, 4500);
     });
@@ -481,7 +481,7 @@ void main() {
       expect(sent!['text'], contains('قرأت ٣ من ٤٢ حديثاً'));
       final files = sent!['paths'] as List<dynamic>;
       expect(files.single, endsWith('.png'));
-      await wait(tester, 500);
+      await wait(tester);
     });
   });
 
@@ -511,12 +511,41 @@ void main() {
       expect(find.text('الماضي ٠'), findsOneWidget);
       expect(find.text('شارك حصاد أسبوعك'), findsNothing);
 
-      await scrollTo(tester, find.text(JourneyRecord.weekWrote.label));
+      // Before any record, one line rather than eight dashes.
+      await scrollTo(tester, find.textContaining('أرقامك تظهر هنا'));
       expect(find.text('أرقامك'), findsOneWidget);
+      expect(find.text(JourneyRecord.weekWrote.label), findsNothing);
+    });
+
+    testWidgets('records are tiles once there are any', (tester) async {
+      finished([1]);
+      await openJourney(tester);
+
+      await scrollTo(tester, find.text(JourneyRecord.weekWrote.label));
       for (final record in JourneyRecord.values) {
         expect(find.text(record.label), findsOneWidget);
       }
-      expect(find.text('—'), findsWidgets);
+      expect(find.text('—'), findsWidgets, reason: 'records not yet set');
+      expect(find.textContaining('أرقامك تظهر هنا'), findsNothing);
+    });
+
+    testWidgets('the day\'s next step is the one picked out', (tester) async {
+      journey.recordMessageRead('m', hadithNumber: 1);
+      await openJourney(tester);
+
+      await scrollTo(tester, find.text('خطوات اليوم'));
+      expect(find.text('١ / ٣'), findsOneWidget);
+      // The message is done: no chevron on it, one on each step to do.
+      expect(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text('اقرأ رسالة اليوم'),
+            matching: find.byType(Row),
+          ),
+          matching: find.byIcon(Icons.chevron_left_rounded),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('a week of reading shows its points and records',
@@ -562,7 +591,7 @@ void main() {
       expect(find.byType(HarvestPoster), findsOneWidget);
 
       await tester.tap(find.text('نسخ النص'));
-      await wait(tester, 500);
+      await wait(tester);
       expect(copied, startsWith('هذا الأسبوع: يوم واحد'));
       await wait(tester, 4500);
     });
@@ -589,7 +618,7 @@ void main() {
 
       expect(journey.data.days[journey.today]!.shared, 1);
       expect(journey.thisWeekPoints.total, before + PointRules.share);
-      await wait(tester, 500);
+      await wait(tester);
     });
 
     testWidgets('a card the reader backs out of does not count',
@@ -669,7 +698,7 @@ void main() {
       board.start();
     });
 
-    tearDown(() => board.debugReset());
+    tearDown(board.debugReset);
 
     Future<void> openBoard(WidgetTester tester) async {
       await tester.pumpWidget(
@@ -761,7 +790,7 @@ void main() {
       await tester.ensureVisible(target);
       await wait(tester, 200);
       await tester.tap(target);
-      await wait(tester, 500);
+      await wait(tester);
     }
 
     Finder blanks() => find.byWidgetPredicate(
@@ -955,7 +984,7 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).last,
       );
-      expect(find.text('في حفظك ١'), findsOneWidget);
+      expect(find.text('في حفظك ١'), findsWidgets);
 
       // Back up to the tree, which the list let go of further down.
       await tester.scrollUntilVisible(
@@ -1119,7 +1148,8 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).last,
       );
-      expect(find.text('٨'), findsWidgets);
+      expect(find.text('٨ أيام'), findsWidgets,
+          reason: 'a figure says its unit');
       expect(find.text('أيام سماح'), findsOneWidget);
     });
 

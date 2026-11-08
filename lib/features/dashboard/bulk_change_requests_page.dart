@@ -15,8 +15,7 @@ class BulkChangeRequestsPage extends StatefulWidget {
   const BulkChangeRequestsPage({super.key});
 
   @override
-  State<BulkChangeRequestsPage> createState() =>
-      _BulkChangeRequestsPageState();
+  State<BulkChangeRequestsPage> createState() => _BulkChangeRequestsPageState();
 }
 
 class _BulkChangeRequestsPageState extends State<BulkChangeRequestsPage> {
@@ -38,7 +37,8 @@ class _BulkChangeRequestsPageState extends State<BulkChangeRequestsPage> {
       writer = BatchWriter(db);
       final skippedIds = <String>[];
       for (final entry in sheetsJson.entries) {
-        final diff = SheetDiff.fromJson(Map<String, dynamic>.from(entry.value as Map));
+        final diff =
+            SheetDiff.fromJson(Map<String, dynamic>.from(entry.value as Map));
         // The diff was captured when the moderator submitted this request,
         // possibly days before this approval — applySheetDiff's own
         // existence check (against current Firestore state, not the

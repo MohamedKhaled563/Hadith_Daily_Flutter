@@ -133,8 +133,8 @@ class SubmissionApprovalWatcher {
   final void Function(String uid, List<ApprovedSubmission> approved)
       _onApproved;
 
-  static Future<void> _showReach() => NotificationScheduler.instance
-      .showSubmissionApproved(
+  static Future<void> _showReach() =>
+      NotificationScheduler.instance.showSubmissionApproved(
         title: JourneyCopy.reach.title,
         body: JourneyCopy.reach.body,
       );
@@ -186,10 +186,10 @@ class SubmissionApprovalWatcher {
     if (uid == null) return;
 
     _pendingSub = _dataSource.pendingDecided(uid).listen(
-      (_) => check(),
-      onError: (Object error) =>
-          debugPrint('SubmissionApprovalWatcher: $error'),
-    );
+          (_) => check(),
+          onError: (Object error) =>
+              debugPrint('SubmissionApprovalWatcher: $error'),
+        );
     check();
   }
 

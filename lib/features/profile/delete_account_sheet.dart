@@ -81,8 +81,7 @@ class _DeleteAccountFormState extends State<DeleteAccountForm> {
   bool _busy = false;
   String? _error;
 
-  bool get _confirmed =>
-      _confirmController.text.trim() == _confirmWord;
+  bool get _confirmed => _confirmController.text.trim() == _confirmWord;
 
   bool get _needsPassword => widget.method == ReauthMethod.password;
 
@@ -265,8 +264,7 @@ class _DeleteAccountFormState extends State<DeleteAccountForm> {
             obscureText: _obscurePassword,
             onChanged: (_) => setState(() => _error = null),
             trailing: TapTarget(
-              onTap: () =>
-                  setState(() => _obscurePassword = !_obscurePassword),
+              onTap: () => setState(() => _obscurePassword = !_obscurePassword),
               semanticLabel:
                   _obscurePassword ? 'إظهار كلمة المرور' : 'إخفاء كلمة المرور',
               toggled: !_obscurePassword,
@@ -293,7 +291,8 @@ class _DeleteAccountFormState extends State<DeleteAccountForm> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.error_outline_rounded, size: 16, color: palette.danger),
+              Icon(Icons.error_outline_rounded,
+                  size: 16, color: palette.danger),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(

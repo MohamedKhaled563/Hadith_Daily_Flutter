@@ -185,7 +185,8 @@ void main() {
       ),
       isTrue,
     );
-    expect(queued.values.any((r) => hadithOfPayload(r.payload) != null), isFalse);
+    expect(
+        queued.values.any((r) => hadithOfPayload(r.payload) != null), isFalse);
   });
 
   testWidgets('a guest\'s reading stays out of the reminders', (tester) async {
@@ -195,7 +196,7 @@ void main() {
 
     final queued = await pendingWhere((q) => q.length == 28);
     expect(queued, hasLength(28));
-    expect(queued.values.any((r) => hadithOfPayload(r.payload) != null), isFalse);
+    expect(
+        queued.values.any((r) => hadithOfPayload(r.payload) != null), isFalse);
   });
-
 }

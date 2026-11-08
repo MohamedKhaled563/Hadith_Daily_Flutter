@@ -192,7 +192,8 @@ class _GoldenDividerPainter extends CustomPainter {
 
     final rightRibbon = Path()
       ..moveTo(size.width, cy)
-      ..cubicTo(size.width - cx * 0.3, cy - 3, size.width - cx * 0.7, cy + 3, cx + 12, cy);
+      ..cubicTo(size.width - cx * 0.3, cy - 3, size.width - cx * 0.7, cy + 3,
+          cx + 12, cy);
     canvas.drawPath(rightRibbon, goldLine);
 
     // Center Gold Bud
@@ -313,37 +314,53 @@ class _BotanicalBranchPainter extends CustomPainter {
     if (isTopRight) {
       // Branch from top-right corner curving inward
       path.moveTo(size.width + 10, -5);
-      path.cubicTo(size.width * 0.7, size.height * 0.3, size.width * 0.4, size.height * 0.6, size.width * 0.15, size.height * 0.95);
+      path.cubicTo(size.width * 0.7, size.height * 0.3, size.width * 0.4,
+          size.height * 0.6, size.width * 0.15, size.height * 0.95);
       canvas.drawPath(path, stemPaint);
 
       // Leaves along the branch
-      _drawLeaf(canvas, Offset(size.width * 0.75, size.height * 0.2), 22, 12, -0.6, leafDark);
-      _drawLeaf(canvas, Offset(size.width * 0.85, size.height * 0.28), 18, 10, 0.4, leafSoft);
-      _drawLeaf(canvas, Offset(size.width * 0.55, size.height * 0.45), 24, 13, -0.7, leafDark);
-      _drawLeaf(canvas, Offset(size.width * 0.45, size.height * 0.55), 18, 10, 0.5, leafSoft);
-      _drawLeaf(canvas, Offset(size.width * 0.25, size.height * 0.8), 20, 11, -0.5, leafDark);
-      _drawLeaf(canvas, Offset(size.width * 0.15, size.height * 0.95), 14, 8, -0.8, goldBud);
+      _drawLeaf(canvas, Offset(size.width * 0.75, size.height * 0.2), 22, 12,
+          -0.6, leafDark);
+      _drawLeaf(canvas, Offset(size.width * 0.85, size.height * 0.28), 18, 10,
+          0.4, leafSoft);
+      _drawLeaf(canvas, Offset(size.width * 0.55, size.height * 0.45), 24, 13,
+          -0.7, leafDark);
+      _drawLeaf(canvas, Offset(size.width * 0.45, size.height * 0.55), 18, 10,
+          0.5, leafSoft);
+      _drawLeaf(canvas, Offset(size.width * 0.25, size.height * 0.8), 20, 11,
+          -0.5, leafDark);
+      _drawLeaf(canvas, Offset(size.width * 0.15, size.height * 0.95), 14, 8,
+          -0.8, goldBud);
     } else {
       // Branch from bottom-left corner curving upward
       path.moveTo(-10, size.height + 5);
-      path.cubicTo(size.width * 0.3, size.height * 0.7, size.width * 0.6, size.height * 0.4, size.width * 0.85, size.height * 0.05);
+      path.cubicTo(size.width * 0.3, size.height * 0.7, size.width * 0.6,
+          size.height * 0.4, size.width * 0.85, size.height * 0.05);
       canvas.drawPath(path, stemPaint);
 
       // Leaves along the branch
-      _drawLeaf(canvas, Offset(size.width * 0.25, size.height * 0.8), 22, 12, 0.6, leafDark);
-      _drawLeaf(canvas, Offset(size.width * 0.15, size.height * 0.72), 18, 10, -0.4, leafSoft);
-      _drawLeaf(canvas, Offset(size.width * 0.45, size.height * 0.55), 24, 13, 0.7, leafDark);
-      _drawLeaf(canvas, Offset(size.width * 0.55, size.height * 0.45), 18, 10, -0.5, leafSoft);
-      _drawLeaf(canvas, Offset(size.width * 0.75, size.height * 0.2), 20, 11, 0.5, leafDark);
-      _drawLeaf(canvas, Offset(size.width * 0.85, size.height * 0.05), 14, 8, 0.8, goldBud);
+      _drawLeaf(canvas, Offset(size.width * 0.25, size.height * 0.8), 22, 12,
+          0.6, leafDark);
+      _drawLeaf(canvas, Offset(size.width * 0.15, size.height * 0.72), 18, 10,
+          -0.4, leafSoft);
+      _drawLeaf(canvas, Offset(size.width * 0.45, size.height * 0.55), 24, 13,
+          0.7, leafDark);
+      _drawLeaf(canvas, Offset(size.width * 0.55, size.height * 0.45), 18, 10,
+          -0.5, leafSoft);
+      _drawLeaf(canvas, Offset(size.width * 0.75, size.height * 0.2), 20, 11,
+          0.5, leafDark);
+      _drawLeaf(canvas, Offset(size.width * 0.85, size.height * 0.05), 14, 8,
+          0.8, goldBud);
     }
   }
 
-  void _drawLeaf(Canvas canvas, Offset center, double w, double h, double rotation, Paint paint) {
+  void _drawLeaf(Canvas canvas, Offset center, double w, double h,
+      double rotation, Paint paint) {
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.rotate(rotation);
-    canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: w, height: h), paint);
+    canvas.drawOval(
+        Rect.fromCenter(center: Offset.zero, width: w, height: h), paint);
     canvas.restore();
   }
 
@@ -360,13 +377,13 @@ class _SunsetLandscapePainter extends CustomPainter {
     // Glowing warm sun on the horizon
     final sunCenter = Offset(w * 0.5, h * 0.45);
     final sunPaint = Paint()
-      ..shader = RadialGradient(
+      ..shader = const RadialGradient(
         colors: [
-          const Color(0x60F8D295),
-          const Color(0x35F1BC78),
-          const Color(0x00F8F3EA),
+          Color(0x60F8D295),
+          Color(0x35F1BC78),
+          Color(0x00F8F3EA),
         ],
-        stops: const [0.0, 0.5, 1.0],
+        stops: [0.0, 0.5, 1.0],
       ).createShader(Rect.fromCircle(center: sunCenter, radius: 110));
     canvas.drawCircle(sunCenter, 110, sunPaint);
 

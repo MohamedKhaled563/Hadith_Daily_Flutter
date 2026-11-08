@@ -83,6 +83,8 @@ class FirestoreJourneyStore implements JourneyStore {
         for (final subscription in subscriptions) {
           await subscription.cancel();
         }
+        // Nobody is listening any more, and a new watch makes a new one.
+        await controller.close();
       },
     );
     return controller.stream;
@@ -113,8 +115,7 @@ class FirestoreJourneyStore implements JourneyStore {
       if (memoHadith != null && memo != null)
         'memo': {'$memoHadith': _memoFields(memo)},
       if (event.seen.isNotEmpty) 'seen': FieldValue.arrayUnion(event.seen),
-      if (event.bestStreak != null)
-        'records': {'bestStreak': event.bestStreak},
+      if (event.bestStreak != null) 'records': {'bestStreak': event.bestStreak},
     };
   }
 

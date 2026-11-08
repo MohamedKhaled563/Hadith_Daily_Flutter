@@ -14,8 +14,7 @@ import 'package:flutter/foundation.dart';
 /// instead: iOS gets a real Cupertino route (native slide, native swipe-back),
 /// everything else keeps the app's own fade-and-rise. Guarded against the web
 /// build, where `Platform` throws.
-bool get _useCupertino =>
-    !kIsWeb && (Platform.isIOS || Platform.isMacOS);
+bool get _useCupertino => !kIsWeb && (Platform.isIOS || Platform.isMacOS);
 
 /// A page route that behaves like the platform expects.
 ///
@@ -39,7 +38,6 @@ PageRoute<T> appMessageRoute<T>({
         ? CupertinoPageRoute<T>(builder: (_) => child, settings: settings)
         : _SeamlessMessagePageRoute<T>(child: child, settings: settings);
 
-
 /// Ultra-smooth, professional page route that transitions gracefully
 /// with scale, fade, and elevation without any background bleed-through or overlaps.
 class _SeamlessMessagePageRoute<T> extends PageRouteBuilder<T> {
@@ -47,7 +45,8 @@ class _SeamlessMessagePageRoute<T> extends PageRouteBuilder<T> {
 
   _SeamlessMessagePageRoute({required this.child, super.settings})
       : super(
-          opaque: true, // Guarantees crisp rendering with zero background double-render or text overlap
+          opaque:
+              true, // Guarantees crisp rendering with zero background double-render or text overlap
           transitionDuration: const Duration(milliseconds: 360),
           reverseTransitionDuration: const Duration(milliseconds: 260),
           pageBuilder: (context, animation, secondaryAnimation) => child,
@@ -109,7 +108,9 @@ class _SmoothPageRoute<T> extends PageRouteBuilder<T> {
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             const curve = Curves.easeOutCubic;
             final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-              CurvedAnimation(parent: animation, curve: const Interval(0.0, 0.85, curve: curve)),
+              CurvedAnimation(
+                  parent: animation,
+                  curve: const Interval(0.0, 0.85, curve: curve)),
             );
             final scaleAnimation = Tween<double>(begin: 0.96, end: 1.0).animate(
               CurvedAnimation(parent: animation, curve: curve),

@@ -20,8 +20,7 @@ extension AppMotion on BuildContext {
 
   /// A duration that collapses to zero under reduce-motion, so an implicit
   /// animation becomes an instant state change rather than a slow one.
-  Duration motion(Duration duration) =>
-      reduceMotion ? Duration.zero : duration;
+  Duration motion(Duration duration) => reduceMotion ? Duration.zero : duration;
 }
 
 /// The app's motion scale. Three speeds, each with a job, so twelve different

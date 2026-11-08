@@ -1,12 +1,16 @@
-# This file configures the analyzer, which statically analyzes Dart code to
-# check for errors, warnings, and lints.
+# Static analysis for the app and the dashboard.
 #
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
-
-# The following line activates a set of recommended lints for Flutter apps,
-# packages, and plugins designed to encourage good coding practices.
+# The recommended Flutter lints, plus a stricter set that the code was
+# brought up to on 2026-11-07. Each one below either catches a real class of
+# bug (a future nobody waits for, a stream nobody closes, a throw of a
+# non-error) or keeps the code uniform enough to review quickly.
+#
+# Two were tried and left out on purpose: `discarded_futures` flags every
+# deliberate fire-and-forget Navigator.push, and `comment_references` flags
+# doc comments that name a class from another file.
+#
+# `flutter analyze` must report no issues; tool/static_checks.ps1 runs it
+# with the project's own checks in test/static/.
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
@@ -18,21 +22,44 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+  language:
+    strict-raw-types: true
 
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
-
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+    # Bugs
+    - avoid_dynamic_calls
+    - unawaited_futures
+    - cancel_subscriptions
+    - close_sinks
+    - only_throw_errors
+    - throw_in_finally
+    - no_self_assignments
+    - test_types_in_equals
+    - cast_nullable_to_non_nullable
+    - literal_only_boolean_expressions
+    - unnecessary_statements
+    - avoid_slow_async_io
+    - avoid_type_to_string
+    - no_runtimeType_toString
+    - avoid_void_async
+    - missing_whitespace_between_adjacent_strings
+    # Uniformity
+    - always_declare_return_types
+    - directives_ordering
+    - prefer_single_quotes
+    - prefer_final_locals
+    - prefer_final_in_for_each
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - avoid_redundant_argument_values
+    - unnecessary_await_in_return
+    - unnecessary_lambdas
+    - unnecessary_parenthesis
+    - unnecessary_breaks
+    - use_super_parameters
+    - use_named_constants
+    - avoid_bool_literals_in_conditional_expressions
+    - avoid_unused_constructor_parameters
+    - prefer_null_aware_method_calls
+    - join_return_with_assignment

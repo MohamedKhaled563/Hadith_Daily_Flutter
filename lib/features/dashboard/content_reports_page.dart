@@ -182,7 +182,6 @@ class _ReportedMessageCardState extends State<_ReportedMessageCard> {
               children: [
                 _Header(count: widget.reports.length),
                 const SizedBox(height: 14),
-
                 if (loading)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
@@ -202,10 +201,8 @@ class _ReportedMessageCardState extends State<_ReportedMessageCard> {
                   )
                 else
                   _PostPreview(post: post!),
-
                 const SizedBox(height: 14),
                 _Reasons(reports: widget.reports),
-
                 if (_error != null) ...[
                   const SizedBox(height: 10),
                   Text(
@@ -213,7 +210,6 @@ class _ReportedMessageCardState extends State<_ReportedMessageCard> {
                     style: TextStyle(color: theme.colorScheme.error),
                   ),
                 ],
-
                 const SizedBox(height: 14),
                 if (loading)
                   const SizedBox.shrink()
@@ -231,8 +227,7 @@ class _ReportedMessageCardState extends State<_ReportedMessageCard> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       OutlinedButton.icon(
-                        onPressed:
-                            _busy ? null : () => _resolve('dismissed'),
+                        onPressed: _busy ? null : () => _resolve('dismissed'),
                         icon: const Icon(Icons.thumb_up_off_alt_rounded),
                         label: const Text('المشاركة سليمة'),
                       ),

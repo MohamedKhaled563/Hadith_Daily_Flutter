@@ -16,8 +16,8 @@ import 'package:hadith_app/core/app_info.dart';
 void main() {
   test('AppInfo.version matches pubspec', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    final match = RegExp(r'^version:\s*(\S+)\s*$', multiLine: true)
-        .firstMatch(pubspec);
+    final match =
+        RegExp(r'^version:\s*(\S+)\s*$', multiLine: true).firstMatch(pubspec);
 
     expect(match, isNotNull, reason: 'pubspec.yaml has no version: line');
 

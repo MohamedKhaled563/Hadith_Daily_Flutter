@@ -382,8 +382,7 @@ void regressionSuite({
       await tester.pump(const Duration(seconds: 6));
     });
 
-    testWidgets('a message card still renders at 1080×1350',
-        (tester) async {
+    testWidgets('a message card still renders at 1080×1350', (tester) async {
       late BuildContext host;
       await tester.pumpWidget(wrap(Builder(
         builder: (context) {
@@ -477,12 +476,13 @@ void regressionSuite({
     });
 
     test('the policy says the board is optional and what it publishes', () {
-      expect(read('web/privacy-policy.html'), contains('لوحة الأسبوع (اختيارية)'));
-      expect(read('web/delete-account.html'), contains('نقاطك في لوحة الأسبوع'));
+      expect(
+          read('web/privacy-policy.html'), contains('لوحة الأسبوع (اختيارية)'));
+      expect(
+          read('web/delete-account.html'), contains('نقاطك في لوحة الأسبوع'));
     });
 
-    test('the rules keep every older path and still end denying the rest',
-        () {
+    test('the rules keep every older path and still end denying the rest', () {
       final rules = read('firestore.rules');
       for (final path in [
         'match /users/{uid}',

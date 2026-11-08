@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/core/theme/app_state_controller.dart';
@@ -153,12 +153,11 @@ void notificationLifecycleSuite() {
         'a second refresh inside the throttle window is skipped — a resume '
         'must not cost ~56 platform calls plus a Firestore read every time',
         () async {
-      var now = DateTime(2026, 3, 1, 9, 0);
+      var now = DateTime(2026, 3, 1, 9);
       final refresher = NotificationLifecycleRefresher(
         scheduler: scheduler,
         state: state,
         clock: () => now,
-        minRefreshInterval: const Duration(hours: 6),
       );
 
       expect(await refresher.refresh(), isNotNull);
@@ -170,12 +169,11 @@ void notificationLifecycleSuite() {
     });
 
     test('refreshes again once the throttle window has elapsed', () async {
-      var now = DateTime(2026, 3, 1, 9, 0);
+      var now = DateTime(2026, 3, 1, 9);
       final refresher = NotificationLifecycleRefresher(
         scheduler: scheduler,
         state: state,
         clock: () => now,
-        minRefreshInterval: const Duration(hours: 6),
       );
 
       await refresher.refresh();
@@ -185,7 +183,7 @@ void notificationLifecycleSuite() {
     });
 
     test('force bypasses the throttle', () async {
-      final now = DateTime(2026, 3, 1, 9, 0);
+      final now = DateTime(2026, 3, 1, 9);
       final refresher = NotificationLifecycleRefresher(
         scheduler: scheduler,
         state: state,
@@ -199,14 +197,12 @@ void notificationLifecycleSuite() {
 
     test(
         'a resume refreshes the window — the gap that let a long-resident '
-        'app run off the end of its own 14-day window and go quiet',
-        () async {
-      var now = DateTime(2026, 3, 1, 9, 0);
+        'app run off the end of its own 14-day window and go quiet', () async {
+      var now = DateTime(2026, 3, 1, 9);
       final refresher = NotificationLifecycleRefresher(
         scheduler: scheduler,
         state: state,
         clock: () => now,
-        minRefreshInterval: const Duration(hours: 6),
       );
       await refresher.refresh();
       final afterStart = scheduleCalls;
@@ -242,7 +238,7 @@ void notificationLifecycleSuite() {
                 any(named: 'uiLocalNotificationDateInterpretation'),
             payload: any(named: 'payload'),
           )).thenThrow(Exception('platform channel down'));
-      final now = DateTime(2026, 3, 1, 9, 0);
+      final now = DateTime(2026, 3, 1, 9);
       final refresher = NotificationLifecycleRefresher(
         scheduler: scheduler,
         state: state,
@@ -331,7 +327,7 @@ void notificationLifecycleSuite() {
       started();
       await settle();
 
-      change('guest', nextUser: null);
+      change('guest');
       await settle();
 
       expect(clearCalls, 1, reason: 'a shown reminder names their reading');

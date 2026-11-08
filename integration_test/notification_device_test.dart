@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -24,9 +24,24 @@ import 'package:integration_test/integration_test.dart';
 class _FixedPool implements NotificationDataSource {
   @override
   Future<List<Map<String, dynamic>>> loadActiveMessages() async => const [
-        {'id': 'dev-1', 'text': 'رسالة اختبار أولى', 'order': 0, 'active': true},
-        {'id': 'dev-2', 'text': 'رسالة اختبار ثانية', 'order': 1, 'active': true},
-        {'id': 'dev-3', 'text': 'رسالة اختبار ثالثة', 'order': 2, 'active': true},
+        {
+          'id': 'dev-1',
+          'text': 'رسالة اختبار أولى',
+          'order': 0,
+          'active': true
+        },
+        {
+          'id': 'dev-2',
+          'text': 'رسالة اختبار ثانية',
+          'order': 1,
+          'active': true
+        },
+        {
+          'id': 'dev-3',
+          'text': 'رسالة اختبار ثالثة',
+          'order': 2,
+          'active': true
+        },
       ];
 
   @override
@@ -49,8 +64,7 @@ void main() {
   // in the final minute of the day — when a 23:59 target stops being in the
   // future for real. That one minute is skipped rather than left to flake.
   final realNow = DateTime.now();
-  final pinnedNow =
-      DateTime(realNow.year, realNow.month, realNow.day, 10, 30);
+  final pinnedNow = DateTime(realNow.year, realNow.month, realNow.day, 10, 30);
   final inLastMinuteOfDay = realNow.hour == 23 && realNow.minute >= 58;
 
   setUp(() {
@@ -173,8 +187,7 @@ void main() {
 
   testWidgets(
       'real plugin: a scheduled reminder survives a second reschedule with '
-      'unchanged settings (the rolling refresh is idempotent)',
-      (tester) async {
+      'unchanged settings (the rolling refresh is idempotent)', (tester) async {
     await scheduler.reschedule(
       morningEnabled: true,
       morningTime: const TimeOfDay(hour: 23, minute: 59),

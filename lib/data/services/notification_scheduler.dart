@@ -95,7 +95,8 @@ class NotificationScheduler {
         _dataSource = dataSource ?? FirestoreNotificationDataSource(),
         _clock = clock ?? DateTime.now;
 
-  static final NotificationScheduler instance = NotificationScheduler._internal();
+  static final NotificationScheduler instance =
+      NotificationScheduler._internal();
   factory NotificationScheduler() => instance;
 
   /// Test-only seam: build an isolated instance with fakes instead of the
@@ -129,7 +130,8 @@ class NotificationScheduler {
   // Which NotificationPoolVersion the cached pool was fetched at, and when.
   // Together they decide whether it can stand in for a fresh read — see
   // _poolIsCurrent.
-  static const _poolSyncedVersionKey = 'notificationScheduler.poolSyncedVersion';
+  static const _poolSyncedVersionKey =
+      'notificationScheduler.poolSyncedVersion';
   static const _poolSyncedAtKey = 'notificationScheduler.poolSyncedAt';
 
   /// How old the cached pool may get before it is refetched even though the
@@ -168,7 +170,8 @@ class NotificationScheduler {
     ),
     PoolMessage(
       id: 'bundled-2',
-      text: 'ابتسامة، كلمة طيبة، أو دعوة صادقة — كلها صدقات في متناول يدك اليوم.',
+      text:
+          'ابتسامة، كلمة طيبة، أو دعوة صادقة — كلها صدقات في متناول يدك اليوم.',
       order: 1,
     ),
     PoolMessage(
@@ -279,7 +282,8 @@ class NotificationScheduler {
     // the full-color adaptive launcher icon, and Android's notification
     // shade either renders it as a blank white/gray block or forces its own
     // fallback glyph instead — see drawable/ic_stat_notify.xml.
-    const androidInit = AndroidInitializationSettings('@drawable/ic_stat_notify');
+    const androidInit =
+        AndroidInitializationSettings('@drawable/ic_stat_notify');
     await _plugin.initialize(
       const InitializationSettings(
         android: androidInit,
@@ -360,7 +364,8 @@ class NotificationScheduler {
     final ios = _plugin.resolvePlatformSpecificImplementation<
         IOSFlutterLocalNotificationsPlugin>();
     if (ios != null) {
-      return await ios.requestPermissions(alert: true, badge: true, sound: true) ??
+      return await ios.requestPermissions(
+              alert: true, badge: true, sound: true) ??
           false;
     }
     return true;
@@ -565,8 +570,8 @@ class NotificationScheduler {
       for (var offset = 0; offset < _daysAhead; offset++) {
         if (superseded()) return supersededResult;
 
-        final day = DateTime(now.year, now.month, now.day)
-            .add(Duration(days: offset));
+        final day =
+            DateTime(now.year, now.month, now.day).add(Duration(days: offset));
         // A pool this far down should never be empty (_loadPool falls back
         // to the bundled messages), but if it somehow were, indexing into it
         // would throw — and an exception here would abort the run *and* the
@@ -582,16 +587,17 @@ class NotificationScheduler {
               );
         final morning = picks?.morning;
         final evening = picks?.evening;
-        final plannedMorning =
-            planner?.call(resolveScheduledTime(day, morningTime), ReminderSlot.morning);
-        final plannedEvening =
-            planner?.call(resolveScheduledTime(day, eveningTime), ReminderSlot.evening);
+        final plannedMorning = planner?.call(
+            resolveScheduledTime(day, morningTime), ReminderSlot.morning);
+        final plannedEvening = planner?.call(
+            resolveScheduledTime(day, eveningTime), ReminderSlot.evening);
 
         final morningScheduled = await _syncOne(
           id: offset * 2,
           day: day,
           time: morningTime,
-          enabled: morningEnabled && (plannedMorning != null || morning != null),
+          enabled:
+              morningEnabled && (plannedMorning != null || morning != null),
           title: plannedMorning?.title ?? 'رسالة الصباح',
           body: plannedMorning?.body ?? displayMessageText(morning?.text ?? ''),
           payload: plannedMorning?.payload ?? morning?.id ?? '',
@@ -606,7 +612,8 @@ class NotificationScheduler {
           id: offset * 2 + 1,
           day: day,
           time: eveningTime,
-          enabled: eveningEnabled && (plannedEvening != null || evening != null),
+          enabled:
+              eveningEnabled && (plannedEvening != null || evening != null),
           title: plannedEvening?.title ?? 'تأمل المساء',
           body: plannedEvening?.body ?? displayMessageText(evening?.text ?? ''),
           payload: plannedEvening?.payload ?? evening?.id ?? '',
@@ -824,7 +831,8 @@ class NotificationScheduler {
   Future<Map<String, Map<String, String>>> _loadSchedule() async {
     final prefs = await SharedPreferences.getInstance();
     try {
-      final schedule = parseNotificationSchedule(await _dataSource.loadSchedule());
+      final schedule =
+          parseNotificationSchedule(await _dataSource.loadSchedule());
       await prefs.setString(_cachedScheduleKey, jsonEncode(schedule));
       return schedule;
     } catch (_) {
@@ -833,7 +841,8 @@ class NotificationScheduler {
           jsonDecode(prefs.getString(_cachedScheduleKey) ?? '{}'),
         );
       } catch (error) {
-        debugPrint('NotificationScheduler: dropping corrupt cached schedule: $error');
+        debugPrint(
+            'NotificationScheduler: dropping corrupt cached schedule: $error');
         unawaited(prefs.remove(_cachedScheduleKey));
         return const {};
       }
@@ -889,7 +898,8 @@ class NotificationScheduler {
 
 @immutable
 class PoolMessage {
-  const PoolMessage({required this.id, required this.text, required this.order});
+  const PoolMessage(
+      {required this.id, required this.text, required this.order});
   final String id;
   final String text;
   final int order;
@@ -1047,4 +1057,4 @@ PoolMessage pickMessageForDay(
 /// independent of what time of day [day] happens to carry.
 int calendarDayNumber(DateTime day) =>
     DateTime.utc(day.year, day.month, day.day).millisecondsSinceEpoch ~/
-        Duration.millisecondsPerDay;
+    Duration.millisecondsPerDay;

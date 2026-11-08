@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../journey/board_service.dart';
 import 'daily_pool_version.dart';
 import 'message_like_service.dart';
 
@@ -119,6 +120,9 @@ class AccountDeletionService {
       throw FirebaseAuthException(code: 'no-current-user');
     }
     final uid = user.uid;
+
+    // Before anything is deleted, so nothing deleted is synced back.
+    WeeklyBoardService().forget();
 
     onProgress('جارٍ إزالة إعجاباتك…');
     await _removeAllLikes(uid);

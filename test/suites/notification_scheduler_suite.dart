@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -46,8 +46,8 @@ class _FakeDataSource implements NotificationDataSource {
 
   List<Map<String, dynamic>> messages;
   Map<String, dynamic> schedule;
-  Object? scheduleError;
-  Object? messagesError;
+  Exception? scheduleError;
+  Exception? messagesError;
 
   /// What [loadPoolVersion] answers. Null is "the server cannot be reached".
   int? poolVersion;
@@ -246,7 +246,7 @@ void notificationSchedulerSuite() {
       for (var seed = 0; seed < 200; seed++) {
         expect(
           pickMessageForDay(pool, day, seed, slot: 1),
-          isNot(same(pickMessageForDay(pool, day, seed, slot: 0))),
+          isNot(same(pickMessageForDay(pool, day, seed))),
           reason: 'seed $seed',
         );
       }
@@ -255,7 +255,7 @@ void notificationSchedulerSuite() {
     test('a one-message pool serves both slots', () {
       final single = pool.take(1).toList();
 
-      expect(pickMessageForDay(single, day, 7, slot: 0), same(single.first));
+      expect(pickMessageForDay(single, day, 7), same(single.first));
       expect(pickMessageForDay(single, day, 7, slot: 1), same(single.first));
     });
 
@@ -278,7 +278,9 @@ void notificationSchedulerSuite() {
           'evening': {'text': 'no id'},
         },
         '2026-09-28': 'not a map',
-        '2026-09-29': {'evening': {'messageId': ''}},
+        '2026-09-29': {
+          'evening': {'messageId': ''}
+        },
       });
 
       expect(parsed, {
@@ -416,7 +418,7 @@ void notificationSchedulerSuite() {
         'deactivating every message from the dashboard silently stopped '
         "every reader's reminders with succeeded: true and no signal",
         () async {
-      final scheduler = schedulerWith(_FakeDataSource(messages: const []));
+      final scheduler = schedulerWith(_FakeDataSource());
 
       final result = await scheduler.reschedule(
         morningEnabled: true,
@@ -435,7 +437,7 @@ void notificationSchedulerSuite() {
         'reminders off must take effect even if nothing can be scheduled, '
         'or the reader turns them off and keeps getting yesterday\'s queue',
         () async {
-      final scheduler = schedulerWith(_FakeDataSource(messages: const []));
+      final scheduler = schedulerWith(_FakeDataSource());
 
       final result = await scheduler.reschedule(
         morningEnabled: false,
@@ -456,8 +458,9 @@ void notificationSchedulerSuite() {
         'on-device, so this schedules something generic rather than '
         'reporting "check your internet" for a feature that was never '
         'supposed to depend on the network', () async {
-      final scheduler = schedulerWith(_FakeDataSource(
-          messagesError: Exception('offline, no cached Firestore data')),
+      final scheduler = schedulerWith(
+        _FakeDataSource(
+            messagesError: Exception('offline, no cached Firestore data')),
       );
 
       final result = await scheduler.reschedule(
@@ -481,7 +484,8 @@ void notificationSchedulerSuite() {
       SharedPreferences.setMockInitialValues({
         'notificationScheduler.cachedPool': '[{"id":"a","text":"ب"',
       });
-      final scheduler = schedulerWith(_FakeDataSource(messagesError: Exception('offline')));
+      final scheduler =
+          schedulerWith(_FakeDataSource(messagesError: Exception('offline')));
 
       final result = await scheduler.reschedule(
         morningEnabled: true,
@@ -919,7 +923,7 @@ void notificationSchedulerSuite() {
     test(
         'uses exact alarms when the OS reports them available — the fix for '
         'reminders being silently delayed/dropped', () async {
-      stubPluginDefaults(canScheduleExact: true);
+      stubPluginDefaults();
       final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
 
       final result = await scheduler.reschedule(
@@ -970,8 +974,7 @@ void notificationSchedulerSuite() {
                 any(named: 'uiLocalNotificationDateInterpretation'),
             payload: any(named: 'payload'),
           )).captured;
-      expect(
-          captured, everyElement(AndroidScheduleMode.inexactAllowWhileIdle));
+      expect(captured, everyElement(AndroidScheduleMode.inexactAllowWhileIdle));
     });
 
     test('the device seed is generated once and reused on later calls',
@@ -1039,8 +1042,7 @@ void notificationSchedulerSuite() {
         'a reschedule superseded by a newer one does not write its stale '
         'settings to the platform — turning a reminder off while the '
         'start-up reschedule is still in flight must stay off', () async {
-      final dataSource =
-          _FakeDataSource(messages: activePool);
+      final dataSource = _FakeDataSource(messages: activePool);
       final scheduler = schedulerWith(dataSource);
 
       // Park run A right before it starts laying out its window.
@@ -1128,8 +1130,8 @@ void notificationSchedulerSuite() {
     test('a planned slot goes out with its words, payload and channel',
         () async {
       final scheduler = schedulerWith(_FakeDataSource(messages: activePool))
-        ..planner = (at, slot) =>
-            slot == ReminderSlot.morning ? morningLine : null;
+        ..planner =
+            (at, slot) => slot == ReminderSlot.morning ? morningLine : null;
 
       await layDay(scheduler);
 
@@ -1137,22 +1139,22 @@ void notificationSchedulerSuite() {
       expect(today[1], 'حديث اليوم');
       expect(today[2], '«لا تغضب»، دقيقتان تقريباً.');
       expect(today[4], 'hadith:16');
-      final details = today[3] as NotificationDetails;
+      final details = today[3]! as NotificationDetails;
       expect(details.android?.channelId, 'reading_journey');
     });
 
     test('a slot the planner leaves alone keeps the pool and its channel',
         () async {
       final scheduler = schedulerWith(_FakeDataSource(messages: activePool))
-        ..planner = (at, slot) =>
-            slot == ReminderSlot.morning ? morningLine : null;
+        ..planner =
+            (at, slot) => slot == ReminderSlot.morning ? morningLine : null;
 
       await layDay(scheduler);
 
       final tonight = captured().where((c) => c[0] == 1).single;
       expect(tonight[1], 'تأمل المساء');
       expect(['رسالة أولى', 'رسالة ثانية'], contains(tonight[2]));
-      final details = tonight[3] as NotificationDetails;
+      final details = tonight[3]! as NotificationDetails;
       expect(details.android?.channelId, 'daily_reminders');
     });
 
@@ -1167,7 +1169,8 @@ void notificationSchedulerSuite() {
       await layDay(scheduler);
 
       expect(asked, hasLength(28));
-      expect(asked.first, (DateTime(2026, 9, 21, 23, 50), ReminderSlot.morning));
+      expect(
+          asked.first, (DateTime(2026, 9, 21, 23, 50), ReminderSlot.morning));
       expect(asked[1], (DateTime(2026, 9, 21, 23, 55), ReminderSlot.evening));
     });
 
@@ -1177,7 +1180,8 @@ void notificationSchedulerSuite() {
       await layDay(scheduler);
 
       expect(
-        captured().every((c) => c[1] == 'رسالة الصباح' || c[1] == 'تأمل المساء'),
+        captured()
+            .every((c) => c[1] == 'رسالة الصباح' || c[1] == 'تأمل المساء'),
         isTrue,
       );
     });
@@ -1206,8 +1210,7 @@ void notificationSchedulerSuite() {
       verifyNever(() => androidPlugin.requestNotificationsPermission());
     });
 
-    test('askOnce asks a reader who has not answered, a single time',
-        () async {
+    test('askOnce asks a reader who has not answered, a single time', () async {
       when(() => androidPlugin.areNotificationsEnabled())
           .thenAnswer((_) async => false);
       final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
@@ -1501,8 +1504,7 @@ void notificationSchedulerSuite() {
   });
 
   group('NotificationScheduler.requestPermission', () {
-    test(
-        'requests the notification permission, and never the exact-alarm one',
+    test('requests the notification permission, and never the exact-alarm one',
         () async {
       final scheduler = schedulerWith(_FakeDataSource(messages: activePool));
 

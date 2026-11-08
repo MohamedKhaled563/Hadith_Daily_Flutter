@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/data/services/moderation_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// App Store guideline 1.2 asks a UGC app for two things: a way to report
 /// objectionable content, and a way to block an abusive user. Reporting is a

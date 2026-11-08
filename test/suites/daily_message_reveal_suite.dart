@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
+import 'package:hadith_app/core/widgets/bottom_navigation.dart';
 import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
-import 'package:hadith_app/core/widgets/bottom_navigation.dart';
 import 'package:hadith_app/data/services/daily_tip_service.dart';
 import 'package:hadith_app/data/services/notification_scheduler.dart';
 import 'package:hadith_app/features/home/home_screen.dart';
@@ -158,8 +158,7 @@ void dailyMessageRevealSuite() {
       expect(await DailyTipService().revealedCount(), 3);
     });
 
-    test('a new day starts closed again, whatever yesterday reached',
-        () async {
+    test('a new day starts closed again, whatever yesterday reached', () async {
       SharedPreferences.setMockInitialValues({
         'dailyTip.revealedOnDate': '2020-01-01',
         'dailyTip.revealedCount': 5,
@@ -192,8 +191,8 @@ void dailyMessageRevealSuite() {
       expect(find.byType(TodayMessageScreen), findsOneWidget);
       // Covered, not replaced: the emblem is still there underneath.
       expect(find.textContaining('هل سمعت'), findsNothing);
-      expect(find.textContaining('هل سمعت', skipOffstage: false),
-          findsOneWidget);
+      expect(
+          find.textContaining('هل سمعت', skipOffstage: false), findsOneWidget);
     });
 
     testWidgets('leaving the window returns to the emblem', (tester) async {
@@ -208,8 +207,7 @@ void dailyMessageRevealSuite() {
       expect(find.textContaining('طيّب قلبك'), findsWidgets);
     });
 
-    testWidgets('the system back button leaves the window too',
-        (tester) async {
+    testWidgets('the system back button leaves the window too', (tester) async {
       await _pumpHome(tester, 3, _seededDay(3),
           pressEmblem: true, until: find.textContaining('رسالة رقم 1'));
       await _settle(tester);
@@ -255,8 +253,8 @@ void dailyMessageRevealSuite() {
 
       expect(find.byType(TodayMessageScreen), findsOneWidget);
       await _closeWindow(tester);
-      expect(find.byType(TodayMessageScreen, skipOffstage: false),
-          findsNothing);
+      expect(
+          find.byType(TodayMessageScreen, skipOffstage: false), findsNothing);
     });
 
     testWidgets('a hidden home tab takes no part in Hero flights',
@@ -288,8 +286,7 @@ void dailyMessageRevealSuite() {
 
     testWidgets('never shows a counter', (tester) async {
       await _pumpHome(tester, 4, _seededDay(4, revealed: 2),
-          pressEmblem: true,
-          until: find.textContaining('رسالة رقم 2'));
+          pressEmblem: true, until: find.textContaining('رسالة رقم 2'));
 
       // The reader is being given a message, not shown a position in a queue.
       expect(find.text('١ / ٤'), findsNothing);
@@ -318,8 +315,7 @@ void dailyMessageRevealSuite() {
       expect(find.text('رسالة أخرى'), findsOneWidget);
     });
 
-    testWidgets('a reminder tap lands straight on the message',
-        (tester) async {
+    testWidgets('a reminder tap lands straight on the message', (tester) async {
       DailyTipService.debugMessagesPerDay = 3;
       SharedPreferences.setMockInitialValues(_seededDay(3, revealed: 2));
       await DailyTipService().getTodayTips();
@@ -350,15 +346,14 @@ void dailyMessageRevealSuite() {
       NotificationScheduler.notificationTapped.value++;
       await _settle(tester);
       await _settle(tester);
-      expect(find.byType(TodayMessageScreen, skipOffstage: false),
-          findsOneWidget);
+      expect(
+          find.byType(TodayMessageScreen, skipOffstage: false), findsOneWidget);
     });
 
     testWidgets('offers another message while the day has more',
         (tester) async {
       await _pumpHome(tester, 3, _seededDay(3, revealed: 1),
-          pressEmblem: true,
-          until: find.text('رسالة أخرى'));
+          pressEmblem: true, until: find.text('رسالة أخرى'));
 
       expect(find.text('رسالة أخرى'), findsOneWidget);
 
@@ -378,8 +373,7 @@ void dailyMessageRevealSuite() {
         'closes the day with the last message rather than a panel of its own',
         (tester) async {
       await _pumpHome(tester, 2, _seededDay(2, revealed: 2),
-          pressEmblem: true,
-          until: find.text('نلقاك غداً بإذن الله'));
+          pressEmblem: true, until: find.text('نلقاك غداً بإذن الله'));
 
       expect(find.text('رسالة أخرى'), findsNothing);
       expect(find.text('نلقاك غداً بإذن الله'), findsOneWidget);
@@ -404,8 +398,7 @@ void dailyMessageRevealSuite() {
         (tester) async {
       // messagesPerDay lowered after the reader had already gone further.
       await _pumpHome(tester, 2, _seededDay(2, revealed: 9),
-          pressEmblem: true,
-          until: find.text('نلقاك غداً بإذن الله'));
+          pressEmblem: true, until: find.text('نلقاك غداً بإذن الله'));
 
       expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
       expect(find.text('نلقاك غداً بإذن الله'), findsOneWidget);

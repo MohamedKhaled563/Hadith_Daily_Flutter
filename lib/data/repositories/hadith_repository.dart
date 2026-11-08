@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/crash_reporter.dart';
 import '../models/hadith.dart';
 import '../models/insight.dart';
@@ -39,8 +41,12 @@ class HadithRepository {
   /// `tool/import_hadiths_v2.py` and `tool/import_daily_messages_v2.py` —
   /// re-run those scripts rather than editing the JSON by hand.
   Future<void> load() async {
-    await Future.wait(
-        [loadHadiths(), _loadInsights(), _loadIntro(), _clearLegacyFavorites()]);
+    await Future.wait([
+      loadHadiths(),
+      _loadInsights(),
+      _loadIntro(),
+      _clearLegacyFavorites()
+    ]);
   }
 
   Future<void> _loadIntro() async {

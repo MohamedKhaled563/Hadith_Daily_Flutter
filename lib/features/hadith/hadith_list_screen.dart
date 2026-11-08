@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
 import '../../core/auth/sign_in_gate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
@@ -10,6 +11,7 @@ import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_empty_state.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/entrance.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
@@ -17,7 +19,6 @@ import '../../data/journey/journey_repository.dart';
 import '../../data/models/hadith.dart';
 import '../../data/models/intro_section.dart';
 import '../../data/repositories/hadith_repository.dart';
-import '../../core/widgets/entrance.dart';
 import 'hadith_detail_screen.dart';
 import 'intro_section_screen.dart';
 
@@ -342,9 +343,8 @@ class _LeafMark extends StatelessWidget {
             child: Icon(
               Icons.eco_rounded,
               size: 18,
-              color: progress.isComplete
-                  ? palette.ornamentGold
-                  : palette.success,
+              color:
+                  progress.isComplete ? palette.ornamentGold : palette.success,
             ),
           ),
         );

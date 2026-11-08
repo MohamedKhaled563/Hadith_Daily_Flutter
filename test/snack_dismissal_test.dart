@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/core/widgets/app_snack.dart';
 import 'package:hadith_app/data/models/insight.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/data/services/favorites_store.dart';
 import 'package:hadith_app/features/favorites/favorites_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Flutter resolves a SnackBar's `persist` as `persist ?? action != null`, so
 /// attaching an undo to a snackbar quietly turns off its timeout: it ignores

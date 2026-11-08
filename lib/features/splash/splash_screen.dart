@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
@@ -282,7 +282,8 @@ class _SplashScreenState extends State<SplashScreen>
                 return SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints:
+                        BoxConstraints(minHeight: constraints.maxHeight),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -313,9 +314,8 @@ class _SplashScreenState extends State<SplashScreen>
                               AnimatedBuilder(
                                 animation: _heartPulseAnimation,
                                 builder: (context, child) {
-                                  final size = 180 *
-                                      scale *
-                                      _heartPulseAnimation.value;
+                                  final size =
+                                      180 * scale * _heartPulseAnimation.value;
                                   return Container(
                                     width: size,
                                     height: size,

@@ -5,34 +5,33 @@ import 'app_text_styles.dart';
 
 class AppTheme {
   static ThemeData get light => _base(
-    brightness: Brightness.light,
-    palette: BotanicalPalette.light,
-    scaffold: AppColors.background,
-    colorScheme: const ColorScheme.light(
-      primary: AppColors.primaryGreen,
-      secondary: AppColors.gold,
-      surface: AppColors.card,
-      onPrimary: Colors.white,
-      onSurface: AppColors.primaryText,
-    ),
-    bodyColor: AppColors.primaryText,
-    mutedColor: AppColors.secondaryText,
-  );
+        brightness: Brightness.light,
+        palette: BotanicalPalette.light,
+        scaffold: AppColors.background,
+        colorScheme: const ColorScheme.light(
+          primary: AppColors.primaryGreen,
+          secondary: AppColors.gold,
+          surface: AppColors.card,
+          onSurface: AppColors.primaryText,
+        ),
+        bodyColor: AppColors.primaryText,
+        mutedColor: AppColors.secondaryText,
+      );
 
   static ThemeData get dark => _base(
-    brightness: Brightness.dark,
-    palette: BotanicalPalette.dark,
-    scaffold: AppColors.backgroundDark,
-    colorScheme: const ColorScheme.dark(
-      primary: AppColors.primaryGreenDark,
-      secondary: AppColors.goldTextDark,
-      surface: AppColors.cardDark,
-      onPrimary: AppColors.backgroundDark,
-      onSurface: AppColors.primaryTextDark,
-    ),
-    bodyColor: AppColors.primaryTextDark,
-    mutedColor: AppColors.secondaryTextDark,
-  );
+        brightness: Brightness.dark,
+        palette: BotanicalPalette.dark,
+        scaffold: AppColors.backgroundDark,
+        colorScheme: const ColorScheme.dark(
+          primary: AppColors.primaryGreenDark,
+          secondary: AppColors.goldTextDark,
+          surface: AppColors.cardDark,
+          onPrimary: AppColors.backgroundDark,
+          onSurface: AppColors.primaryTextDark,
+        ),
+        bodyColor: AppColors.primaryTextDark,
+        mutedColor: AppColors.secondaryTextDark,
+      );
 
   static ThemeData _base({
     required Brightness brightness,

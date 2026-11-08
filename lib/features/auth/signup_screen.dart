@@ -38,7 +38,6 @@ class SignUpScreen extends StatefulWidget {
   /// were part-way through.
   final bool returnOnSuccess;
 
-
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
@@ -285,7 +284,6 @@ class _SignUpScreenState extends State<SignUpScreen>
       visible: _submitting,
       message: _loadingMessage,
       child: AppScreen(
-        showBottomLandscape: true,
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
@@ -339,7 +337,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                               const SizedBox(height: 18),
                               const OrDivider(),
                               const SizedBox(height: 18),
-                              _Label('الاسم أو اللقب'),
+                              const _Label('الاسم أو اللقب'),
                               const SizedBox(height: 6),
                               GlassField(
                                 leading: Icon(
@@ -381,7 +379,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ],
                               const SizedBox(height: 14),
-                              _Label('البريد الإلكتروني'),
+                              const _Label('البريد الإلكتروني'),
                               const SizedBox(height: 6),
                               GlassField(
                                 leading: Icon(
@@ -415,7 +413,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ),
                               const SizedBox(height: 14),
-                              _Label('كلمة المرور'),
+                              const _Label('كلمة المرور'),
                               const SizedBox(height: 6),
                               GlassField(
                                 leading: Icon(
@@ -707,7 +705,8 @@ class _TermsCheck extends StatelessWidget {
 
     return Semantics(
       checked: value,
-      label: 'أوافق على ${LegalDocuments.termsTitle} و${LegalDocuments.privacyTitle}',
+      label:
+          'أوافق على ${LegalDocuments.termsTitle} و${LegalDocuments.privacyTitle}',
       child: ExcludeSemantics(
         child: InkWell(
           onTap: () => onChanged(!value),
@@ -715,7 +714,6 @@ class _TermsCheck extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
@@ -723,9 +721,7 @@ class _TermsCheck extends StatelessWidget {
                   height: 22,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: value
-                        ? AppColors.primaryGreen
-                        : palette.surface,
+                    color: value ? AppColors.primaryGreen : palette.surface,
                     borderRadius: BorderRadius.circular(7),
                     border: Border.all(
                       color:
@@ -757,8 +753,8 @@ class _TermsCheck extends StatelessWidget {
                             decorationColor: palette.goldText,
                           ),
                           recognizer: TapGestureRecognizer()
-                            ..onTap = () =>
-                                LegalDocumentScreen.openTerms(context),
+                            ..onTap =
+                                () => LegalDocumentScreen.openTerms(context),
                         ),
                         const TextSpan(text: ' و'),
                         TextSpan(
@@ -770,8 +766,8 @@ class _TermsCheck extends StatelessWidget {
                             decorationColor: palette.goldText,
                           ),
                           recognizer: TapGestureRecognizer()
-                            ..onTap = () =>
-                                LegalDocumentScreen.openPrivacy(context),
+                            ..onTap =
+                                () => LegalDocumentScreen.openPrivacy(context),
                         ),
                       ],
                     ),

@@ -3,13 +3,12 @@ import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/core/utils/app_motion.dart';
 import 'package:hadith_app/core/widgets/bottom_navigation.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/splash/splash_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Motion: the nav bar should not jolt, and a reader who asked their phone to
 /// stop animating should be listened to.

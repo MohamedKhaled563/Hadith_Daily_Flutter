@@ -27,8 +27,7 @@ class _FeedbackMessagesPageState extends State<FeedbackMessagesPage> {
   Future<void> _deleteSelected(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) async {
-    final targets =
-        docs.where((d) => _selectedIds.contains(d.id)).toList();
+    final targets = docs.where((d) => _selectedIds.contains(d.id)).toList();
     if (targets.isEmpty) return;
     if (!await confirmBulkDelete(context, targets.length) || !mounted) return;
 
@@ -108,9 +107,8 @@ class _FeedbackMessagesPageState extends State<FeedbackMessagesPage> {
                     selected: _selectedIds.contains(id),
                     onSelectedChanged: _bulkDeleting
                         ? null
-                        : (v) => setState(() => v
-                            ? _selectedIds.add(id)
-                            : _selectedIds.remove(id)),
+                        : (v) => setState(() =>
+                            v ? _selectedIds.add(id) : _selectedIds.remove(id)),
                   );
                 },
               ),
@@ -237,14 +235,17 @@ class _FeedbackCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                  icon: const Icon(Icons.delete_outline_rounded,
+                      color: Colors.red),
                   tooltip: 'حذف',
                   onPressed: () => _delete(context),
                 ),
                 TextButton.icon(
                   onPressed: () => _toggleRead(!read),
                   icon: Icon(
-                    read ? Icons.mark_email_unread_outlined : Icons.mark_email_read_outlined,
+                    read
+                        ? Icons.mark_email_unread_outlined
+                        : Icons.mark_email_read_outlined,
                   ),
                   label: Text(read ? 'وضع كغير مقروءة' : 'وضع كمقروءة'),
                 ),

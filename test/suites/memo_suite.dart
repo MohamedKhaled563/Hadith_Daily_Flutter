@@ -250,7 +250,7 @@ void memoSuite() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
     });
 
-    tearDown(() => journey.debugReset());
+    tearDown(journey.debugReset);
 
     test('a short hadith is memorized in one session', () async {
       final outcome = journey.learnPart(13, totalParts: partsOf(13));
@@ -356,11 +356,11 @@ void memoSuite() {
           hadithMinutes: (_) => 2,
         );
 
-    final reading = JourneyData(
+    const reading = JourneyData(
       days: {
-        '2026-11-07': const JourneyDay(messages: ['m'])
+        '2026-11-07': JourneyDay(messages: ['m'])
       },
-      memo: {13: const MemoProgress(parts: 1, box: 0, due: '2026-11-08')},
+      memo: {13: MemoProgress(parts: 1, box: 0, due: '2026-11-08')},
     );
 
     test('a morning with a review due asks for it, and opens it', () {

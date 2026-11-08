@@ -220,6 +220,16 @@ class WeeklyBoardService {
     }));
   }
 
+  /// The account is being deleted: send nothing more for it. Without this,
+  /// the journey documents disappearing would look like a change worth
+  /// syncing, and the entry deletion just removed would be written back.
+  void forget() {
+    _timer?.cancel();
+    _generation++;
+    _sent = null;
+    membership.value = null;
+  }
+
   /// A write completes only when the server confirms it, which offline may
   /// be much later, so nothing waits on it.
   Future<void> _save(ScoreEntry entry) =>

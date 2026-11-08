@@ -126,7 +126,8 @@ class _BulkAddPageState extends State<BulkAddPage> {
       if (!mounted) return;
       setState(() {
         _pasteResultIsError = false;
-        _pasteResult = 'تمت إضافة ${lines.length} رسالة للحديث $hadithNumber بنجاح';
+        _pasteResult =
+            'تمت إضافة ${lines.length} رسالة للحديث $hadithNumber بنجاح';
         _textController.clear();
       });
     } catch (e) {
@@ -205,10 +206,8 @@ class _BulkAddPageState extends State<BulkAddPage> {
         ]);
       }
 
-      final communitySnap = await db
-          .collection('communityMessages')
-          .orderBy('createdAt')
-          .get();
+      final communitySnap =
+          await db.collection('communityMessages').orderBy('createdAt').get();
       final communitySheet = workbook[_communitySheet];
       communitySheet.appendRow(
         _communityViewHeaders.map(xls.TextCellValue.new).toList(),
@@ -449,7 +448,8 @@ class _BulkAddPageState extends State<BulkAddPage> {
     const collection = 'dailyMessages';
     const label = 'رسائل اليوم';
 
-    final headerError = parsing.headerMismatchNote(sheet, parsing.dailyAddHeaders);
+    final headerError =
+        parsing.headerMismatchNote(sheet, parsing.dailyAddHeaders);
     if (headerError != null) {
       return SheetDiff(
         collection: collection,
@@ -572,7 +572,8 @@ class _BulkAddPageState extends State<BulkAddPage> {
     );
   }
 
-  Future<int> _countForCollection(FirebaseFirestore db, String collection) async {
+  Future<int> _countForCollection(
+      FirebaseFirestore db, String collection) async {
     final agg = await db.collection(collection).count().get();
     return agg.count ?? 0;
   }
@@ -632,7 +633,8 @@ class _BulkAddPageState extends State<BulkAddPage> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.upload_rounded),
                         label: const Text('رفع Excel'),
@@ -659,7 +661,9 @@ class _BulkAddPageState extends State<BulkAddPage> {
                   Text(
                     _excelResult!,
                     style: TextStyle(
-                      color: _excelResultIsError ? Colors.red : Colors.green.shade700,
+                      color: _excelResultIsError
+                          ? Colors.red
+                          : Colors.green.shade700,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -707,7 +711,9 @@ class _BulkAddPageState extends State<BulkAddPage> {
                   Text(
                     _pasteResult!,
                     style: TextStyle(
-                      color: _pasteResultIsError ? Colors.red : Colors.green.shade700,
+                      color: _pasteResultIsError
+                          ? Colors.red
+                          : Colors.green.shade700,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -722,7 +728,8 @@ class _BulkAddPageState extends State<BulkAddPage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.playlist_add_rounded),
-                  label: Text(_pasteSubmitting ? 'جارٍ الإضافة…' : 'إضافة الرسائل'),
+                  label: Text(
+                      _pasteSubmitting ? 'جارٍ الإضافة…' : 'إضافة الرسائل'),
                 ),
               ],
             ),

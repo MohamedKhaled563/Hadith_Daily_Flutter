@@ -3,12 +3,11 @@ import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/core/theme/app_theme.dart';
-import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/core/widgets/bottom_navigation.dart';
+import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/share/add_message_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Where the share tab's submit button lands as the keyboard comes and goes.
 ///
@@ -111,7 +110,8 @@ void main() {
     expect(bottom, greaterThan(_size.height - 400 - 40));
   });
 
-  testWidgets('submit button returns to its resting spot after the keyboard '
+  testWidgets(
+      'submit button returns to its resting spot after the keyboard '
       'closes', (tester) async {
     await _pumpShareTab(tester);
     final resting = tester.getRect(_submitButton);

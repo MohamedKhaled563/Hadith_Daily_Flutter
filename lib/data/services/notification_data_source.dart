@@ -74,5 +74,4 @@ class FirestoreNotificationDataSource implements NotificationDataSource {
         await _db.collection('settings').doc('notificationSchedule').get();
     return doc.data()?['days'] as Map<String, dynamic>? ?? const {};
   }
-
 }

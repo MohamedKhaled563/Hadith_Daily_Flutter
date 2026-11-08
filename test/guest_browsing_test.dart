@@ -3,8 +3,6 @@ import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/core/auth/sign_in_gate.dart';
 import 'package:hadith_app/core/theme/app_state_controller.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
@@ -12,6 +10,7 @@ import 'package:hadith_app/core/utils/notification_reliability_tip.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/data/services/favorites_store.dart';
 import 'package:hadith_app/features/hadith/hadith_list_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Guest browsing: the app opens, and the three things that genuinely need an
 /// identity are the only things that ask for one.
