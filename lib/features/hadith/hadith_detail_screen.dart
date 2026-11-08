@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,7 @@ import '../../core/widgets/app_snack.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
+import '../../core/widgets/app_button.dart';
 import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/entrance.dart';
 import '../../core/widgets/parchment_card.dart';
@@ -21,13 +23,21 @@ import '../../data/journey/journey_repository.dart';
 import '../../data/journey/reading_tracker.dart';
 import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
+import '../../data/services/journey_reminders.dart';
+import '../journey/completion_sheet.dart';
+import '../journey/journey_links.dart';
+import '../journey/journey_share_sheet.dart';
 import 'hadith_explanation_screen.dart';
 
-/// Stateful only so the bookmark can toggle in place.
+/// The hadith, its short explanation, and the reading the journey counts.
 ///
-/// The list had a bookmark on every row and this screen had none, so the
-/// deeper screen offered fewer affordances than the shallower one — a reader
-/// who opened a hadith to read it properly then had to go back to save it.
+/// A gold thread fills beside the hadith and beside the short explanation
+/// while each stays on screen (see [ReadingTracker]); there is no countdown,
+/// since a timer teaches people to wait, not read. Once both have had their
+/// time the leaf turns green, and «قرأت الحديث ونويت العمل به» can be
+/// pressed. Pressing it is what turns the leaf gold: the time alone is not
+/// enough, and neither is the press. The full explanation stays one tap
+/// away, for whoever wants it.
 class HadithDetailScreen extends StatefulWidget {
   const HadithDetailScreen({super.key, required this.hadith});
 
@@ -37,42 +47,174 @@ class HadithDetailScreen extends StatefulWidget {
   State<HadithDetailScreen> createState() => _HadithDetailScreenState();
 }
 
-class _HadithDetailScreenState extends State<HadithDetailScreen> {
+class _HadithDetailScreenState extends State<HadithDetailScreen>
+    with WidgetsBindingObserver {
+  static const _tickEvery = Duration(milliseconds: 300);
+
+  /// The most one tick can count. A timer held up by a suspended app must
+  /// not arrive as reading time.
+  static const _longestTick = Duration(seconds: 1);
+
+  /// With no touch for this long the phone is probably on the table, so time
+  /// stops counting. A long section asks for more, in [_idleLimit].
+  static const _shortestIdleLimit = Duration(seconds: 45);
+
   final HadithRepository _repo = HadithRepository();
 
   Hadith get hadith => widget.hadith;
 
   bool get _isBookmarked => _repo.isHadithFavorite(hadith.number);
 
-  /// Marks the hadith started once the page has stayed open long enough for
-  /// its text and summary. The leaf turns green; gold takes the full
-  /// explanation, on [HadithExplanationScreen].
-  Timer? _textTimer;
+  late final ReadingTracker _tracker =
+      ReadingTracker.sections(ReadingRule.pageSections(hadith));
+  late final List<GlobalKey> _sectionKeys =
+      List.generate(2, (_) => GlobalKey());
+  final _viewportKey = GlobalKey();
+
+  Timer? _ticker;
+  DateTime _lastTick = DateTime.now();
+  DateTime _lastTouch = DateTime.now();
+  bool _inForeground = true;
+
+  /// Whether the text and summary have had their time, already reported to
+  /// the journey (the green leaf).
+  bool _textRecorded = false;
+
+  /// Whether the reader confirmed, this visit.
+  bool _finished = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _repo.favoritesListenable.addListener(_onFavoritesChanged);
     JourneyRepository().listenable.addListener(_onFavoritesChanged);
-    _textTimer = Timer(
-      ReadingRule.neededForSections([
-        ReadingRule.wordCount('${hadith.isnad} ${hadith.text}'),
-        ReadingRule.wordCount(hadith.shortExplanation),
-      ]),
-      () => JourneyRepository().recordTextRead(hadith.number),
-    );
+    _ticker = Timer.periodic(_tickEvery, _onTick);
   }
 
   @override
   void dispose() {
-    _textTimer?.cancel();
+    _ticker?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     JourneyRepository().listenable.removeListener(_onFavoritesChanged);
     _repo.favoritesListenable.removeListener(_onFavoritesChanged);
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _inForeground = state == AppLifecycleState.resumed;
+  }
+
   void _onFavoritesChanged() {
     if (mounted) setState(() {});
+  }
+
+  double _progressOf(int section) {
+    if (_finished) return 1;
+    return section < _tracker.length ? _tracker.progressOf(section) : 0;
+  }
+
+  Duration get _idleLimit {
+    final waiting = _tracker.firstUnread;
+    if (waiting == null) return _shortestIdleLimit;
+    final twice = _tracker.neededAt(waiting) * 2;
+    return twice > _shortestIdleLimit ? twice : _shortestIdleLimit;
+  }
+
+  void _onTick(Timer _) {
+    final now = DateTime.now();
+    final elapsed = now.difference(_lastTick);
+    _lastTick = now;
+
+    if (!mounted || !_inForeground || _finished || _tracker.isComplete) return;
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    if (now.difference(_lastTouch) > _idleLimit) return;
+
+    final before = _shownSteps();
+    _tracker.tick(
+      elapsed > _longestTick ? _longestTick : elapsed,
+      _sectionsOnScreen(),
+    );
+    if (_tracker.isComplete && !_textRecorded) {
+      _textRecorded = true;
+      JourneyRepository().recordTextRead(hadith.number);
+    }
+    // Redraw only when the thread visibly moves, not on every tick: this
+    // page is often left open, and the thread animates between steps anyway.
+    if (_shownSteps() != before) setState(() {});
+  }
+
+  static const _threadSteps = 24;
+
+  String _shownSteps() => [
+        for (var i = 0; i < _tracker.length; i++)
+          (_tracker.progressOf(i) * _threadSteps).floor(),
+        _tracker.isComplete,
+      ].join(',');
+
+  /// Which sections are readable right now. Measured against the screen as
+  /// well as the section: one taller than the screen can never be mostly
+  /// visible, and must still count while it fills the view.
+  List<int> _sectionsOnScreen() {
+    final viewport = _viewportKey.currentContext?.findRenderObject();
+    if (viewport is! RenderBox || !viewport.hasSize) return const [];
+
+    final viewTop = viewport.localToGlobal(Offset.zero).dy;
+    final viewBottom = viewTop + viewport.size.height;
+    final onScreen = <int>[];
+    for (var i = 0; i < _tracker.length; i++) {
+      final box = _sectionKeys[i].currentContext?.findRenderObject();
+      if (box is! RenderBox || !box.hasSize) continue;
+      final top = box.localToGlobal(Offset.zero).dy;
+      final showing =
+          math.min(top + box.size.height, viewBottom) - math.max(top, viewTop);
+      final enough = math.min(box.size.height * .6, viewport.size.height * .5);
+      if (showing >= enough) onScreen.add(i);
+    }
+    return onScreen;
+  }
+
+  /// «قرأت الحديث ونويت العمل به»: the reader's own word, after the time.
+  Future<void> _confirm() async {
+    final navigator = Navigator.of(context);
+    final journey = JourneyRepository();
+
+    setState(() => _finished = true);
+    final outcome = journey.recordFullRead(
+      hadith.number,
+      seconds: _tracker.activeSeconds,
+    );
+    AppHaptics.success();
+
+    final nextNumber = journey.nextHadithNumber;
+    final next =
+        nextNumber == null ? null : HadithRepository().getByNumber(nextNumber);
+    final choice = await showCompletionSheet(
+      context: context,
+      hadith: hadith,
+      outcome: outcome,
+      hasNext: next != null,
+    );
+    if (!mounted) return;
+
+    // Left unawaited: the reader's choice goes first, and a system dialog
+    // waiting for an answer must not hold it up.
+    unawaited(JourneyReminders.askAfterReading());
+
+    switch (choice) {
+      case CompletionChoice.write:
+        JourneyLinks.openWriting(hadith);
+      case CompletionChoice.next when next != null:
+        unawaited(navigator.pushReplacement(
+          appPageRoute(child: HadithDetailScreen(hadith: next)),
+        ));
+      case CompletionChoice.share:
+        await shareHadith(context, hadith);
+      case CompletionChoice.next:
+      case null:
+        break;
+    }
   }
 
   Future<void> _toggleBookmark() async {
@@ -259,221 +401,248 @@ class _HadithDetailScreenState extends State<HadithDetailScreen> {
           ),
           const SizedBox(height: 14),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                6,
-                20,
-                32 + MediaQuery.viewPaddingOf(context).bottom,
-              ),
-              children: [
-                Entrance.staggered(
-                  index: 1,
-                  child: ParchmentCard(
-                    elevated: true,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _CardHeading(
-                          icon: Icons.format_quote_rounded,
-                          title: 'نص الحديث الشريف',
-                        ),
-                        const SizedBox(height: 14),
-                        if (hadith.isnad.isNotEmpty) ...[
-                          // The isnad/ananah phrase that introduces the hadith
-                          // (عنعنة) — set apart from the hadith text itself so
-                          // the reader can tell where the chain of narration
-                          // ends and the Prophet's words begin.
-                          Text(
-                            hadith.isnad,
-                            textAlign: TextAlign.start,
-                            // No italic. Arabic script has no italic form, and
-                            // no oblique Amiri is bundled — so `FontStyle.italic`
-                            // made the engine synthesise a slant by shearing the
-                            // glyphs, which is a Latin convention applied to a
-                            // script that does not take it. The chain of
-                            // narration is set apart by size and colour instead,
-                            // which is how Arabic typography does this.
-                            //
-                            // mutedText rather than bodyText at 70%: it is the
-                            // token that was measured against these surfaces,
-                            // and an arbitrary alpha was not.
-                            style: AppTextStyles.hadithText.copyWith(
-                              fontSize: 15,
-                              color: palette.mutedText,
-                            ),
+            child: Listener(
+              onPointerDown: (_) => _lastTouch = DateTime.now(),
+              onPointerMove: (_) => _lastTouch = DateTime.now(),
+              child: ListView(
+                key: _viewportKey,
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  6,
+                  20,
+                  32 + MediaQuery.viewPaddingOf(context).bottom,
+                ),
+                children: [
+                  Entrance.staggered(
+                    index: 1,
+                    child: ParchmentCard(
+                      elevated: true,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _CardHeading(
+                            icon: Icons.format_quote_rounded,
+                            title: 'نص الحديث الشريف',
                           ),
-                          const SizedBox(height: 10),
-                        ],
-                        // The Prophetic text in Amiri — a Naskh face — set apart
-                        // from the Tajawal UI chrome around it.
-                        Text(
-                          hadith.text,
-                          textAlign: TextAlign.start,
-                          style: AppTextStyles.hadithText.copyWith(
-                            color: palette.bodyText,
-                          ),
-                        ),
-                        if (hadith.mukhrij.isNotEmpty ||
-                            (hadith.source?.trim().isNotEmpty ?? false)) ...[
-                          const SizedBox(height: 16),
-                          Align(
-                            alignment: AlignmentDirectional.centerEnd,
-                            child: Wrap(
-                              alignment: WrapAlignment.end,
-                              spacing: 8,
-                              runSpacing: 8,
+                          const SizedBox(height: 14),
+                          _ThreadedSection(
+                            key: _sectionKeys[0],
+                            progress: _progressOf(0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Labeled explicitly — this used to be a bare
-                                // name with a person icon and no label, which
-                                // is what read as the same thing as the
-                                // reference chip below (a tester flagged the
-                                // two as indistinguishable).
-                                if (hadith.mukhrij.isNotEmpty)
-                                  _AttributionChip(
-                                    icon: Icons.menu_book_rounded,
-                                    label: 'رواه',
-                                    value: hadith.mukhrij,
+                                if (hadith.isnad.isNotEmpty) ...[
+                                  // The isnad/ananah phrase that introduces the hadith
+                                  // (عنعنة) — set apart from the hadith text itself so
+                                  // the reader can tell where the chain of narration
+                                  // ends and the Prophet's words begin.
+                                  Text(
+                                    hadith.isnad,
+                                    textAlign: TextAlign.start,
+                                    // No italic. Arabic script has no italic form, and
+                                    // no oblique Amiri is bundled — so `FontStyle.italic`
+                                    // made the engine synthesise a slant by shearing the
+                                    // glyphs, which is a Latin convention applied to a
+                                    // script that does not take it. The chain of
+                                    // narration is set apart by size and colour instead,
+                                    // which is how Arabic typography does this.
+                                    //
+                                    // mutedText rather than bodyText at 70%: it is the
+                                    // token that was measured against these surfaces,
+                                    // and an arbitrary alpha was not.
+                                    style: AppTextStyles.hadithText.copyWith(
+                                      fontSize: 15,
+                                      color: palette.mutedText,
+                                    ),
                                   ),
-                                // Deliberately reads `hadith.source` here, not
-                                // `hadith.reference` — reference falls back to
-                                // the generic "من الأربعين النووية" book title
-                                // when no real source was entered (true for
-                                // all 42 bundled hadiths today), and showing
-                                // that fallback as "أخرجه: ..." reads as a
-                                // fabricated isnad attribution. `source` has
-                                // no such fallback, so this chip only appears
-                                // once a real transmitter (e.g. "رواه مسلم")
-                                // is actually entered in the data.
-                                if (hadith.source?.trim().isNotEmpty ?? false)
-                                  _AttributionChip(
-                                    icon: Icons.auto_stories_rounded,
-                                    label: 'أخرجه',
-                                    value: hadith.source!.trim(),
+                                  const SizedBox(height: 10),
+                                ],
+                                // The Prophetic text in Amiri — a Naskh face — set apart
+                                // from the Tajawal UI chrome around it.
+                                Text(
+                                  hadith.text,
+                                  textAlign: TextAlign.start,
+                                  style: AppTextStyles.hadithText.copyWith(
+                                    color: palette.bodyText,
                                   ),
+                                ),
                               ],
                             ),
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                if (hadith.shortExplanation.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  Entrance.staggered(
-                    index: 2,
-                    child: ParchmentCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const _CardHeading(
-                            icon: Icons.summarize_rounded,
-                            title: 'خلاصة الشرح',
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            hadith.shortExplanation,
-                            textAlign: TextAlign.start,
-                            style: TextStyle(
-                              fontFamily: kSans,
-                              fontSize: 14.5,
-                              height: AppLeading.body,
-                              color: palette.bodyText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-                if (hadith.explanation.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  Entrance.staggered(
-                    index: 3,
-                    child: _ExplanationTeaserCard(hadith: hadith),
-                  ),
-                ],
-                if (hadith.narratorBio.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  Entrance.staggered(
-                    index: 4,
-                    child: ParchmentCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const _CardHeading(
-                            icon: Icons.person_outline_rounded,
-                            title: 'عن راوي الحديث',
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            hadith.narratorBio,
-                            textAlign: TextAlign.start,
-                            style: TextStyle(
-                              fontFamily: kSans,
-                              fontSize: 14,
-                              height: AppLeading.body,
-                              color: palette.bodyText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-                if (hadith.keyLessons.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  Entrance.staggered(
-                    index: 5,
-                    child: ParchmentCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const _CardHeading(
-                            icon: Icons.spa_rounded,
-                            title: 'من فوائد الحديث وهداياته',
-                          ),
-                          const SizedBox(height: 12),
-                          for (final lesson in hadith.keyLessons)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          if (hadith.mukhrij.isNotEmpty ||
+                              (hadith.source?.trim().isNotEmpty ?? false)) ...[
+                            const SizedBox(height: 16),
+                            Align(
+                              alignment: AlignmentDirectional.centerEnd,
+                              child: Wrap(
+                                alignment: WrapAlignment.end,
+                                spacing: 8,
+                                runSpacing: 8,
                                 children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child: Container(
-                                      width: 5,
-                                      height: 5,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: palette.goldText,
-                                      ),
+                                  // Labeled explicitly — this used to be a bare
+                                  // name with a person icon and no label, which
+                                  // is what read as the same thing as the
+                                  // reference chip below (a tester flagged the
+                                  // two as indistinguishable).
+                                  if (hadith.mukhrij.isNotEmpty)
+                                    _AttributionChip(
+                                      icon: Icons.menu_book_rounded,
+                                      label: 'رواه',
+                                      value: hadith.mukhrij,
                                     ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      lesson,
-                                      textAlign: TextAlign.start,
-                                      style: TextStyle(
-                                        fontFamily: kSans,
-                                        fontSize: 13.5,
-                                        height: AppLeading.body,
-                                        color: palette.bodyText,
-                                      ),
+                                  // Deliberately reads `hadith.source` here, not
+                                  // `hadith.reference` — reference falls back to
+                                  // the generic "من الأربعين النووية" book title
+                                  // when no real source was entered (true for
+                                  // all 42 bundled hadiths today), and showing
+                                  // that fallback as "أخرجه: ..." reads as a
+                                  // fabricated isnad attribution. `source` has
+                                  // no such fallback, so this chip only appears
+                                  // once a real transmitter (e.g. "رواه مسلم")
+                                  // is actually entered in the data.
+                                  if (hadith.source?.trim().isNotEmpty ?? false)
+                                    _AttributionChip(
+                                      icon: Icons.auto_stories_rounded,
+                                      label: 'أخرجه',
+                                      value: hadith.source!.trim(),
                                     ),
-                                  ),
                                 ],
                               ),
                             ),
+                          ],
                         ],
                       ),
                     ),
                   ),
+                  if (hadith.shortExplanation.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Entrance.staggered(
+                      index: 2,
+                      child: ParchmentCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const _CardHeading(
+                              icon: Icons.summarize_rounded,
+                              title: 'خلاصة الشرح',
+                            ),
+                            const SizedBox(height: 12),
+                            _ThreadedSection(
+                              key: _sectionKeys[1],
+                              progress: _progressOf(1),
+                              child: Text(
+                                hadith.shortExplanation,
+                                textAlign: TextAlign.start,
+                                style: TextStyle(
+                                  fontFamily: kSans,
+                                  fontSize: 14.5,
+                                  height: AppLeading.body,
+                                  color: palette.bodyText,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  _IntentionControl(
+                    finished: _finished,
+                    // A screen reader hears the text rather than scrolling
+                    // through it, so time on screen means nothing there.
+                    ready: _tracker.isComplete ||
+                        MediaQuery.accessibleNavigationOf(context),
+                    onConfirm: _confirm,
+                  ),
+                  if (hadith.explanation.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Entrance.staggered(
+                      index: 3,
+                      child: _ExplanationTeaserCard(hadith: hadith),
+                    ),
+                  ],
+                  if (hadith.narratorBio.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Entrance.staggered(
+                      index: 4,
+                      child: ParchmentCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const _CardHeading(
+                              icon: Icons.person_outline_rounded,
+                              title: 'عن راوي الحديث',
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              hadith.narratorBio,
+                              textAlign: TextAlign.start,
+                              style: TextStyle(
+                                fontFamily: kSans,
+                                fontSize: 14,
+                                height: AppLeading.body,
+                                color: palette.bodyText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (hadith.keyLessons.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Entrance.staggered(
+                      index: 5,
+                      child: ParchmentCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const _CardHeading(
+                              icon: Icons.spa_rounded,
+                              title: 'من فوائد الحديث وهداياته',
+                            ),
+                            const SizedBox(height: 12),
+                            for (final lesson in hadith.keyLessons)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 6),
+                                      child: Container(
+                                        width: 5,
+                                        height: 5,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: palette.goldText,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        lesson,
+                                        textAlign: TextAlign.start,
+                                        style: TextStyle(
+                                          fontFamily: kSans,
+                                          fontSize: 13.5,
+                                          height: AppLeading.body,
+                                          color: palette.bodyText,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
@@ -597,9 +766,7 @@ class _ExplanationTeaserCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final label = JourneyRepository().data.progressOf(hadith.number).isComplete
-        ? 'قراءة الشرح مرة أخرى'
-        : 'قراءة الشرح كاملاً';
+    const label = 'قراءة الشرح كاملاً';
 
     return ParchmentCard(
       child: Column(
@@ -664,4 +831,159 @@ class _ExplanationTeaserCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The reader's confirmation, under the short explanation. Shown from the
+/// start so the reader knows what the page asks, and pressable once both
+/// sections have had their time.
+class _IntentionControl extends StatelessWidget {
+  const _IntentionControl({
+    required this.finished,
+    required this.ready,
+    required this.onConfirm,
+  });
+
+  static const label = 'قرأت الحديث ونويت العمل به';
+
+  final bool finished;
+  final bool ready;
+  final VoidCallback onConfirm;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    // On parchment like the rest of the page: straight on the background
+    // art, a button still waiting was too faint to read.
+    return ParchmentCard(
+      showWatermark: false,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: finished
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 18,
+                  color: palette.goldText,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'قرأته ونويت العمل به',
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 14,
+                    height: AppLeading.chrome,
+                    fontWeight: FontWeight.w700,
+                    color: palette.goldText,
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppButton(
+                  text: label,
+                  icon: Icons.check_rounded,
+                  isSecondary: !ready,
+                  onPressed: ready ? onConfirm : null,
+                ),
+                if (!ready) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'يكتمل الخيط مع قراءتك، ثم يصير الزر جاهزاً',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 12.5,
+                      height: AppLeading.chrome,
+                      color: palette.mutedText,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+    );
+  }
+}
+
+/// A section with the gold thread running down its start edge.
+class _ThreadedSection extends StatelessWidget {
+  const _ThreadedSection({
+    super.key,
+    required this.progress,
+    required this.child,
+  });
+
+  final double progress;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: progress),
+      duration: context.motion(AppDurations.content),
+      curve: Curves.linear,
+      builder: (context, value, child) => CustomPaint(
+        painter: _ThreadPainter(
+          progress: value,
+          track: palette.surfaceSunken,
+          fill: palette.ornamentGold,
+          textDirection: Directionality.of(context),
+        ),
+        child: child,
+      ),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.only(start: 14),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _ThreadPainter extends CustomPainter {
+  const _ThreadPainter({
+    required this.progress,
+    required this.track,
+    required this.fill,
+    required this.textDirection,
+  });
+
+  final double progress;
+  final Color track;
+  final Color fill;
+  final TextDirection textDirection;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const width = 3.0;
+    final x =
+        textDirection == TextDirection.rtl ? size.width - width / 2 : width / 2;
+    final paint = Paint()
+      ..strokeWidth = width
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawLine(
+      Offset(x, 4),
+      Offset(x, size.height - 4),
+      paint..color = track,
+    );
+    if (progress > 0) {
+      canvas.drawLine(
+        Offset(x, 4),
+        Offset(x, 4 + (size.height - 8) * progress),
+        paint..color = fill,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ThreadPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.track != track ||
+      oldDelegate.fill != fill ||
+      oldDelegate.textDirection != textDirection;
 }

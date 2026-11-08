@@ -44,8 +44,7 @@ void main() {
   late InMemoryJourneyStore store;
   String? copied;
 
-  const finish = 'أتممت القراءة';
-  const carryOn = 'أكمل من حيث توقفت';
+  const confirm = 'قرأت الحديث ونويت العمل به';
 
   Widget app(
     Widget home, {
@@ -126,28 +125,20 @@ void main() {
     }
   }
 
-  Future<void> openExplanation(
-    WidgetTester tester, {
-    String label = 'قراءة الشرح كاملاً',
-  }) async {
-    final teaser = find.text(label);
+  /// Presses «قرأت الحديث ونويت العمل به» on the hadith page. Ready at once
+  /// with accessibleNavigation, as for a screen reader; otherwise only after
+  /// the page has had its time.
+  Future<void> confirmReading(WidgetTester tester) async {
+    final button = find.text(confirm);
     await tester.scrollUntilVisible(
-      teaser,
+      button,
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await wait(tester, 200);
-    await tester.tap(teaser.last);
-    await wait(tester, 800);
-    expect(find.byType(HadithExplanationScreen), findsOneWidget);
-  }
-
-  Future<void> scrollToFinish(WidgetTester tester) async {
-    for (var i = 0; i < 12; i++) {
-      await tester.drag(find.byType(ListView).first, const Offset(0, -500));
-      await tester.pump();
-    }
+    await tester.ensureVisible(button);
     await wait(tester, 300);
+    await tester.tap(button);
+    await wait(tester, 900);
   }
 
   setUpAll(() async {
@@ -257,34 +248,43 @@ void main() {
       expect(find.byType(HadithDetailScreen), findsOneWidget);
       expect(find.text(hadith.title), findsOneWidget);
 
-      // The page alone is the green stage, once it has had its time.
-      final pageTime = ReadingRule.neededForSections([
-        ReadingRule.wordCount('${hadith.isnad} ${hadith.text}'),
-        ReadingRule.wordCount(hadith.shortExplanation),
-      ]);
-      await wait(tester, pageTime.inMilliseconds + 1000);
-      expect(journey.data.progressOf(11).textOn, isNotNull);
-      expect(journey.data.progressOf(11).isComplete, isFalse);
+      // Pressed too early, the confirmation does nothing.
+      await tester.scrollUntilVisible(
+        find.text(confirm),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text(confirm), warnIfMissed: false);
+      await wait(tester, 300);
+      expect(journey.data.progressOf(11).isComplete, isFalse,
+          reason: 'the reader\'s word alone is not enough');
 
-      await openExplanation(tester);
-      await scrollToFinish(tester);
-      expect(find.text(carryOn), findsOneWidget,
-          reason: 'racing to the end must not finish it');
-
-      // Reading, from wherever the button sends the reader back to.
-      final deadline = DateTime.now().add(const Duration(seconds: 45));
-      while (find.text(finish).evaluate().isEmpty &&
+      // Reading the page: the hadith, then its short explanation.
+      final pageTime = ReadingRule.neededForSections(
+        ReadingRule.pageSections(hadith),
+      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      // At the top first, as a reader starts; down to the summary only once
+      // the hadith has had its time, so it is not scrolled away unread.
+      final started = DateTime.now();
+      final deadline = started.add(pageTime * 3);
+      var scrolledDown = false;
+      while (journey.data.progressOf(11).textOn == null &&
           DateTime.now().isBefore(deadline)) {
-        if (find.text(carryOn).evaluate().isNotEmpty) {
-          await tester.tap(find.text(carryOn));
+        await wait(tester, 1000);
+        if (!scrolledDown &&
+            DateTime.now().isAfter(started.add(pageTime * 1.2)) &&
+            find.text(hadith.shortExplanation).evaluate().isNotEmpty) {
+          scrolledDown = true;
+          await tester.ensureVisible(find.text(hadith.shortExplanation));
         }
-        await wait(tester, 2000);
       }
-      await scrollToFinish(tester);
-      expect(find.text(finish), findsOneWidget);
+      expect(journey.data.progressOf(11).textOn, isNotNull,
+          reason: 'the time spent turns the leaf green');
+      expect(journey.data.progressOf(11).isComplete, isFalse,
+          reason: 'the time alone is not enough either');
 
-      await tester.tap(find.text(finish));
-      await wait(tester, 900);
+      await confirmReading(tester);
 
       expect(find.text('اكتمل حديث «${hadith.title}»'), findsOneWidget);
       expect(find.text('١ من ٤٢ حديثاً'), findsOneWidget);
@@ -297,10 +297,7 @@ void main() {
     testWidgets('the sheet leads on to the next hadith', (tester) async {
       await openJourney(tester, accessible: true);
       await tapLeaf(tester, 12);
-      await openExplanation(tester);
-      await scrollToFinish(tester);
-      await tester.tap(find.text(finish));
-      await wait(tester, 900);
+      await confirmReading(tester);
 
       await tester.tap(find.text('الحديث التالي'));
       await wait(tester, 1000);
@@ -317,10 +314,7 @@ void main() {
         (tester) async {
       await openJourney(tester, accessible: true);
       await tapLeaf(tester, 12);
-      await openExplanation(tester);
-      await scrollToFinish(tester);
-      await tester.tap(find.text(finish));
-      await wait(tester, 900);
+      await confirmReading(tester);
 
       await tester.tap(find.text('اكتب رسالة من هذا الحديث'));
       await wait(tester, 1000);
@@ -368,17 +362,10 @@ void main() {
   });
 
   group('milestones', () {
-    Future<void> finishLast(
-      WidgetTester tester,
-      int number, {
-      String teaser = 'قراءة الشرح كاملاً',
-    }) async {
+    Future<void> finishLast(WidgetTester tester, int number) async {
       await openJourney(tester, accessible: true);
       await tapLeaf(tester, number);
-      await openExplanation(tester, label: teaser);
-      await scrollToFinish(tester);
-      await tester.tap(find.text(finish));
-      await wait(tester, 900);
+      await confirmReading(tester);
     }
 
     testWidgets('the fifth hadith gets its message', (tester) async {
@@ -407,7 +394,7 @@ void main() {
 
     testWidgets('a milestone does not repeat on a re-read', (tester) async {
       finished([1, 2, 3, 4, 5]);
-      await finishLast(tester, 5, teaser: 'قراءة الشرح مرة أخرى');
+      await finishLast(tester, 5);
       expect(find.text('صارت خمسة'), findsNothing);
       expect(find.text('أتممت قراءته مرة أخرى'), findsOneWidget);
     });
@@ -418,10 +405,7 @@ void main() {
         (tester) async {
       await openJourney(tester, accessible: true);
       await tapLeaf(tester, 12);
-      await openExplanation(tester);
-      await scrollToFinish(tester);
-      await tester.tap(find.text(finish));
-      await wait(tester, 900);
+      await confirmReading(tester);
 
       await tester.tap(find.text('مشاركة'));
       await wait(tester, 900);
@@ -658,10 +642,7 @@ void main() {
 
       await openJourney(tester, accessible: true);
       await tapLeaf(tester, 3);
-      await openExplanation(tester);
-      await scrollToFinish(tester);
-      await tester.tap(find.text(finish));
-      await wait(tester, 900);
+      await confirmReading(tester);
 
       final shown = [
         for (final record in JourneyRecord.values)
@@ -786,20 +767,42 @@ void main() {
       expect(find.byIcon(Icons.eco_rounded), findsOneWidget);
     });
 
-    testWidgets('a finished hadith offers its explanation again',
+    testWidgets('a finished hadith can be read and confirmed again',
         (tester) async {
       finished([16]);
+      await tester.pumpWidget(
+        app(
+          HadithDetailScreen(hadith: hadiths.getByNumber(16)!),
+          accessible: true,
+        ),
+      );
+      await wait(tester);
+
+      await confirmReading(tester);
+      expect(find.text('أتممت قراءته مرة أخرى'), findsOneWidget);
+      expect(journey.data.progressOf(16).reads, 2);
+    });
+
+    testWidgets('the full explanation is one tap away, and optional',
+        (tester) async {
       await tester.pumpWidget(
         app(HadithDetailScreen(hadith: hadiths.getByNumber(16)!)),
       );
       await wait(tester);
 
+      final teaser = find.text('قراءة الشرح كاملاً');
       await tester.scrollUntilVisible(
-        find.text('قراءة الشرح مرة أخرى'),
+        teaser,
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text('قراءة الشرح كاملاً'), findsNothing);
+      await wait(tester, 200);
+      await tester.tap(teaser.last);
+      await wait(tester, 800);
+
+      expect(find.byType(HadithExplanationScreen), findsOneWidget);
+      expect(find.text(confirm), findsNothing);
+      expect(journey.data.progressOf(16).isComplete, isFalse);
     });
 
     testWidgets('favourites are a tap away and the tree comes back',
