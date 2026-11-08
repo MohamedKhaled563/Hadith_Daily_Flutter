@@ -91,13 +91,17 @@ class AccountDeletionService {
         );
 
       case ReauthMethod.google:
-        // A fresh Google sign-in returns a credential we can re-auth with.
+        // Re-authenticate the *current* user with the picked account's
+        // credential — never sign in with it. Signing in would switch to
+        // whichever account was tapped and delete that one; re-auth makes
+        // Firebase refuse a different account with `user-mismatch`.
         // AuthService owns the client-id wiring, so reuse it rather than
         // standing up a second GoogleSignIn here.
-        final credential = await AuthService.instance.signInWithGoogle();
+        final credential = await AuthService.instance.googleCredential();
         if (credential == null) {
           throw FirebaseAuthException(code: 'cancelled-by-user');
         }
+        await user.reauthenticateWithCredential(credential);
 
       case ReauthMethod.unsupported:
         throw FirebaseAuthException(code: 'unsupported-provider');

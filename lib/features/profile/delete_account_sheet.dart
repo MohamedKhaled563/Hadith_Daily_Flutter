@@ -109,18 +109,23 @@ class _DeleteAccountFormState extends State<DeleteAccountForm> {
       _error = null;
     });
 
-    // The overlay is shown over the *page*, not the sheet: the sheet is about
-    // to be popped, and an overlay attached to it would go with it while the
-    // deletion is still running.
-    final pageContext = Navigator.of(context, rootNavigator: true).context;
-    showAppLoadingOverlay(pageContext, message: 'جارٍ تأكيد هويتك…');
+    // The overlay goes into the app's root Overlay, so it covers the sheet
+    // and is not tied to it. This context only has to *find* that Overlay,
+    // and the sheet stays mounted until the work below is done.
+    //
+    // Never pass the root Navigator's own context here: the Navigator builds
+    // the Overlay *below* itself, so looking one up from there throws "No
+    // Overlay widget found" — which is exactly how this button used to do
+    // nothing at all.
+    final overlayContext = context;
 
     try {
+      showAppLoadingOverlay(overlayContext, message: 'جارٍ تأكيد هويتك…');
       await widget.onConfirm(
         _needsPassword ? _passwordController.text : null,
         (step) {
-          hideAppLoadingOverlay();
-          showAppLoadingOverlay(pageContext, message: step);
+          if (!overlayContext.mounted) return;
+          showAppLoadingOverlay(overlayContext, message: step);
         },
       );
 
@@ -148,6 +153,8 @@ class _DeleteAccountFormState extends State<DeleteAccountForm> {
     switch (e.code) {
       case 'cancelled-by-user':
         return 'لم يكتمل تأكيد الهوية';
+      case 'user-mismatch':
+        return 'اخترت حساب Google مختلفاً، اختر الحساب الذي تريد حذفه';
       case 'requires-recent-login':
         return 'انتهت صلاحية الجلسة، سجّل الخروج وادخل مجدداً ثم أعد المحاولة';
       case 'unsupported-provider':

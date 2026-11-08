@@ -126,6 +126,63 @@ void main() {
     expect(find.text('حسابك وبريدك واسمك المعروض'), findsOneWidget);
   });
 
+  // The gate tests above never pressed the button, which is how a crash on
+  // the very first line of the submit path shipped: the loading overlay was
+  // looked up from the root Navigator's own context, which sits *above* the
+  // Overlay, so the lookup threw before the deletion was ever called.
+  testWidgets('tapping delete runs the deletion and reports progress',
+      (tester) async {
+    String? passwordSeen;
+    var steps = 0;
+
+    await tester.pumpWidget(
+      _wrap(
+        DeleteAccountForm(
+          method: ReauthMethod.password,
+          onConfirm: (password, onProgress) async {
+            passwordSeen = password;
+            onProgress('خطوة');
+            steps++;
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField).at(0), 'حذف');
+    await tester.enterText(find.byType(TextField).at(1), 'secret');
+    await tester.pump();
+    await tester.tap(_deleteButton);
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(passwordSeen, 'secret');
+    expect(steps, 1);
+  });
+
+  testWidgets('a failed deletion shows an error and re-enables the button',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        DeleteAccountForm(
+          method: ReauthMethod.google,
+          onConfirm: (password, onProgress) async =>
+              throw Exception('offline'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField).first, 'حذف');
+    await tester.pump();
+    await tester.tap(_deleteButton);
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('تعذّر إتمام الحذف'), findsOneWidget);
+    expect(_enabled(tester), isTrue);
+  });
+
   testWidgets('renders in dark mode without exploding', (tester) async {
     await tester.pumpWidget(
       _wrap(

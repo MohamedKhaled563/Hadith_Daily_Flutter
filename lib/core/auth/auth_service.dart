@@ -145,6 +145,22 @@ class AuthService {
   /// Returns null if the reader dismisses the Google account picker rather
   /// than completing sign-in — that's a normal cancellation, not an error.
   Future<UserCredential?> signInWithGoogle() async {
+    final credential = await googleCredential();
+    if (credential == null) return null;
+
+    final userCredential = await _auth.signInWithCredential(credential);
+    await _mirrorUserDocBestEffort(userCredential.user!);
+    return userCredential;
+  }
+
+  /// Shows the Google account picker and returns a Firebase credential for
+  /// the chosen account without signing in with it. Null if dismissed.
+  ///
+  /// Account deletion re-authenticates with this rather than
+  /// [signInWithGoogle]: signing in would quietly switch to whichever account
+  /// the reader tapped in the picker, and the deletion would then remove
+  /// *that* account instead of the one they meant.
+  Future<OAuthCredential?> googleCredential() async {
     await _ensureGoogleReady();
 
     final GoogleSignInAccount account;
@@ -155,11 +171,9 @@ class AuthService {
       rethrow;
     }
 
-    final idToken = account.authentication.idToken;
-    final credential = GoogleAuthProvider.credential(idToken: idToken);
-    final userCredential = await _auth.signInWithCredential(credential);
-    await _mirrorUserDocBestEffort(userCredential.user!);
-    return userCredential;
+    return GoogleAuthProvider.credential(
+      idToken: account.authentication.idToken,
+    );
   }
 
   /// Whether this device can offer Sign in with Apple.
