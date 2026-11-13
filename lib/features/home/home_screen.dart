@@ -28,6 +28,7 @@ import '../hadith/hadith_list_screen.dart';
 import '../journey/journey_links.dart';
 import '../journey/journey_ring.dart';
 import '../journey/journey_screen.dart';
+import '../journey/today_steps_screen.dart';
 import '../memorize/memorize_screen.dart';
 import '../messages/daily_message_card.dart';
 import '../messages/today_message_screen.dart';
@@ -185,6 +186,14 @@ class _HomeScreenState extends State<HomeScreen>
     navigator.push(appPageRoute(child: const MySubmissionsScreen()));
   }
 
+  /// The ring on the home header: the day's three steps, on their own page.
+  void _openTodaySteps() {
+    if (!mounted) return;
+    Navigator.of(context).push(
+      TodayStepsScreen.route(onOpenMessage: _openMessageFromJourney),
+    );
+  }
+
   /// The Friday harvest was tapped: show the week on the journey tab.
   void _openJourney() {
     if (!mounted) return;
@@ -317,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen>
                         enabled: _currentTabIndex == 0,
                         child: _HomeMainView(
                           onOpenDrawer: _openDrawer,
-                          onOpenJourney: () => _goToTab(1),
+                          onOpenSteps: _openTodaySteps,
                           onOpenAllHadiths: () => Navigator.push(
                             context,
                             appPageRoute(child: const HadithListScreen()),
@@ -394,13 +403,15 @@ class _TabFadeThrough extends StatelessWidget {
 class _HomeMainView extends StatelessWidget {
   const _HomeMainView({
     required this.onOpenDrawer,
-    required this.onOpenJourney,
+    required this.onOpenSteps,
     required this.onOpenAllHadiths,
     required this.onHeartClick,
   });
 
   final VoidCallback onOpenDrawer;
-  final VoidCallback onOpenJourney;
+
+  /// The ring on the header: opens the day's steps.
+  final VoidCallback onOpenSteps;
   final VoidCallback onOpenAllHadiths;
   final VoidCallback onHeartClick;
 
@@ -451,7 +462,7 @@ class _HomeMainView extends StatelessWidget {
               ),
               // Fills the same 48dp slot as the leading button, so the pill
               // stays centred.
-              JourneyRing(onTap: onOpenJourney),
+              JourneyRing(onTap: onOpenSteps),
             ],
           ),
         );

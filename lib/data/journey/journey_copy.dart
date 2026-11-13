@@ -240,6 +240,17 @@ class JourneyCopy {
     if (best > current) return '$line أفضل سلسلة لك ${toArabicDigits(best)}.';
     return line;
   }
+
+  /// Top of the day's steps, before anything counts: one step is enough,
+  /// and it has to be a reading, since writing alone does not count a day.
+  static const stepsHowToCount =
+      'اقرأ الرسالة أو الحديث، فيُحسب يومك. وما بعدها زيادة خير.';
+
+  /// Once today counts, and steps are left.
+  static const stepsDayCounted = 'حُسب يومك. وما بقي زيادة خير لمن أراد.';
+
+  /// All three steps done.
+  static const stepsAllDone = 'أتممت خطوات اليوم. نلقاك غداً.';
 }
 
 /// [count] minutes in the form that number takes: دقيقة واحدة، دقيقتان،
