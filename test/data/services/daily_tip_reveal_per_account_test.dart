@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:hadith_app/data/services/daily_tip_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// How far a reader has gone through رسائل اليوم belongs to the account, not
 /// the phone. It used to be one SharedPreferences entry per device, so a
