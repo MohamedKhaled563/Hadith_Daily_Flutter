@@ -1,0 +1,922 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>طيّب قلبك Reading Journey</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=JetBrains+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&family=Tajawal:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: right-to-left reading column beside a sticky section index. Short text stays open, reference material sits in closed details blocks. Palette and faces come from the app's own theme files. */
+:root{
+  --ground:#F1E9DA;--panel:#FFFCF5;--panel2:#FAF4E8;--sunken:#EFE8DC;
+  --ink:#243329;--muted:#4A5D52;--gold:#7A5B0E;--orn:#D9A521;--green:#1F6B4A;
+  --deep:#1E2E24;--on-deep:#F7F5EE;--on-deep-2:#B9C6BD;--on-deep-wash:#31463A;--warm:#D2643A;--warm-ink:#A9481F;--warm-wash:#FBE3D3;--ok-wash:#DCE9DD;
+  --line:#DCCFB6;--line2:#D9B45A;--leaf0:#E6DDCA;--leaf0s:#B9A77F;--trunk:#7A6A47;--scene1:#F7EEE1;--scene2:#B9C5AE;--veil:rgba(30,46,36,.42);
+  --card-bg:#F2ECE0;--card-bg1:#F6F1E7;--card-bg2:#E7DCC9;--card-ink:#243329;--card-gold:#7A5B0E;--card-line:#C9B58A;--card-green:#1F6B4A;--card-orn:#D9A521;--card-leaf:#E0D6C0;--card-leafs:#B9A77F;--card-trunk:#7A6A47;
+  --ar:"Tajawal","Noto Naskh Arabic",Tahoma,sans-serif;--ar2:"Amiri","Noto Naskh Arabic","Times New Roman",serif;
+  --body:"Source Sans 3","Tajawal","Noto Naskh Arabic","Segoe UI",Tahoma,sans-serif;--mono:"JetBrains Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0F1813;--panel:#1F3328;--panel2:#192B21;--sunken:#1E2D23;
+  --ink:#F7F5EE;--muted:#B9C6BD;--gold:#E6BE55;--orn:#E6BE55;--green:#4FB385;
+  --deep:#14231A;--on-deep:#F0EBE1;--on-deep-2:#B9C6BD;--on-deep-wash:#2A3D32;--warm:#F0A07A;--warm-ink:#F0A07A;--warm-wash:#3A2A20;--ok-wash:#1F3329;
+  --line:#2F4538;--line2:#6E5F31;--leaf0:#263A2E;--leaf0s:#4E6657;--trunk:#9A8A5E;--scene1:#16251C;--scene2:#0F1813;--veil:rgba(0,0,0,.55);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#0F1813;--panel:#1F3328;--panel2:#192B21;--sunken:#1E2D23;
+  --ink:#F7F5EE;--muted:#B9C6BD;--gold:#E6BE55;--orn:#E6BE55;--green:#4FB385;
+  --deep:#14231A;--on-deep:#F0EBE1;--on-deep-2:#B9C6BD;--on-deep-wash:#2A3D32;--warm:#F0A07A;--warm-ink:#F0A07A;--warm-wash:#3A2A20;--ok-wash:#1F3329;
+  --line:#2F4538;--line2:#6E5F31;--leaf0:#263A2E;--leaf0s:#4E6657;--trunk:#9A8A5E;--scene1:#16251C;--scene2:#0F1813;--veil:rgba(0,0,0,.55);color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ground);color:var(--ink);font:400 17px/1.75 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:36px 80px}
+.shell{max-width:1120px;margin:0 auto;display:grid;gap:28px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:1040px){.shell{grid-template-columns:172px minmax(0,1fr);column-gap:48px}header.top{grid-column:1/-1}}
+header.top{max-width:820px}
+.eyebrow{font:700 14px/1.4 var(--ar);color:var(--gold);margin:0 0 10px}
+h1,h2,h3{font-family:var(--ar);color:var(--ink);text-wrap:balance}
+h1{font-weight:800;font-size:clamp(34px,5.4vw,52px);line-height:1.2;margin:0 0 12px}
+h2{font-weight:800;font-size:clamp(25px,3.2vw,31px);line-height:1.3;margin:0 0 8px;scroll-margin-top:20px}
+h3{font-weight:700;font-size:19px;line-height:1.4;margin:24px 0 6px}
+p{margin:0 0 12px;max-width:68ch}
+.lede{font-size:19px;line-height:1.65;color:var(--muted);max-width:60ch;margin:0}
+a{color:var(--green);text-underline-offset:2px}
+a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible,.leaf:focus-visible{outline:2px solid var(--orn);outline-offset:2px}
+code{font:500 .8em var(--mono);background:var(--sunken);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere;direction:ltr;unicode-bidi:isolate}
+nav.index{font:500 15px/1.35 var(--ar)}
+nav.index ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px}
+nav.index a{color:var(--muted);text-decoration:none}
+nav.index a:hover{color:var(--ink);text-decoration:underline}
+@media(min-width:1040px){nav.index>div{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px)}nav.index ul{display:grid;gap:9px}}
+main{min-width:0;display:grid;gap:50px}
+section{min-width:0}
+.sub{color:var(--muted);max-width:64ch}
+.tw{overflow-x:auto;margin:12px 0 6px;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:15.5px;line-height:1.55}
+th{font:700 13.5px/1.35 var(--ar);text-align:start;color:var(--gold);padding-block:7px;padding-inline:0 14px;border-bottom:1.5px solid var(--line2);vertical-align:bottom}
+td{padding-block:8px;padding-inline:0 14px;border-bottom:1px solid var(--line);vertical-align:top}
+td:first-child{font-weight:600}
+td.plain{font-weight:400}
+.w640{min-width:640px}.w760{min-width:760px}
+small{font-weight:400}
+/* status */
+.now{background:var(--deep);color:var(--on-deep);border-radius:16px;padding:18px 20px;display:grid;gap:16px 28px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:760px){.now{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
+.now h2{color:var(--on-deep);font-size:23px;grid-column:1/-1;margin:0}
+.now b.t{display:block;font:700 15px/1.4 var(--ar);color:var(--orn);margin-bottom:4px}
+.now ul{margin:0;padding-inline-start:18px;font-size:16px;line-height:1.6}
+.now li{margin-bottom:4px}
+.now a{color:var(--on-deep)}
+.now code{background:var(--on-deep-wash);color:var(--on-deep)}
+.st{display:inline-block;font:700 12px/1.4 var(--ar);border-radius:999px;padding:1px 9px;white-space:nowrap;background:var(--sunken);color:var(--muted);vertical-align:1px}
+.st.ok{background:var(--ok-wash);color:var(--green)}
+.st.nx{background:var(--warm-wash);color:var(--warm-ink)}
+/* summary */
+.rec{display:grid;gap:12px 30px;grid-template-columns:minmax(0,1fr);margin-top:14px}
+@media(min-width:700px){.rec{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rec div{min-width:0}
+.rec b{display:block;font-family:var(--ar);font-weight:700;font-size:17.5px;line-height:1.4;margin-bottom:2px}
+.rec span{color:var(--muted);font-size:16px;line-height:1.65;display:block}
+.loop{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+@media(min-width:720px){.loop{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 13px;min-width:0}
+.step b{font-family:var(--ar);display:block;font-size:16.5px;line-height:1.35}
+.step small{display:block;color:var(--muted);font-size:14.5px;line-height:1.55;margin-top:4px}
+.two{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 30px}
+@media(min-width:760px){.two{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.two>div,.two>ul{min-width:0}
+ul.tight{margin:6px 0 0;padding-inline-start:19px}ul.tight li{margin-bottom:5px}ul.tight li::marker{color:var(--orn)}
+pre{margin:12px 0;background:var(--deep);color:var(--on-deep);border-radius:12px;padding:14px 16px;overflow-x:auto;font:400 13px/1.55 var(--mono);direction:ltr;text-align:left}
+pre code{background:none;padding:0;font:inherit;overflow-wrap:normal;color:inherit}
+pre i{color:var(--on-deep-2);font-style:normal}
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:7px;margin:14px 0}
+.flow span{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:14.5px;line-height:1.4;min-width:0}
+.flow span b{display:block}
+.flow em{font-style:normal;color:var(--gold);align-self:center;font-weight:700}
+.tree{margin:12px 0;display:grid;grid-template-columns:minmax(0,1fr);font-size:15.5px}
+.tree div{display:grid;grid-template-columns:minmax(0,1fr);gap:0 14px;padding-block:6px;border-bottom:1px solid var(--line)}
+@media(min-width:640px){.tree div{grid-template-columns:260px minmax(0,1fr) auto}}
+details{margin-top:12px}
+summary{cursor:pointer;font:700 15.5px/1.5 var(--ar);color:var(--green)}
+/* phone mock-ups */
+.phones{display:flex;gap:18px;overflow-x:auto;padding:6px 2px 12px;margin-top:14px;-webkit-overflow-scrolling:touch}
+figure.ph{margin:0;flex:0 0 236px;min-width:0}
+figure.ph figcaption{font-size:14.5px;line-height:1.55;color:var(--muted);margin-top:9px}
+figure.ph figcaption b{color:var(--ink);display:block;font-family:var(--ar)}
+.scr{position:relative;height:486px;border-radius:26px;overflow:hidden;border:5px solid var(--deep);background:var(--ground);font-family:var(--ar);color:var(--ink);text-align:right;display:flex;flex-direction:column;line-height:1.4}
+.scene{background:linear-gradient(180deg,var(--scene1) 52%,var(--scene2))}
+.hdr{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:12px 11px 4px}
+.cb{width:32px;height:32px;border-radius:50%;background:var(--panel);border:1.2px solid var(--line2);display:grid;place-items:center;font-size:14px;color:var(--ink);flex:none}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.ring{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ring b{width:26px;height:26px;border-radius:50%;background:var(--panel);display:grid;place-items:center;font-size:12.5px;font-weight:800;color:var(--warm-ink)}
+.hero{font-weight:800;font-size:20px;line-height:1.3;text-align:center;margin:12px auto 12px;max-width:none}
+.disc{margin:0 auto;width:158px;height:158px;border-radius:50%;background:var(--panel);border:2.5px solid var(--line2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center}
+.disc strong{font-size:23px;font-weight:800;line-height:1.2}
+.disc small{font-size:9.5px;color:var(--muted);font-weight:500}
+.today{margin:12px 12px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:7px 10px;font-size:11.5px;font-weight:700;display:flex;justify-content:space-between;gap:6px}
+.today i{font-style:normal;color:var(--gold);font-weight:500}
+.tabs{margin:auto 8px 9px;background:var(--deep);border-radius:22px;display:grid;grid-template-columns:repeat(4,1fr);padding:9px 3px;color:var(--on-deep-2);font-size:9.5px;font-weight:500;text-align:center;line-height:1.2}
+.tabs b{color:var(--on-deep);font-weight:700}
+.tabs b::after{content:"";display:block;width:4px;height:4px;border-radius:50%;background:var(--orn);margin:3px auto 0}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px}
+.rt{font-weight:800;font-size:15px;text-align:center;margin:8px 0 0;max-width:none}
+.rs{font-size:10.5px;text-align:center;color:var(--gold);font-weight:700;margin:1px 0 8px;max-width:none}
+.reading{margin:0 10px;padding:11px 9px 9px 11px;flex:1;min-height:0;overflow:hidden}
+.para{position:relative;padding-inline-start:12px;font-size:11.2px;line-height:1.72;margin:0 0 9px;max-width:none}
+.para::before{content:"";position:absolute;inset-inline-start:0;top:3px;bottom:3px;width:3px;border-radius:3px;background:var(--leaf0)}
+.para.lit::before{background:var(--orn)}
+.para.now::before{background:linear-gradient(180deg,var(--orn) 55%,var(--leaf0) 55%)}
+.para.dim{color:var(--muted)}
+.hint{font-size:10.5px;color:var(--muted);text-align:center;margin:8px 0 12px;max-width:none}
+.veil{position:absolute;inset:0;background:var(--veil)}
+.sheet{position:absolute;inset:auto 0 0 0;background:var(--panel);border-radius:22px 22px 0 0;padding:15px 14px 14px;text-align:center}
+.sheet h4{font:800 16.5px/1.3 var(--ar);margin:4px 0 2px}
+.sheet p{font-size:11.5px;line-height:1.5;color:var(--muted);margin:0 auto 8px;max-width:none}
+.big{width:62px;height:62px;display:block;margin:0 auto}
+.chip{display:inline-block;background:var(--warm-wash);color:var(--warm-ink);font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 10px;margin-bottom:9px}
+.btn{display:block;border-radius:12px;padding:8px;font-size:12.5px;font-weight:700;margin-top:6px;border:1px solid var(--green);color:var(--green);background:transparent;text-align:center}
+.btn.p{background:var(--green);color:var(--panel)}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg{margin:10px 12px 4px;display:grid;grid-template-columns:1fr 1fr;background:var(--sunken);border-radius:11px;padding:3px;font-size:11px;font-weight:700;text-align:center}
+.seg b{background:var(--panel);border-radius:9px;padding:4px}.seg span{padding:4px;color:var(--muted)}
+.mini{height:178px;margin:0 8px}.mini svg{height:100%;width:100%;display:block}
+.cnt{font-size:13px;font-weight:800;text-align:center;margin:-2px 0 6px;max-width:none}.cnt i{font-style:normal;color:var(--gold);font-weight:500;font-size:10.5px}
+.vs{margin:7px 12px 0;padding:7px 10px;font-size:10px;font-weight:700}
+.vrow{display:grid;grid-template-columns:48px 1fr 34px;gap:5px;align-items:center;margin-top:3px}
+.vbar{height:7px;border-radius:4px;background:var(--orn)}.vbar.old{background:var(--leaf0s)}
+.fmt{display:flex;justify-content:center;gap:5px;margin:0 0 8px}
+.fmt span{font-size:10.5px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted)}
+.fmt span.on{background:var(--ok-wash);color:var(--green);border-color:var(--green)}
+.row{display:flex;justify-content:space-between;font-size:11.5px;font-weight:500;padding:6px 2px;border-top:1px solid var(--line)}
+.sw{width:26px;height:14px;border-radius:9px;background:var(--leaf0);position:relative}.sw::after{content:"";position:absolute;width:10px;height:10px;border-radius:50%;background:var(--panel);top:2px;right:2px}
+.board{margin:8px 12px 0;display:grid;gap:5px}
+.br{display:grid;grid-template-columns:18px 1fr auto;gap:6px;align-items:center;font-size:12px;font-weight:700;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px 9px}
+.br i{font-style:normal;color:var(--gold)}
+.br small{color:var(--muted);font-weight:500;font-size:10.5px}
+/* share cards: always the light poster treatment, as ShareCard is */
+.posters{display:flex;gap:18px;overflow-x:auto;padding:6px 2px 10px;align-items:flex-start}
+figure.pos{margin:0;flex:none}
+figure.pos figcaption{font-size:14.5px;line-height:1.5;color:var(--muted);margin-top:8px;max-width:210px}
+.pst{background:linear-gradient(135deg,var(--card-bg1),var(--card-bg) 50%,var(--card-bg2));color:var(--card-ink);font-family:var(--ar);text-align:center;padding:16px 15px 12px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:0 0 0 1px var(--line);border-radius:8px;position:relative;overflow:hidden;line-height:1.4}
+.pst::before{content:"";position:absolute;inset:7px;border:1px solid var(--card-line);border-radius:9px;pointer-events:none}
+.pst.f{width:216px;height:270px}.pst.s{width:176px;height:313px}
+.pst h5{font:800 16px/1.3 var(--ar);margin:0;color:var(--card-ink)}
+.pst p{font-size:10.5px;line-height:1.45;margin:0;color:var(--card-gold);font-weight:700;max-width:none}
+.pst q{font:700 29px/1.35 var(--ar2);quotes:none;color:var(--card-ink)}
+.pst small{font:500 9.5px/1.2 var(--ar);color:var(--card-gold)}
+.pst svg.t{width:100%;height:150px;display:block}
+.pst .leafc path{fill:var(--card-leaf);stroke:var(--card-leafs)}
+.pst .done path{fill:var(--card-orn);stroke:var(--card-orn)}
+.pst .today path{fill:var(--card-green);stroke:var(--card-green)}
+.pst .trunk,.pst .branch{stroke:var(--card-trunk)}
+/* tree */
+.trunk,.branch{fill:none;stroke:var(--trunk);stroke-linecap:round}
+.trunk{stroke-width:7}.branch{stroke-width:3}
+.leaf path{fill:var(--leaf0);stroke:var(--leaf0s);stroke-width:1;transition:fill .18s}
+.leaf.done path{fill:var(--orn);stroke:var(--orn)}
+.leaf.today path{fill:var(--green);stroke:var(--green)}
+.leaf.mem circle.m{fill:var(--warm)}
+.leaf circle.m{fill:none}
+.leaf .hit{fill:transparent;stroke:none}
+.leaf.inter{cursor:pointer}
+.leaf.sel path{stroke:var(--ink);stroke-width:2}
+.pulse{transform-box:fill-box;transform-origin:center;animation:breathe 2.6s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.62}}
+/* explorer */
+.xp{display:grid;gap:18px;margin-top:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:820px){.xp{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}}
+.xp>div{min-width:0}
+.xtree svg{width:100%;height:auto;max-height:440px;display:block}
+.xinfo{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.xinfo h3{margin:2px 0 8px;font-size:20px}
+.xinfo .n{font-size:13.5px;font-weight:600;color:var(--gold)}
+.xinfo dl{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin:0;font-size:15.5px;font-variant-numeric:tabular-nums}
+.xinfo dt{color:var(--muted)}.xinfo dd{margin:0;font-weight:600}
+.keyrow{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;color:var(--muted);margin-top:10px}
+.keyrow i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-inline-end:5px;vertical-align:-1px}
+label.sl{display:block;font-size:15px;font-weight:600;margin-top:12px}
+input[type=range]{width:100%;accent-color:var(--green);margin-top:5px}
+.chart{position:relative;margin-top:22px}
+.chart h3{margin:0 0 2px}
+.chart .cap{font-size:14.5px;color:var(--muted);margin:0 0 10px}
+.plot{position:relative;height:150px;margin-left:34px;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--leaf0s)}
+.g{position:absolute;left:-34px;right:0;border-top:1px dashed var(--line);font-size:12px;color:var(--muted);line-height:1;pointer-events:none;font-variant-numeric:tabular-nums}
+.g span{position:absolute;left:0;top:-14px}
+.col{flex:1 1 0;min-width:0;height:100%;display:flex;align-items:flex-end;background:none;border:0;padding:0;cursor:pointer;position:relative}
+.fill{display:block;width:100%;background:var(--green);border-radius:3px 3px 0 0}
+.col.on .fill{background:var(--orn)}
+.col:hover .fill{opacity:.8}
+.axis{display:flex;justify-content:space-between;margin-left:34px;font-size:13px;color:var(--muted);margin-top:4px}
+.tip{position:absolute;background:var(--deep);color:var(--on-deep);font-size:13px;line-height:1.3;padding:4px 8px;border-radius:7px;pointer-events:none;white-space:nowrap;transform:translate(-50%,-100%);z-index:3}
+#tbl td{font-weight:400;font-variant-numeric:tabular-nums;padding-block:5px;font-size:14.5px}
+#tbl td.t{font-family:var(--ar)}
+/* notifications */
+.notes{display:grid;gap:10px;margin-top:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:680px){.notes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.nt{min-width:0}
+.nt>small{display:block;font-size:14px;color:var(--muted);margin-bottom:4px;font-weight:600}
+.bub{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:9px 12px;font-family:var(--ar);display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:start;line-height:1.45}
+.ic{width:30px;height:30px;border-radius:8px;background:var(--deep);display:grid;place-items:center}
+.ic svg{width:17px;height:17px}
+.ic path{fill:var(--orn)}
+.bub b{display:block;font-size:14.5px;line-height:1.3}
+.bub span{display:block;font-size:13.5px;line-height:1.45;color:var(--muted)}
+/* messages */
+.msgs{display:grid;gap:12px;margin-top:14px;grid-template-columns:minmax(0,1fr)}
+.msg{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 15px;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0}
+.msg .lab{font-size:14px;font-weight:600;color:var(--gold)}
+.msg .ar{font-family:var(--ar)}
+.msg .ar b{display:block;font-size:19px;font-weight:800;line-height:1.35}
+.msg .ar p{font-size:16px;line-height:1.75;margin:3px 0 0;max-width:none}
+.msg .ar small{display:block;font-size:13.5px;line-height:1.55;color:var(--muted);margin-top:5px}
+.copy{font:700 15px var(--ar);background:var(--green);color:var(--panel);border:0;border-radius:9px;padding:8px 13px;cursor:pointer;margin-top:12px}
+.copied{font-size:14.5px;color:var(--muted);margin-inline-start:10px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+
+<div class="shell" dir="rtl" lang="ar">
+<header class="top">
+  <p class="eyebrow">خطة تطبيق طيّب قلبك · آخر تحديث 7 نوفمبر 2026</p>
+  <h1>رحلتي: عادة قراءة يومية</h1>
+  <p class="lede">كيف نحوّل القراءة المتأنية إلى عادة يومية تتبع حساب القارئ، وتقود التذكيرات، ويمكن مشاركتها في أي مكان. الخطة مبنية على كود تطبيقك وعلى الطول الفعلي للأحاديث الـ42.</p>
+</header>
+
+<nav class="index" aria-label="الأقسام"><div><ul>
+  <li><a href="#status">أين وصلنا</a></li><li><a href="#summary">الخلاصة</a></li><li><a href="#loop">حلقة العادة</a></li><li><a href="#points">النقاط واللوحة</a></li>
+  <li><a href="#screens">الشاشات</a></li><li><a href="#reading">القراءة الحقيقية</a></li><li><a href="#reminders">الإشعارات</a></li><li><a href="#sharing">المشاركة</a></li>
+  <li><a href="#messages">الرسائل</a></li><li><a href="#roadmap">خطة التنفيذ</a></li><li><a href="#decisions">القرارات</a></li><li><a href="#findings">ما وجدته</a></li>
+  <li><a href="#backend">Backend</a></li><li><a href="#data">Database</a></li><li><a href="#code">الكود</a></li><li><a href="#measure">القياس</a></li><li><a href="#risks">المخاطر</a></li><li><a href="#sources">المصادر</a></li>
+</ul></div></nav>
+
+<main>
+<section id="status" class="now">
+  <h2>أين وصلنا</h2>
+  <div><b class="t">تم</b><ul>
+    <li><b>Phase 1 كاملة</b> ومدموجة في <code>main</code> عبر <a href="https://github.com/MohamedKhaled563/Hadith_Daily_Flutter/pull/1">PR #1</a>.</li>
+    <li><b>إصلاح قراءة رسائل التذكير</b> مدموج عبر <a href="https://github.com/MohamedKhaled563/Hadith_Daily_Flutter/pull/2">PR #2</a>.</li>
+    <li><b>Firestore rules والفهارس</b> منشورة على <code>hadithdaily-5fc06</code>.</li>
+    <li><b>الاختبارات نجحت:</b> 313 على الجهاز بعد الدمج، و208 على المحاكي قبله، و6 على Firebase محلي.</li>
+  </ul></div>
+  <div><b class="t">باقٍ قبل الإطلاق</b><ul>
+    <li>تجربة خطوة رسالة اليوم وتسجيل الدخول بحساب حقيقي على هاتف.</li>
+    <li>مراجعة الصياغة الدينية مع مختص.</li>
+    <li>رابط App Store في <code>app_links.dart</code>.</li>
+  </ul><b class="t" style="margin-top:12px">التالي</b><ul><li>Phase 2: التذكيرات الذكية.</li></ul></div>
+</section>
+
+<section id="summary">
+  <h2>الخلاصة</h2>
+  <p class="sub">ميزة واحدة اسمها رحلتي، بقاعدة واحدة: المكافأة للقراءة المتأنية، وفتح التطبيق وحده لا يعطي شيئاً.</p>
+  <div class="rec">
+    <div><b>الرسائل تُفتح كل يوم</b><span>ثلاث خطوات تربط كل شيء: اقرأ رسالة اليوم، ثم حديثها وشرحه، ثم اكتب رسالتك. حلقة في الرئيسية تعرض الثلاث.</span></div>
+    <div><b>المكافأة تحتاج قراءة حقيقية</b><span>رسالة اليوم تحفظ السلسلة (streak). الحديث بشرحه وحده ينمّي الشجرة ويعطي النقاط الكبيرة.</span></div>
+    <div><b>التقدم شجرة من 42 ورقة</b><span>كل ورقة حديث حقيقي تفتحه بلمسة. تناسب شعار القلب والورقة، ولا تحتاج مكتبة رسوم.</span></div>
+    <div><b>نقاط ولوحة أسبوعية</b><span>نقاط بحد أقصى للقراءة والحفظ والكتابة. لوحة اختيارية تصدر كل جمعة، ولا يتجاوز الحد إلا الرسائل التي قبلها المشرف.</span></div>
+    <div><b>الكاتب يرى أثره</b><span>الرسالة المقبولة تدخل الرسائل اليومية، فنخبر صاحبها كم قارئاً وصلت إليه. هذا أقوى دافع للكتابة، وبياناته موجودة.</span></div>
+    <div><b>إضافة الحفظ</b><span>الأحاديث كلها تُقرأ في نحو 2.2 ساعة، فحديث يومياً ينتهي في ستة أسابيع. المراجعة المتباعدة تُبقي سبباً يومياً نحو تسعة أشهر.</span></div>
+    <div><b>خطة مجانية بلا server</b><span>Firestore للتقدم لكل حساب، والتذكيرات على الجهاز، واللوحة تُنشر من الـdashboard. وبهذا تبقى كل وعود المتجر.</span></div>
+    <div><b>المشاركة دعوة</b><span>صور بحجمين، وحفظ صورة، ورابط، ونسخ نص، وتصل كل التطبيقات. البطاقة تبدأ بالحديث والشجرة، والاسم مخفي افتراضياً.</span></div>
+  </div>
+</section>
+
+<section id="loop">
+  <h2>حلقة العادة</h2>
+  <p class="sub">الثبات أهم من الكثرة، كما في الرواية المشهورة «أحب الأعمال إلى الله أدومها وإن قل». القراءة اليومية القليلة هي التصميم كله.</p>
+  <div class="loop">
+    <div class="step"><b>اقرأ رسالة اليوم</b><small>تحفظ السلسلة وتملأ أول جزء من الحلقة. 2 نقطة.</small></div>
+    <div class="step"><b>اقرأ حديثها</b><small>يمتلئ الخيط الذهبي وتصير الورقة ذهبية. 10 نقاط.</small></div>
+    <div class="step"><b>اكتب رسالتك</b><small>دعوة بعد الحديث تفتح شاشة الكتابة. 15 نقطة بعد القبول.</small></div>
+    <div class="step"><b>انظر النتيجة</b><small>الأرقام القياسية، ووصول رسالتك، ولوحة الجمعة، وتذكير الغد.</small></div>
+  </div>
+  <div class="two">
+    <div><h3>ما نبنيه</h3><ul class="tight">
+      <li><b>السلسلة (streak):</b> تحفظها قراءة رسالة اليوم، وتُحسب من الأيام الفعلية، وبجانبها أفضل رقم لك. <span class="st ok">تم</span></li>
+      <li><b>أيام السماح (grace days):</b> يوم لكل 7 أيام محسوبة، بحد يومين، وتُستخدم تلقائياً. يوم فائت واحد قليل الأثر على العادة، والتكرار هو المؤثر. <span class="st ok">تم</span></li>
+      <li><b>السهر محسوب:</b> يوم القراءة يبدأ 03:00 بالتوقيت المحلي. <span class="st ok">تم</span></li>
+      <li><b>أنت مقابل نفسك:</b> هذا الأسبوع مقابل الماضي <span class="st ok">تم</span>، مع 8 أرقام قياسية <span class="st">Phase 3</span>. شاشة الإتمام تعرض ما تحطم للتو، وهذه المفاجأة هي ما يعتمد عليه الدوبامين.</li>
+      <li><b>حصاد الجمعة:</b> ملخص أسبوعي في التذكير والتطبيق. <span class="st">Phase 3</span></li>
+      <li><b>الدورة الثانية:</b> بعد 42 تبدأ الشجرة موسماً جديداً، وتُحسب إعادة القراءة. <span class="st">Phase 5</span></li>
+    </ul></div>
+    <div><h3>ما نتركه عمداً</h3><ul class="tight">
+      <li><b>نقاط الإعجابات:</b> تشجع تبادل الإعجاب بين الحسابات.</li>
+      <li><b>عدّاد الحسنات:</b> النقاط تقيس النشاط في التطبيق، ولا تدّعي قياس الأجر.</li>
+      <li><b>الجوائز:</b> تجلب قواعد مسابقات المتاجر، وتعطي سبباً للغش.</li>
+      <li><b>إشعار الذنب:</b> لا «ستخسر»، ولا شخصية حزينة.</li>
+      <li><b>ألقاب مثل حافظ أو إجازة:</b> لها معنى علمي لا يمنحه التطبيق.</li>
+      <li><b>اختيار من متعدد أو ترتيب نص الحديث:</b> الخيارات الخاطئة تضع كلاماً مخترعاً بجانب كلام النبي ﷺ.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="points">
+  <h2>الرسائل والنقاط واللوحة الأسبوعية</h2>
+  <p class="sub">الرسائل هي العادة اليومية في تطبيقك، فالتقدم يبدأ منها. ومعظم هذا مبني على ميزات موجودة.</p>
+
+  <h3>كيف ترتبط الرسائل بكل شيء <span class="st ok">أول 3 خطوات تمت</span></h3>
+  <div class="tw"><table class="w640"><thead><tr><th style="width:16%">الخطوة</th><th style="width:38%">ماذا يفعل القارئ</th><th>ماذا يفعل التطبيق</th></tr></thead><tbody>
+    <tr><td>اقرأ</td><td class="plain">يفتح رسالة اليوم من الشعار.</td><td class="plain">تُحسب بعد 4 ثوانٍ، فتحفظ السلسلة وتملأ أول جزء من الحلقة.</td></tr>
+    <tr><td>تعمّق</td><td class="plain">يضغط رابط الحديث الموجود في البطاقة.</td><td class="plain">يصبح الحديث خطوة اليوم. لو قرأه من قبل، تنتقل الخطوة إلى أول حديث غير مقروء.</td></tr>
+    <tr><td>اكتب</td><td class="plain">ينهي الحديث ويرى دعوة للكتابة.</td><td class="plain">تفتح شاشة الكتابة والحديث مختار. الإرسال يملأ آخر جزء من الحلقة.</td></tr>
+    <tr><td>يرى الأثر</td><td class="plain">يفتح «رسائلي».</td><td class="plain">كل رسالة مقبولة تعرض عدد من وصلتهم ومن أعجبتهم، من <code>timesShown</code> و<code>likeCount</code>. <span class="st">Phase 3</span></td></tr>
+  </tbody></table></div>
+
+  <h3>النقاط <span class="st">Phase 3</span></h3>
+  <div class="tw"><table class="w640"><thead><tr><th style="width:38%">الفعل</th><th style="width:10%">النقاط</th><th style="width:20%">الحد</th><th>من يؤكده</th></tr></thead><tbody>
+    <tr><td>قراءة رسالة من مجموعة اليوم</td><td class="plain">2</td><td class="plain">مجموعة اليوم</td><td class="plain">الهاتف</td></tr>
+    <tr><td>قراءة رسالة من المجتمع</td><td class="plain">1</td><td class="plain">3 يومياً</td><td class="plain">الهاتف</td></tr>
+    <tr><td>إتمام حديث وشرحه</td><td class="plain">10</td><td class="plain">2 يومياً</td><td class="plain">الهاتف، بقاعدة القراءة</td></tr>
+    <tr><td>حفظ حديث جديد</td><td class="plain">15</td><td class="plain">1 يومياً</td><td class="plain">تقييم القارئ لنفسه</td></tr>
+    <tr><td>إتمام مراجعة مستحقة</td><td class="plain">3</td><td class="plain">5 يومياً</td><td class="plain">تقييم القارئ، عند الاستحقاق فقط</td></tr>
+    <tr><td>مشاركة بطاقة خارج التطبيق</td><td class="plain">2</td><td class="plain">1 يومياً</td><td class="plain">الهاتف</td></tr>
+    <tr><td>قبول رسالة</td><td class="plain">15</td><td class="plain">3 أسبوعياً</td><td class="plain">المشرف</td></tr>
+  </tbody></table></div>
+  <p>نقاط الهاتف تتوقف عند 60 في التحديث الواحد و300 في الأسبوع. الرسائل المقبولة تُضاف فوق الحد، فالكتابة الجيدة هي الطريق الوحيد لتجاوزه. الوصول (reach) للعرض فقط ولا يعطي نقاطاً، لأن أي جهاز مسجّل يستطيع زيادة <code>timesShown</code>.</p>
+
+  <h3>كيف تعمل اللوحة <span class="st">Phase 4</span></h3>
+  <ul class="tight">
+    <li><b>اختيارية:</b> مغلقة افتراضياً. يظهر القارئ باسمه أو باسم «فاعل خير» الموجود في تطبيقك.</li>
+    <li><b>ثلاث قوائم:</b> أعلى نقاط، وأكثر رسائل مقبولة، والحفظ بعد Phase 5.</li>
+    <li><b>مرة في الأسبوع:</b> الجمعة مساءً يفتح المشرف تاباً جديداً في الـdashboard، يراجع الأسماء الأولى، يحذف المريب، وينشر.</li>
+    <li><b>أول 10 فقط:</b> الباقون يرون نقاطهم مقابل الأسبوع الماضي، بلا رقم ترتيب.</li>
+    <li><b>بداية جديدة كل سبت:</b> تُصفَّر النقاط ويبدأ أسبوع جديد.</li>
+    <li><b>تكلفة قليلة:</b> النشر يقرأ نحو 50 document أسبوعياً، وكل هاتف يقرأ document واحداً.</li>
+    <li><b>تبدأ عند وجود عدد كافٍ:</b> ننتظر نحو 50 قارئاً في الأسبوع، فلوحة بخمسة أسماء تبدو فارغة.</li>
+  </ul>
+
+  <h3>ما الغش الممكن؟</h3>
+  <p>القراءة والحفظ يحدثان على الهاتف، فلا server يثبتهما. تطبيق معدّل يستطيع ادعاء 300 نقطة كاملة، لكن القارئ النشط الصادق يصل إلى الحد نفسه، فلا يتقدم الغاش عليه. الرسائل المقبولة وحدها ترفع فوق الحد، والمشرف يقرأ كل واحدة. لذلك قائمة المشاركة موثوقة، وقائمة الحفظ قائمة على الثقة.</p>
+
+  <h3>الحفاظ على الروح الصحيحة</h3>
+  <p>نصحتك سابقاً بعدم وضع لوحة، وقرارك قابل للتطبيق: للتنافس في الخير أصل واضح («وفي ذلك فليتنافس المتنافسون»)، ومسابقات الحفظ مألوفة لقرائك. الخطر المتبقي هو الرياء، لذا نلتزم بهذه القواعد:</p>
+  <ul class="tight">
+    <li>نسميها نقاطاً، بلا حسنات أو أجر، وبلا عناوين مثل «الأفضل».</li>
+    <li>الانضمام اختياري، و«فاعل خير» متاح دائماً.</li>
+    <li>المراجع يوافق على اسم اللوحة وصياغتها واستخدام الآية.</li>
+  </ul>
+
+  <h3>رسائل جديدة للكتّاب</h3>
+  <div class="msgs">
+    <div class="msg"><span class="lab">دعوة بعد الحديث <span class="st ok">تم</span></span><div class="ar"><p>ما أكثر جملة بقيت معك من هذا الحديث؟ اكتبها بكلماتك، فقد تنفع غيرك.</p></div></div>
+    <div class="msg"><span class="lab">أول رسالة مقبولة</span><div class="ar"><b>رسالتك صارت بين رسائل التطبيق</b><p>قد تصل اليوم إلى قارئ يحتاجها.</p></div></div>
+    <div class="msg"><span class="lab">وصول 100 قارئ</span><div class="ar"><b>وصلت رسالتك إلى ١٠٠ قارئ</b><p>كلمة كتبتها في دقيقة، وما زالت تصل.</p></div></div>
+  </div>
+
+  <details><summary>مسودة security rules للنقاط (تُختبر بـ verify_rules.py قبل الاستخدام)</summary>
+<pre><code><i>// weeks start Saturday 00:00 UTC</i>
+function weekNow() {
+  return math.floor((request.time.toMillis() - 172800000) / 604800000);
+}
+function validOwnScore() {
+  let d = request.resource.data;
+  let sameWeek = resource != null &amp;&amp; resource.data.week == d.week;
+  return d.keys().hasOnly(['week','device','memo','approved','score',
+                           'name','show','updatedAt'])
+    &amp;&amp; d.week == weekNow()
+    &amp;&amp; d.device is int &amp;&amp; d.device &gt;= 0 &amp;&amp; d.device &lt;= 300
+    &amp;&amp; d.device &lt;= (sameWeek ? resource.data.device : 0) + 60
+    &amp;&amp; d.approved == (sameWeek ? resource.data.approved : 0)
+    &amp;&amp; d.score == d.device + d.approved * 15
+    &amp;&amp; d.name is string &amp;&amp; d.name.size() &lt;= 100 &amp;&amp; d.show is bool
+    &amp;&amp; d.updatedAt == request.time;
+}
+match /scores/{uid} {
+  allow read: if request.auth != null
+              &amp;&amp; (request.auth.uid == uid || isModerator());
+  allow delete: if request.auth != null &amp;&amp; request.auth.uid == uid;
+  allow create, update: if request.auth != null
+              &amp;&amp; ((request.auth.uid == uid &amp;&amp; validOwnScore()) || isModerator());
+}</code></pre>
+  </details>
+</section>
+
+<section id="screens">
+  <h2>الشاشات</h2>
+  <p class="sub">مثال: قارئ أتم 15 حديثاً وسلسلته 12 يوماً. الألوان والخطوط من ثيمك الفعلي، وكل شاشة من widgets موجودة. اسحب جانبياً لرؤية الست.</p>
+  <div class="phones" tabindex="0" aria-label="نماذج الشاشات الست">
+    <figure class="ph"><div class="scr scene">
+      <div class="hdr"><span class="cb">☰</span><span class="pill">الأربعين النووية</span><span class="ring" style="background:conic-gradient(var(--warm) 0 116deg,var(--panel) 0 124deg,var(--orn) 0 236deg,var(--panel) 0 244deg,var(--leaf0) 0 356deg,var(--panel) 0)"><b>١٢</b></span></div>
+      <p class="hero">هل سمعت<br>كلام النبي ﷺ اليوم؟</p>
+      <div class="disc"><svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 35C8 25 3 18 7 11c3-5 10-5 13 1 3-6 10-6 13-1 4 7-1 14-13 24Z" fill="none" stroke="var(--green)" stroke-width="2"/><path d="M20 30V15M20 22c-5-1-7-4-7-8 4 0 7 3 7 8Zm0-3c4-1 6-3 6-7-3 0-6 3-6 7Z" fill="var(--green)"/></svg><strong>طيّب قلبك</strong><small>لمسة قلبية بانتظارك الآن</small></div>
+      <div class="today"><span>حديث اليوم: لا تغضب</span><i>دقيقتان</i></div>
+      <div class="tabs"><b>الرئيسية</b><span>رحلتي</span><span>المجتمع</span><span>شارك رسالة</span></div>
+    </div><figcaption><b>الرئيسية <span class="st ok">تم</span></b>حلقة من 3 أجزاء في المكان الفارغ بالرأس: الرسالة، الحديث، الكتابة. هنا تم أول جزأين. الشعار كما هو.</figcaption></figure>
+
+    <figure class="ph"><div class="scr">
+      <div class="hdr"><span class="cb">›</span></div>
+      <p class="rt">شرح الحديث وبيانه</p><p class="rs">الحديث ١٦: لا تغضب</p>
+      <div class="card reading">
+        <p class="para lit">قال صاحب الإفصاح: من الجائز أن النبي صلى الله عليه وسلم علم من هذا الرجل كثرة الغضب فخصّه بهذه الوصية.</p>
+        <p class="para now">وقد جاء في الحديث (إن الغضب من الشيطان)، ولهذا يخرج به الإنسان من اعتدال حاله، فيتكلم بالباطل، ويرتكب المذموم.</p>
+        <p class="para dim">وقد جاء في حديث سليمان بن صرد (إن الاستعاذة بالله من الشيطان الرجيم تذهب الغضب) وذلك أن الشيطان هو الذي يزيّن الغضب.</p>
+      </div>
+      <p class="hint">يكتمل الخيط مع قراءتك، بلا عدّاد ولا استعجال</p>
+    </div><figcaption><b>القراءة <span class="st ok">تم</span></b>الخيط يمتلئ فقرة بفقرة، بلا عدّ تنازلي، لأن المؤقت يعلّم الانتظار بدل القراءة.</figcaption></figure>
+
+    <figure class="ph"><div class="scr scene"><div class="veil"></div>
+      <div class="sheet">
+        <svg class="big" viewBox="-4 -14 34 28" aria-hidden="true"><path d="M0 0C7-9 19-9 26 0C19 9 7 9 0 0Z" fill="var(--orn)"/><path d="M1 0H24" stroke="var(--panel)" stroke-width=".8"/></svg>
+        <h4>اكتمل حديث «لا تغضب»</h4>
+        <p>١٢ يوماً متتالية. أفضل سلسلة لك ١٩.</p>
+        <span class="chip">أكثر أسبوع قراءةً لك حتى الآن</span>
+        <p>ما أكثر جملة بقيت معك من هذا الحديث؟ اكتبها بكلماتك، فقد تنفع غيرك.</p>
+        <span class="btn p">اكتب رسالة من هذا الحديث</span>
+        <div class="btnrow"><span class="btn">الحديث التالي</span><span class="btn">مشاركة</span></div>
+      </div>
+    </div><figcaption><b>الإتمام <span class="st ok">تم</span></b>في الـbotanical sheet مع <code>AppHaptics.success()</code>. لاحقاً: «ذكّرني غداً» مع إذن الإشعارات (Phase 2)، وشارات الأرقام (Phase 3)، و«احفظ هذا الحديث» (Phase 5).</figcaption></figure>
+
+    <figure class="ph"><div class="scr">
+      <div class="seg"><b>رحلتي</b><span>المفضلة</span></div>
+      <div class="mini" id="miniTree"></div>
+      <p class="cnt">١٥ من ٤٢ <i>· ثلاثة في حفظك</i></p>
+      <div class="today" style="margin-top:0"><span>اليوم: الحديث ١٦</span><i>دقيقتان</i></div>
+      <div class="card vs">أنت مقابل نفسك
+        <div class="vrow"><span>هذا الأسبوع</span><div class="vbar" style="width:100%"></div><span>٢٣ د</span></div>
+        <div class="vrow"><span>الماضي</span><div class="vbar old" style="width:78%"></div><span>١٨ د</span></div>
+      </div>
+      <div class="tabs"><span>الرئيسية</span><b>رحلتي</b><span>المجتمع</span><span>شارك رسالة</span></div>
+    </div><figcaption><b>تاب رحلتي <span class="st ok">تم</span></b>لمس ورقة يفتح حديثها. تحتها لاحقاً: التقويم، والأرقام، والـmilestones، والتأملات المحفوظة.</figcaption></figure>
+
+    <figure class="ph"><div class="scr scene"><div class="veil"></div>
+      <div class="sheet">
+        <h4>ادعُ غيرك إلى القراءة معك</h4>
+        <p style="margin-bottom:6px">تُرسل كصورة، ويمكنك اختيار شكلها</p>
+        <div class="fmt"><span class="on">منشور</span><span>حالة</span></div>
+        <div class="row"><span>إظهار اسمي</span><span class="sw"></span></div>
+        <span class="btn p">مشاركة الصورة</span>
+        <span class="btn">نسخ النص</span>
+      </div>
+    </div><figcaption><b>المشاركة <span class="st ok">تم</span></b>توسّع شاشة المعاينة الحالية باختيار الحجم. يأتي مع Phase 3: حفظ في المعرض ونسخ الرابط.</figcaption></figure>
+
+    <figure class="ph"><div class="scr">
+      <p class="rt" style="margin-top:14px">لوحة الأسبوع</p><p class="rs">تُنشر كل جمعة</p>
+      <div class="seg" style="grid-template-columns:repeat(2,1fr);margin-top:0"><b>النقاط</b><span>المشاركة</span></div>
+      <div class="board">
+        <div class="br"><i>١</i><span>فاعل خير</span><small>٣٤٥</small></div>
+        <div class="br"><i>٢</i><span>سارة</span><small>٣٣٠</small></div>
+        <div class="br"><i>٣</i><span>عبد الرحمن</span><small>٣١٥</small></div>
+        <div class="br"><i>٤</i><span>فاعل خير</span><small>٣٠٠</small></div>
+        <div class="br"><i>٥</i><span>نور</span><small>٣٠٠</small></div>
+      </div>
+      <div class="today"><span>نقاطك هذا الأسبوع ٢٠٥</span><i>الماضي ١٧٠</i></div>
+      <div class="row" style="margin:7px 12px 0"><span>الظهور في اللوحة</span><span class="sw"></span></div>
+      <div class="tabs"><span>الرئيسية</span><b>رحلتي</b><span>المجتمع</span><span>شارك رسالة</span></div>
+    </div><figcaption><b>اللوحة الأسبوعية <span class="st">Phase 4</span></b>أسماء أمثلة. داخل رحلتي، والانضمام مغلق افتراضياً. ما فوق 300 يأتي من الرسائل المقبولة.</figcaption></figure>
+  </div>
+  <div class="two"><div><h3>تغييرات أخرى</h3><ul class="tight">
+    <li><b>قائمة الأحاديث:</b> كل صف يعرض حالة ورقته <span class="st ok">تم</span>، وصف «أكمل» في الأعلى <span class="st">لم يُبنَ بعد</span>.</li>
+    <li><b>الزوار:</b> يقرؤون وتنمو شجرتهم على الهاتف. عند أول حديث مكتمل: «سجّل الدخول لتبقى شجرتك معك». <span class="st ok">تم</span></li>
+  </ul></div><div><h3>قواعد التصميم</h3><ul class="tight">
+    <li>لون السلسلة <code>palette.warm</code>، المخصص لها في ثيمك.</li>
+    <li>كل حركة تحترم <code>context.reduceMotion</code>، وكل شيء يعمل في الوضع الليلي.</li>
+  </ul></div></div>
+</section>
+
+<section id="reading">
+  <h2>كيف نعرف أنه قرأ فعلاً <span class="st ok">تم</span></h2>
+  <p class="sub">لا تطبيق يثبت القراءة، لكننا نجعل التصفح السريع لا يُحسب دون إبطاء القارئ الحقيقي: كل فقرة تبقى على الشاشة وقتها، بسرعة أعلى من القراءة المتأنية.</p>
+  <div class="tw"><table class="w640"><thead><tr><th style="width:26%">القاعدة</th><th>القيمة والسبب</th></tr></thead><tbody>
+    <tr><td>وقت الفقرة</td><td class="plain">الكلمات ÷ 260 في الدقيقة، بحد أدنى 2.5 ثانية. سرعة البالغين المنشورة بالعربية نحو 138 إلى 166 كلمة، وأعلى رقم مقاس 252، فالـ260 لا تعيق قارئاً حقيقياً.</td></tr>
+    <tr><td>وقت الحديث</td><td class="plain">من 43 ثانية إلى 3 د 47 ث، والوسيط 1 د 45 ث. القارئ العادي يحتاج 1.2 إلى 6.6 دقيقة، والوسيط 3.0، فيتجاوز الحد بسهولة.</td></tr>
+    <tr><td>فقرات متخطاة</td><td class="plain">تبقى غير مضيئة، وزر الإنهاء يعيد إليها. بلا خطأ ولا عقوبة.</td></tr>
+    <tr><td>قارئ الشاشة</td><td class="plain">عند تفعيل <code>MediaQuery.accessibleNavigation</code> يكفي الوصول للنهاية والضغط على إنهاء.</td></tr>
+    <tr><td>هاتف متروك</td><td class="plain">يتوقف العد في الخلفية أو بعد سكون طويل، فتبقى الدقائق صادقة.</td></tr>
+    <tr><td>حفظ التقدم</td><td class="plain">تقدم الفقرات في الذاكرة، ولا يُكتب إلا ما اكتمل، فتقل عمليات الكتابة.</td></tr>
+  </tbody></table></div>
+
+  <h3>استكشف الأرقام الحقيقية</h3>
+  <p class="sub">كل ورقة حديث حقيقي من بياناتك. المس ورقة أو عموداً، وحرّك المؤشر لتنمو الشجرة.</p>
+  <div class="xp">
+    <div class="xtree" id="bigTree"></div>
+    <div>
+      <div class="xinfo" aria-live="polite">
+        <div class="n" id="xn"></div><h3 id="xt"></h3>
+        <dl><dt>الحالة</dt><dd id="xs"></dd><dt>الكلمات</dt><dd id="xw"></dd><dt>قراءة عادية</dt><dd id="xm"></dd><dt>الحد الأدنى ليُحسب</dt><dd id="xg"></dd></dl>
+      </div>
+      <label class="sl" for="grow">الأحاديث المكتملة: <span id="growv">15</span> من 42</label>
+      <input id="grow" type="range" min="0" max="42" value="15">
+      <div class="keyrow"><span><i style="background:var(--leaf0);border:1px solid var(--leaf0s)"></i>لم يُقرأ</span><span><i style="background:var(--green)"></i>اليوم</span><span><i style="background:var(--orn)"></i>قُرئ كاملاً</span><span><i style="background:var(--warm)"></i>نقطة: محفوظ</span></div>
+    </div>
+  </div>
+  <div class="chart">
+    <h3>دقائق قراءة كل حديث كاملاً</h3>
+    <p class="cap">النص والملخص والشرح بسرعة 150 كلمة في الدقيقة. أغلبها أقل من أربع دقائق، والحديث 34 هو الأطول.</p>
+    <div class="plot" id="plot"></div>
+    <div class="axis"><span>الحديث 1</span><span>الحديث 42</span></div>
+    <div class="tip" id="tip" hidden></div>
+    <details><summary>عرض كجدول</summary><div class="tw"><table class="w640" id="tbl"><thead><tr><th>#</th><th>العنوان</th><th>الكلمات</th><th>الدقائق</th><th>الحد الأدنى (ثانية)</th></tr></thead><tbody></tbody></table></div></details>
+  </div>
+</section>
+
+<section id="reminders">
+  <h2>الإشعارات <span class="st nx">Phase 2، التالي</span></h2>
+  <p class="sub">نبقي الموعدين اليوميين في الوقت الذي يختاره القارئ، بلا منبهات إضافية، فالحد اثنان يومياً. الذي يتغير هو نص كل موعد ومكان فتحه. هذا يناسب حد iOS البالغ 64 إشعاراً معلقاً: تستخدم 28 الآن وتبقى 28.</p>
+  <div class="notes">
+    <div class="nt"><small>صباحاً، لم يقرأ بعد</small><div class="bub"><div class="ic"><svg viewBox="-2 -11 30 22"><path d="M0 0C7-9 19-9 26 0C19 9 7 9 0 0Z"/></svg></div><div><b>حديث اليوم</b><span>«لا تغضب»، دقيقتان تقريباً.</span></div></div></div>
+    <div class="nt"><small>مساءً، سلسلة من 3 أيام فأكثر</small><div class="bub"><div class="ic"><svg viewBox="-2 -11 30 22"><path d="M0 0C7-9 19-9 26 0C19 9 7 9 0 0Z"/></svg></div><div><b>لم نقرأ اليوم بعد</b><span>١٢ يوماً متتالية. حديث قصير قبل النوم؟</span></div></div></div>
+    <div class="nt"><small>موعد مراجعة الحفظ</small><div class="bub"><div class="ic"><svg viewBox="-2 -11 30 22"><path d="M0 0C7-9 19-9 26 0C19 9 7 9 0 0Z"/></svg></div><div><b>مراجعة قصيرة</b><span>هل ما زلت تذكر «الدين النصيحة»؟ دقيقة واحدة تكفي.</span></div></div></div>
+    <div class="nt"><small>حصاد الجمعة</small><div class="bub"><div class="ic"><svg viewBox="-2 -11 30 22"><path d="M0 0C7-9 19-9 26 0C19 9 7 9 0 0Z"/></svg></div><div><b>حصاد الأسبوع</b><span>٤ أيام و٢٣ دقيقة مع الحديث. الأسبوع الماضي كانت ١٨.</span></div></div></div>
+    <div class="nt"><small>بعد يوم فائت، واستُخدم يوم سماح</small><div class="bub"><div class="ic"><svg viewBox="-2 -11 30 22"><path d="M0 0C7-9 19-9 26 0C19 9 7 9 0 0Z"/></svg></div><div><b>لا بأس</b><span>فاتك أمس، وسلسلتك كما هي. نكمل اليوم؟</span></div></div></div>
+    <div class="nt"><small>رسالة وصلت إلى قراء أكثر</small><div class="bub"><div class="ic"><svg viewBox="-2 -11 30 22"><path d="M0 0C7-9 19-9 26 0C19 9 7 9 0 0Z"/></svg></div><div><b>وصلت رسالتك إلى ١٠٠ قارئ</b><span>كلمة كتبتها في دقيقة، وما زالت تصل.</span></div></div></div>
+    <div class="nt"><small>السبت، بعد نشر اللوحة</small><div class="bub"><div class="ic"><svg viewBox="-2 -11 30 22"><path d="M0 0C7-9 19-9 26 0C19 9 7 9 0 0Z"/></svg></div><div><b>لوحة الأسبوع جاهزة</b><span>نُشرت لوحة هذا الأسبوع، وبدأ أسبوع جديد.</span></div></div></div>
+    <div class="nt"><small>غياب 3 أيام</small><div class="bub"><div class="ic"><svg viewBox="-2 -11 30 22"><path d="M0 0C7-9 19-9 26 0C19 9 7 9 0 0Z"/></svg></div><div><b>مكانك محفوظ</b><span>توقفنا عند «الدين النصيحة». نكمل حين يناسبك.</span></div></div></div>
+  </div>
+  <h3>أي رسالة في أي موعد</h3>
+  <p class="sub"><b>pool</b> هنا تعني مجموعة رسائل التذكير الحالية.</p>
+  <div class="tw"><table class="w640"><thead><tr><th style="width:30%">حالة القارئ</th><th>الصباح</th><th>المساء</th></tr></thead><tbody>
+    <tr><td>زائر أو لم يبدأ</td><td class="plain">pool</td><td class="plain">pool</td></tr>
+    <tr><td>لم يقرأ اليوم</td><td class="plain">حديث اليوم أو مراجعة مستحقة</td><td class="plain">سطر السلسلة إن كانت 3 أو أكثر، وإلا pool</td></tr>
+    <tr><td>قرأ اليوم</td><td class="plain">pool</td><td class="plain">pool، ويُحذف سطر السلسلة فوراً</td></tr>
+    <tr><td>الجمعة</td><td class="plain">حصاد الجمعة</td><td class="plain">كما سبق</td></tr>
+    <tr><td>غائب من 1 إلى 7 أيام</td><td class="plain">سطور لطيفة في الأيام 1 و3 و7 فقط</td><td class="plain">pool</td></tr>
+    <tr><td>السبت واللوحة منشورة</td><td class="plain">سطر اللوحة</td><td class="plain">كما سبق</td></tr>
+    <tr><td>غائب 8 أيام أو أكثر</td><td class="plain">pool، بلا كلام عن التقدم</td><td class="plain">pool</td></tr>
+  </tbody></table></div>
+  <h3>لماذا تكفي التذكيرات على الجهاز</h3>
+  <p>القراءة تتطلب فتح التطبيق، وكل فتح يعيد بناء الجدول. فالمواعيد القادمة تُكتب لحالة عدم عودة القارئ، ولو عاد تُستبدل. بهذه الفكرة نحصل على تذكيرات شخصية بلا server، وتعمل دون إنترنت.</p>
+  <details><summary>ما نبنيه تقنياً (7 بنود)</summary>
+  <ul class="tight">
+    <li><b>Planner:</b> دالة خالصة <code>planSlots(snapshot, now)</code> تعيد العنوان والنص والرابط والقناة لكل موعد. تحل محل العناوين الثابتة في <code>notification_scheduler.dart:387</code> و<code>:401</code>.</li>
+    <li><b>تحديث سريع:</b> بعد كل حديث مكتمل نعيد كتابة مواعيد اليوم والغد فقط.</li>
+    <li><b>اللمس يفتح المكان الصحيح:</b> الـpayload يحمل <code>hadith:16</code> أو <code>review:5</code> أو <code>harvest</code>. حالياً <code>_onNotificationResponse</code> يتجاهله، والتشغيل البارد (cold start) يحتاج المعالجة نفسها.</li>
+    <li><b>لكل مستخدم:</b> نعيد بناء الجدول عند كل دخول وخروج، فلا يظهر تقدم الشخص السابق على شاشة هاتف مشترك.</li>
+    <li><b>تحكم القارئ:</b> قناة Android جديدة <code>reading_journey</code> لكتم رسائل التقدم وإبقاء اليومية.</li>
+    <li><b>الإذن:</b> نطلبه بعد أول رسالة مفتوحة أو حديث مكتمل، وليس عند أول تشغيل.</li>
+    <li><b>أخبار الكاتب:</b> إشعارات القبول والوصول تظهر حين يلاحظها التطبيق، خارج الموعدين. هي نادرة، وقراءة واحدة يومياً تكفي لها.</li>
+  </ul>
+  </details>
+</section>
+
+<section id="sharing">
+  <h2>المشاركة</h2>
+  <p class="sub">يشارك القارئ تقدمه في أي مكان، لكن إعلان التقدم في العبادة قد ينزلق إلى الرياء. لذا كل بطاقة دعوة: الحديث والشجرة أولاً، والأرقام صغيرة، والاسم مغلق حتى يفتحه القارئ. الصياغة النهائية عند المراجع.</p>
+  <div class="posters" tabindex="0" aria-label="أمثلة بطاقات المشاركة">
+    <figure class="pos"><div class="pst f"><h5>اقرأ معي الأربعين النووية</h5><div id="cardTree" style="width:100%"></div><p>١٥ من ٤٢ حديثاً · طيّب قلبك</p><small>ابحث عن «طيّب قلبك» في متجر التطبيقات</small></div><figcaption><b>الشجرة 4:5</b> <span class="st ok">تم</span> الخلاصات، WhatsApp، Telegram، Facebook، X.</figcaption></figure>
+    <figure class="pos"><div class="pst s"><p>قرأته اليوم بشرحه</p><q>لا تغضب</q><p>الحديث ١٦ من الأربعين النووية<br>طيّب قلبك</p><small>ابحث عن «طيّب قلبك» في متجر التطبيقات</small></div><figcaption><b>الحديث 9:16</b> <span class="st ok">تم</span> WhatsApp Status، Instagram وFacebook Stories، Snapchat، TikTok.</figcaption></figure>
+    <figure class="pos"><div class="pst f"><p>حصاد الأسبوع</p><h5 style="font-size:23px">٤ أيام مع الحديث</h5><p>«إن الله طيب لا يقبل إلا طيباً»<br>من الأحاديث التي قرأتها هذا الأسبوع</p><small>ابحث عن «طيّب قلبك» في متجر التطبيقات</small></div><figcaption><b>حصاد الجمعة 4:5</b> <span class="st">Phase 3</span> وأيضاً الـmilestones وبطاقة الختم.</figcaption></figure>
+  </div>
+  <h3>ما يمكن مشاركته</h3>
+  <p>الحديث المكتمل، والشجرة، والـmilestones (قراءة وحفظ)، وحصاد الجمعة، وبطاقة ختم الأحاديث الـ42 باسم وتاريخ اختياريين، وتأمل شخصي، ودعوة بسيطة للقراءة معاً.</p>
+  <h3>كل طرق المشاركة</h3>
+  <div class="tw"><table class="w760"><thead><tr><th style="width:30%">الطريقة</th><th style="width:48%">كيف تعمل</th><th>متى</th></tr></thead><tbody>
+    <tr><td>WhatsApp، Telegram، Messenger، X، Facebook، email، SMS</td><td class="plain">share sheet النظام. <code>share_plus</code> يقوم بذلك.</td><td class="plain"><span class="st ok">Phase 1 تم</span></td></tr>
+    <tr><td>WhatsApp Status، Stories، Snapchat، TikTok</td><td class="plain">صورة 9:16 جديدة (1080×1920) عبر الـsheet نفسها.</td><td class="plain"><span class="st ok">Phase 1 تم</span></td></tr>
+    <tr><td>نسخ النص</td><td class="plain">كان موجوداً، ووُسّع لنص التقدم.</td><td class="plain"><span class="st ok">Phase 1 تم</span></td></tr>
+    <tr><td>حفظ الصورة في المعرض</td><td class="plain">plugin صغير ورسالة إذن «إضافة الصور» في iOS.</td><td class="plain"><span class="st">Phase 3</span></td></tr>
+    <tr><td>مشاركة رابط</td><td class="plain">صفحة ثابتة تقرأ الأرقام من الرابط وترسم الشجرة مع زري المتجرين. الاستضافة مجانية وبلا قاعدة بيانات.</td><td class="plain"><span class="st">Phase 3</span></td></tr>
+    <tr><td>تاب المجتمع</td><td class="plain">إرسال تأمل عبر مسار النشر الخاضع للمراجعة.</td><td class="plain"><span class="st">Phase 3</span></td></tr>
+    <tr><td>زر Instagram Stories مباشر</td><td class="plain">الطريقة الرسمية تحتاج Meta app ID وكوداً native على المنصتين. الـshare sheet تغطيه حتى ذلك الحين.</td><td class="plain"><span class="st">لاحقاً</span></td></tr>
+    <tr><td>رابط يفتح حديثاً في التطبيق</td><td class="plain">Android App Links وiOS Universal Links على دومين الاستضافة. Firebase Dynamic Links أُغلقت في 2025، فلا نستخدمها.</td><td class="plain"><span class="st">لاحقاً</span></td></tr>
+  </tbody></table></div>
+  <details><summary>ملاحظات تقنية (7 بنود)</summary>
+  <ul class="tight">
+    <li><b>تعميم الـrenderer:</b> خططنا لـ<code>ShareTemplate</code> يحمل الـwidget والحجم والنص والأصول. بُني كـ<code>renderPoster</code> و<code>PosterFormat</code>، وبقي الـoff-stage rendering. <span class="st ok">تم</span></li>
+    <li><b>tree painter واحد</b> للشاشة والبطاقات. <span class="st ok">تم</span></li>
+    <li><b>كل بطاقة تقول كيف تجد التطبيق بالكلمات،</b> لأن Stories وStatus تحذف النص المرافق. لا تطبع عنوان موقع، لأن جذر الاستضافة هو لوحة الإدارة، ولا يجوز أن تشير إليه بطاقة عامة. <span class="st ok">تم</span></li>
+    <li><b>لماذا صفحة الرابط بلا بيانات مستخدم:</b> تخزين الملفات يحتاج Blaze الآن، وdocument تقدم عام يفتح ثغرة في البيانات الخاصة. الأرقام في الرابط تتجنب الأمرين، وتقبل أرقاماً فقط، فلا أحد ينشر كلامه على دومينك.</li>
+    <li><b>قيد:</b> معاينة الرابط في WhatsApp تعرض صورة عامة للتطبيق، لأن المعاينة الشخصية تحتاج server.</li>
+    <li><b>الخصوصية:</b> البطاقات تُنشأ على الهاتف ولا يُرفع شيء، فالمشاركة لا تضيف جمع بيانات.</li>
+    <li><b>قبل الإطلاق:</b> املأ <code>AppLinks.appStore</code> وحدد الدومين النهائي، لأن الروابط المشاركة تعيش سنوات.</li>
+  </ul>
+  </details>
+</section>
+
+<section id="messages">
+  <h2>رسائل الـmilestones بعد إعادة كتابتها <span class="st ok">تم</span></h2>
+  <p class="sub">بنية رسائلك جيدة، ودعاء الختام إنساني فأبقيته. ثلاثة أشياء جعلت المسودة تبدو مولّدة: «رحلة» 8 مرات في خمس رسائل، و12 علامة تعجب، وأغلب السطور تصف مشاعر عامة بدل قراءة هذا القارئ.</p>
+  <p class="sub">تصحيحان: نصف 42 هو 21، فالـ20 ليست المنتصف، وعنوان «30 حديثاًً» فيه تنوين مكرر. كل milestone يظهر لحظة حدوثه، مرة لكل حساب. السطر القصير يمكن وضعه في تذكير الصباح التالي.</p>
+  <div class="msgs" id="msgs">
+    <div class="msg"><span class="lab">5 أحاديث</span><div class="ar"><b>صارت خمسة</b><p>خمسة أحاديث قرأتها كاملة، بنصّها وشرحها. لو توقفت هنا لكان خيراً، فكيف إذا أكملت؟ نلتقي عند السادس إن شاء الله.</p><small>الإشعار: خمسة أحاديث قرأتها كاملة. نلتقي عند السادس إن شاء الله.</small></div></div>
+    <div class="msg"><span class="lab">10 أحاديث</span><div class="ar"><b>عشرة أحاديث، ما شاء الله</b><p>ما رأيك أن تحكي اليوم لأحد من أهلك ما فهمته من حديث «{آخر_عنوان}»؟ قد يفاجئك كم بقي معك.</p><small>الإشعار: عشرة أحاديث، ما شاء الله. ما رأيك أن تحكي أحدها اليوم لأحد من أهلك؟</small></div></div>
+    <div class="msg"><span class="lab">20 حديثاً</span><div class="ar"><b>بقي حديث واحد على النصف</b><p>عشرون حديثاً حتى الآن. الحديث القادم يضعك في منتصف الأربعين النووية تماماً، فما رأيك أن نصله غداً إن شاء الله؟</p><small>الإشعار: عشرون حديثاً. الحديث القادم هو نصف الطريق تماماً.</small></div></div>
+    <div class="msg"><span class="lab">30 حديثاً</span><div class="ar"><b>بقي اثنا عشر</b><p>ثلاثون حديثاً، وبقي اثنا عشر. في مثل هذا الموضع نستعجل النهاية عادةً، فلنقرأ ما بقي على مهل كما قرأنا ما قبله.</p><small>الإشعار: ثلاثون حديثاً، وبقي اثنا عشر. لا عجلة، نقرؤها على مهل.</small></div></div>
+    <div class="msg"><span class="lab">42 حديثاً</span><div class="ar"><b>ختمت الأربعين النووية</b><p>اثنان وأربعون حديثاً قرأتها واحداً واحداً بشرحها، في {عدد_الأيام}. نسأل الله أن ينفعك بما قرأت، وأن يجعله علماً نافعاً وعملاً صالحاً.</p><small>الإشعار: ختمت الأربعين النووية. نسأل الله أن ينفعك بما قرأت.</small></div></div>
+  </div>
+  <button class="copy" id="copyMsgs" type="button">نسخ الرسائل الخمس</button><span class="copied" id="copied" role="status"></span>
+  <h3>رسائل الحفظ بالأسلوب نفسه <span class="st">Phase 5</span></h3>
+  <div class="msgs">
+    <div class="msg"><span class="lab">أول حديث محفوظ</span><div class="ar"><b>أول حديث حفظته</b><p>حفظت «{العنوان}». سنذكّرك به بعد أيام حتى يثبت، فالحفظ مراجعة قبل كل شيء.</p></div></div>
+    <div class="msg"><span class="lab">10 محفوظة</span><div class="ar"><b>عشرة أحاديث في حفظك</b><p>مراجعة قصيرة في الطريق أو قبل النوم تكفي لتبقى معك.</p></div></div>
+    <div class="msg"><span class="lab">42 محفوظة</span><div class="ar"><b>حفظت الأربعين النووية</b><p>هذا عمل طويل، فهنيئاً لك. نسأل الله أن يثبّتها في قلبك وأن يرزقك العمل بها.</p></div></div>
+  </div>
+  <h3>قواعد الأسلوب لكل رسالة قادمة</h3>
+  <div class="two"><ul class="tight">
+    <li><b>قل شيئاً واحداً</b> لشخص واحد.</li>
+    <li><b>استخدم تفصيلاً حقيقياً:</b> عنوان الحديث، عدد الأيام، الخطوة التالية.</li>
+    <li><b>بلا علامات تعجب ولا emoji.</b> رسم الورقة يقوم بذلك.</li>
+    <li><b>«رحلة» نادراً</b> في الرسائل، فهي اسم التاب.</li>
+  </ul><ul class="tight">
+    <li><b>اشمل القارئات:</b> «نكمل» وأفعال ماضية بلا تشكيل، وليس «واصل».</li>
+    <li><b>بلا حقائق مخترعة</b> مثل «أغلب الناس يتوقفون هنا».</li>
+    <li><b>كل الرسائل في ملف واحد</b> <code>journey_copy.dart</code>، ليعدلها شخص دون لمس المنطق.</li>
+    <li><b>يقرؤها شخص بصوت عالٍ.</b> لو بدت غريبة مع صديق تُعاد كتابتها. الأعداد بالعربية تحتاج دالة: ٣ أيام، ١١ يوماً، ١٠٠ يوم.</li>
+  </ul></div>
+</section>
+
+<section id="roadmap">
+  <h2>خطة التنفيذ</h2>
+  <p class="sub">كل مرحلة تصدر وحدها. التقديرات تقريبية لمطور واحد مع Claude: نحو 38 إلى 48 يوم عمل إجمالاً. إن كان أول إصدار للمتجر معلقاً، أكمله أولاً وأطلق Phase 1 كتحديث تالٍ. لم أستطع معرفة من المستودع هل التطبيق منشور.</p>
+  <div class="tw"><table class="w760"><thead><tr><th style="width:19%">المرحلة</th><th style="width:40%">ما تحتويه</th><th style="width:9%">الأيام</th><th>تكتمل عندما</th></tr></thead><tbody>
+    <tr><td>0. التحضير<br><span class="st nx">جزئياً</span></td><td class="plain">فصل العمل المعلق وحفظه، ودمج إصلاح التذكيرات <span class="st ok">تم</span>، والنصوص النهائية <span class="st ok">تم</span>، والاتفاق مع مراجع.</td><td class="plain">2 إلى 3</td><td class="plain">main نظيف، والقائمة غير المتغيرة تكلف قراءة واحدة. ما زال في المجلد الرئيسي عمل غير محفوظ.</td></tr>
+    <tr><td>1. رحلة القراءة<br><span class="st ok">تم</span></td><td class="plain">احتساب الرسالة، حلقة من 3 أجزاء، خطوات رسالة ← حديث ← كتابة، التتبع، المحرك، التخزين، الـrules، تاب الشجرة، شاشة الإتمام، الـmilestones، دمج الزائر، الحذف، النصوص القانونية، أول بطاقتي مشاركة.</td><td class="plain">12 إلى 15</td><td class="plain">هاتف ثانٍ يعرض الشجرة نفسها بعد الدخول. حذف الحساب يزيل كل شيء. <code>verify_rules.py</code> ينجح. عملياً اختبرنا الحفظ والـrules بـ<code>journey_firestore_test.dart</code> على Firebase محلي، لأن <code>verify_rules.py</code> لا يغطي الرحلة بعد، ولم نجرب هاتفين بحساب حقيقي.</td></tr>
+    <tr><td>2. التذكيرات الذكية<br><span class="st nx">التالي</span></td><td class="plain">Planner، توجيه اللمس، تأخير الإذن، إعدادات التذكير على الحساب.</td><td class="plain">4 إلى 5</td><td class="plain">إنهاء حديث يحذف سطر الليلة على Android وiPhone حقيقيين. الخروج يمسح النص الشخصي.</td></tr>
+    <tr><td>3. النقاط والوصول والمشاركة</td><td class="plain">النقاط، وصول الرسائل، الأرقام، أيام السماح <span class="st ok">تمت مبكراً</span>، حصاد الجمعة، التأملات، الحفظ في المعرض، صفحة الرابط، QR.</td><td class="plain">8 إلى 10</td><td class="plain">كل طريق مشاركة يعمل على المنصتين. صفحة الرابط لا تعرض شيئاً شخصياً.</td></tr>
+    <tr><td>4. اللوحة الأسبوعية</td><td class="plain">مزامنة النقاط، الـrules، الانضمام الاختياري، تاب النشر في الـdashboard، رصيد القبول، شاشة اللوحة، تحديث السياسات.</td><td class="plain">5 إلى 6</td><td class="plain">الـrules ترفض نقاطاً مزورة فوق الحد وقبولاً ذاتياً. تبدأ عند نحو 50 قارئاً نشطاً أسبوعياً.</td></tr>
+    <tr><td>5. الحفظ</td><td class="plain">خطوات القراءة والإخفاء والتذكر، المراجعة المتباعدة، تذكيرات المراجعة، الدورة الثانية.</td><td class="plain">7 إلى 9</td><td class="plain">المحاكاة تطابق هدف مراجعتين يومياً كحد أقصى. المراجع يوافق على المسار.</td></tr>
+    <tr><td>لاحقاً</td><td class="plain">Instagram مباشر، app links، widget للشاشة الرئيسية، تحدي رمضان، صوت مسجل، Blaze وpush عند الحاجة.</td><td class="plain">حسب البيانات</td><td class="plain">تظهر حاجة مقاسة.</td></tr>
+  </tbody></table></div>
+  <h3>كيف يعمل الحفظ</h3>
+  <p>يُبنى من نص الحديث فقط، فلا يحتاج محتوى جديداً. يقرأ القارئ جملة جملة، ثم تختفي كلمات ويعيدها بلمسة، ثم يسمّع من ذاكرته ويقيّم نفسه بصدق. 26 حديثاً من 40 كلمة أو أقل تُحفظ في جلسة واحدة، والستة الأطول تحتاج عدة أيام وتُقسم عند علامات الترقيم. المراجعة بعد 1 و3 و7 و16 و35 و90 يوماً، والنسيان يعيد خطوة واحدة.</p>
+  <p>حاكيت حديثاً جديداً كل 3 أيام بذاكرة كاملة: المراجعات تصل إلى اثنتين يومياً كحد أقصى، وتوجد مراجعة واحدة على الأقل في 142 يوماً من أول 180، وآخر مراجعة في اليوم 275. القراء الحقيقيون ينسون أحياناً، فتزيد المراجعات.</p>
+</section>
+
+<section id="decisions">
+  <h2>القرارات</h2>
+  <p class="sub">اثنان تقررا. الخطة تعمل كما هي باختياراتي في الباقي، وكل إجابة مختلفة تغيّر العمل كما هو موضح.</p>
+  <div class="tw"><table class="w640"><thead><tr><th style="width:29%">السؤال</th><th style="width:37%">توصيتي</th><th>لو اخترت غيرها</th></tr></thead><tbody>
+    <tr><td>هل «حفظ» تعني المفضلة أم الاستظهار؟ كلاهما حفظ بالعربية.</td><td class="plain"><b>تقرر: الاثنان.</b> المفضلة تتبع الحساب أصلاً، والاستظهار في Phase 5.</td><td class="plain">انتهى القرار.</td></tr>
+    <tr><td>نقاط ولوحة أسبوعية؟</td><td class="plain"><b>تقرر: نعم،</b> بحدود واختيارية. هذا يحل محل نصيحتي السابقة.</td><td class="plain">انتهى القرار، وتغيّر Backend وDatabase بناءً عليه.</td></tr>
+    <tr><td>من ينشر اللوحة؟</td><td class="plain">مشرف، كل جمعة مساءً، بعد مراجعة دقيقتين للأسماء الأولى.</td><td class="plain">النشر الآلي يحتاج Blaze وscheduled function، ويفقد المراجعة البشرية.</td></tr>
+    <tr><td>هل تعرض قائمة الحفظ الأعداد؟</td><td class="plain">أسماء ومراكز فقط، لأن العدد الدقيق يعلن عبادة خاصة.</td><td class="plain">يسهل إضافتها لاحقاً إن ارتاح لها المراجع.</td></tr>
+    <tr><td>أين شاشة التقدم؟</td><td class="plain">تاب المفضلة صار رحلتي، والمفضلة قسم داخله، وتبقى أربعة تابات. <span class="st ok">تم</span></td><td class="plain">تاب خامس لا يتسع عند 320dp، ولقطة شاشتك تعرض اسماً مقطوعاً هناك.</td></tr>
+    <tr><td>Server أم لا؟</td><td class="plain">بلا server. نعيد النظر فقط عند الحاجة لحملات إرسال جماعية.</td><td class="plain">الـpush يحتاج Blaze المدفوعة، وتعديل وصف المتجر وسياسة الخصوصية وملاحظات المراجعة.</td></tr>
+    <tr><td>من يراجع الصياغة الدينية؟</td><td class="plain">مختص مؤهل يقرأ كل رسالة وmilestone ومسار الحفظ قبل الإصدار.</td><td class="plain">بدونه نبقي الرسائل بلا ادعاءات دينية، ونترك ربطها بالأحاديث.</td></tr>
+  </tbody></table></div>
+</section>
+
+<section id="findings">
+  <h2>ما وجدته في تطبيقك</h2>
+  <p class="sub">17 نتيجة من قراءة الكود، عولجت 6 منها حتى الآن.</p>
+  <details><summary>عرض النتائج الـ17</summary>
+  <div class="tw"><table class="w760"><thead><tr><th style="width:35%">ما وجدته</th><th style="width:27%">أين</th><th>ماذا يعني</th></tr></thead><tbody>
+    <tr><td>المفضلة تتبع الحساب أصلاً</td><td class="plain"><code>favorites_store.dart</code>، rules سطر 312</td><td class="plain">التخزين لكل مستخدم نمط محلول، والخطة تنسخه.</td></tr>
+    <tr><td>مواعيد التذكير والثيم وحجم القراءة تتبع الهاتف</td><td class="plain"><code>app_state_controller.dart:14</code></td><td class="plain">الهاتف الجديد يفقدها، فتنتقل إلى الحساب في Phase 2.</td></tr>
+    <tr><td>المحتوى كله 19,943 كلمة، نحو 2.2 ساعة قراءة</td><td class="plain"><code>assets/data/hadiths.json</code></td><td class="plain">حديث يومياً ينتهي في ستة أسابيع، فنحتاج سبباً طويل المدى.</td></tr>
+    <tr><td><code>keyLessons</code> و<code>narratorBio</code> فارغان للأحاديث الـ42</td><td class="plain"><code>hadiths.json</code>، <code>hadith.dart:13</code></td><td class="plain">تلك البطاقات لا تظهر، ولا مادة لاختبار. التأمل والحفظ لا يحتاجان محتوى جديداً.</td></tr>
+    <tr><td>الشرح الكامل خلف مقدمة من سطرين</td><td class="plain"><code>hadith_detail_screen.dart:573</code></td><td class="plain">هذه أهم قراءة، فالتتبع والمكافأة هنا. <span class="st ok">تم</span></td></tr>
+    <tr><td>الكود يعارض وضع عدادات على رسالة اليوم</td><td class="plain"><code>today_message_screen.dart</code></td><td class="plain">شاشة الرسالة تبقى بلا عدادات، وتقدم اليوم في الرئيسية.</td></tr>
+    <tr><td>الرسائل المقبولة تدخل الرسائل اليومية، وكل ظهور يُحسب</td><td class="plain"><code>daily_tip_service.dart:700</code>، <code>timesShown</code></td><td class="plain">يمكن للكاتب رؤية وصوله، لكن لا شاشة تعرضه بعد.</td></tr>
+    <tr><td>كل رسالة مرتبطة بحديثها</td><td class="plain"><code>daily_message_card.dart</code></td><td class="plain">الخطوة كانت موجودة، وصارت تُحسب. <span class="st ok">تم</span></td></tr>
+    <tr><td>إشعار قبول الرسالة كان قيد البناء في جلسة أخرى</td><td class="plain"><code>submission_approval_watcher.dart</code></td><td class="plain">صار في main، والخطة تبني عليه ولا تكرره. <span class="st ok">تم</span></td></tr>
+    <tr><td>لا حد لعدد رسائل الحساب الواحد</td><td class="plain"><code>firestore.rules</code>، تعليق phase 10</td><td class="plain">النقاط تزيد خطر الـspam، فتتوقف عند 3 رسائل مقبولة أسبوعياً.</td></tr>
+    <tr><td>إذن الإشعارات يُطلب عند أول تشغيل</td><td class="plain"><code>main.dart:76</code> ← <code>notification_scheduler.dart:306</code></td><td class="plain">يُسأل القارئ قبل أن يرى فائدة، فنؤجله.</td></tr>
+    <tr><td>كل تحديث تذكير كان يقرأ كل الرسائل</td><td class="plain"><code>notification_data_source.dart:43</code></td><td class="plain">أُصلح ودُمج في PR #2. القائمة غير المتغيرة تكلف قراءة واحدة. <span class="st ok">تم</span></td></tr>
+    <tr><td>وعدت: بلا تحليلات ولا متتبعات، وتذكيرات على الجهاز</td><td class="plain">وصف المتجر، سياسة الخصوصية، <code>play-console-answers.md</code></td><td class="plain">لا analytics SDK ولا push افتراضياً، والقياس يحترم ذلك.</td></tr>
+    <tr><td>سياسة الخصوصية قالت إنك لا تجمع سجل التصفح</td><td class="plain"><code>legal_documents.dart:66</code></td><td class="plain">سجل القراءة قريب من ذلك، فعُدلت السياسة قبل الإصدار. <span class="st ok">تم</span></td></tr>
+    <tr><td>المشاركة كانت بطاقة واحدة بحجم واحد وبلا رابط</td><td class="plain"><code>share_service.dart:53,155</code>، <code>share_card.dart</code></td><td class="plain">عُممت. الـStory والـStatus يحذفان النص المرافق، فالبطاقة تحمل طريق العودة. <span class="st ok">تم</span></td></tr>
+    <tr><td>رابط iOS في المتجر ما زال فارغاً</td><td class="plain"><code>app_links.dart:20</code></td><td class="plain">مشاركات iOS بلا رابط، فالدعوات لا توصل لشيء.</td></tr>
+    <tr><td>عدة جلسات تعدّل المجلد نفسه، وعملها مختلط على فرع واحد</td><td class="plain"><code>git status</code>، <code>git reflog</code></td><td class="plain">كل جلسة تحتاج worktree خاصاً. الرحلة بُنيت في worktree منفصل، وما زال في المجلد الرئيسي عمل غير محفوظ.</td></tr>
+  </tbody></table></div>
+  </details>
+</section>
+
+<section id="backend">
+  <h2>Backend</h2>
+  <p class="sub">التوصية ما زالت بلا server. اللوحة تعطي سبباً للغش، لكن الـserver لا يثبت القراءة أيضاً، لأنها تحدث على الهاتف. حدود الـrules تقيّد ما يكسبه الغاش، والمشرفون يؤكدون الباقي.</p>
+  <div class="flow" aria-label="مسار البيانات">
+    <span><b>شاشات القراءة</b>ReadingTracker</span><em>←</em><span><b>JourneyRepository</b>مصدر واحد للحقيقة</span><em>←</em><span><b>Firestore</b>offline queue، لكل حساب</span><em>←</em><span><b>JourneyEngine</b>السلسلة، الأرقام، الخطوة التالية</span><em>←</em><span><b>المخرجات</b>الشجرة، التذكيرات، البطاقات</span>
+  </div>
+  <div class="tw"><table class="w640"><thead><tr><th style="width:24%"></th><th>A. بلا server (الموصى به)</th><th>B. Cloud Functions وFCM push</th></tr></thead><tbody>
+    <tr><td>خطة Firebase</td><td class="plain">Spark المجانية</td><td class="plain">Blaze، وتحتاج حساب دفع</td></tr>
+    <tr><td>التذكيرات</td><td class="plain">تعمل offline وتتحدث فور انتهاء القراءة</td><td class="plain">الـserver يتابع توقيت كل قارئ وdevice tokens</td></tr>
+    <tr><td>قارئ بجهازين</td><td class="plain">الثاني يتحدث عند فتحه</td><td class="plain">الاثنان يتحدثان بسرعة</td></tr>
+    <tr><td>رسالة للجميع</td><td class="plain">داخل نافذة 14 يوماً فقط، عبر calendar pins الحالية</td><td class="plain">نعم، في أي وقت</td></tr>
+    <tr><td>وعودك العامة</td><td class="plain">لا تتغير</td><td class="plain">وصف المتجر وسياسة الخصوصية وملاحظات المراجعة تتغير</td></tr>
+    <tr><td>اللوحة الأسبوعية</td><td class="plain">ينشرها المشرف الجمعة بعد مراجعة</td><td class="plain">scheduled function تنشرها بلا مراجعة</td></tr>
+    <tr><td>عمل إضافي</td><td class="plain">لا شيء</td><td class="plain">Functions، مفتاح APNs، تخزين tokens، منطق المناطق الزمنية</td></tr>
+  </tbody></table></div>
+  <h3>السعة على الخطة المجانية</h3>
+  <p>تقديري 9 عمليات كتابة و11 قراءة لكل قارئ نشط يومياً، شاملة تحديث النقاط. حد 20,000 كتابة يومياً يكفي نحو 2,200 قارئ يومي، ناقص ما يكتبه التطبيق حالياً. عند بلوغ الحد يتوقف Spark عن الاستجابة، فيتعطل المجتمع والإعجابات أيضاً.</p>
+  <p><b>الخطة:</b> ننتقل إلى Blaze عند نحو 1,000 قارئ يومي، مع budget alert. عند 10,000 قارئ يومي تكلف هذه الميزة نحو 5$ شهرياً بأعلى الأسعار المنشورة. المصادر تختلف في الأسعار، فتأكد منها من صفحة Google.</p>
+  <p><b>إصلاح قراءة رسائل التذكير، مدموج في PR #2:</b> كل تحديث كان يقرأ كل رسالة نشطة. مع 200 رسالة و1,000 قارئ يحدّثون 1.5 مرة يومياً، تصبح 300,000 قراءة يومياً، أي ستة أضعاف الحد المجاني. الآن القائمة غير المتغيرة تكلف قراءة واحدة. نجحت 65 اختبار scheduler وlifecycle على محاكي Android. إيقاف رسالة أو حذفها من الـdashboard صار يُعلم الهواتف بالتحديث، ولم يُجرَّب هذا المسار على مشروع حي بعد.</p>
+</section>
+
+<section id="data">
+  <h2>Database</h2>
+  <p class="sub">document-ان صغيران لكل قارئ تحت حسابه، فيتبعه تقدمه إلى أي هاتف. document واحد للأحاديث الـ42 يكلف قراءة واحدة، بينما document لكل حديث يكلف 42.</p>
+  <div class="tree">
+    <div><code>users/{uid}</code><span>موجود، بلا تغيير</span><span></span></div>
+    <div><code>users/{uid}/favorites/{id}</code><span>موجود، بلا تغيير</span><span></span></div>
+    <div><code>users/{uid}/journey/state</code><span>صغير، يُحمّل كل جلسة</span><span class="st ok">تم</span></div>
+    <div><code>users/{uid}/journeyYears/{yyyy}</code><span>سجل الأيام، document لكل سنة</span><span class="st ok">تم</span></div>
+    <div><code>users/{uid}/reflections/{n}</code><span>ملاحظات خاصة من سطر واحد</span><span class="st">Phase 3</span></div>
+    <div><code>metrics/{yyyy-MM}</code><span>عدادات مجهولة بلا uid</span><span class="st">لاحقاً</span></div>
+    <div><code>scores/{uid}</code><span>نقاط هذا الأسبوع، document لكل قارئ</span><span class="st">Phase 4</span></div>
+    <div><code>settings/weeklyBoard</code><span>القوائم المنشورة، document واحد</span><span class="st">Phase 4</span></div>
+  </div>
+  <details><summary>شكل البيانات بالتفصيل (JSON)</summary>
+<pre><code><i>// journey/state</i>
+{
+  "v": 1, "round": 1, "startedOn": "2026-11-06",
+  "hadith": { "16": { "text": "2026-11-06", "full": "2026-11-06", "reads": 1 } },
+  "memo":   { "5":  { "box": 2, "due": "2026-11-13", "misses": 0 } },  <i>// Phase 5</i>
+  "seen":   ["read5", "read10"],          <i>// milestones already shown, per account</i>
+  "records":{ "bestStreak": 19, "bestWeekMins": 41 },
+  "prefs":  { "morning": "08:30", "evening": "20:00", "morningOn": true,  <i>// Phase 2</i>
+              "eveningOn": true, "fontScale": 1.15, "theme": "system" },
+  "updatedAt": "&lt;server time&gt;"
+}
+
+<i>// journeyYears/2026</i>
+{ "days": { "2026-11-06": { "m": ["id"], "mh": 16, "h": [16], "s": 212, "w": 1 } } }
+<i>//  built: m = messages read, mh = the message's hadith, h = hadiths fully read,</i>
+<i>//         s = careful seconds, w = messages written</i>
+<i>//  later: c = community messages read, r = reviews, x = cards shared</i>
+<i>//  Under 60 KB a year.</i>
+
+<i>// scores/{uid}: replaced each week, so one document per reader, ever</i>
+{ "week": 2913, "device": 140, "memo": 40, "approved": 2, "score": 170,
+  "name": "فاعل خير", "show": true, "updatedAt": "&lt;server time&gt;" }
+
+<i>// settings/weeklyBoard: moderators can already write settings/, no new rule</i>
+{ "week": 2913, "publishedAt": "&lt;time&gt;",
+  "points": [ { "uid": "…", "name": "فاعل خير", "score": 345 } ],
+  "sharing": [ { "uid": "…", "name": "سارة", "approved": 3 } ] }</code></pre>
+  </details>
+  <div class="two"><div><h3>لماذا تبقى صحيحة</h3><ul class="tight">
+    <li><b>السلسلة تُحسب ولا تُخزن.</b> تأتي من قائمة الأيام، فلا تختلف بين الهواتف.</li>
+    <li><b>الكتابة تدمج الحقول.</b> هاتفان offline لا يمسح أحدهما تقدم الآخر.</li>
+    <li><b>كل كتابة تتكرر بأمان.</b> offline queue في Firestore يتعامل مع ضعف الاتصال.</li>
+    <li><b>بيانات الزائر تُدمج مرة واحدة.</b> الدخول يضم التقدم المحلي للحساب ثم يمسحه من الهاتف.</li>
+  </ul></div><div><h3>المطلوب معها</h3><ul class="tight">
+    <li><b>Security rules:</b> للمالك فقط، بأسلوب المفضلة ومع حدود للحجم، ولا يقرؤها المشرفون. <span class="st ok">منشورة</span></li>
+    <li><b>حذف الحساب:</b> نضيف المجموعات الجديدة و<code>scores/{uid}</code> إلى <code>deleteAccount</code>، لأن Firestore لا يحذف تلقائياً. الاسم المنشور يبقى حتى لوحة الجمعة التالية، والسياسة يجب أن تذكر ذلك. <span class="st ok">الرحلة تمت</span> <span class="st">scores في Phase 4</span></li>
+    <li><b>مزامنة النقاط:</b> الهاتف يحسب نقاط الأسبوع من سجل الأيام ويستبدل الـdocument، والمحاولات offline تُعاد عند الفتح التالي.</li>
+    <li><b>رصيد القبول:</b> زر القبول في الـdashboard يضيف النقاط في الـbatch نفسه، وإخفاء المنشور يزيلها.</li>
+    <li><b>استثناءات الفهارس:</b> <code>days</code> و<code>hadith</code> و<code>memo</code> في <code>firestore.indexes.json</code>. <span class="st ok">منشورة</span></li>
+    <li><b>القانوني:</b> سياسة الخصوصية، و<code>delete-account.html</code>، ونموذجا الخصوصية في المتجرين. <span class="st ok">الملفات تمت</span> حدّث النموذجين عند الإرسال.</li>
+  </ul></div></div>
+  <details><summary>الـrules المنشورة للرحلة</summary>
+<pre><code><i>// inside match /users/{uid}, beside /favorites</i>
+match /journey/{docId} {
+  allow read, delete: if request.auth != null &amp;&amp; request.auth.uid == uid;
+  allow create, update: if request.auth != null &amp;&amp; request.auth.uid == uid
+    &amp;&amp; docId == 'state'
+    &amp;&amp; request.resource.data.keys().hasOnly(['v','round','startedOn','hadith',
+         'memo','seen','records','prefs','updatedAt'])
+    &amp;&amp; request.resource.data.updatedAt == request.time
+    &amp;&amp; (!('hadith' in request.resource.data)
+        || request.resource.data.hadith.size() &lt;= 42)
+    &amp;&amp; (!('memo' in request.resource.data)
+        || request.resource.data.memo.size() &lt;= 42);
+}
+match /journeyYears/{year} {
+  allow read, delete: if request.auth != null &amp;&amp; request.auth.uid == uid;
+  allow create, update: if request.auth != null &amp;&amp; request.auth.uid == uid
+    &amp;&amp; year.matches('^[0-9]{4}$')
+    &amp;&amp; request.resource.data.keys().hasOnly(['days'])
+    &amp;&amp; request.resource.data.days.size() &lt;= 366;
+}</code></pre>
+  </details>
+</section>
+
+<section id="code">
+  <h2>تغييرات الكود</h2>
+  <p class="sub">المنطق Dart خالص بلا Flutter imports. عند كتابة الخطة لم يكن <code>flutter test</code> يعمل على هذا الجهاز، فكان البديل <code>dart run</code> مثل <code>tool/test_bulk_add_parsing.dart</code>. الآن يعمل مع <code>--no-pub</code>. سلوك الجهاز في <code>test/suites/</code> عبر <code>integration_test</code>.</p>
+  <details><summary>جدول الملفات الكامل (21 صفاً) مع حالة كل ملف</summary>
+  <div class="tw"><table class="w760"><thead><tr><th style="width:42%">الملف</th><th style="width:38%">الغرض</th><th>الحالة</th></tr></thead><tbody>
+    <tr><td><code>lib/data/journey/journey_engine.dart</code> <small>جديد</small></td><td class="plain">السلسلة، أيام السماح، الأرقام، الـmilestones، الخطوة التالية. Dart خالص.</td><td class="plain"><span class="st ok">تم</span></td></tr>
+    <tr><td><code>lib/data/journey/reading_tracker.dart</code> <small>جديد</small></td><td class="plain">قواعد وقت الفقرة. Dart خالص.</td><td class="plain"><span class="st ok">تم</span></td></tr>
+    <tr><td><code>lib/data/journey/journey_store.dart</code> <small>جديد</small></td><td class="plain">Firestore والزائر والذاكرة، بشكل <code>favorites_store.dart</code>.</td><td class="plain"><span class="st ok">تم</span></td></tr>
+    <tr><td><code>lib/data/journey/journey_repository.dart</code> <small>جديد</small></td><td class="plain">مصدر واحد للحقيقة، مع <code>setUser(uid)</code> وlistenable.</td><td class="plain"><span class="st ok">تم</span></td></tr>
+    <tr><td><code>lib/data/journey/memorization.dart</code> <small>جديد</small></td><td class="plain">فترات المراجعة 1 و3 و7 و16 و35 و90 يوماً.</td><td class="plain"><span class="st">Phase 5</span></td></tr>
+    <tr><td><code>lib/data/services/notification_planner.dart</code> <small>جديد</small></td><td class="plain">يحدد نص كل موعد ورابطه. Dart خالص.</td><td class="plain"><span class="st nx">Phase 2</span></td></tr>
+    <tr><td><code>lib/data/journey/journey_copy.dart</code> <small>جديد</small></td><td class="plain">كل الرسائل العربية في مكان واحد.</td><td class="plain"><span class="st ok">تم</span></td></tr>
+    <tr><td><code>lib/features/journey/</code> <small>جديد</small></td><td class="plain">شاشة الرحلة، tree painter، شاشة الإتمام، أنت مقابل نفسك، شاشة الحفظ.</td><td class="plain"><span class="st ok">تم</span> عدا شاشة الحفظ</td></tr>
+    <tr><td><code>lib/core/share/progress_cards.dart</code>، <code>web/j.html</code> <small>جديد</small></td><td class="plain">قوالب التقدم وصفحة الرابط الثابتة.</td><td class="plain">القوالب تمت في <code>journey_posters.dart</code>، والصفحة Phase 3</td></tr>
+    <tr><td><code>hadith_detail_screen.dart</code>، <code>hadith_explanation_screen.dart</code>، <code>hadith_list_screen.dart</code></td><td class="plain">التتبع، الخيط، زر الإنهاء، حالات الورقة.</td><td class="plain"><span class="st ok">تم</span></td></tr>
+    <tr><td><code>lib/data/journey/points.dart</code> <small>جديد</small></td><td class="plain">يحسب النقاط من سجل الأيام ويزامن <code>scores/{uid}</code>. Dart خالص عدا المزامنة.</td><td class="plain"><span class="st">Phase 3 و4</span></td></tr>
+    <tr><td><code>lib/features/dashboard/weekly_board_page.dart</code> <small>جديد</small></td><td class="plain">الأسماء الأولى، الإخفاء، النشر.</td><td class="plain"><span class="st">Phase 4</span></td></tr>
+    <tr><td><code>today_message_screen.dart</code>، <code>daily_message_card.dart</code>، <code>community_post_screen.dart</code></td><td class="plain">احتساب قراءة الرسالة، وجعل رابط الحديث خطوة اليوم.</td><td class="plain">الرسالة اليومية تمت، والمجتمع Phase 3</td></tr>
+    <tr><td><code>add_message_screen.dart</code>، <code>my_submissions_screen.dart</code></td><td class="plain">الفتح بحديث مختار، وعرض وصول كل رسالة.</td><td class="plain">الكتابة تمت، والوصول Phase 3</td></tr>
+    <tr><td><code>pending_queue_page.dart</code>، <code>content_reports_page.dart</code></td><td class="plain">إضافة النقاط عند القبول وإزالتها عند الإخفاء.</td><td class="plain"><span class="st">Phase 4</span></td></tr>
+    <tr><td><code>home_screen.dart</code>، <code>bottom_navigation.dart</code>، <code>favorites_screen.dart</code></td><td class="plain">الحلقة، توجيه الإشعارات، التاب الجديد، قسم المفضلة.</td><td class="plain"><span class="st ok">تم</span> عدا توجيه الإشعارات</td></tr>
+    <tr><td><code>app_state_controller.dart</code></td><td class="plain">ربط الرحلة بالمستخدم، ومزامنة الإعدادات مع الحساب.</td><td class="plain">الربط تم، والمزامنة Phase 2</td></tr>
+    <tr><td><code>notification_scheduler.dart</code>، <code>notification_lifecycle_refresher.dart</code>، <code>notification_data_source.dart</code></td><td class="plain">Planner، payloads، تحديث سريع، تخزين القائمة، تأخير الإذن.</td><td class="plain">التخزين تم، والباقي Phase 2</td></tr>
+    <tr><td><code>share_service.dart</code>، <code>share_sheet.dart</code>، <code>share_card.dart</code></td><td class="plain">قوالب، أحجام، رابط أو QR على البطاقة.</td><td class="plain">تمت في <code>share_service.dart</code> و<code>journey_share_sheet.dart</code>، والـQR Phase 3</td></tr>
+    <tr><td><code>account_deletion_service.dart</code>، <code>firestore.rules</code>، <code>firestore.indexes.json</code>، <code>tool/verify_rules.py</code></td><td class="plain">حذف البيانات الجديدة، تأمينها، اختبار الـrules.</td><td class="plain"><span class="st ok">تم</span> عدا إضافة الرحلة إلى <code>verify_rules.py</code></td></tr>
+    <tr><td><code>legal_documents.dart</code>، <code>web/privacy-policy.html</code>، <code>web/delete-account.html</code>، <code>docs/play-console-answers.md</code></td><td class="plain">نقول بصدق ما يُخزن الآن.</td><td class="plain"><span class="st ok">تم</span></td></tr>
+  </tbody></table></div>
+  </details>
+</section>
+
+<section id="measure">
+  <h2>القياس بلا analytics</h2>
+  <p class="sub">وصف المتجر يعد بلا تحليلات، وهذا الوعد جزء من هويتك، فأبقيته. مصدران يكفيان.</p>
+  <div class="tw"><table class="w640"><thead><tr><th style="width:44%">ما نقيسه</th><th>المصدر</th></tr></thead><tbody>
+    <tr><td>البقاء (retention) في اليوم 1 و7 و30، والحذف</td><td class="plain">Play Console وApp Store Connect، بلا SDK.</td></tr>
+    <tr><td>بدأ، وصل لليوم 7، وصل لليوم 30، أنهى 42</td><td class="plain">عدادات شهرية مجهولة في <code>metrics/{yyyy-MM}</code>، بلا uid ولا device id.</td></tr>
+    <tr><td>الشروح المكتملة لكل قارئ</td><td class="plain">العدادات نفسها. هذا هدفك الرئيسي.</td></tr>
+    <tr><td>ضغطات الإشعارات والمشاركات حسب نوع البطاقة</td><td class="plain">العدادات نفسها.</td></tr>
+    <tr><td>الرسائل المرسلة والمقبولة ونسبة الرفض</td><td class="plain"><code>communityMessages</code> في الـdashboard. ارتفاع الرفض أول علامة على مطاردة النقاط.</td></tr>
+    <tr><td>المنضمون إلى اللوحة</td><td class="plain">count query على <code>scores</code> من الـdashboard.</td></tr>
+  </tbody></table></div>
+  <p>سجّل retention المتجر أربعة أسابيع قبل إطلاق Phase 1، ثم ضع الأهداف. العدادات بيانات أيضاً، فراجع صياغتها مع نموذجي الخصوصية. <code>play-console-answers.md</code> يحذر أصلاً من أن تغيير التحليلات يحتاج تحديث النموذج.</p>
+</section>
+
+<section id="risks">
+  <h2>المخاطر</h2>
+  <div class="tw"><table class="w640"><thead><tr><th style="width:36%">الخطر</th><th>المعالجة</th></tr></thead><tbody>
+    <tr><td>تتحول العبادة إلى رقم</td><td class="plain">لوحة اختيارية، خيار «فاعل خير»، بلا كلمة حسنات، بلا جوائز، ومراجعة شرعية. شاشة الرسالة بلا عدادات.</td></tr>
+    <tr><td>نقاط مزورة</td><td class="plain">الـrules تحد نقاط الهاتف بـ300 أسبوعياً، والمشرف يراجع الأسماء الأولى، ولا يمنح رصيد القبول إلا المشرفون.</td></tr>
+    <tr><td>تضعف جودة الرسائل بسبب النقاط</td><td class="plain">نقاط عند القبول فقط، 3 أسبوعياً كحد أقصى، ولا شيء للإعجابات. سيزيد عمل المشرفين، فنراقب قائمة الانتظار.</td></tr>
+    <tr><td>نسي المشرف الجمعة</td><td class="plain">لا لوحة ذلك الأسبوع، لأن النقاط تُصفَّر السبت. تذكير في الـdashboard يغطي هذا، ويمكن استبداله لاحقاً بـscheduled function.</td></tr>
+    <tr><td>تصبح المشاركة رياءً</td><td class="plain">صياغة الدعوة، الاسم مغلق افتراضياً، الحديث أولاً.</td></tr>
+    <tr><td>كثرة التذكيرات تؤدي إلى الحذف</td><td class="plain">اثنان يومياً كحد أقصى، صمت عن التقدم بعد أسبوع غياب، وقناة Android منفصلة.</td></tr>
+    <tr><td>تأخر التذكيرات على Android 12+ وMIUI</td><td class="plain">تستخدم inexact alarms عمداً، فنص المساء يجب أن يبقى صالحاً لو تأخر ساعة. نصيحة MIUI تبقى.</td></tr>
+    <tr><td>تذكير قديم عند القراءة على هاتفين</td><td class="plain">مقبول، ويُصحَّح عند الفتح التالي.</td></tr>
+    <tr><td>الفقرات الطويلة تفشل في فحص الظهور</td><td class="plain">نقيس النسبة المرئية من الشاشة، وليس من الفقرة، ونختبر بأكبر حجم خط.</td></tr>
+    <tr><td>حدود الخطة المجانية توقف التطبيق كله</td><td class="plain">ننتقل إلى Blaze عند نحو 1,000 قارئ يومي. قراءات رسائل التذكير أُصلحت.</td></tr>
+  </tbody></table></div>
+</section>
+
+<section id="sources">
+  <h2>المصادر</h2>
+  <details><summary>عرض المصادر الثمانية</summary>
+  <ul class="tight" style="font-size:15.5px">
+    <li>مستودعك: الكود والـrules والمحتوى ووصف المتجر والسياسة، قُرئت في 6 نوفمبر 2026 (<code>main</code> عند <code>0bdc230</code> مع عملك غير المحفوظ وقتها). كل أوقات القراءة محسوبة من <code>hadiths.json</code>.</li>
+    <li>سرعة القراءة بالعربية: <a href="https://www.sciencedirect.com/science/article/pii/S188842961630005X">دراسة Arabic continuous text reading chart</a>، وتذكر 138 ± 20 من مجموعة IReST، ونتيجتها 166 ± 34، بمدى 118 إلى 252.</li>
+    <li>العادات: <a href="https://bps.org.uk/research-digest/how-form-habit">ملخص BPS لدراسة Lally وآخرين 2010</a>. رؤية Duolingo للبقاء المبكر: <a href="https://lennysnewsletter.com/p/behind-the-product-duolingo-streaks">Lenny's Newsletter</a>، مصدر ثانوي.</li>
+    <li>حد iOS البالغ 64 إشعاراً معلقاً: <a href="https://developer.apple.com/forums/thread/811171">Apple Developer Forums</a>، بإجابة مهندس من Apple.</li>
+    <li>حدود Firebase وأسعاره: <a href="https://cloud.google.com/firestore/pricing">صفحة أسعار Firestore من Google</a> (لم أستطع قراءتها كاملة)، و<a href="https://dev.to/androve2k/spark-vs-blaze-the-firebase-pricing-guide-i-wish-id-read-sooner-onb">دليل Spark vs Blaze</a>، و<a href="https://lido.app/firebase/firebase-pricing">Lido</a>. أسعار Blaze المذكورة من 0.03$ إلى 0.06$ لكل 100,000 قراءة، ومن 0.09$ إلى 0.18$ لكل 100,000 كتابة.</li>
+    <li>تخزين الملفات يحتاج Blaze: <a href="https://firebase.google.com/docs/storage/faqs-storage-changes-announced-sept-2024">Firebase Storage FAQ</a>.</li>
+    <li>مشاركة Instagram Stories تحتاج Meta app ID: <a href="https://developers.facebook.com/docs/instagram-platform/sharing-to-stories">وثائق Meta للمطورين</a>.</li>
+    <li>إغلاق Firebase Dynamic Links: <a href="https://www.branch.io/resources/blog/firebase-dynamic-links-shutting-down">ملخص Branch</a>.</li>
+  </ul>
+  </details>
+</section>
+</main>
+</div>
+
+<script>
+const H=[[1,"الأعمال بالنيات",521,3.5,120],[2,"حديث جبريل: الإسلام والإيمان والإحسان",945,6.3,218],[3,"بني الإسلام على خمس",248,1.7,57],[4,"خلق الإنسان وكتابة القدر",640,4.3,148],[5,"كل بدعة رد",286,1.9,66],[6,"الحلال بيّن والحرام بيّن",795,5.3,183],[7,"الدين النصيحة",471,3.1,109],[8,"أمرت أن أقاتل الناس",549,3.7,127],[9,"ما نهيتكم عنه فاجتنبوه",608,4.1,140],[10,"إن الله طيب لا يقبل إلا طيباً",343,2.3,79],[11,"دع ما يريبك إلى ما لا يريبك",186,1.2,43],[12,"من حسن إسلام المرء تركه ما لا يعنيه",202,1.3,47],[13,"لا يؤمن أحدكم حتى يحب لأخيه ما يحب لنفسه",374,2.5,86],[14,"لا يحل دم امرئ مسلم إلا بإحدى ثلاث",456,3.0,105],[15,"فليقل خيراً أو ليصمت",534,3.6,123],[16,"لا تغضب",250,1.7,58],[17,"إن الله كتب الإحسان على كل شيء",212,1.4,49],[18,"اتق الله حيثما كنت",227,1.5,52],[19,"احفظ الله يحفظك",518,3.5,120],[20,"إذا لم تستحِ فاصنع ما شئت",228,1.5,53],[21,"آمنت بالله ثم استقم",379,2.5,87],[22,"الفرائض والحلال والحرام كفاية لدخول الجنة",416,2.8,96],[23,"الطهور شطر الإيمان",531,3.5,123],[24,"حديث قدسي: يا عبادي إني حرمت الظلم",702,4.7,162],[25,"ذهب أهل الدثور بالأجور",436,2.9,101],[26,"كل سلامى من الناس عليه صدقة",248,1.7,57],[27,"البر حسن الخلق",455,3.0,105],[28,"موعظة المودّع: تمسكوا بالسنة واجتنبوا البدع",456,3.0,105],[29,"رأس الأمر وعموده وذروة سنامه",619,4.1,143],[30,"إن الله فرض فرائض فلا تضيعوها",335,2.2,77],[31,"ازهد في الدنيا يحبك الله",335,2.2,77],[32,"لا ضرر ولا ضرار",409,2.7,94],[33,"البينة على المدعي واليمين على من أنكر",372,2.5,86],[34,"من رأى منكم منكراً فليغيره بيده",985,6.6,227],[35,"لا تحاسدوا ولا تباغضوا وكونوا إخواناً",669,4.5,154],[36,"من نفس عن مؤمن كربة",590,3.9,136],[37,"إن الله كتب الحسنات والسيئات",843,5.6,195],[38,"حديث قدسي: من عادى لي ولياً",497,3.3,115],[39,"تجاوز الله عن الخطأ والنسيان",371,2.5,86],[40,"كن في الدنيا كأنك غريب",764,5.1,176],[41,"لا يؤمن أحدكم حتى يكون هواه تبعاً لما جئت به",426,2.8,98],[42,"يا ابن آدم إنك ما دعوتني ورجوتني غفرت لك",512,3.4,118]];
+const B=[[210,466],[200,340],[222,220],[212,40]];
+const bez=(s,i)=>{const u=1-s;return u*u*u*B[0][i]+3*u*u*s*B[1][i]+3*u*s*s*B[2][i]+s*s*s*B[3][i]};
+function layout(){
+  const counts=[4,4,4,4,4,4,3,3,3,3,3,3],leaves=[],branches=[];let n=0;
+  counts.forEach((c,i)=>{
+    const s=(i+.7)/12.6,x0=bez(s,0),y0=bez(s,1),side=i%2?1:-1;
+    const len=168-Math.abs(s-.3)*130,ex=x0+side*len,ey=Math.max(26,y0-48),cx=x0+side*len*.45,cy=y0-6;
+    branches.push([x0,y0,cx,cy,ex,ey].map(v=>+v.toFixed(1)));
+    for(let j=0;j<c;j++){
+      const u=(j+1)/c*.86+.14,v=1-u;
+      const x=v*v*x0+2*v*u*cx+u*u*ex,y=v*v*y0+2*v*u*cy+u*u*ey;
+      const dx=2*v*(cx-x0)+2*u*(ex-cx),dy=2*v*(cy-y0)+2*u*(ey-cy);
+      let a=Math.atan2(dy,dx)*180/Math.PI;
+      if(j<c-1)a+=j%2?42:-42;
+      leaves.push({n:++n,x:+x.toFixed(1),y:+y.toFixed(1),a:+a.toFixed(1)});
+    }
+  });
+  return{leaves,branches};
+}
+const L=layout();
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function st(n,k){if(n<=k)return n%5===1?'done mem':'done';if(n===k+1)return'today';return''}
+function tree(o){
+  let s=`<svg ${o.cls?`class="${o.cls}"`:''} viewBox="0 0 420 470" ${o.inter?'role="group" aria-label="شجرة من 42 ورقة"':'aria-hidden="true"'}><path class="trunk" d="M210 466C200 340 222 220 212 40"/>`;
+  L.branches.forEach(b=>{s+=`<path class="branch" d="M${b[0]} ${b[1]}Q${b[2]} ${b[3]} ${b[4]} ${b[5]}"/>`});
+  L.leaves.forEach(l=>{
+    const c=st(l.n,o.k),sel=o.sel===l.n?' sel':'',p=c==='today'&&!reduced?' pulse':'';
+    const attrs=o.inter?` class="leaf inter ${c}${sel}" data-n="${l.n}" tabindex="0" role="button" aria-label="الحديث ${l.n}"`:` class="leaf leafc ${c}"`;
+    s+=`<g${attrs} transform="translate(${l.x} ${l.y}) rotate(${l.a})"><path class="${p.trim()}" d="M0 0C7-9 19-9 26 0C19 9 7 9 0 0Z"/><circle class="m" cx="13" cy="0" r="3.2"/>${o.inter?'<circle class="hit" cx="13" cy="0" r="15"/>':''}</g>`;
+  });
+  return s+'</svg>';
+}
+let K=15,SEL=16;
+const big=document.getElementById('bigTree'),plot=document.getElementById('plot'),tip=document.getElementById('tip');
+const fmt=g=>g<60?`${g} ثانية`:`${Math.floor(g/60)} د ${g%60} ث`;
+function info(){
+  const h=H[SEL-1],c=st(SEL,K);
+  document.getElementById('xn').textContent=`الحديث ${h[0]} من 42`;
+  document.getElementById('xt').textContent=h[1];
+  document.getElementById('xs').textContent=c.includes('mem')?'قُرئ كاملاً وحُفظ':c.includes('done')?'قُرئ كاملاً':c==='today'?'خطوة اليوم':'لم يُقرأ بعد';
+  document.getElementById('xw').textContent=h[2].toLocaleString('en-US');
+  document.getElementById('xm').textContent=`${h[3].toFixed(1)} دقيقة`;
+  document.getElementById('xg').textContent=fmt(h[4]);
+  plot.querySelectorAll('.col').forEach(c=>c.classList.toggle('on',+c.dataset.n===SEL));
+}
+function draw(){big.innerHTML=tree({k:K,sel:SEL,inter:true});info()}
+big.addEventListener('click',e=>{const g=e.target.closest('[data-n]');if(g){SEL=+g.dataset.n;draw()}});
+big.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const g=e.target.closest('[data-n]');if(g){e.preventDefault();SEL=+g.dataset.n;draw();big.querySelector(`[data-n="${SEL}"]`)?.focus()}}});
+document.getElementById('grow').addEventListener('input',e=>{K=+e.target.value;document.getElementById('growv').textContent=K;draw()});
+const MAX=7;
+[2,4,6].forEach(v=>{const g=document.createElement('div');g.className='g';g.style.bottom=(v/MAX*100)+'%';g.innerHTML=`<span>${v} د</span>`;plot.appendChild(g)});
+H.forEach(h=>{
+  const b=document.createElement('button');b.className='col';b.type='button';b.dataset.n=h[0];b.tabIndex=-1;
+  b.setAttribute('aria-label',`الحديث ${h[0]}، ${h[3]} دقيقة`);
+  const f=document.createElement('span');f.className='fill';f.style.height=(h[3]/MAX*100)+'%';b.appendChild(f);plot.appendChild(b);
+  b.addEventListener('click',()=>{SEL=h[0];draw()});
+  b.addEventListener('mouseenter',()=>{const r=b.getBoundingClientRect(),p=plot.parentElement.getBoundingClientRect();tip.textContent=`الحديث ${h[0]}: ${h[3].toFixed(1)} د`;tip.hidden=false;const w=tip.offsetWidth/2;tip.style.left=Math.min(Math.max(w,r.left-p.left+r.width/2),p.width-w)+'px';tip.style.top=(f.getBoundingClientRect().top-p.top-6)+'px'});
+  b.addEventListener('mouseleave',()=>{tip.hidden=true});
+});
+document.querySelector('#tbl tbody').innerHTML=H.map(h=>`<tr><td>${h[0]}</td><td class="t">${h[1]}</td><td>${h[2]}</td><td>${h[3].toFixed(1)}</td><td>${h[4]}</td></tr>`).join('');
+document.getElementById('miniTree').innerHTML=tree({k:15});
+document.getElementById('cardTree').innerHTML=tree({k:15,cls:'t'});
+draw();
+document.getElementById('copyMsgs').addEventListener('click',async()=>{
+  const out=[...document.querySelectorAll('#msgs .msg')].map(m=>{const b=m.querySelector('b').textContent,p=m.querySelector('p').textContent,s=m.querySelector('small').textContent;return `${b}\n${p}\n${s}`}).join('\n\n');
+  const say=document.getElementById('copied');
+  try{await navigator.clipboard.writeText(out);say.textContent='نُسخت.'}
+  catch(e){const r=document.createRange();r.selectNodeContents(document.getElementById('msgs'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);say.textContent='حُددت. انسخها من لوحة المفاتيح.'}
+});
+</script>
+
+</body></html>
