@@ -37,6 +37,28 @@ function Find([string]$text) {
   return $null
 }
 
+# Taps the first control whose label starts with one of [prefixes]: some
+# words, like «حفظك», also sit inside hadith titles on the tree.
+function TapStart([string[]]$prefixes, [int]$tries = 6) {
+  for ($i = 0; $i -lt $tries; $i++) {
+    $xml = Dump
+    foreach ($n in (Nodes $xml)) {
+      $label = "$($n.'content-desc')".Trim()
+      foreach ($p in $prefixes) {
+        if ($label.StartsWith($p)) {
+          $c = Center $n
+          & $adb -s $Serial shell input tap $c[0] $c[1]
+          Start-Sleep -Milliseconds 1800
+          return $true
+        }
+      }
+    }
+    & $adb -s $Serial shell input swipe 540 1500 540 900 400
+    Start-Sleep -Milliseconds 900
+  }
+  return $false
+}
+
 function Center($node) {
   $m = [regex]::Match($node.bounds, '\[(\d+),(\d+)\]\[(\d+),(\d+)\]')
   $x = ([int]$m.Groups[1].Value + [int]$m.Groups[3].Value) / 2
@@ -79,7 +101,14 @@ function Back { & $adb -s $Serial shell input keyevent 4; Start-Sleep -Milliseco
 # A clean start of the installed app, its data kept.
 & $adb -s $Serial shell am force-stop $pkg
 & $adb -s $Serial shell am start -n "$pkg/.MainActivity" | Out-Null
-Start-Sleep -Seconds 9
+# Past the splash: until the ring or the first-launch offer is on screen.
+$deadline = (Get-Date).AddSeconds(40)
+do {
+  Start-Sleep -Seconds 2
+  $ready = (Find 'من ٣ خطوات اليوم') -or (Find 'ليس الآن')
+} until ($ready -or (Get-Date) -gt $deadline)
+# A fresh install offers reminders first; decline, as a reader might.
+if (Find 'ليس الآن') { Tap 'ليس الآن' 1 | Out-Null }
 
 # 1. Home: the ring counts today's steps.
 Check '01-home-ring' @('من ٣ خطوات اليوم')
@@ -87,14 +116,14 @@ Check '01-home-ring' @('من ٣ خطوات اليوم')
 if (Tap 'من ٣ خطوات اليوم') { Check '02-steps-page' @('خطوات اليوم', 'اقرأ رسالة اليوم', 'اكتب رسالتك') } else { $script:results += [pscustomobject]@{ Step = '02-steps-page'; Pass = $false; Missing = 'ring not found' } }
 Back
 # 3. رحلتي: tree, steps button, memo button, numbers, board.
-if (Tap 'رحلتي') { Check '03-journey-top' @('خطوات اليوم', 'من ٤٢ حديثاً') }
+if (Tap 'رحلتي') { Check '03-journey-top' @('خطوات اليوم', 'الحديث ١:', 'الحديث ٤٢:') }
 & $adb -s $Serial shell input swipe 540 1700 540 700 500; Start-Sleep -Milliseconds 1200
 Check '04-journey-numbers' @('حصاد الأسبوع', 'حصاد رحلتك', 'الاستمرارية', 'كل نقاطك', 'حفظت')
 # 4. «كيف تُحسب؟» opens and closes.
 if (Tap 'كيف تُحسب؟') { Check '05-how-counted' @('كيف تُحسب أرقامك؟', 'النقاط') ; Back }
 # 5. The memo page.
 & $adb -s $Serial shell input swipe 540 900 540 1600 500; Start-Sleep -Milliseconds 1000
-if (Tap 'حفظك') { Check '06-memo-page' @('راجع حفظك'); Back }
+if (TapStart @('ابدأ حفظك', 'راجع حفظك')) { Check '06-memo-page' @('راجع حفظك'); Back }
 # 6. The board.
 if (Tap 'لوحة الأسبوع') { Check '07-board' @('لوحة الأسبوع', 'نقاطك هذا الأسبوع'); Back }
 # 7. The steps button on رحلتي opens the same page.
