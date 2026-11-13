@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
@@ -89,7 +91,9 @@ void main() {
 
     test('sit on the painting, none on top of another', () {
       final leaves = TreeLayout.instance.leaves;
-      expect([for (final leaf in leaves) leaf.number], [
+      expect([
+        for (final leaf in leaves) leaf.number
+      ], [
         for (var i = 1; i <= 42; i++) i,
       ]);
       for (final leaf in leaves) {
@@ -106,13 +110,100 @@ void main() {
       }
     });
 
-    test('are numbered in a sweep from the lower left to the lower right',
-        () {
+    test('are numbered right to left, from the lower right over the top', () {
       final leaves = TreeLayout.instance.leaves;
-      expect(leaves.first.centre.dx, lessThan(TreeLayout.width / 2));
-      expect(leaves.last.centre.dx, greaterThan(TreeLayout.width / 2));
-      expect(leaves[20].centre.dy, lessThan(TreeLayout.height / 3),
+      expect(leaves.first.centre.dx, greaterThan(TreeLayout.width / 2));
+      expect(leaves.last.centre.dx, lessThan(TreeLayout.width / 2));
+      expect(leaves.first.centre.dy, greaterThan(TreeLayout.height / 2));
+      expect(leaves.last.centre.dy, greaterThan(TreeLayout.height / 2));
+      expect(leaves[21].centre.dy, lessThan(TreeLayout.height / 4),
           reason: 'the middle of the count is at the top');
+    });
+
+    test('every leaf opens itself, on every screen from phone to tablet', () {
+      // Tree widths measured on real screens: a 320-wide phone with the
+      // narrow card is about 268, a 10-inch tablet about 641.
+      for (final width in [240.0, 268.0, 292.0, 359.0, 481.0, 641.0, 900.0]) {
+        final size = Size(width, width * TreeLayout.height / TreeLayout.width);
+        final scale = width / TreeLayout.width;
+        for (final leaf in TreeLayout.instance.leaves) {
+          expect(
+            JourneyTreePainter.hitLeaf(leaf.centre * scale, size),
+            leaf.number,
+            reason: 'leaf ${leaf.number} at width $width',
+          );
+        }
+        expect(
+          JourneyTreePainter.reachFor(size) * scale,
+          greaterThanOrEqualTo(TreeLayout.tapReach),
+          reason: 'a tap reaches at least 22 on screen at width $width',
+        );
+        // The bare ground under the trunk is not a leaf.
+        expect(
+          JourneyTreePainter.hitLeaf(
+            const Offset(210, TreeLayout.height - 4) * scale,
+            size,
+          ),
+          isNull,
+        );
+      }
+    });
+
+    test('the tree keeps its shape in a box of any proportion', () {
+      for (final size in const [
+        Size(300, 600),
+        Size(700, 300),
+        Size(420, 352),
+      ]) {
+        final scale = math.min(
+          size.width / TreeLayout.width,
+          size.height / TreeLayout.height,
+        );
+        final origin = Offset(
+          (size.width - TreeLayout.width * scale) / 2,
+          (size.height - TreeLayout.height * scale) / 2,
+        );
+        for (final leaf in TreeLayout.instance.leaves) {
+          final onScreen = origin + leaf.centre * scale;
+          expect(
+            (Offset.zero & size).contains(onScreen),
+            isTrue,
+            reason: 'leaf ${leaf.number} in $size',
+          );
+          expect(JourneyTreePainter.hitLeaf(onScreen, size), leaf.number);
+        }
+      }
+    });
+
+    test('each number sits next to the one before it', () {
+      final leaves = TreeLayout.instance.leaves;
+      for (var i = 1; i < leaves.length; i++) {
+        expect(
+          (leaves[i].centre - leaves[i - 1].centre).distance,
+          lessThan(TreeLayout.leafLength * 2.4),
+          reason: 'leaf ${i + 1} is far from leaf $i',
+        );
+      }
+    });
+
+    test('the count never crosses back over itself', () {
+      final points = [
+        for (final leaf in TreeLayout.instance.leaves) leaf.centre
+      ];
+      double side(Offset a, Offset b, Offset c) =>
+          (b.dx - a.dx) * (c.dy - a.dy) - (b.dy - a.dy) * (c.dx - a.dx);
+      bool cross(Offset a, Offset b, Offset c, Offset d) =>
+          side(a, b, c) * side(a, b, d) < 0 &&
+          side(c, d, a) * side(c, d, b) < 0;
+      for (var i = 0; i < points.length - 1; i++) {
+        for (var j = i + 2; j < points.length - 1; j++) {
+          expect(
+            cross(points[i], points[i + 1], points[j], points[j + 1]),
+            isFalse,
+            reason: '${i + 1}→${i + 2} crosses ${j + 1}→${j + 2}',
+          );
+        }
+      }
     });
   });
 

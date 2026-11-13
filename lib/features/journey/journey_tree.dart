@@ -47,8 +47,10 @@ const _stemEnd = .984;
 
 /// The tree's geometry, in the frame of its painting: 420 wide, and as tall
 /// as the painting is for that width. The 42 leaves sit on the twig tips
-/// marked by hand on the painting, numbered in a sweep from the lower left,
-/// over the top, to the lower right.
+/// marked by hand on the painting, numbered the way Arabic is read: from
+/// the lower right, up and over the top, down to the lower left. Each
+/// number sits next to the one before it, and the path never crosses
+/// itself, so a reader can follow the count with their eye.
 class TreeLayout {
   TreeLayout._()
       : leaves = [
@@ -66,6 +68,15 @@ class TreeLayout {
   static const height = 352.0;
   static const leafLength = 32.6;
 
+  /// The number on a leaf, as tall as a third of the leaf: the most two
+  /// digits can take and still sit inside it.
+  static const numberSize = leafLength * .34;
+
+  /// How far from a leaf a tap still opens it, in logical pixels on screen:
+  /// a target 44 wide however small the tree is drawn. Where two reaches
+  /// overlap, the nearer leaf wins.
+  static const tapReach = 22.0;
+
   /// The leaf images are 241 wide for 387 tall.
   static const leafWidth = leafLength * 241 / 387;
 
@@ -76,48 +87,48 @@ class TreeLayout {
   /// Each leaf's stem end, x and y, and its direction in degrees (0 points
   /// right, 90 down), traced from the painting.
   static const _places = [
-    (78.7, 248.6, 141),
-    (116.3, 252.3, 125),
-    (48.0, 227.9, 178),
-    (149.8, 243.5, 128),
-    (44.8, 195.3, -145),
-    (35.7, 159.5, -159),
-    (84.0, 192.4, -120),
-    (118.2, 204.7, -149),
-    (81.5, 121.6, 167),
-    (124.7, 151.1, 161),
-    (100.6, 101.2, -130),
-    (147.6, 174.6, -112),
-    (121.9, 58.9, -123),
-    (180.5, 191.8, -120),
+    (273.0, 232.6, 55),
+    (335.7, 248.2, 47),
+    (380.2, 233.8, 10),
+    (363.0, 211.6, -11),
+    (340.7, 198.7, -43),
+    (384.9, 195.6, -29),
+    (379.6, 159.5, -42),
+    (382.7, 124.4, -47),
+    (357.0, 102.5, -46),
+    (348.2, 122.2, 3),
+    (321.3, 139.5, 14),
+    (303.1, 181.5, -46),
+    (271.7, 175.8, -67),
+    (243.9, 185.9, -71),
+    (246.0, 132.3, -85),
+    (268.3, 90.3, -75),
+    (296.8, 114.1, -63),
+    (326.9, 107.2, -37),
+    (333.8, 81.8, -62),
+    (307.5, 62.7, -70),
+    (273.9, 42.3, -82),
+    (236.3, 35.7, -105),
+    (183.0, 38.6, -102),
+    (179.9, 62.1, -125),
+    (202.8, 80.6, -95),
+    (201.2, 123.5, -98),
     (160.8, 122.2, -121),
     (153.9, 81.8, -115),
-    (179.9, 62.1, -125),
-    (183.0, 38.6, -102),
-    (201.2, 123.5, -98),
-    (202.8, 80.6, -95),
-    (236.3, 35.7, -105),
-    (246.0, 132.3, -85),
-    (273.9, 42.3, -82),
-    (268.3, 90.3, -75),
-    (243.9, 185.9, -71),
-    (307.5, 62.7, -70),
-    (296.8, 114.1, -63),
-    (271.7, 175.8, -67),
-    (333.8, 81.8, -62),
-    (326.9, 107.2, -37),
-    (357.0, 102.5, -46),
-    (303.1, 181.5, -46),
-    (321.3, 139.5, 14),
-    (348.2, 122.2, 3),
-    (382.7, 124.4, -47),
-    (379.6, 159.5, -42),
-    (340.7, 198.7, -43),
-    (273.0, 232.6, 55),
-    (384.9, 195.6, -29),
-    (363.0, 211.6, -11),
-    (380.2, 233.8, 10),
-    (335.7, 248.2, 47),
+    (121.9, 58.9, -123),
+    (100.6, 101.2, -130),
+    (81.5, 121.6, 167),
+    (35.7, 159.5, -159),
+    (44.8, 195.3, -145),
+    (84.0, 192.4, -120),
+    (124.7, 151.1, 161),
+    (147.6, 174.6, -112),
+    (180.5, 191.8, -120),
+    (118.2, 204.7, -149),
+    (149.8, 243.5, 128),
+    (116.3, 252.3, 125),
+    (78.7, 248.6, 141),
+    (48.0, 227.9, 178),
   ];
 
   final List<TreeLeaf> leaves;
@@ -362,7 +373,7 @@ TextPainter _label(int number, LeafLook look) =>
         text: toArabicDigits(number),
         style: TextStyle(
           fontFamily: kSans,
-          fontSize: TreeLayout.leafLength * .3,
+          fontSize: TreeLayout.numberSize,
           height: 1,
           fontWeight: FontWeight.w800,
           color: TreeColors.standard.inkOn(look),
@@ -412,12 +423,17 @@ class JourneyTreePainter extends CustomPainter {
     );
   }
 
+  /// How far a tap reaches from a leaf, in the painting's units: never less
+  /// than [TreeLayout.tapReach] on screen, so a small tree is as easy to tap.
+  static double reachFor(Size size) =>
+      math.max(TreeLayout.tapReach, TreeLayout.tapReach / _scaleFor(size));
+
   /// The hadith under [point], or null if the tap landed on bare branches.
   static int? hitLeaf(Offset point, Size size) {
     final scale = _scaleFor(size);
     final local = (point - _originFor(size)) / scale;
     TreeLeaf? nearest;
-    var nearestDistance = 22.0;
+    var nearestDistance = reachFor(size);
     for (final leaf in TreeLayout.instance.leaves) {
       final distance = (leaf.centre - local).distance;
       if (distance < nearestDistance) {
@@ -575,8 +591,8 @@ class JourneyTreePainter extends CustomPainter {
           CustomPainterSemantics(
             rect: Rect.fromCenter(
               center: origin + leaf.centre * scale,
-              width: 30 * scale,
-              height: 30 * scale,
+              width: math.max(30 * scale, TreeLayout.tapReach * 2),
+              height: math.max(30 * scale, TreeLayout.tapReach * 2),
             ),
             properties: SemanticsProperties(
               label: title(leaf.number),
@@ -787,8 +803,8 @@ class _JourneyTreeState extends State<JourneyTree>
 
   String _describe(int number, LeafLook look) {
     final state = switch (look) {
-      LeafLook.complete => 'مكتمل',
-      LeafLook.memorized => 'مكتمل، وفي حفظك',
+      LeafLook.complete => 'قرأته',
+      LeafLook.memorized => 'قرأته، وفي حفظك',
       LeafLook.empty => 'لم يُقرأ بعد',
     };
     return 'الحديث ${toArabicDigits(number)}: ${widget.titleOf(number)}، '
