@@ -6,7 +6,6 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
-import '../../core/widgets/app_button.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/circle_icon_button.dart';
@@ -15,16 +14,14 @@ import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_engine.dart';
-import '../../data/journey/journey_models.dart';
 import '../../data/journey/journey_points.dart';
 import '../../data/journey/journey_repository.dart';
-import '../../data/journey/memorization.dart';
 import '../../data/journey/reading_tracker.dart';
 import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../favorites/favorites_screen.dart';
 import '../hadith/hadith_detail_screen.dart';
-import '../memorize/memorize_screen.dart';
+import '../memorize/memo_list_screen.dart';
 import 'journey_links.dart';
 import 'journey_share_sheet.dart';
 import 'journey_tree.dart';
@@ -131,7 +128,11 @@ class _JourneyScreenState extends State<JourneyScreen> {
           child: IndexedStack(
             index: _section,
             children: [
-              _JourneyBody(onOpenMessage: widget.onOpenMessage),
+              // The tree stops swaying while the favourites are showing.
+              TickerMode(
+                enabled: _section == 0,
+                child: _JourneyBody(onOpenMessage: widget.onOpenMessage),
+              ),
               const FavoritesScreen(showHeader: false),
             ],
           ),
@@ -245,10 +246,14 @@ class _JourneyBody extends StatelessWidget {
                     constraints: BoxConstraints(
                       maxHeight: MediaQuery.sizeOf(context).height * .42,
                     ),
+                    // As tall as the tree, not as the room it may have.
                     child: Center(
+                      heightFactor: 1,
                       child: JourneyTree(
                         data: data,
-                        next: next,
+                        account: journey.uid,
+                        today: journey.today,
+                        ready: journey.loaded,
                         titleOf: (number) =>
                             hadiths.getByNumber(number)?.title ?? '',
                         onLeafTap: (number) => _openHadith(context, number),
@@ -262,10 +267,7 @@ class _JourneyBody extends StatelessWidget {
                     streak: streak.current,
                   ),
                   const SizedBox(height: 10),
-                  _LeafKey(
-                    looks: leafLooks(data, next: next).values.toSet(),
-                    memorized: data.memorizedCount > 0,
-                  ),
+                  _LeafKey(looks: leafLooks(data).values.toSet()),
                   if (journey.isGuest && !data.isEmpty) ...[
                     const SizedBox(height: 4),
                     TextButton(
@@ -292,7 +294,7 @@ class _JourneyBody extends StatelessWidget {
             const SizedBox(height: 12),
             // Given the data, not const: a const card with nothing passed in
             // is never rebuilt when the journey changes.
-            _MemoJourneyCard(data: data, today: journey.today),
+            MemoEntry(data: data, today: journey.today),
             const SizedBox(height: 12),
             _YouVersusYou(
               streak: streak,
@@ -917,144 +919,6 @@ class _CardTitle extends StatelessWidget {
   }
 }
 
-/// Memorizing, from the journey: how many are held, what is due today, and
-/// what is half learned. With nothing started, the shortest hadith already
-/// read, as the easiest place to begin.
-class _MemoJourneyCard extends StatelessWidget {
-  const _MemoJourneyCard({required this.data, required this.today});
-
-  final JourneyData data;
-  final String today;
-
-  void _open(BuildContext context, Widget screen) {
-    AppHaptics.tap();
-    Navigator.push(context, appPageRoute(child: screen));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final hadiths = HadithRepository();
-    final due = dueReviews(data.memo, today);
-    final learning = [
-      for (final entry in data.memo.entries)
-        if (entry.value.isLearning) entry.key,
-    ]..sort();
-    final body = TextStyle(
-      fontFamily: kSans,
-      fontSize: 14,
-      height: AppLeading.body,
-      color: palette.bodyText,
-    );
-
-    Widget row(String text, String action, VoidCallback onTap,
-            {bool primary = false}) =>
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Row(
-            children: [
-              Expanded(child: Text(text, style: body)),
-              const SizedBox(width: 8),
-              AppButton(
-                text: action,
-                expand: false,
-                isSecondary: !primary,
-                onPressed: onTap,
-              ),
-            ],
-          ),
-        );
-
-    final rows = <Widget>[
-      for (final number in due.take(3))
-        if (hadiths.getByNumber(number) case final hadith?)
-          row(
-            'مراجعة «${hadith.title}»',
-            'راجع',
-            () => _open(context, ReviewScreen(hadith: hadith)),
-            primary: true,
-          ),
-      for (final number in learning.take(2))
-        if (hadiths.getByNumber(number) case final hadith?)
-          row(
-            'أكمل حفظ «${hadith.title}»',
-            'أكمل',
-            () => _open(context, MemorizeScreen(hadith: hadith)),
-          ),
-    ];
-
-    if (rows.isEmpty) {
-      final upcoming = [
-        for (final entry in data.memo.entries)
-          if (entry.value.due != null) entry,
-      ]..sort((a, b) => a.value.due!.compareTo(b.value.due!));
-      if (upcoming.isNotEmpty) {
-        final next = upcoming.first;
-        final title = hadiths.getByNumber(next.key)?.title ?? '';
-        final days = DateTime.parse(next.value.due!)
-            .difference(DateTime.parse(today))
-            .inDays;
-        rows.add(Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Text(
-            'لا مراجعة اليوم. التالية «$title» '
-            '${days <= 1 ? 'غداً' : 'بعد ${arabicDayCount(days)}'}.',
-            style: body,
-          ),
-        ));
-      } else {
-        final read = [
-          for (final number in data.hadith.keys)
-            if (data.progressOf(number).isComplete &&
-                !data.memoOf(number).isMemorized)
-              if (hadiths.getByNumber(number) case final hadith?) hadith,
-        ]..sort((a, b) => a.text.length.compareTo(b.text.length));
-        rows.add(read.isEmpty
-            ? Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  'بعد أن تقرأ حديثاً تستطيع حفظه من صفحته، جزءاً جزءاً.',
-                  style: body,
-                ),
-              )
-            : row(
-                'ابدأ بحفظ «${read.first.title}»',
-                'ابدأ',
-                () => _open(context, MemorizeScreen(hadith: read.first)),
-                primary: true,
-              ));
-      }
-    }
-
-    return ParchmentCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      showWatermark: false,
-      showCornerOrnaments: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(child: _CardTitle('الحفظ')),
-              if (data.memorizedCount > 0)
-                Text(
-                  'في حفظك ${toArabicDigits(data.memorizedCount)}',
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: palette.goldText,
-                  ),
-                ),
-            ],
-          ),
-          ...rows,
-        ],
-      ),
-    );
-  }
-}
-
 /// Days in the form the number takes, to sit beside a figure.
 String _dayUnit(int days) => switch (days) {
       1 => 'يوم',
@@ -1126,15 +990,13 @@ class _TreeSummary extends StatelessWidget {
 
 /// What each leaf means, for the kinds of leaf this tree has right now.
 class _LeafKey extends StatelessWidget {
-  const _LeafKey({required this.looks, required this.memorized});
+  const _LeafKey({required this.looks});
 
   final Set<LeafLook> looks;
-  final bool memorized;
 
   static const _labels = {
     LeafLook.complete: 'مكتمل',
-    LeafLook.started: 'بدأت قراءته',
-    LeafLook.next: 'حديث اليوم',
+    LeafLook.memorized: 'في حفظك',
     LeafLook.empty: 'لم يُقرأ بعد',
   };
 
@@ -1142,10 +1004,10 @@ class _LeafKey extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    Widget entry(LeafLook look, String label, {bool dot = false}) => Row(
+    Widget entry(LeafLook look, String label) => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            LeafSwatch(look, memorized: dot),
+            LeafSwatch(look),
             const SizedBox(width: 5),
             Text(
               label,
@@ -1167,7 +1029,6 @@ class _LeafKey extends StatelessWidget {
       children: [
         for (final MapEntry(key: look, value: label) in _labels.entries)
           if (looks.contains(look)) entry(look, label),
-        if (memorized) entry(LeafLook.complete, 'في حفظك', dot: true),
       ],
     );
   }

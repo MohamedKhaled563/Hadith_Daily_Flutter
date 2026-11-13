@@ -77,6 +77,8 @@ flutter:
   assets:
     - assets/
     - assets/images/
+    # The رحلتي tree and its three leaves (journey_tree.dart).
+    - assets/images/journey/
     - assets/icons/
     # hadiths.json / insights.json are generated from
     # "الأربعون_النووية_رسائل_يومية.xlsx" by tool/import_hadiths_v2.py and

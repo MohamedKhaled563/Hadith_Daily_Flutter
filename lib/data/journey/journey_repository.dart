@@ -128,6 +128,9 @@ class JourneyRepository {
   /// empty because nothing has loaded, not because the reader has done nothing.
   bool _accountLoaded = false;
 
+  /// The same for a guest, whose journey is read from the phone.
+  bool _guestLoaded = false;
+
   final ValueNotifier<int> _revision = ValueNotifier<int>(0);
 
   /// Fires whenever the journey changes — a reading here, the account's data
@@ -138,6 +141,9 @@ class JourneyRepository {
   bool get isGuest => _uid == null;
   String? get uid => _uid;
   bool get accountLoaded => _uid != null && _accountLoaded;
+
+  /// Whether [data] is the reader's own yet, guest or account.
+  bool get loaded => _uid == null ? _guestLoaded : _accountLoaded;
 
   String get today => journeyDayKey(_clock());
 
@@ -195,6 +201,7 @@ class JourneyRepository {
     _subscription = null;
     _watchedYear = null;
     _accountLoaded = false;
+    _guestLoaded = false;
     _approvedOn = const [];
     _data = JourneyData.empty;
     _changed();
@@ -204,6 +211,7 @@ class JourneyRepository {
 
     if (uid == null) {
       _data = guest;
+      _guestLoaded = true;
       _changed();
       return;
     }

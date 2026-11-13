@@ -315,9 +315,14 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                     ),
-                    JourneyScreen(
-                      onOpenDrawer: _openDrawer,
-                      onOpenMessage: _openMessageFromJourney,
+                    // The same for the journey's tree, which sways only
+                    // while it is the tab showing.
+                    TickerMode(
+                      enabled: _currentTabIndex == 1,
+                      child: JourneyScreen(
+                        onOpenDrawer: _openDrawer,
+                        onOpenMessage: _openMessageFromJourney,
+                      ),
                     ),
                     CommunityScreen(
                       onOpenDrawer: _openDrawer,
