@@ -166,6 +166,45 @@ Seed Arabic from a UTF-8 file (`curl --data-binary @seed.json`), never inline
 in a `curl -d` argument. On a Windows machine whose ANSI code page has no
 Arabic (1252 here), the argument reaches curl with every letter already `?`.
 
+## رحلتي for several readers
+
+`integration_test/ruhlati_e2e_test.dart` runs three readers and a moderator
+on one phone against the local emulators and the real `firestore.rules`:
+
+1. three readers sign up, each starting with nothing;
+2. one reads three days running, memorizes and reviews, and every day is in
+   the database;
+3. after a cold start her numbers, steps and memorizing come back from the
+   database;
+4. a second reader on the same phone sees only his own journey;
+5. the rules refuse reading or writing another reader's journey or entry;
+6. each joins the weekly board under a nickname; the rules refuse a longer
+   name, more points than a week allows, unknown fields and other readers'
+   entries;
+7. the moderator publishes from the dashboard and every reader sees it;
+8. a reader renames from the board screen and the database follows;
+9. leaving removes the entry, and deleting an account leaves nothing of it
+   while the others are untouched.
+
+```bash
+firebase emulators:exec --only firestore,auth --project demo-journey   "flutter test integration_test/ruhlati_e2e_test.dart -d <emulator-id>"
+```
+
+It is part of `tool/e2e_suite.ps1`. Clear the app's data on the emulator
+afterwards, as above.
+
+## On a real phone that holds real data
+
+Never `flutter test` there: an integration run reinstalls the app and
+uninstalls it when it ends, and the reader's data goes with it. Install the
+release build with `adb install -r`, which keeps the data, then run the
+read-only check, which drives the installed app through adb by its
+accessibility labels and screenshots every step:
+
+```bash
+powershell -ExecutionPolicy Bypass -File tool/phone_journey_check.ps1 -Serial <adb-serial>
+```
+
 ## Time-dependent tests
 
 The scheduler takes an injectable clock (`NotificationScheduler.test(clock:)`)

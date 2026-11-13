@@ -5,6 +5,9 @@
 #  1. integration_test/e2e_test.dart: one reader from guest to deleted
 #     account, through the real screens, the real firestore.rules and the
 #     dashboard's own pages, on the local Firebase emulators.
+#     integration_test/ruhlati_e2e_test.dart: three readers and a moderator
+#     on one phone: separate journeys, the rules between them, nicknames
+#     on the weekly board, publishing, renaming, leaving and deleting.
 #  2. The other local-Firebase tests (journey, board, sending a message).
 #  3. Every device suite in integration_test/, each with a time limit.
 #     Notifications are granted from outside every few seconds, since the
@@ -68,6 +71,7 @@ function RunWithFirebase($test, $minutes = 10) {
 }
 
 RunWithFirebase 'e2e_test' 12
+RunWithFirebase 'ruhlati_e2e_test' 12
 RunWithFirebase 'journey_firestore_test'
 RunWithFirebase 'board_firestore_test'
 RunWithFirebase 'send_message_test'
