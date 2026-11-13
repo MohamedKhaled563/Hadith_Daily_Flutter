@@ -17,9 +17,10 @@ import '../../data/models/hadith.dart';
 /// The three steps of learning one part of a hadith by heart.
 enum MemoStep { read, complete, recite }
 
-/// Learning a hadith by heart, one part a session — see [memoParts]. Three
-/// steps: read it sentence by sentence, fill in words as more of them are
-/// hidden, then recite it from memory and say honestly whether you had it.
+/// Learning a hadith by heart with its narrator and source, one part a
+/// session — see [memoPassage]. Three steps: read it sentence by sentence,
+/// fill in words as more of them are hidden, then recite it from memory and
+/// say honestly whether you had it.
 class MemorizeScreen extends StatefulWidget {
   const MemorizeScreen({super.key, required this.hadith});
 
@@ -32,7 +33,7 @@ class MemorizeScreen extends StatefulWidget {
 class _MemorizeScreenState extends State<MemorizeScreen> {
   final _journey = JourneyRepository();
 
-  late final List<List<String>> _parts = memoParts(widget.hadith.text);
+  late final List<List<MemoSentence>> _parts = memoPassage(widget.hadith);
 
   /// The part this session is for: the first one not yet learned.
   late final int _part = _journey.data
@@ -40,7 +41,7 @@ class _MemorizeScreenState extends State<MemorizeScreen> {
       .parts
       .clamp(0, _parts.length - 1);
 
-  List<String> get _sentences => _parts[_part];
+  List<MemoSentence> get _sentences => _parts[_part];
 
   MemoStep _step = MemoStep.read;
   int _sentence = 0;
@@ -128,13 +129,13 @@ class _MemorizeScreenState extends State<MemorizeScreen> {
                         current: _sentence,
                       ),
                     MemoStep.complete => HiddenText(
-                        text: _sentences.join(' '),
+                        sentences: _sentences,
                         level: _level,
                         revealed: _revealed,
                         onReveal: (i) => setState(() => _revealed.add(i)),
                       ),
                     MemoStep.recite => HiddenText(
-                        text: _sentences.join(' '),
+                        sentences: _sentences,
                         level: _shown ? 0 : 3,
                         revealed: _revealed,
                         onReveal: (i) => setState(() => _revealed.add(i)),
@@ -252,6 +253,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
   final Set<int> _revealed = {};
   String? _result;
 
+  /// The whole hadith with its narrator and source, all parts together.
+  late final List<MemoSentence> _passage = [
+    for (final part in memoPassage(widget.hadith)) ...part,
+  ];
+
   late final bool _due =
       _journey.data.memoOf(widget.hadith.number).isDue(_journey.today);
 
@@ -299,7 +305,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 ParchmentCard(
                   elevated: true,
                   child: HiddenText(
-                    text: widget.hadith.text,
+                    sentences: _passage,
                     level: _shown ? 0 : 3,
                     revealed: _revealed,
                     onReveal: (i) => setState(() => _revealed.add(i)),
@@ -461,89 +467,143 @@ class _StepRow extends StatelessWidget {
   }
 }
 
+/// The type a line of the passage is set in. The narrator and the source
+/// are smaller than the hadith, as on the hadith's page, so the reader can
+/// tell where the Prophet's ﷺ words begin and end.
+TextStyle _lineStyle(MemoLine line) => line == MemoLine.matn
+    ? AppTextStyles.hadithText
+    : AppTextStyles.hadithText.copyWith(fontSize: 15);
+
+/// [count] items in runs of the same line, as lists of their indices: the
+/// narrator, the hadith and the source each drawn as a block of its own.
+List<List<int>> _runsOf(int count, MemoLine Function(int) lineOf) {
+  final runs = <List<int>>[];
+  for (var i = 0; i < count; i++) {
+    if (i == 0 || lineOf(i) != lineOf(i - 1)) runs.add([]);
+    runs.last.add(i);
+  }
+  return runs;
+}
+
+/// The runs stacked, a little space between the narrator, the hadith and
+/// the source.
+Widget _stack(List<Widget> blocks) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < blocks.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          blocks[i],
+        ],
+      ],
+    );
+
 /// The part's sentences, the current one lit and the rest quiet.
 class _ReadSentences extends StatelessWidget {
   const _ReadSentences({required this.sentences, required this.current});
 
-  final List<String> sentences;
+  final List<MemoSentence> sentences;
   final int current;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return Text.rich(
-      TextSpan(
-        children: [
-          for (var i = 0; i < sentences.length; i++)
-            TextSpan(
-              text: '${sentences[i]} ',
-              style: AppTextStyles.hadithText.copyWith(
-                color: i == current
-                    ? palette.bodyText
-                    : palette.mutedText
-                        .withValues(alpha: i < current ? .7 : .35),
-                fontWeight: i == current ? FontWeight.w700 : FontWeight.w400,
-              ),
-            ),
-        ],
-      ),
-      textAlign: TextAlign.start,
-    );
+    return _stack([
+      for (final run in _runsOf(sentences.length, (i) => sentences[i].line))
+        Text.rich(
+          TextSpan(
+            children: [
+              for (final i in run)
+                TextSpan(
+                  text: '${sentences[i].text} ',
+                  style: _lineStyle(sentences[i].line).copyWith(
+                    color: i == current
+                        ? palette.bodyText
+                        : palette.mutedText
+                            .withValues(alpha: i < current ? .7 : .35),
+                    fontWeight:
+                        i == current ? FontWeight.w700 : FontWeight.w400,
+                  ),
+                ),
+            ],
+          ),
+          textAlign: TextAlign.start,
+        ),
+    ]);
   }
 }
 
 /// A passage with words hidden by [hiddenWords] at [level]. A hidden word
 /// keeps its exact place and size, as a blank the reader can tap to reveal.
+/// Words are numbered across the whole passage, narrator to source, so
+/// [revealed] holds one number per word.
 class HiddenText extends StatelessWidget {
   const HiddenText({
     super.key,
-    required this.text,
+    required this.sentences,
     required this.level,
     required this.revealed,
     required this.onReveal,
   });
 
-  final String text;
+  final List<MemoSentence> sentences;
   final int level;
   final Set<int> revealed;
   final ValueChanged<int> onReveal;
 
+  /// A token with no letter, like the dash in «أبي عمرو — وقيل أبي عمرة —»,
+  /// is not something to recall, so it is never hidden.
+  static final _letter = RegExp(r'\p{L}', unicode: true);
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final words = text.trim().split(RegExp(r'\s+'));
+    final words = [
+      for (final sentence in sentences)
+        for (final word in sentence.text.trim().split(RegExp(r'\s+')))
+          if (word.isNotEmpty) (text: word, line: sentence.line),
+    ];
     final hidden = hiddenWords(words.length, level);
-    final style = AppTextStyles.hadithText.copyWith(color: palette.bodyText);
 
-    return Wrap(
-      spacing: 6,
-      runSpacing: 4,
-      children: [
-        for (var i = 0; i < words.length; i++)
-          if (!hidden[i] || revealed.contains(i))
-            Text(words[i], style: style)
-          else
-            Semantics(
-              button: true,
-              label: 'كلمة مخفية، المس لإظهارها',
-              excludeSemantics: true,
-              child: GestureDetector(
-                onTap: () => onReveal(i),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: palette.surfaceSunken,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: palette.cardBorder),
-                  ),
-                  child: Text(
-                    words[i],
-                    style: style.copyWith(color: Colors.transparent),
-                  ),
-                ),
-              ),
+    Widget word(int i) {
+      final style = _lineStyle(words[i].line).copyWith(
+        color: words[i].line == MemoLine.matn
+            ? palette.bodyText
+            : palette.mutedText,
+      );
+      if (!hidden[i] ||
+          revealed.contains(i) ||
+          !_letter.hasMatch(words[i].text)) {
+        return Text(words[i].text, style: style);
+      }
+      return Semantics(
+        button: true,
+        label: 'كلمة مخفية، المس لإظهارها',
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: () => onReveal(i),
+          child: Container(
+            decoration: BoxDecoration(
+              color: palette.surfaceSunken,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: palette.cardBorder),
             ),
-      ],
-    );
+            child: Text(
+              words[i].text,
+              style: style.copyWith(color: Colors.transparent),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return _stack([
+      for (final run in _runsOf(words.length, (i) => words[i].line))
+        Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [for (final i in run) word(i)],
+        ),
+    ]);
   }
 }

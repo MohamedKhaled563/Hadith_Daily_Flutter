@@ -407,9 +407,10 @@ class DailyTipService {
   /// how far through the day's set they have got.
   ///
   /// Home shows the emblem either way. This is persisted so that pressing
-  /// طيّب قلبك again, after leaving the window or restarting the app, returns
-  /// the reader to the last message they saw rather than starting the day
-  /// over. Resets with the day, like the set itself.
+  /// طيّب قلبك again, after leaving the window or restarting the app, moves
+  /// on to the next message rather than starting the day over, and a
+  /// reminder tap lands on the last one they saw. Resets with the day, like
+  /// the set itself.
   Future<int> revealedCount() async {
     final prefs = await SharedPreferences.getInstance();
     final dateKey = _perAccount(_revealedOnDateKey);

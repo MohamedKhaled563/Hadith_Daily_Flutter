@@ -1,16 +1,18 @@
 /// Memorizing a hadith, and keeping it: how the text is split for learning,
 /// and when each memorized hadith comes back for review.
 ///
-/// Built from the hadith text alone, so it needs no new content. Nothing
-/// here is a quiz: no choices to pick from and no words to put in order,
-/// since a wrong option would set invented words beside the Prophet's ﷺ.
-/// The reader recites from memory and says honestly whether they had it.
+/// Built from the hadith as it is already stored: its narrator, its text and
+/// who recorded it, so it needs no new content. Nothing here is a quiz: no
+/// choices to pick from and no words to put in order, since a wrong option
+/// would set invented words beside the Prophet's ﷺ. The reader recites from
+/// memory and says honestly whether they had it.
 ///
 /// Pure Dart, no Flutter or Firestore, like the rest of the journey's logic.
 library;
 
 import 'dart:math' as math;
 
+import '../models/hadith.dart';
 import 'journey_engine.dart';
 
 /// Days until the next review, by how many reviews in a row went well. A
@@ -18,9 +20,10 @@ import 'journey_engine.dart';
 /// back. After the last step the hadith is kept, with no review planned.
 const kReviewIntervals = [1, 3, 7, 16, 35, 90];
 
-/// The most a learning session asks for. 26 of the 42 hadiths are shorter
-/// than 40 words and fit one session; the six longest (84 to 179 words) are
-/// learned in parts over several days.
+/// The most of the hadith's own words a learning session asks for, before
+/// its narrator and source (see [memoPassage]). 26 of the 42 hadiths are
+/// shorter than 40 words and fit one session; the six longest (84 to 179
+/// words) are learned in parts over several days.
 const kWordsPerSession = 80;
 
 /// How many memorized hadiths a milestone is shown at.
@@ -226,6 +229,64 @@ List<List<String>> memoParts(String text) {
     }
     parts.last.add(sentence);
     inPart += size;
+  }
+  return parts;
+}
+
+/// Where a sentence of the memorized passage comes from.
+enum MemoLine {
+  /// The chain that opens the hadith: «عن أبي هريرة رضي الله عنه قال: …».
+  narrator,
+
+  /// The hadith itself.
+  matn,
+
+  /// Who recorded it: «رواه البخاري ومسلم».
+  source,
+}
+
+/// One sentence of the memorized passage, and where it comes from.
+class MemoSentence {
+  const MemoSentence(this.text, this.line);
+
+  final String text;
+  final MemoLine line;
+
+  @override
+  bool operator ==(Object other) =>
+      other is MemoSentence && other.text == text && other.line == line;
+
+  @override
+  int get hashCode => Object.hash(text, line);
+
+  @override
+  String toString() => '${line.name}: $text';
+}
+
+/// The hadith as it is learned by heart, part by part: its narrator before
+/// it and who recorded it after it, the way the Forty are memorized.
+///
+/// The parts are those [memoParts] makes of the hadith text alone, with the
+/// narrator opening the first and the source closing the last. So a hadith
+/// takes as many sessions as it did before, and a reader's saved count of
+/// parts keeps its meaning.
+List<List<MemoSentence>> memoPassage(Hadith hadith) {
+  final parts = [
+    for (final part in memoParts(hadith.text))
+      [for (final sentence in part) MemoSentence(sentence, MemoLine.matn)],
+  ];
+  final narrator = hadith.isnad.trim();
+  if (narrator.isNotEmpty) {
+    parts.first.insertAll(0, [
+      for (final sentence in memoSentences(narrator))
+        MemoSentence(sentence, MemoLine.narrator),
+    ]);
+  }
+  final source = hadith.mukhrij.trim();
+  if (source.isNotEmpty) {
+    // One line, never split at its commas: «رواه مسلم» is two words and
+    // would otherwise be joined onto the last sentence of the hadith.
+    parts.last.add(MemoSentence('رواه $source', MemoLine.source));
   }
   return parts;
 }
