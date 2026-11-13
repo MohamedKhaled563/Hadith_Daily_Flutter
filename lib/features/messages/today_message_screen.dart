@@ -13,10 +13,10 @@ import 'daily_message_screen.dart';
 /// Today's message, in its own window over the home tab.
 ///
 /// Pressing طيّب قلبك opens this and leaving it goes back to the emblem, so
-/// home always has the emblem on it and the reader can return to the day's
-/// message as often as they like. The window keeps how far they got through
-/// DailyTipService, not on home: pressing the emblem again picks up at the
-/// last message they saw, with رسالة أخرى carrying on from there.
+/// home always has the emblem on it. Each press of the emblem brings the next
+/// of today's messages until the day runs out, then keeps showing the last
+/// one; رسالة أخرى inside the window moves on the same way. How far the
+/// reader got is kept in DailyTipService, not on home.
 ///
 /// No counter, and no indication of how many the day holds. The reader is
 /// being given a message, not shown their position in a queue — a "١ / ٤"

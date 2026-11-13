@@ -236,11 +236,16 @@ class _HomeScreenState extends State<HomeScreen>
   /// Home keeps nothing about it and never changes, so the emblem is waiting
   /// when the reader comes back, and every press reads today afresh. An app
   /// left open overnight therefore cannot show yesterday's message.
-  Future<void> _openDailyMessage() async {
+  ///
+  /// With [advance], which is pressing the emblem itself, each press gives
+  /// the next of today's messages until the day runs out; after that it
+  /// keeps showing the last one, with "see you tomorrow" under it. Every
+  /// other way in (a reminder, the journey) lands on the message the reader
+  /// already reached, so tapping a reminder twice never spends a message
+  /// they did not ask for.
+  Future<void> _openDailyMessage({bool advance = false}) async {
     if (_loadingDailyTip) return; // A second tap while the first one loads.
     setState(() => _loadingDailyTip = true);
-    // Opened earlier today? Then this returns to where they left off rather
-    // than starting the day's set over.
     final alreadyRevealed = await DailyTipService().revealedCount();
     final entries = await _loadTodayEntries();
     if (!mounted) return;
@@ -255,10 +260,16 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    if (alreadyRevealed < 1) unawaited(DailyTipService().saveRevealedCount(1));
+    // Clamped because a stored count can run past the end if the admin
+    // lowered the day's size after the reader had gone further.
+    final showing = (advance ? alreadyRevealed + 1 : alreadyRevealed)
+        .clamp(1, entries.length);
+    if (showing > alreadyRevealed) {
+      unawaited(DailyTipService().saveRevealedCount(showing));
+    }
     await Navigator.of(context).push(
       appMessageRoute(
-        child: TodayMessageScreen(entries: entries, revealed: alreadyRevealed),
+        child: TodayMessageScreen(entries: entries, revealed: showing),
       ),
     );
     // Back from reading their first message: the reader now has a reason to
@@ -311,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen>
                             context,
                             appPageRoute(child: const HadithListScreen()),
                           ),
-                          onHeartClick: _openDailyMessage,
+                          onHeartClick: () => _openDailyMessage(advance: true),
                         ),
                       ),
                     ),

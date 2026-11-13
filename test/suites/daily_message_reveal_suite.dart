@@ -23,8 +23,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// button and a progress strand, then inline on the home tab in the emblem's
 /// place. It is now a window: press the emblem, today's message opens over
 /// home with no counter anywhere, and leaving it returns to **the emblem,
-/// which home never loses**. Pressing it again the same day returns to the
-/// last message the reader saw.
+/// which home never loses**. Each press of the emblem brings the next of
+/// today's messages until the day runs out, then keeps showing the last one.
+/// A reminder tap lands on the message already reached, without spending a
+/// new one.
 ///
 /// These tests pin that, because every one of those properties was got wrong
 /// at least once.
@@ -220,9 +222,43 @@ void dailyMessageRevealSuite() {
       expect(find.textContaining('هل سمعت'), findsOneWidget);
     });
 
-    testWidgets('the emblem opens the window again, at the same message',
+    testWidgets('each press of the emblem brings a new message, to the limit',
         (tester) async {
-      await _pumpHome(tester, 3, _seededDay(3, revealed: 1),
+      await _pumpHome(tester, 3, _seededDay(3),
+          until: find.textContaining('هل سمعت'));
+
+      Future<void> pressAndExpect(int number) async {
+        await tester.tap(find.textContaining('طيّب قلبك').first);
+        await _settle(tester, until: find.textContaining('رسالة رقم $number'));
+        await _settle(tester);
+        expect(find.byType(TodayMessageScreen), findsOneWidget);
+        for (var other = 1; other <= 3; other++) {
+          expect(find.textContaining('رسالة رقم $other'),
+              other == number ? findsOneWidget : findsNothing);
+        }
+      }
+
+      await pressAndExpect(1);
+      expect(find.text('رسالة أخرى'), findsOneWidget);
+      await _closeWindow(tester);
+
+      await pressAndExpect(2);
+      await _closeWindow(tester);
+
+      await pressAndExpect(3);
+      expect(find.text('نلقاك غداً بإذن الله'), findsOneWidget);
+      await _closeWindow(tester);
+
+      // The day is spent: the last message again, not a fourth or a first.
+      await pressAndExpect(3);
+      expect(find.text('رسالة أخرى'), findsNothing);
+      expect(find.text('نلقاك غداً بإذن الله'), findsOneWidget);
+      expect(await DailyTipService().revealedCount(), 3);
+    });
+
+    testWidgets('رسالة أخرى and the emblem share one place in the day',
+        (tester) async {
+      await _pumpHome(tester, 3, _seededDay(3),
           pressEmblem: true, until: find.text('رسالة أخرى'));
       await _settle(tester);
 
@@ -232,13 +268,12 @@ void dailyMessageRevealSuite() {
 
       await _closeWindow(tester);
       await tester.tap(find.textContaining('طيّب قلبك').first);
-      await _settle(tester, until: find.textContaining('رسالة رقم 2'));
+      await _settle(tester, until: find.textContaining('رسالة رقم 3'));
       await _settle(tester);
 
-      expect(find.byType(TodayMessageScreen), findsOneWidget);
-      expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
-      expect(find.textContaining('رسالة رقم 1'), findsNothing);
-      expect(await DailyTipService().revealedCount(), 2);
+      expect(find.textContaining('رسالة رقم 3'), findsOneWidget);
+      expect(find.textContaining('رسالة رقم 2'), findsNothing);
+      expect(await DailyTipService().revealedCount(), 3);
     });
 
     testWidgets('a double tap opens one window', (tester) async {
@@ -286,11 +321,12 @@ void dailyMessageRevealSuite() {
 
     testWidgets('never shows a counter', (tester) async {
       await _pumpHome(tester, 4, _seededDay(4, revealed: 2),
-          pressEmblem: true, until: find.textContaining('رسالة رقم 2'));
+          pressEmblem: true, until: find.textContaining('رسالة رقم 3'));
 
       // The reader is being given a message, not shown a position in a queue.
-      expect(find.text('١ / ٤'), findsNothing);
+      expect(find.textContaining('رسالة رقم 3'), findsOneWidget);
       expect(find.text('٢ / ٤'), findsNothing);
+      expect(find.text('٣ / ٤'), findsNothing);
       expect(find.textContaining(' / '), findsNothing);
     });
   });
@@ -305,16 +341,20 @@ void dailyMessageRevealSuite() {
       expect(find.textContaining('رسالة رقم'), findsNothing);
     });
 
-    testWidgets('pressing it again returns to the last message seen',
+    testWidgets('pressing it after a restart moves on to the next message',
         (tester) async {
-      await _pumpHome(tester, 3, _seededDay(3, revealed: 2),
+      await _pumpHome(tester, 3, _seededDay(3, revealed: 1),
           pressEmblem: true, until: find.textContaining('رسالة رقم 2'));
+      await _settle(tester);
 
       expect(find.textContaining('رسالة رقم 2'), findsOneWidget);
       expect(find.textContaining('رسالة رقم 1'), findsNothing);
       expect(find.text('رسالة أخرى'), findsOneWidget);
+      expect(await DailyTipService().revealedCount(), 2);
     });
 
+    // A reminder lands on the message already reached rather than spending a
+    // new one: a reader tapping it twice has not asked for anything new.
     testWidgets('a reminder tap lands straight on the message', (tester) async {
       DailyTipService.debugMessagesPerDay = 3;
       SharedPreferences.setMockInitialValues(_seededDay(3, revealed: 2));
@@ -352,7 +392,7 @@ void dailyMessageRevealSuite() {
 
     testWidgets('offers another message while the day has more',
         (tester) async {
-      await _pumpHome(tester, 3, _seededDay(3, revealed: 1),
+      await _pumpHome(tester, 3, _seededDay(3),
           pressEmblem: true, until: find.text('رسالة أخرى'));
 
       expect(find.text('رسالة أخرى'), findsOneWidget);
