@@ -543,11 +543,12 @@ void main() {
       await openJourney(tester);
 
       // Three kinds of leaf: 1 is memorized, 2 is read, the rest are not.
-      for (final label in ['مكتمل', 'لم يُقرأ بعد', 'في حفظك']) {
+      for (final label in ['قرأته', 'لم يُقرأ بعد', 'في حفظك']) {
         expect(find.text(label), findsOneWidget, reason: label);
         expect(
           find.descendant(
-            of: find.ancestor(of: find.text(label), matching: find.byType(Row))
+            of: find
+                .ancestor(of: find.text(label), matching: find.byType(Row))
                 .first,
             matching: find.byType(LeafSwatch),
           ),
@@ -561,7 +562,7 @@ void main() {
       await openJourney(tester);
 
       expect(find.text('لم يُقرأ بعد'), findsOneWidget);
-      expect(find.text('مكتمل'), findsNothing);
+      expect(find.text('قرأته'), findsNothing);
       expect(find.text('في حفظك'), findsNothing);
     });
 
@@ -1304,6 +1305,36 @@ void main() {
           });
         }
       }
+
+      testWidgets('the whole tree fits, and its leaves open: ${size.key}',
+          (tester) async {
+        await tester.pumpWidget(app(const HomeScreen(), size: size.value));
+        await wait(tester);
+        await tester.tap(tab('رحلتي'));
+        await wait(tester);
+
+        final tree = tester.getRect(find.byType(JourneyTree));
+        final screen = tester.getRect(find.byType(HomeScreen));
+        expect(tree.left, greaterThanOrEqualTo(screen.left));
+        expect(tree.right, lessThanOrEqualTo(screen.right));
+        expect(tree.bottom, lessThan(screen.bottom),
+            reason: 'on the first screen');
+        expect(tree.width, greaterThan(size.value.width * .78),
+            reason: 'the tree takes nearly the whole width');
+
+        // The first leaf, the top of the count and the last: the right, the
+        // top and the left of the tree.
+        for (final number in [1, 22, 42]) {
+          await tapLeaf(tester, number);
+          expect(
+            find.text(hadiths.getByNumber(number)!.title),
+            findsOneWidget,
+            reason: 'leaf $number at ${size.key}',
+          );
+          Navigator.of(tester.element(find.byType(HadithDetailScreen))).pop();
+          await wait(tester, 700);
+        }
+      });
     }
   });
 
@@ -1333,7 +1364,7 @@ void main() {
       expect(labels.where((l) => l.startsWith('الحديث ')), hasLength(42));
       expect(
         labels.where((l) => l.startsWith('الحديث ١:')).single,
-        endsWith('مكتمل'),
+        endsWith('قرأته'),
       );
       expect(
         labels.where((l) => l.startsWith('الحديث ٢:')).single,

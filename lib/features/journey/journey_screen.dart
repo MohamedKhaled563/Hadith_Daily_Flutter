@@ -226,6 +226,7 @@ class _JourneyBody extends StatelessWidget {
         final steps = journey.todaySteps;
         final streak = journey.streak;
         final weeks = journey.weeks;
+        final narrow = MediaQuery.sizeOf(context).width < 380;
 
         return ListView(
           padding: EdgeInsets.fromLTRB(
@@ -237,7 +238,14 @@ class _JourneyBody extends StatelessWidget {
           children: [
             ParchmentCard(
               elevated: true,
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+              // On a narrow phone the tree takes the card's full width, so
+              // its leaves and numbers are drawn as large as they can be.
+              padding: EdgeInsets.fromLTRB(
+                narrow ? 4 : 14,
+                12,
+                narrow ? 4 : 14,
+                16,
+              ),
               child: Column(
                 children: [
                   // About two fifths of the screen: the hero, without
@@ -995,7 +1003,7 @@ class _LeafKey extends StatelessWidget {
   final Set<LeafLook> looks;
 
   static const _labels = {
-    LeafLook.complete: 'مكتمل',
+    LeafLook.complete: 'قرأته',
     LeafLook.memorized: 'في حفظك',
     LeafLook.empty: 'لم يُقرأ بعد',
   };
