@@ -249,73 +249,103 @@ class TreePoster extends StatelessWidget {
   }
 }
 
-/// The week's harvest: how many days and minutes went to the hadith. Small
-/// numbers, and no comparison with anyone, so it reads as an invitation.
+/// The week's harvest: three numbers, the ones رحلتي shows for the week.
+/// Each on its own tile with a leaf, and no comparison with anyone, so it
+/// reads as an invitation. A Status has the room to stack them.
 class HarvestPoster extends StatelessWidget {
   const HarvestPoster({
     super.key,
     required this.format,
     required this.harvest,
+    this.weekLabel,
     this.name,
   });
 
   final PosterFormat format;
   final Harvest harvest;
 
+  /// «أسبوع ١٤–٢٠ نوفمبر», when known.
+  final String? weekLabel;
+
   /// Null unless the reader turned their name on.
   final String? name;
 
   @override
   Widget build(BuildContext context) {
+    final tall = format == PosterFormat.story;
+    final tiles = [
+      _HarvestTile(
+        value: harvest.streak,
+        unit: _posterDayUnit(harvest.streak),
+        label: 'الاستمرارية',
+        tall: tall,
+      ),
+      _HarvestTile(
+        value: harvest.bestRun,
+        unit: _posterDayUnit(harvest.bestRun),
+        label: 'أفضل استمرارية',
+        tall: tall,
+      ),
+      _HarvestTile(
+        value: harvest.points,
+        unit: 'نقطة',
+        label: 'نقاط الأسبوع',
+        tall: tall,
+      ),
+    ];
+
     return _PosterFrame(
       format: format,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Text(
-            JourneyCopy.harvestInvitation,
+            'حصاد أسبوعي',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: kSans,
-              fontSize: 15,
-              height: 1.3,
-              fontWeight: FontWeight.w700,
-              color: _gold,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            arabicDayCount(harvest.days),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
               fontFamily: 'Amiri',
-              fontSize: 40,
+              fontSize: 30,
               height: 1.3,
               fontWeight: FontWeight.w700,
               color: _ink,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'و${arabicMinuteCount(harvest.minutes)} مع الحديث',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: kSans,
-              fontSize: 16,
-              height: 1.4,
-              fontWeight: FontWeight.w700,
-              color: _ink,
+          if (weekLabel != null)
+            Text(
+              weekLabel!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: kSans,
+                fontSize: 12.5,
+                height: 1.4,
+                fontWeight: FontWeight.w700,
+                color: _gold,
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
+          SizedBox(height: tall ? 26 : 18),
+          if (tall)
+            for (final tile in tiles) ...[
+              SizedBox(width: 250, child: tile),
+              const SizedBox(height: 12),
+            ]
+          else
+            Row(
+              children: [
+                for (var i = 0; i < tiles.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  Expanded(child: tiles[i]),
+                ],
+              ],
+            ),
+          SizedBox(height: tall ? 14 : 18),
           const Text(
-            'من الأربعين النووية',
+            JourneyCopy.posterInvitation,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: kSans,
-              fontSize: 12.5,
+              fontSize: 14,
               height: 1.4,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               color: _gold,
             ),
           ),
@@ -325,6 +355,109 @@ class HarvestPoster extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// The noun after a count of days on a poster.
+String _posterDayUnit(int count) => switch (count) {
+      1 => 'يوم',
+      2 => 'يومان',
+      >= 3 && <= 10 => 'أيام',
+      _ => 'يوماً',
+    };
+
+/// One of the harvest's three numbers: a gold leaf, the figure, its unit and
+/// what it counts, on a pale card.
+class _HarvestTile extends StatelessWidget {
+  const _HarvestTile({
+    required this.value,
+    required this.unit,
+    required this.label,
+    required this.tall,
+  });
+
+  final int value;
+  final String unit;
+  final String label;
+  final bool tall;
+
+  @override
+  Widget build(BuildContext context) {
+    final figure = Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: toArabicDigits(value),
+            style: const TextStyle(
+              fontFamily: 'Amiri',
+              fontSize: 34,
+              height: 1.1,
+              fontWeight: FontWeight.w700,
+              color: _ink,
+            ),
+          ),
+          TextSpan(
+            text: ' $unit',
+            style: const TextStyle(
+              fontFamily: kSans,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: _green,
+            ),
+          ),
+        ],
+      ),
+      textAlign: TextAlign.center,
+      maxLines: 1,
+    );
+    final caption = Text(
+      label,
+      textAlign: TextAlign.center,
+      maxLines: 2,
+      style: const TextStyle(
+        fontFamily: kSans,
+        fontSize: 11.5,
+        height: 1.3,
+        fontWeight: FontWeight.w800,
+        color: _gold,
+      ),
+    );
+    const leaf = SizedBox(
+      height: 26,
+      child: LeafSwatch(LeafLook.memorized, height: 26),
+    );
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: tall ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xCCFFFDF8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0x99D6BE88), width: 1.2),
+      ),
+      child: tall
+          ? Row(
+              children: [
+                leaf,
+                const SizedBox(width: 10),
+                Expanded(child: caption),
+                Flexible(
+                  child: FittedBox(fit: BoxFit.scaleDown, child: figure),
+                ),
+              ],
+            )
+          : Column(
+              children: [
+                leaf,
+                const SizedBox(height: 6),
+                FittedBox(fit: BoxFit.scaleDown, child: figure),
+                const SizedBox(height: 2),
+                caption,
+              ],
+            ),
     );
   }
 }

@@ -164,21 +164,23 @@ class WeeklyBoardService {
     final own = membership.value;
     // Until the account's days arrive, the phone would send zero.
     if (uid == null || own == null || !_journey.accountLoaded) return null;
-    return _entry(uid, useName: !own.anonymous, fallbackName: own.name);
+    return _entry(uid, name: own.name);
   }
 
-  ScoreEntry _entry(String uid,
-          {required bool useName, String? fallbackName}) =>
-      ScoreEntry(
+  ScoreEntry _entry(String uid, {required String name}) => ScoreEntry(
         uid: uid,
         week: boardWeekOfDay(_journey.today),
         device: _journey.thisWeekPoints.device,
         memo: weekMemoPoints(_journey.data, weekStartKey(_journey.today)),
-        name: boardName(
-          useName: useName,
-          displayName: _displayName() ?? fallbackName,
-        ),
+        name: name,
       );
+
+  /// A nickname to offer a reader who has none yet: their account's name,
+  /// when it would pass as one.
+  String get suggestedNickname {
+    final own = cleanNickname(_displayName() ?? '');
+    return nicknameProblem(own) == null ? own : '';
+  }
 
   void _scheduleSync() {
     _timer?.cancel();
@@ -195,12 +197,13 @@ class WeeklyBoardService {
     await _save(next);
   }
 
-  /// Puts the reader on the board, under their name or as [kAnonymousName].
-  /// False for a guest, who has no account to put there.
-  bool join({required bool useName}) {
+  /// Puts the reader on the board under [nickname], or renames them if they
+  /// are on it. False for a guest, who has no account to put there, and for
+  /// a nickname [nicknameProblem] turns down.
+  bool join({required String nickname}) {
     final uid = _uid;
-    if (uid == null) return false;
-    final entry = _entry(uid, useName: useName);
+    if (uid == null || nicknameProblem(nickname) != null) return false;
+    final entry = _entry(uid, name: cleanNickname(nickname));
     _sent = entry;
     membership.value = entry;
     unawaited(_save(entry));

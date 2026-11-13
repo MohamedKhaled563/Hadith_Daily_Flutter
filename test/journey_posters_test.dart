@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/data/journey/journey_copy.dart';
 import 'package:hadith_app/data/journey/journey_engine.dart';
 import 'package:hadith_app/data/journey/journey_models.dart';
+import 'package:hadith_app/data/journey/journey_points.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/journey/journey_posters.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -49,6 +50,37 @@ void main() {
         );
         expect(find.text(JourneyCopy.milestone(mark).title), findsOneWidget);
         expect(find.text(JourneyCopy.milestone(mark).body), findsOneWidget);
+      }
+    });
+
+    testWidgets('the harvest fits the ${format.name} poster, big or not',
+        (tester) async {
+      for (final (streak, best, points) in [
+        (0, 0, 0),
+        (1, 1, 2),
+        (365, 7, 450)
+      ]) {
+        await layOut(
+          tester,
+          HarvestPoster(
+            format: format,
+            harvest: Harvest(
+              days: 7,
+              minutes: 90,
+              lastWeekMinutes: 0,
+              streak: streak,
+              bestRun: best,
+              points: points,
+            ),
+            weekLabel: 'أسبوع ١٤–٢٠ نوفمبر',
+            name: 'اسم طويل جداً لقارئ يحب الأسماء الطويلة كثيراً',
+          ),
+          format.size,
+        );
+        for (final label in ['الاستمرارية', 'أفضل استمرارية', 'نقاط الأسبوع']) {
+          expect(find.text(label), findsOneWidget, reason: label);
+        }
+        expect(find.text('حصاد أسبوعي'), findsOneWidget);
       }
     });
 

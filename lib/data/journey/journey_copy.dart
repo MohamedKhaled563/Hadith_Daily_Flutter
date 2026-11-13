@@ -104,7 +104,7 @@ class JourneyCopy {
   /// The morning after a missed day that a grace day covered.
   static const graceUsed = JourneyMessage(
     title: 'لا بأس',
-    body: 'فاتك أمس، وسلسلتك كما هي. نكمل اليوم؟',
+    body: 'فاتك أمس، واستمراريتك كما هي. نكمل اليوم؟',
   );
 
   /// A reader who has been away, with no mention of what they missed.
@@ -138,8 +138,8 @@ class JourneyCopy {
   static const harvestInvitation = 'حصاد أسبوعي مع الحديث';
 
   static String harvestCaption(Harvest harvest, String? link) =>
-      'هذا الأسبوع: ${arabicDayCount(harvest.days)} و'
-      '${arabicMinuteCount(harvest.minutes)} مع الأربعين النووية في تطبيق '
+      'هذا الأسبوع: استمرارية ${arabicDayCount(harvest.streak)}، '
+      'و${toArabicDigits(harvest.points)} نقطة مع الأربعين النووية في تطبيق '
       '«طيّب قلبك»، فاقرأ معي.${_linkLine(link)}';
 
   /// Memorizing. Plain about what the app can know: the reader says whether
@@ -199,13 +199,21 @@ class JourneyCopy {
   /// The weekly board. Joining is optional and off until the reader turns it
   /// on, so every line here says what will be shown, and to whom.
   static const boardSignInReason =
-      'سجّل الدخول لتظهر في لوحة الأسبوع، باسمك أو باسم «فاعل خير».';
+      'سجّل الدخول لتظهر في لوحة الأسبوع باسم مستعار تختاره.';
   static const boardNote = 'النقاط تحسب نشاطك في التطبيق، لا أكثر.';
   static const boardNotYet =
       'لم تُنشر لوحة بعد. تُنشر يوم الجمعة حين يكثر القراء.';
   static const boardOff = 'اسمك لا يظهر لأحد ما دام هذا مغلقاً.';
-  static const boardOn = 'يظهر الاسم الذي اخترته إن كان بين العشرة الأوائل '
+  static const boardOn = 'يظهر اسمك المستعار إن كان بين العشرة الأوائل '
       'حين تُنشر اللوحة يوم الجمعة. تستطيع الخروج متى شئت.';
+
+  /// Above the nickname field.
+  static const boardNicknameHint =
+      'اسم مستعار يراه الجميع في اللوحة، لا يكشف من أنت.';
+
+  /// For a reader still on the board as «فاعل خير», from before nicknames.
+  static const boardPickNickname =
+      'اختر اسماً مستعاراً تظهر به، بدل «فاعل خير».';
 
   /// The reading week starting [saturday], as «٧ – ١٣ نوفمبر».
   static String boardWeek(String saturday) {
@@ -237,7 +245,9 @@ class JourneyCopy {
   static String streakLine(int current, int best) {
     if (current <= 1) return 'بداية طيبة، ونلتقي غداً إن شاء الله.';
     final line = '${arabicDayCount(current, consecutive: true)}.';
-    if (best > current) return '$line أفضل سلسلة لك ${toArabicDigits(best)}.';
+    if (best > current) {
+      return '$line أفضل استمرارية لك ${toArabicDigits(best)}.';
+    }
     return line;
   }
 

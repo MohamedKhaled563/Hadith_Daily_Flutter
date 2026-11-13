@@ -32,6 +32,33 @@ void main() {
       expect(plan.isEmpty, isFalse);
     });
 
+    test("lists today's first and the rest once, with no hadith twice", () {
+      const data = JourneyData(
+        memo: {
+          5: MemoProgress(box: 1, due: '2026-11-11'),
+          6: MemoProgress(box: 0, due: _today),
+          7: MemoProgress(box: 2, due: '2026-11-20'),
+          9: MemoProgress(parts: 1),
+          11: MemoProgress(box: 6),
+          12: MemoProgress(box: 3, due: '2026-11-15'),
+        },
+        days: {
+          _today: JourneyDay(reviewed: [7]),
+        },
+      );
+
+      final plan = MemoPlan.of(data, _today);
+      expect(plan.todays, [5, 6, 7]);
+      expect(plan.others, [11, 12]);
+      final shown = [...plan.todays, ...plan.learning, ...plan.others];
+      expect(shown.toSet(), hasLength(shown.length), reason: 'none twice');
+      expect(
+        shown.toSet(),
+        {...plan.held, ...plan.learning},
+        reason: 'and none left out',
+      );
+    });
+
     test('is done for the day once nothing due is left', () {
       const data = JourneyData(
         memo: {7: MemoProgress(box: 1, due: '2026-11-16')},

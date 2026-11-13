@@ -14,6 +14,7 @@ import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/botanical_sheet.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/journey/journey_copy.dart';
+import '../../data/journey/journey_engine.dart';
 import '../../data/journey/journey_points.dart';
 import '../../data/journey/journey_repository.dart';
 import 'journey_posters.dart';
@@ -50,12 +51,20 @@ Future<void> shareMilestone(BuildContext context, int milestone) {
 /// Shares the week so far.
 Future<void> shareHarvest(BuildContext context) {
   final journey = JourneyRepository();
-  final harvest = harvestFor(journey.data, journey.today);
+  final harvest = harvestFor(
+    journey.data,
+    journey.today,
+    approvedOn: journey.approvedOn,
+  );
   return _showPosterSheet(
     context: context,
     caption: JourneyCopy.harvestCaption(harvest, AppLinks.storeLink),
-    builder: (format, name) =>
-        HarvestPoster(format: format, harvest: harvest, name: name),
+    builder: (format, name) => HarvestPoster(
+      format: format,
+      harvest: harvest,
+      weekLabel: 'أسبوع ${JourneyCopy.boardWeek(weekStartKey(journey.today))}',
+      name: name,
+    ),
   );
 }
 

@@ -87,6 +87,39 @@ void boardSuite() {
       expect(boardName(useName: true, displayName: 'ا' * 60).length, 40);
     });
 
+    test('a nickname is two to twenty letters, digits and spaces', () {
+      expect(nicknameProblem('نور'), isNull);
+      expect(nicknameProblem('أبو أحمد'), isNull);
+      expect(nicknameProblem('Reader_42'), isNull);
+      expect(nicknameProblem('عبد الله'), isNull, reason: 'a common name');
+      expect(nicknameProblem('ن'), isNotNull, reason: 'too short');
+      expect(nicknameProblem('   '), isNotNull, reason: 'only spaces');
+      expect(nicknameProblem('ا' * 21), isNotNull, reason: 'too long');
+      expect(nicknameProblem('سارة!'), isNotNull, reason: 'a symbol');
+      expect(nicknameProblem('سارة 🌸'), isNotNull, reason: 'an emoji');
+      expect(nicknameProblem('a@b'), isNotNull, reason: 'an address');
+    });
+
+    test('a nickname cannot pass for the app, its staff or a link', () {
+      for (final name in [
+        'المشرف',
+        'مشرف التطبيق',
+        'الإدارة',
+        'طيّب قلبك',
+        'Admin',
+        'site.com',
+        'www go',
+        kAnonymousName,
+      ]) {
+        expect(nicknameProblem(name), isNotNull, reason: name);
+      }
+    });
+
+    test('a nickname is kept trimmed, with single spaces', () {
+      expect(cleanNickname('  أبو   أحمد  '), 'أبو أحمد');
+      expect(nicknameProblem('  أبو   أحمد  '), isNull);
+    });
+
     test('messages are counted in the form the number takes', () {
       expect(arabicMessageCount(1), 'رسالة واحدة');
       expect(arabicMessageCount(2), 'رسالتان');
@@ -276,7 +309,7 @@ void boardSuite() {
     });
 
     test('a guest cannot join, and nothing is sent', () async {
-      expect(service.join(useName: false), isFalse);
+      expect(service.join(nickname: 'نور'), isFalse);
       journey.recordFullRead(1, seconds: 60);
       await settle();
 
@@ -294,11 +327,11 @@ void boardSuite() {
       expect(board.scores, isEmpty);
     });
 
-    test('joining sends this week, as «فاعل خير» by default', () async {
+    test('joining sends this week, under the nickname chosen', () async {
       await signIn('reader');
       journey.recordFullRead(1, seconds: 60);
 
-      expect(service.join(useName: false), isTrue);
+      expect(service.join(nickname: '  نور  الهدى '), isTrue);
       await settle();
 
       expect(
@@ -307,23 +340,45 @@ void boardSuite() {
           uid: 'reader',
           week: boardWeekOf('2026-11-07'),
           device: 10,
-          name: kAnonymousName,
+          name: 'نور الهدى',
         ),
       );
+      expect(service.membership.value!.anonymous, isFalse);
     });
 
-    test('a reader can choose to show their own name', () async {
+    test('a nickname the rules turn down is not sent', () async {
       await signIn('reader');
-      service.join(useName: true);
+
+      expect(service.join(nickname: 'المشرف'), isFalse);
       await settle();
 
-      expect(board.scores['reader']!.name, 'سارة');
-      expect(service.membership.value!.anonymous, isFalse);
+      expect(board.scores, isEmpty);
+      expect(service.membership.value, isNull);
+    });
+
+    test('renaming replaces the name, and readings keep it', () async {
+      await signIn('reader');
+      service.join(nickname: 'نور');
+      await settle();
+
+      expect(service.join(nickname: 'أبو أحمد'), isTrue);
+      journey.recordMessageRead('a', hadithNumber: 1);
+      await settle();
+
+      expect(board.scores['reader']!.name, 'أبو أحمد');
+      expect(board.scores['reader']!.device, 2);
+    });
+
+    test("the account's name is offered when it would pass", () async {
+      await signIn('reader');
+      expect(service.suggestedNickname, 'سارة');
+      name = 'المشرف';
+      expect(service.suggestedNickname, '');
     });
 
     test('readings after joining are sent once they settle', () async {
       await signIn('reader');
-      service.join(useName: false);
+      service.join(nickname: 'نور');
       await settle();
       final before = board.writes;
 
@@ -338,7 +393,7 @@ void boardSuite() {
 
     test('nothing is sent when nothing changed', () async {
       await signIn('reader');
-      service.join(useName: false);
+      service.join(nickname: 'نور');
       await settle();
       final before = board.writes;
 
@@ -350,7 +405,7 @@ void boardSuite() {
 
     test('leaving removes the entry and stops sending', () async {
       await signIn('reader');
-      service.join(useName: false);
+      service.join(nickname: 'نور');
       await settle();
 
       service.leave();
@@ -379,7 +434,7 @@ void boardSuite() {
 
     test('another account on the same phone starts off the board', () async {
       await signIn('reader-a');
-      service.join(useName: true);
+      service.join(nickname: 'سارة');
       await settle();
 
       await signIn('reader-b');
@@ -393,7 +448,7 @@ void boardSuite() {
     test('a new week starts the entry again from nothing', () async {
       await signIn('reader');
       journey.recordFullRead(1, seconds: 60);
-      service.join(useName: false);
+      service.join(nickname: 'نور');
       await settle();
 
       now = DateTime(2026, 11, 14, 9);
@@ -413,7 +468,7 @@ void boardSuite() {
       service.start();
       await signIn('reader');
 
-      service.join(useName: false);
+      service.join(nickname: 'نور');
       await settle();
       expect(flaky.scores, isEmpty);
 
@@ -423,7 +478,7 @@ void boardSuite() {
 
     test('an account being deleted sends nothing more', () async {
       await signIn('reader');
-      service.join(useName: false);
+      service.join(nickname: 'نور');
       await settle();
       final before = board.writes;
 

@@ -122,10 +122,44 @@ WeekPoints weekPoints(
   );
 }
 
+/// The most days in a row the reader was present in the week starting
+/// [weekStart], up to [today]. Grace days are left out: this is the plain
+/// run the reader can count on the week, at most seven.
+int bestRunInWeek(JourneyData data, String weekStart, String today) {
+  var best = 0;
+  var run = 0;
+  for (var i = 0; i < 7; i++) {
+    final key = dayKeyPlus(weekStart, i);
+    if (key.compareTo(today) > 0) break;
+    if (data.days[key]?.isPresent ?? false) {
+      run++;
+      best = math.max(best, run);
+    } else {
+      run = 0;
+    }
+  }
+  return best;
+}
+
+/// Every point the reader has earned, week by week, each week capped the
+/// way the board caps it. Covers the days the journey keeps loaded, this
+/// year and last, which is all of it while the app is younger than that.
+int totalPoints(JourneyData data, {Iterable<String> approvedOn = const []}) {
+  final weeks = {
+    for (final key in data.days.keys) weekStartKey(key),
+    for (final key in approvedOn) weekStartKey(key),
+  };
+  var total = 0;
+  for (final week in weeks) {
+    total += weekPoints(data, week, approvedOn: approvedOn).total;
+  }
+  return total;
+}
+
 /// The reader's eight personal records, in the order the completion sheet
 /// looks for one that was just broken.
 enum JourneyRecord {
-  streak('أطول سلسلة', 'أطول سلسلة لك حتى الآن'),
+  streak('أطول استمرارية', 'أطول استمرارية لك حتى الآن'),
   weekMinutes('أكثر دقائق في أسبوع', 'أكثر أسبوع قراءةً لك حتى الآن'),
   weekHadiths('أكثر أحاديث في أسبوع', 'أكثر أحاديث قرأتها في أسبوع'),
   weekDays('أكثر أيام في أسبوع', 'أكثر أيام قرأت فيها في أسبوع'),
@@ -249,14 +283,32 @@ class Harvest {
     required this.days,
     required this.minutes,
     required this.lastWeekMinutes,
+    this.streak = 0,
+    this.bestRun = 0,
+    this.points = 0,
   });
 
   final int days;
   final int minutes;
   final int lastWeekMinutes;
+
+  /// Days in a row as of the harvest day, the same number رحلتي shows.
+  final int streak;
+
+  /// The most days in a row inside the week.
+  final int bestRun;
+
+  /// The week's points, capped as on the board.
+  final int points;
 }
 
-Harvest harvestFor(JourneyData data, String friday) {
+/// The week up to [friday] (any day of it, really). [approvedOn] adds the
+/// reader's approved messages to its points.
+Harvest harvestFor(
+  JourneyData data,
+  String friday, {
+  Iterable<String> approvedOn = const [],
+}) {
   final start = weekStartKey(friday);
   var days = 0, seconds = 0;
   for (var day = start; day.compareTo(friday) <= 0; day = dayKeyPlus(day, 1)) {
@@ -273,5 +325,9 @@ Harvest harvestFor(JourneyData data, String friday) {
     days: days,
     minutes: minutesOf(seconds),
     lastWeekMinutes: minutesOf(lastSeconds),
+    streak:
+        computeStreak(data.days, friday, storedBest: data.bestStreak).current,
+    bestRun: bestRunInWeek(data, start, friday),
+    points: weekPoints(data, start, approvedOn: approvedOn).total,
   );
 }

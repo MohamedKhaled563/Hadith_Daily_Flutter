@@ -53,6 +53,55 @@ String boardName({required bool useName, String? displayName}) {
   return own.length > 40 ? own.substring(0, 40) : own;
 }
 
+/// The shortest and longest nickname a reader can appear under.
+const kNicknameMin = 2;
+const kNicknameMax = 20;
+
+/// Names that would pass for the app or its people. A board name is public,
+/// so it must never look like it speaks for anyone but the reader.
+const _reservedNames = [
+  'مشرف',
+  'المشرف',
+  'الإدارة',
+  'ادارة',
+  'إدارة',
+  'طيب قلبك',
+  'طيّب قلبك',
+  'admin',
+  'moderator',
+  'support',
+];
+
+/// A nickname as it is kept: trimmed, with runs of spaces made one.
+String cleanNickname(String raw) => raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+
+/// Why [raw] cannot be a nickname, in the reader's words, or null when it
+/// can. Letters of any language, digits, spaces and . _ - only: no links,
+/// no addresses, nothing that reads as the app or its moderators.
+String? nicknameProblem(String raw) {
+  final name = cleanNickname(raw);
+  if (name.length < kNicknameMin) return 'اكتب حرفين على الأقل.';
+  if (name.length > kNicknameMax) {
+    return 'الاسم أطول من ${kNicknameMax.toString()} حرفاً.';
+  }
+  if (!RegExp(r'^[\p{L}\p{M}\p{N} ._\-]+$', unicode: true).hasMatch(name)) {
+    return 'حروف وأرقام ومسافات فقط.';
+  }
+  final lower = name.toLowerCase();
+  if (lower.contains('http') ||
+      lower.contains('www') ||
+      lower.contains('.com')) {
+    return 'لا روابط في الاسم.';
+  }
+  if (name == kAnonymousName) return 'اختر اسماً خاصاً بك.';
+  for (final reserved in _reservedNames) {
+    if (lower.contains(reserved.toLowerCase())) {
+      return 'هذا الاسم محجوز، اختر غيره.';
+    }
+  }
+  return null;
+}
+
 /// What a reader's phone keeps in `scores/{uid}`: this week's points from
 /// the phone, capped, and the name to show. Approved messages are not here:
 /// the moderator counts those when publishing, from the messages themselves.

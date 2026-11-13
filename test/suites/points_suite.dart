@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hadith_app/data/journey/journey_copy.dart';
 import 'package:hadith_app/data/journey/journey_engine.dart';
 import 'package:hadith_app/data/journey/journey_models.dart';
 import 'package:hadith_app/data/journey/journey_points.dart';
@@ -124,6 +125,57 @@ void pointsSuite() {
       );
 
       expect(points.approved, 0);
+    });
+  });
+
+  group('the harvest numbers', () {
+    test('the best run in a week counts only days in a row', () {
+      final data = JourneyData(days: {
+        day(0): reading(messages: 1),
+        day(1): reading(hadiths: 1),
+        // day(2) missed
+        day(3): reading(messages: 1),
+        day(4): reading(messages: 1),
+        day(5): reading(messages: 1),
+        // Writing alone does not count a day.
+        day(6): reading(wrote: 1),
+      });
+      expect(bestRunInWeek(data, saturday, day(6)), 3);
+      expect(bestRunInWeek(data, saturday, day(1)), 2,
+          reason: 'only up to today');
+      expect(bestRunInWeek(data, day(7), day(7)), 0, reason: 'a new week');
+    });
+
+    test('a run from last week does not carry into this one', () {
+      final data = JourneyData(days: {
+        for (var i = -5; i <= 1; i++) day(i): reading(messages: 1),
+      });
+      expect(bestRunInWeek(data, saturday, day(1)), 2);
+    });
+
+    test('all points add each week, each capped like the board', () {
+      final data = JourneyData(days: {
+        day(0): reading(messages: 1, hadiths: 1),
+        day(7): reading(messages: 2),
+        // A heavy week: 45 a day for seven days is 315, capped at 300.
+        for (var i = 14; i < 21; i++)
+          day(i): reading(messages: 10, hadiths: 2, shared: 1, community: 3),
+      });
+      expect(totalPoints(data), 12 + 4 + PointRules.deviceWeekCap);
+    });
+
+    test('approved messages add on top, three a week at most', () {
+      final data = JourneyData(days: {day(0): reading(messages: 1)});
+      final approvedOn = [day(1), day(2), day(3), day(4), day(8)];
+      expect(
+        totalPoints(data, approvedOn: approvedOn),
+        2 + 3 * PointRules.approved + PointRules.approved,
+      );
+    });
+
+    test('nothing read is nothing earned', () {
+      expect(totalPoints(JourneyData.empty), 0);
+      expect(bestRunInWeek(JourneyData.empty, saturday, day(3)), 0);
     });
   });
 
@@ -251,6 +303,24 @@ void pointsSuite() {
       expect(harvest.days, 2);
       expect(harvest.minutes, 23);
       expect(harvest.lastWeekMinutes, 18);
+    });
+
+    test('carries the three numbers رحلتي shows for the week', () {
+      final data = JourneyData(days: {
+        '2026-11-11': reading(messages: 1),
+        '2026-11-12': reading(messages: 1, hadiths: 1),
+        '2026-11-13': reading(messages: 1),
+      });
+
+      final harvest = harvestFor(data, friday, approvedOn: ['2026-11-12']);
+
+      expect(harvest.streak, 3);
+      expect(harvest.bestRun, 3);
+      expect(harvest.points, 2 + 12 + 2 + PointRules.approved);
+      expect(
+        JourneyCopy.harvestCaption(harvest, null),
+        startsWith('هذا الأسبوع: استمرارية ٣ أيام، و٣١ نقطة'),
+      );
     });
 
     ReminderFacts facts(JourneyData data) => ReminderFacts(

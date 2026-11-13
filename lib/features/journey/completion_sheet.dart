@@ -103,7 +103,7 @@ class _CompletionBody extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                outcome.record?.brokenLine ?? 'أطول سلسلة لك حتى الآن',
+                outcome.record?.brokenLine ?? 'أطول استمرارية لك حتى الآن',
                 style: TextStyle(
                   fontFamily: kSans,
                   fontSize: 12.5,

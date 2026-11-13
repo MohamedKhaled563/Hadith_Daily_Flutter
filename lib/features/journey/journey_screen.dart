@@ -13,13 +13,12 @@ import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../../data/journey/journey_copy.dart';
-import '../../data/journey/journey_engine.dart';
-import '../../data/journey/journey_points.dart';
 import '../../data/journey/journey_repository.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../favorites/favorites_screen.dart';
 import '../hadith/hadith_detail_screen.dart';
 import '../memorize/memo_list_screen.dart';
+import 'journey_numbers.dart';
 import 'journey_share_sheet.dart';
 import 'journey_tree.dart';
 import 'today_steps_screen.dart';
@@ -222,7 +221,6 @@ class _JourneyBody extends StatelessWidget {
         final data = journey.data;
         final steps = journey.todaySteps;
         final streak = journey.streak;
-        final weeks = journey.weeks;
         final narrow = MediaQuery.sizeOf(context).width < 380;
 
         return ListView(
@@ -299,345 +297,19 @@ class _JourneyBody extends StatelessWidget {
             // is never rebuilt when the journey changes.
             MemoEntry(data: data, today: journey.today),
             const SizedBox(height: 12),
-            _YouVersusYou(
+            JourneyNumbers(
               streak: streak,
-              weeks: weeks,
-              points: journey.thisWeekPoints,
-              lastPoints: journey.lastWeekPoints,
-              canShare: weeks.thisWeek > 0,
+              bestThisWeek: journey.bestThisWeek,
+              weekPoints: journey.thisWeekPoints.total,
+              allPoints: journey.allPoints,
+              memorized: data.memorizedCount,
+              canShare: journey.weeks.thisWeek > 0,
             ),
-            const SizedBox(height: 12),
-            _RecordsCard(records: journey.records),
             const SizedBox(height: 12),
             const _BoardEntry(),
           ],
         );
       },
-    );
-  }
-}
-
-/// The only competitor here is the reader's own last week.
-class _YouVersusYou extends StatelessWidget {
-  const _YouVersusYou({
-    required this.streak,
-    required this.weeks,
-    required this.points,
-    required this.lastPoints,
-    required this.canShare,
-  });
-
-  final StreakResult streak;
-  final WeekCompare weeks;
-  final WeekPoints points;
-  final WeekPoints lastPoints;
-
-  /// Whether there is a week worth sharing yet.
-  final bool canShare;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final widest =
-        weeks.thisWeek > weeks.lastWeek ? weeks.thisWeek : weeks.lastWeek;
-
-    return ParchmentCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      showWatermark: false,
-      showCornerOrnaments: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardTitle('أنت مقابل نفسك'),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _Figure(
-                  value: streak.current,
-                  unit: _dayUnit(streak.current),
-                  label: 'سلسلتك الآن',
-                  color: palette.warmText,
-                ),
-              ),
-              Expanded(
-                child: _Figure(
-                  value: streak.best,
-                  unit: _dayUnit(streak.best),
-                  label: 'أفضل سلسلة',
-                  color: palette.goldText,
-                ),
-              ),
-              Expanded(
-                child: _Figure(
-                  value: streak.graceBanked,
-                  unit: _dayUnit(streak.graceBanked),
-                  label: 'أيام سماح',
-                  color: palette.bodyText,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _WeekBar(
-            label: 'هذا الأسبوع',
-            minutes: weeks.thisWeek,
-            widest: widest,
-            color: palette.ornamentGold,
-          ),
-          const SizedBox(height: 8),
-          _WeekBar(
-            label: 'الأسبوع الماضي',
-            minutes: weeks.lastWeek,
-            widest: widest,
-            color: palette.mutedText.withValues(alpha: .45),
-          ),
-          const SizedBox(height: 14),
-          _PointsRow(points: points, lastPoints: lastPoints),
-          if (canShare) ...[
-            const SizedBox(height: 6),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextButton.icon(
-                onPressed: () => shareHarvest(context),
-                icon: const Icon(Icons.ios_share_rounded, size: 18),
-                label: const Text('شارك حصاد أسبوعك'),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// This week's points against last week's. Points measure activity in the
-/// app, nothing more, so they sit here quietly rather than on every screen.
-class _PointsRow extends StatelessWidget {
-  const _PointsRow({required this.points, required this.lastPoints});
-
-  final WeekPoints points;
-  final WeekPoints lastPoints;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final style = TextStyle(
-      fontFamily: kSans,
-      fontSize: 13,
-      height: AppLeading.chrome,
-      color: palette.mutedText,
-    );
-
-    return Semantics(
-      label: 'نقاطك هذا الأسبوع ${toArabicDigits(points.total)}، '
-          'والأسبوع الماضي ${toArabicDigits(lastPoints.total)}',
-      excludeSemantics: true,
-      child: Row(
-        children: [
-          Icon(Icons.eco_rounded, size: 18, color: palette.goldText),
-          const SizedBox(width: 6),
-          Text('نقاطك هذا الأسبوع', style: style),
-          const SizedBox(width: 6),
-          Text(
-            toArabicDigits(points.total),
-            style: style.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: palette.goldText,
-            ),
-          ),
-          const Spacer(),
-          Text('الماضي ${toArabicDigits(lastPoints.total)}', style: style),
-        ],
-      ),
-    );
-  }
-}
-
-/// The reader's eight personal records. A dash for one not set yet.
-class _RecordsCard extends StatelessWidget {
-  const _RecordsCard({required this.records});
-
-  final Map<JourneyRecord, int> records;
-
-  static String _value(JourneyRecord record, int value) {
-    if (value == 0) return '—';
-    return switch (record) {
-      JourneyRecord.streak || JourneyRecord.weekDays => arabicDayCount(value),
-      JourneyRecord.weekMinutes ||
-      JourneyRecord.dayMinutes =>
-        arabicMinuteCount(value),
-      _ => toArabicDigits(value),
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final any = records.values.any((value) => value > 0);
-
-    return ParchmentCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      showWatermark: false,
-      showCornerOrnaments: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardTitle('أرقامك'),
-          const SizedBox(height: 8),
-          if (!any)
-            Text(
-              'أرقامك تظهر هنا بعد أول قراءة: أطول سلسلة، وأكثر أسبوع، وغيرها.',
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 13.5,
-                height: AppLeading.body,
-                color: palette.mutedText,
-              ),
-            )
-          else
-            // Label above value, in tiles: the eye no longer crosses the
-            // card for every pair.
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = constraints.maxWidth < 300 ? 1 : 2;
-                const gap = 8.0;
-                final width =
-                    (constraints.maxWidth - gap * (columns - 1)) / columns;
-                return Wrap(
-                  spacing: gap,
-                  runSpacing: gap,
-                  children: [
-                    for (final record in JourneyRecord.values)
-                      SizedBox(
-                        width: width,
-                        child: _RecordTile(
-                          label: record.label,
-                          value: _value(record, records[record] ?? 0),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Figure extends StatelessWidget {
-  const _Figure({
-    required this.value,
-    required this.label,
-    required this.color,
-    this.unit,
-  });
-
-  final int value;
-  final String label;
-  final Color color;
-
-  /// Said beside the number, so a lone «١» never reads as a bar.
-  final String? unit;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Column(
-      children: [
-        Text.rich(
-          TextSpan(
-            // The Arabic zero is a small dot, easy to miss at the top of a
-            // card.
-            text: value == 0 ? '—' : toArabicDigits(value),
-            children: [
-              if (value != 0 && unit != null)
-                TextSpan(
-                  text: ' $unit',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-            ],
-          ),
-          style: TextStyle(
-            fontFamily: kSans,
-            fontSize: 24,
-            height: 1.1,
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: kSans,
-            fontSize: 12,
-            height: AppLeading.chrome,
-            color: palette.mutedText,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _WeekBar extends StatelessWidget {
-  const _WeekBar({
-    required this.label,
-    required this.minutes,
-    required this.widest,
-    required this.color,
-  });
-
-  final String label;
-  final int minutes;
-  final int widest;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final style = TextStyle(
-      fontFamily: kSans,
-      fontSize: 12.5,
-      height: AppLeading.chrome,
-      color: palette.mutedText,
-    );
-
-    return Semantics(
-      label: '$label: ${arabicMinuteCount(minutes)}',
-      excludeSemantics: true,
-      child: Row(
-        children: [
-          SizedBox(width: 92, child: Text(label, style: style)),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadii.pill),
-              child: LinearProgressIndicator(
-                value: widest == 0 ? 0 : minutes / widest,
-                minHeight: 8,
-                backgroundColor: palette.surfaceSunken,
-                valueColor: AlwaysStoppedAnimation(color),
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 54,
-            child: Text(
-              '${toArabicDigits(minutes)} د',
-              textAlign: TextAlign.end,
-              style: style,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -723,14 +395,6 @@ class _CardTitle extends StatelessWidget {
   }
 }
 
-/// Days in the form the number takes, to sit beside a figure.
-String _dayUnit(int days) => switch (days) {
-      1 => 'يوم',
-      2 => 'يومان',
-      >= 3 && <= 10 => 'أيام',
-      _ => 'يوماً',
-    };
-
 /// The facts under the tree, in a line of small pills.
 class _TreeSummary extends StatelessWidget {
   const _TreeSummary({
@@ -786,7 +450,8 @@ class _TreeSummary extends StatelessWidget {
         pill('${toArabicDigits(read)} من ٤٢ حديثاً', strong: true),
         if (memorized > 0)
           pill('في حفظك ${toArabicDigits(memorized)}', strong: false),
-        if (streak > 0) pill('سلسلة ${arabicDayCount(streak)}', strong: false),
+        if (streak > 0)
+          pill('استمرارية ${arabicDayCount(streak)}', strong: false),
       ],
     );
   }
@@ -834,58 +499,6 @@ class _LeafKey extends StatelessWidget {
         for (final MapEntry(key: look, value: label) in _labels.entries)
           if (looks.contains(look)) entry(look, label),
       ],
-    );
-  }
-}
-
-/// One record: what it is, then the reader's best.
-class _RecordTile extends StatelessWidget {
-  const _RecordTile({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Semantics(
-      label: '$label: $value',
-      excludeSemantics: true,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-        decoration: BoxDecoration(
-          color: palette.surfaceSunken,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 12,
-                height: AppLeading.chrome,
-                color: palette.mutedText,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 15,
-                height: AppLeading.chrome,
-                fontWeight: FontWeight.w800,
-                color: palette.goldText,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

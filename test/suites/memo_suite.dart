@@ -556,7 +556,7 @@ void memoSuite() {
       journey.setUser('reader');
       await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      service.join(useName: false);
+      service.join(nickname: 'نور');
       journey.learnPart(13, totalParts: 1);
       await Future<void>.delayed(const Duration(milliseconds: 40));
 
