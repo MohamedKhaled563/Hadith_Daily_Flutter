@@ -28,6 +28,7 @@ import 'package:hadith_app/features/journey/journey_posters.dart';
 import 'package:hadith_app/features/journey/journey_ring.dart';
 import 'package:hadith_app/features/journey/journey_screen.dart';
 import 'package:hadith_app/features/journey/journey_tree.dart';
+import 'package:hadith_app/features/journey/today_steps_screen.dart';
 import 'package:hadith_app/features/journey/weekly_board_screen.dart';
 import 'package:hadith_app/features/memorize/memo_list_screen.dart';
 import 'package:hadith_app/features/memorize/memorize_screen.dart';
@@ -96,6 +97,22 @@ void main() {
     }
   }
 
+  /// Real time passing until [done] holds, or [seconds] are up: a pushed
+  /// or popped page on a busy device can take longer than a fixed wait.
+  Future<void> until(
+    WidgetTester tester,
+    bool Function() done, {
+    int seconds = 5,
+  }) async {
+    final deadline = DateTime.now().add(Duration(seconds: seconds));
+    while (!done() && DateTime.now().isBefore(deadline)) {
+      await wait(tester, 100);
+    }
+    await wait(tester, 200);
+  }
+
+  bool shows(Finder finder) => finder.evaluate().isNotEmpty;
+
   Finder tab(String label) => find.descendant(
         of: find.byType(BottomNavigation),
         matching: find.text(label),
@@ -107,6 +124,22 @@ void main() {
     await wait(tester);
     await tester.tap(tab('رحلتي'));
     await wait(tester);
+  }
+
+  /// رحلتي, then its «خطوات اليوم» button, onto the day's steps.
+  Future<void> openSteps(WidgetTester tester) async {
+    await openJourney(tester);
+    final button = find.text('خطوات اليوم');
+    await tester.ensureVisible(button);
+    await wait(tester, 300);
+    await tester.tap(button);
+    await until(
+        tester,
+        () =>
+            shows(find.text(JourneyCopy.stepsAllDone)) ||
+            shows(find.text(JourneyCopy.stepsDayCounted)) ||
+            shows(find.text(JourneyCopy.stepsHowToCount)));
+    expect(find.byType(TodayStepsScreen), findsOneWidget);
   }
 
   Future<void> tapLeaf(WidgetTester tester, int number) async {
@@ -188,10 +221,19 @@ void main() {
 
       expect(find.byType(JourneyTree), findsOneWidget);
       expect(find.textContaining('كل ورقة هنا حديث'), findsOneWidget);
+      expect(find.text('ابدأ برسالة اليوم'), findsOneWidget);
+      expect(find.text('٠ / ٣'), findsOneWidget);
+      expect(find.byIcon(Icons.ios_share_rounded), findsNothing);
+
+      await tester.ensureVisible(find.text('خطوات اليوم'));
+      await wait(tester, 300);
+      await tester.tap(find.text('خطوات اليوم'));
+      await until(tester, () => shows(find.text(JourneyCopy.stepsHowToCount)));
+      expect(find.text(JourneyCopy.stepsHowToCount), findsOneWidget);
       expect(find.text('اقرأ رسالة اليوم'), findsOneWidget);
       expect(find.text('اقرأ حديث «الأعمال بالنيات»'), findsOneWidget);
-      expect(find.byIcon(Icons.ios_share_rounded), findsNothing);
-      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+      expect(find.text('اكتب رسالتك'), findsOneWidget);
+      expect(find.byIcon(Icons.check_rounded), findsNothing);
     });
 
     testWidgets('a tapped reminder about a hadith opens that hadith',
@@ -234,16 +276,65 @@ void main() {
       expect(opened.hadith.number, 7);
     });
 
-    testWidgets('sees a leaf in the ring, which opens the journey',
+    testWidgets("sees a leaf in the ring, which opens the day's steps",
         (tester) async {
       await tester.pumpWidget(app(const HomeScreen()));
       await wait(tester);
 
       expect(find.byType(JourneyRing), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(JourneyRing),
+          matching: find.byIcon(Icons.eco_rounded),
+        ),
+        findsOneWidget,
+      );
       await tester.tap(find.byType(JourneyRing));
+      await until(tester, () => shows(find.text(JourneyCopy.stepsHowToCount)));
+      expect(find.byType(TodayStepsScreen), findsOneWidget);
+      expect(find.text(JourneyCopy.stepsHowToCount), findsOneWidget);
+
+      Navigator.of(tester.element(find.byType(TodayStepsScreen))).pop();
+      await until(tester, () => !shows(find.byType(TodayStepsScreen)));
+      expect(find.byType(TodayStepsScreen), findsNothing);
+    });
+
+    testWidgets('the ring counts the steps, one to three', (tester) async {
+      await tester.pumpWidget(app(const HomeScreen()));
       await wait(tester);
-      expect(find.byType(JourneyScreen), findsOneWidget);
-      expect(find.textContaining('كل ورقة هنا حديث'), findsOneWidget);
+      Finder ringSays(String digit) => find.descendant(
+            of: find.byType(JourneyRing),
+            matching: find.text(digit),
+          );
+
+      journey.recordMessageRead('m', hadithNumber: 1);
+      await wait(tester, 900);
+      expect(ringSays('١'), findsOneWidget);
+
+      finished([1]);
+      await wait(tester, 900);
+      expect(ringSays('٢'), findsOneWidget);
+
+      journey.recordWrote();
+      await wait(tester, 900);
+      expect(ringSays('٣'), findsOneWidget);
+
+      await tester.tap(find.byType(JourneyRing));
+      await until(tester, () => shows(find.text(JourneyCopy.stepsAllDone)));
+      expect(find.text(JourneyCopy.stepsAllDone), findsOneWidget);
+      expect(find.byIcon(Icons.check_rounded), findsNWidgets(3));
+    });
+
+    testWidgets('a hadith opened from the steps comes back to them',
+        (tester) async {
+      await openSteps(tester);
+      await tester.tap(find.text('اقرأ حديث «الأعمال بالنيات»'));
+      await until(tester, () => shows(find.byType(HadithDetailScreen)));
+      expect(find.byType(HadithDetailScreen), findsOneWidget);
+
+      Navigator.of(tester.element(find.byType(HadithDetailScreen))).pop();
+      await until(tester, () => !shows(find.byType(HadithDetailScreen)));
+      expect(find.byType(TodayStepsScreen), findsOneWidget);
     });
   });
 
@@ -332,31 +423,19 @@ void main() {
 
     testWidgets('after reading, the steps name what is next', (tester) async {
       finished([1]);
-      await openJourney(tester);
+      await openSteps(tester);
 
-      await tester.scrollUntilVisible(
-        find.textContaining('أتممت حديث اليوم'),
-        200,
-        scrollable: find.byType(Scrollable).last,
-      );
+      expect(find.text('أتممت حديث اليوم'), findsOneWidget);
       expect(find.textContaining('التالي'), findsOneWidget);
-      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+      expect(find.text(JourneyCopy.stepsDayCounted), findsOneWidget);
     });
 
     testWidgets('the writing step opens with the hadith just read',
         (tester) async {
       finished([7]);
-      await openJourney(tester);
+      await openSteps(tester);
 
-      await tester.scrollUntilVisible(
-        find.text('اكتب رسالتك'),
-        200,
-        scrollable: find.byType(Scrollable).last,
-      );
-      // To the top of the view, clear of the floating tab bar, however long
-      // the page below it grows.
-      await tester.ensureVisible(find.text('اكتب رسالتك'));
-      await wait(tester, 300);
       await tester.tap(find.text('اكتب رسالتك'));
       await wait(tester, 1000);
 
@@ -572,6 +651,8 @@ void main() {
 
       await scrollTo(tester, find.text('خطوات اليوم'));
       expect(find.text('١ / ٣'), findsOneWidget);
+      expect(find.text('بقيت خطوتان'), findsOneWidget);
+      await openSteps(tester);
       // The message is done: no chevron on it, one on each step to do.
       expect(
         find.descendant(
@@ -628,7 +709,7 @@ void main() {
       expect(find.byType(HarvestPoster), findsOneWidget);
 
       await tester.tap(find.text('نسخ النص'));
-      await wait(tester);
+      await until(tester, () => copied != null);
       expect(copied, startsWith('هذا الأسبوع: يوم واحد'));
       await wait(tester, 4500);
     });

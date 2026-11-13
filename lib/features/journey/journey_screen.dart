@@ -16,15 +16,13 @@ import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_engine.dart';
 import '../../data/journey/journey_points.dart';
 import '../../data/journey/journey_repository.dart';
-import '../../data/journey/reading_tracker.dart';
-import '../../data/models/hadith.dart';
 import '../../data/repositories/hadith_repository.dart';
 import '../favorites/favorites_screen.dart';
 import '../hadith/hadith_detail_screen.dart';
 import '../memorize/memo_list_screen.dart';
-import 'journey_links.dart';
 import 'journey_share_sheet.dart';
 import 'journey_tree.dart';
+import 'today_steps_screen.dart';
 import 'weekly_board_screen.dart';
 
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold
@@ -222,7 +220,6 @@ class _JourneyBody extends StatelessWidget {
       animation: journey.listenable,
       builder: (context, _) {
         final data = journey.data;
-        final next = journey.nextHadithNumber;
         final steps = journey.todaySteps;
         final streak = journey.streak;
         final weeks = journey.weeks;
@@ -290,14 +287,12 @@ class _JourneyBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _TodayCard(
+            TodayStepsButton(
               steps: steps,
-              next: next == null ? null : hadiths.getByNumber(next),
-              writeAbout: hadiths.getByNumber(
-                data.days[journey.today]?.hadiths.lastOrNull ?? next ?? 1,
+              onTap: () => Navigator.push(
+                context,
+                TodayStepsScreen.route(onOpenMessage: onOpenMessage),
               ),
-              onOpenMessage: onOpenMessage,
-              onOpenHadith: (number) => _openHadith(context, number),
             ),
             const SizedBox(height: 12),
             // Given the data, not const: a const card with nothing passed in
@@ -318,205 +313,6 @@ class _JourneyBody extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-/// The day's three steps, in the order they lead into each other.
-class _TodayCard extends StatelessWidget {
-  const _TodayCard({
-    required this.steps,
-    required this.next,
-    required this.writeAbout,
-    required this.onOpenMessage,
-    required this.onOpenHadith,
-  });
-
-  final DaySteps steps;
-  final Hadith? next;
-
-  /// The hadith the writing step opens with: the one read today if there is
-  /// one, which is what the reader has something to say about.
-  final Hadith? writeAbout;
-  final VoidCallback onOpenMessage;
-  final ValueChanged<int> onOpenHadith;
-
-  @override
-  Widget build(BuildContext context) {
-    final hadith = next;
-    final writing = writeAbout;
-    final (hadithStep, hadithNext) = switch ((hadith, steps.hadith)) {
-      (null, _) => ('أتممت الأربعين', null),
-      (final waiting?, true) => (
-          'أتممت حديث اليوم',
-          'التالي: «${waiting.title}»',
-        ),
-      (final waiting?, false) => ('اقرأ حديث «${waiting.title}»', null),
-    };
-    // The first step not done is the one to do now.
-    final current = [steps.message, steps.hadith, steps.wrote].indexOf(false);
-
-    return ParchmentCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-      showWatermark: false,
-      showCornerOrnaments: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(child: _CardTitle('خطوات اليوم')),
-              Text(
-                '${toArabicDigits(steps.done)} / ٣',
-                style: TextStyle(
-                  fontFamily: kSans,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: context.palette.mutedText,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          _StepRow(
-            done: steps.message,
-            current: current == 0,
-            title: 'اقرأ رسالة اليوم',
-            onTap: onOpenMessage,
-          ),
-          _StepRow(
-            done: steps.hadith,
-            current: current == 1,
-            title: hadithStep,
-            subtitle: hadithNext,
-            detail: hadith == null || steps.hadith
-                ? null
-                : arabicMinuteCount(ReadingRule.minutesFor(hadith)),
-            onTap: hadith == null ? null : () => onOpenHadith(hadith.number),
-          ),
-          _StepRow(
-            done: steps.wrote,
-            current: current == 2,
-            title: 'اكتب رسالتك',
-            onTap: writing == null
-                ? null
-                : () => JourneyLinks.openWriting(writing),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepRow extends StatelessWidget {
-  const _StepRow({
-    required this.done,
-    required this.title,
-    this.current = false,
-    this.subtitle,
-    this.detail,
-    this.onTap,
-  });
-
-  final bool done;
-
-  /// The step to do now: picked out so the eye lands on it.
-  final bool current;
-  final String title;
-
-  /// A quieter second line, so a long step never wraps into a paragraph.
-  final String? subtitle;
-  final String? detail;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final green = context.isDarkMode
-        ? AppColors.primaryGreenDark
-        : AppColors.primaryGreen;
-
-    final row = AnimatedContainer(
-      duration: context.motion(AppDurations.control),
-      margin: const EdgeInsets.symmetric(vertical: 2),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-      decoration: BoxDecoration(
-        color: current
-            ? palette.surfaceSunken
-            : palette.surface.withValues(alpha: 0),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            done ? Icons.check_circle_rounded : Icons.circle_outlined,
-            size: 22,
-            color: done ? green : palette.cardBorderStrong,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 14.5,
-                    height: AppLeading.chrome,
-                    fontWeight: current ? FontWeight.w800 : FontWeight.w700,
-                    color: done ? palette.mutedText : palette.bodyText,
-                  ),
-                ),
-                if (subtitle != null)
-                  Text(
-                    subtitle!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      fontSize: 12.5,
-                      height: AppLeading.chrome,
-                      color: palette.goldText,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          if (detail != null) ...[
-            const SizedBox(width: 8),
-            Text(
-              detail!,
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 12.5,
-                height: AppLeading.chrome,
-                fontWeight: FontWeight.w500,
-                color: palette.goldText,
-              ),
-            ),
-          ],
-          // Only a step still to do points onward; a done one stays tappable
-          // but quiet.
-          if (onTap != null && !done)
-            Icon(
-              // chevron_left: "forward" in a right-to-left app.
-              Icons.chevron_left_rounded,
-              size: 20,
-              color: palette.mutedText,
-            ),
-        ],
-      ),
-    );
-
-    if (onTap == null) return row;
-    return TapTarget(
-      onTap: onTap!,
-      semanticLabel: done ? '$title، تمّت' : title,
-      pressScale: AppPress.cardScale,
-      child: row,
     );
   }
 }

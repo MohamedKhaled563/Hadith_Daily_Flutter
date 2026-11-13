@@ -112,6 +112,28 @@ void journeySuite() {
       expect(steps.done, 2);
     });
 
+    test('the count is the steps done, in any order', () {
+      for (final message in [false, true]) {
+        for (final hadith in [false, true]) {
+          for (final wrote in [false, true]) {
+            final steps =
+                DaySteps(message: message, hadith: hadith, wrote: wrote);
+            expect(
+              steps.done,
+              [message, hadith, wrote].where((s) => s).length,
+              reason: 'message $message, hadith $hadith, wrote $wrote',
+            );
+          }
+        }
+      }
+    });
+
+    test('a reading counts the day; writing alone does not', () {
+      expect(const JourneyDay(messages: ['a']).isPresent, isTrue);
+      expect(const JourneyDay(hadiths: [3]).isPresent, isTrue);
+      expect(const JourneyDay(wrote: 1).isPresent, isFalse);
+    });
+
     test("today's message picks the hadith while it is unread", () {
       const data = JourneyData(days: {
         '2026-11-06': JourneyDay(messages: ['a'], messageHadith: 13),
