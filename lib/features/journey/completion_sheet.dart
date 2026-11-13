@@ -12,24 +12,20 @@ import '../../data/models/hadith.dart';
 import 'journey_tree.dart';
 
 /// What the reader chose from the completion sheet.
-enum CompletionChoice { write, next, share, memorize }
+enum CompletionChoice { write, share, memorize }
 
-/// The moment a hadith is finished: the leaf turns gold, and the day's next
-/// step is one tap away. Null when the sheet is just dismissed.
+/// The moment a hadith is finished: the leaf turns gold, and writing about it
+/// is one tap away. Sharing is offered only at a milestone (5, 10, 20, 30
+/// and 42 hadiths). Null when the sheet is just dismissed.
 Future<CompletionChoice?> showCompletionSheet({
   required BuildContext context,
   required Hadith hadith,
   required ReadingOutcome outcome,
-  required bool hasNext,
   bool canMemorize = false,
 }) {
   final milestone = outcome.milestone == null
       ? null
-      : JourneyCopy.milestone(
-          outcome.milestone!,
-          lastTitle: hadith.title,
-          days: outcome.days,
-        );
+      : JourneyCopy.milestone(outcome.milestone!);
 
   return showBotanicalSheet<CompletionChoice>(
     context: context,
@@ -41,9 +37,8 @@ Future<CompletionChoice?> showCompletionSheet({
         JourneyCopy.streakLine(outcome.streak.current, outcome.streak.best),
     child: _CompletionBody(
       outcome: outcome,
-      hasNext: hasNext,
       canMemorize: canMemorize,
-      showsStreak: milestone != null,
+      isMilestone: milestone != null,
     ),
   );
 }
@@ -51,19 +46,18 @@ Future<CompletionChoice?> showCompletionSheet({
 class _CompletionBody extends StatelessWidget {
   const _CompletionBody({
     required this.outcome,
-    required this.hasNext,
-    required this.showsStreak,
+    required this.isMilestone,
     this.canMemorize = false,
   });
 
   final ReadingOutcome outcome;
-  final bool hasNext;
 
   /// Offers to learn the hadith by heart, unless it already is.
   final bool canMemorize;
 
-  /// A milestone's message takes the subtitle, so the streak line moves here.
-  final bool showsStreak;
+  /// A milestone's message takes the subtitle, so the streak line moves
+  /// here, and only a milestone offers to share.
+  final bool isMilestone;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +80,7 @@ class _CompletionBody extends StatelessWidget {
             color: palette.goldText,
           ),
         ),
-        if (showsStreak) ...[
+        if (isMilestone) ...[
           const SizedBox(height: 4),
           Text(
             JourneyCopy.streakLine(outcome.streak.current, outcome.streak.best),
@@ -138,30 +132,15 @@ class _CompletionBody extends StatelessWidget {
           icon: Icons.edit_note_rounded,
           onPressed: () => Navigator.pop(context, CompletionChoice.write),
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            if (hasNext) ...[
-              Expanded(
-                child: AppButton(
-                  text: 'الحديث التالي',
-                  isSecondary: true,
-                  onPressed: () =>
-                      Navigator.pop(context, CompletionChoice.next),
-                ),
-              ),
-              const SizedBox(width: 10),
-            ],
-            Expanded(
-              child: AppButton(
-                text: 'مشاركة',
-                isSecondary: true,
-                icon: Icons.ios_share_rounded,
-                onPressed: () => Navigator.pop(context, CompletionChoice.share),
-              ),
-            ),
-          ],
-        ),
+        if (isMilestone) ...[
+          const SizedBox(height: 10),
+          AppButton(
+            text: 'مشاركة',
+            isSecondary: true,
+            icon: Icons.ios_share_rounded,
+            onPressed: () => Navigator.pop(context, CompletionChoice.share),
+          ),
+        ],
         if (canMemorize) ...[
           const SizedBox(height: 4),
           TextButton.icon(

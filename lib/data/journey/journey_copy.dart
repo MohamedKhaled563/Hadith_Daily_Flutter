@@ -4,7 +4,8 @@
 /// The voice is one person talking to one person: a real detail from their
 /// reading, one idea, no exclamation marks and no emoji. Past verbs without
 /// vowels and «نكمل» include women readers, where «واصل» would not. Religious
-/// wording here needs a qualified reviewer before release.
+/// wording here needs a qualified reviewer before release. The reading
+/// milestone messages are the one exception: see [JourneyCopy.milestone].
 library;
 
 import '../../core/utils/arabic_numerals.dart';
@@ -32,8 +33,6 @@ class JourneyCopy {
 
   static const posterInvitation = 'اقرأ معي الأربعين النووية';
 
-  static const posterReadToday = 'قرأته اليوم بشرحه';
-
   static String treeCaption(int count, String? link) {
     final progress = count == 0
         ? 'بدأت قراءة الأربعين النووية'
@@ -41,48 +40,52 @@ class JourneyCopy {
     return '$progress في تطبيق «طيّب قلبك»، فاقرأ معي.${_linkLine(link)}';
   }
 
-  static String hadithCaption(String title, int number, String? link) =>
-      '«$title»\nالحديث ${toArabicDigits(number)} من الأربعين النووية\n'
-      'قرأته اليوم بشرحه في تطبيق «طيّب قلبك».${_linkLine(link)}';
+  /// Sent beside a milestone poster: the milestone's own message, exactly as
+  /// the reader saw it, and the way to the app.
+  static String milestoneCaption(int milestone, String? link) {
+    final message = JourneyCopy.milestone(milestone);
+    return '${message.title}\n${message.body}${_linkLine(link)}';
+  }
 
   static String _linkLine(String? link) => link == null ? '' : '\n$link';
 
-  /// The message for [milestone] hadiths. [lastTitle] is the hadith just
-  /// read, and [days] how many reading days it took.
-  static JourneyMessage milestone(
-    int milestone, {
-    required String lastTitle,
-    required int days,
-  }) {
-    return switch (milestone) {
-      5 => const JourneyMessage(
-          title: 'صارت خمسة',
-          body: 'خمسة أحاديث قرأتها كاملة، بنصّها وشرحها. لو توقفت هنا لكان '
-              'خيراً، فكيف إذا أكملت؟ نلتقي عند السادس إن شاء الله.',
-        ),
-      10 => JourneyMessage(
-          title: 'عشرة أحاديث، ما شاء الله',
-          body: 'ما رأيك أن تحكي اليوم لأحد من أهلك ما فهمته من حديث '
-              '«$lastTitle»؟ قد يفاجئك كم بقي معك.',
-        ),
-      20 => const JourneyMessage(
-          title: 'بقي حديث واحد على النصف',
-          body: 'عشرون حديثاً حتى الآن. الحديث القادم يضعك في منتصف الأربعين '
-              'النووية تماماً، فما رأيك أن نصله غداً إن شاء الله؟',
-        ),
-      30 => const JourneyMessage(
-          title: 'بقي اثنا عشر',
-          body: 'ثلاثون حديثاً، وبقي اثنا عشر. في مثل هذا الموضع نستعجل '
-              'النهاية عادةً، فلنقرأ ما بقي على مهل كما قرأنا ما قبله.',
-        ),
-      _ => JourneyMessage(
-          title: 'ختمت الأربعين النووية',
-          body: 'اثنان وأربعون حديثاً قرأتها واحداً واحداً بشرحها، في '
-              '${arabicDayCount(days)}. نسأل الله أن ينفعك بما قرأت، وأن '
-              'يجعله علماً نافعاً وعملاً صالحاً.',
-        ),
-    };
-  }
+  /// The message for [milestone] hadiths.
+  ///
+  /// These five are the owner's own words, kept letter for letter, emoji and
+  /// exclamation marks included. The voice rules above do not apply to them,
+  /// and the static checks exempt exactly these strings.
+  static JourneyMessage milestone(int milestone) => switch (milestone) {
+        5 => const JourneyMessage(
+            title: '🌱 بداية جميلة!',
+            body: 'أتممت قراءة أول خمسة أحاديث! بدأت رحلتك مع الأربعين '
+                'النووية، وكل حديث تقرؤه يفتح لك باباً جديداً من الفهم '
+                'والعمل. واصل رحلتك!',
+          ),
+        10 => const JourneyMessage(
+            title: '🌿 خطواتك تصنع أثراً!',
+            body: 'أتممت قراءة 10 أحاديث! عشرة أحاديث أصبحت جزءاً من رحلتك. '
+                'اجعل ما تعلمته نوراً تسترشد به في حياتك، واستمر في اكتشاف '
+                'المزيد.',
+          ),
+        20 => const JourneyMessage(
+            title: '💚 وصلت إلى منتصف الرحلة!',
+            body: 'أتممت قراءة 20 حديثاً من الأربعين النووية! قطعت شوطاً '
+                'جميلاً، وما زالت أمامك معانٍ كثيرة تستحق أن تكتشفها '
+                'وتتدبرها وتعمل بها.',
+          ),
+        30 => const JourneyMessage(
+            title: '🌸 اقتربت من إتمام الرحلة!',
+            body: 'أتممت قراءة 30 حديثا! ثلاثون خطوة في رحلتك مع هدي النبي ﷺ، '
+                'ولم يتبقَّ سوى 12 حديثاً لتكمل هذه الرحلة الجميلة. واصل، '
+                'فأنت تقترب!',
+          ),
+        _ => const JourneyMessage(
+            title: '✨ أتممت الرحلة!',
+            body: 'أكملت قراءة الأحاديث الاثنين والأربعين! اثنان وأربعون '
+                'حديثاً، ومعانٍ كثيرة تستحق أن تصحبك في حياتك. نسأل الله أن '
+                'ينفعك بما قرأت، وأن يجعلها علماً نافعاً وعملاً صالحاً.',
+          ),
+      };
 
   /// The morning reminder of a reader who has not read today.
   static JourneyMessage todaysHadith(String title, int minutes) =>

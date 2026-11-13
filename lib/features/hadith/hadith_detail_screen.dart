@@ -191,14 +191,10 @@ class _HadithDetailScreenState extends State<HadithDetailScreen>
     );
     AppHaptics.success();
 
-    final nextNumber = journey.nextHadithNumber;
-    final next =
-        nextNumber == null ? null : HadithRepository().getByNumber(nextNumber);
     final choice = await showCompletionSheet(
       context: context,
       hadith: hadith,
       outcome: outcome,
-      hasNext: next != null,
       canMemorize: !journey.data.memoOf(hadith.number).isMemorized,
     );
     if (!mounted) return;
@@ -210,17 +206,14 @@ class _HadithDetailScreenState extends State<HadithDetailScreen>
     switch (choice) {
       case CompletionChoice.write:
         JourneyLinks.openWriting(hadith);
-      case CompletionChoice.next when next != null:
-        unawaited(navigator.pushReplacement(
-          appPageRoute(child: HadithDetailScreen(hadith: next)),
-        ));
       case CompletionChoice.share:
-        await shareHadith(context, hadith);
+        // The sheet offers sharing only at a milestone.
+        final milestone = outcome.milestone;
+        if (milestone != null) await shareMilestone(context, milestone);
       case CompletionChoice.memorize:
         unawaited(navigator.push(
           appPageRoute(child: MemorizeScreen(hadith: hadith)),
         ));
-      case CompletionChoice.next:
       case null:
         break;
     }

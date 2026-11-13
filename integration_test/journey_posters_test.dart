@@ -97,29 +97,24 @@ void main() {
       );
     });
 
-    testWidgets('a hadith renders as a ${format.name} poster', (tester) async {
+    testWidgets('a milestone renders as a ${format.name} poster',
+        (tester) async {
       await check(
         tester,
-        'hadith-${format.name}',
-        HadithPoster(
-          format: format,
-          hadith: HadithRepository().getByNumber(16)!,
-        ),
+        'milestone-${format.name}',
+        MilestonePoster(format: format, milestone: 5),
         format,
       );
     });
   }
 
-  testWidgets('the longest title renders with a name on it', (tester) async {
+  testWidgets('the longest milestone renders with a name on it',
+      (tester) async {
     const format = PosterFormat.feed;
     await check(
       tester,
-      'hadith-long',
-      HadithPoster(
-        format: format,
-        hadith: HadithRepository().getByNumber(41)!,
-        name: 'سارة',
-      ),
+      'milestone-long',
+      const MilestonePoster(format: format, milestone: 42, name: 'سارة'),
       format,
     );
   });

@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hadith_app/data/journey/journey_copy.dart';
+import 'package:hadith_app/data/journey/journey_engine.dart';
 
 /// The project's own static checks: rules no general linter knows, read
 /// straight from the source. Run with the analyzer and the formatter by
@@ -98,6 +100,19 @@ void main() {
     // From the voice the user asked for: written by a person, so no
     // exclamation marks and no emoji; and points measure activity in the
     // app, never reward, so no talk of حسنات.
+    //
+    // The reading milestone messages are the one exception: the owner wrote
+    // them, emoji and exclamation marks included, and asked for them word
+    // for word. Only pieces of those exact messages are let through.
+    final milestoneWords = [
+      for (final mark in kJourneyMilestones) ...[
+        JourneyCopy.milestone(mark).title,
+        JourneyCopy.milestone(mark).body,
+      ],
+    ];
+    bool isMilestone(String text) =>
+        text.isNotEmpty && milestoneWords.any((m) => m.contains(text));
+
     final readerFacing = [
       File('lib/data/journey/journey_copy.dart'),
       ...dartFiles('lib/features/journey'),
@@ -112,7 +127,7 @@ void main() {
     test('no exclamation marks', () {
       for (final file in readerFacing) {
         for (final text in literals(read(file.path))) {
-          if (!arabic.hasMatch(text)) continue;
+          if (!arabic.hasMatch(text) || isMilestone(text)) continue;
           // Code inside an interpolation is not words: `${due!}` is Dart.
           final words = text.replaceAll(RegExp(r'\$\{[^}]*\}'), '');
           expect(
@@ -127,6 +142,7 @@ void main() {
     test('no emoji', () {
       for (final file in readerFacing) {
         for (final text in literals(read(file.path))) {
+          if (isMilestone(text)) continue;
           expect(emoji.hasMatch(text), isFalse, reason: '${rel(file)}: $text');
         }
       }

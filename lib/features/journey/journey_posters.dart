@@ -7,7 +7,6 @@ import '../../core/widgets/islamic_pattern_painter.dart';
 import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_models.dart';
 import '../../data/journey/journey_points.dart';
-import '../../data/models/hadith.dart';
 import 'journey_tree.dart';
 
 /// The shapes a progress poster comes in. Captured at 3×, so these are
@@ -331,78 +330,81 @@ class HarvestPoster extends StatelessWidget {
   }
 }
 
-/// The hadith just finished. The hadith is the point of this poster, so it
-/// takes the room, and the reader's progress does not appear at all.
-class HadithPoster extends StatelessWidget {
-  const HadithPoster({
+/// A milestone the reader reached (5, 10, 20, 30 or 42 hadiths), in the
+/// same words the completion sheet showed them. The message is the point of
+/// this poster, so it takes the room.
+class MilestonePoster extends StatelessWidget {
+  const MilestonePoster({
     super.key,
     required this.format,
-    required this.hadith,
+    required this.milestone,
     this.name,
   });
 
   final PosterFormat format;
-  final Hadith hadith;
+
+  /// How many hadiths the reader has finished: one of the milestones.
+  final int milestone;
 
   /// Null unless the reader turned their name on.
   final String? name;
 
-  double get _titleSize {
-    final length = hadith.title.characters.length;
-    if (length <= 18) return 38;
-    if (length <= 30) return 30;
-    return 25;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final message = JourneyCopy.milestone(milestone);
+
     return _PosterFrame(
       format: format,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            JourneyCopy.posterReadToday,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: kSans,
-              fontSize: 14,
-              height: 1.3,
-              fontWeight: FontWeight.w700,
-              color: _gold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // FittedBox is the real guarantee, as on ShareCard: the sizes above
-          // are an estimate of how a title wraps, and this only ever shrinks.
+          // FittedBox is the real guarantee, as on ShareCard: the message
+          // keeps its size where it fits, and only ever shrinks.
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: SizedBox(
                 width: format.size.width - 60,
-                child: Text(
-                  hadith.title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Amiri',
-                    fontSize: _titleSize,
-                    height: 1.5,
-                    fontWeight: FontWeight.w700,
-                    color: _ink,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      message.title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: 'Amiri',
+                        fontSize: 28,
+                        height: 1.5,
+                        fontWeight: FontWeight.w700,
+                        color: _ink,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      message.body,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 15.5,
+                        height: 1.8,
+                        fontWeight: FontWeight.w600,
+                        color: _ink,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            'الحديث ${toArabicDigits(hadith.number)} من الأربعين النووية',
+            '${toArabicDigits(milestone)} من ٤٢ حديثاً',
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontFamily: kSans,
-              fontSize: 12.5,
-              height: 1.4,
-              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              height: 1.3,
+              fontWeight: FontWeight.w700,
               color: _gold,
             ),
           ),

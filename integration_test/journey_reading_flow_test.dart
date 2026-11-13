@@ -139,7 +139,7 @@ void main() {
     expect(data.progressOf(hadith.number).isComplete, isTrue);
     expect(find.textContaining(hadith.title), findsWidgets);
     expect(find.text('اكتب رسالة من هذا الحديث'), findsOneWidget);
-    expect(find.text('الحديث التالي'), findsOneWidget);
+    expect(find.text('الحديث التالي'), findsNothing);
     expect(data.days.values.single.seconds, greaterThan(0));
   });
 

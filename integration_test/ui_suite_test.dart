@@ -302,20 +302,15 @@ void main() {
       expect(journey.streak.current, 1);
     });
 
-    testWidgets('the sheet leads on to the next hadith', (tester) async {
+    testWidgets('an ordinary hadith offers neither the next one nor sharing',
+        (tester) async {
       await openJourney(tester, accessible: true);
       await tapLeaf(tester, 12);
       await confirmReading(tester);
 
-      await tester.tap(find.text('الحديث التالي'));
-      await wait(tester, 1000);
-
-      expect(find.byType(HadithDetailScreen), findsOneWidget);
-      expect(
-        find.text(hadiths.getByNumber(journey.nextHadithNumber!)!.title),
-        findsOneWidget,
-      );
-      expect(find.byType(HadithExplanationScreen), findsNothing);
+      expect(find.text('اكتب رسالة من هذا الحديث'), findsOneWidget);
+      expect(find.text('الحديث التالي'), findsNothing);
+      expect(find.text('مشاركة'), findsNothing);
     });
 
     testWidgets('the sheet leads on to writing about that hadith',
@@ -379,14 +374,15 @@ void main() {
     testWidgets('the fifth hadith gets its message', (tester) async {
       finished([1, 2, 3, 4]);
       await finishLast(tester, 5);
-      expect(find.text('صارت خمسة'), findsOneWidget);
+      expect(find.text('🌱 بداية جميلة!'), findsOneWidget);
+      expect(find.text('مشاركة'), findsOneWidget);
+      expect(find.text('الحديث التالي'), findsNothing);
     });
 
-    testWidgets('the tenth uses the title just read', (tester) async {
+    testWidgets('the tenth gets its message', (tester) async {
       finished([for (var n = 1; n <= 9; n++) n]);
       await finishLast(tester, 10);
-      expect(find.text('عشرة أحاديث، ما شاء الله'), findsOneWidget);
-      expect(find.textContaining(hadiths.getByNumber(10)!.title), findsWidgets);
+      expect(find.text('🌿 خطواتك تصنع أثراً!'), findsOneWidget);
     });
 
     testWidgets('the last hadith ends the Forty, with nothing after it',
@@ -394,7 +390,7 @@ void main() {
       finished([for (var n = 1; n <= 41; n++) n]);
       await finishLast(tester, 42);
 
-      expect(find.text('ختمت الأربعين النووية'), findsOneWidget);
+      expect(find.text('✨ أتممت الرحلة!'), findsOneWidget);
       expect(find.text('٤٢ من ٤٢ حديثاً'), findsOneWidget);
       expect(find.text('الحديث التالي'), findsNothing);
       expect(journey.nextHadithNumber, isNull);
@@ -403,24 +399,27 @@ void main() {
     testWidgets('a milestone does not repeat on a re-read', (tester) async {
       finished([1, 2, 3, 4, 5]);
       await finishLast(tester, 5);
-      expect(find.text('صارت خمسة'), findsNothing);
+      expect(find.text('🌱 بداية جميلة!'), findsNothing);
       expect(find.text('أتممت قراءته مرة أخرى'), findsOneWidget);
+      expect(find.text('مشاركة'), findsNothing);
     });
   });
 
   group('sharing', () {
-    testWidgets('a finished hadith can be previewed in both shapes and copied',
+    testWidgets('a milestone can be previewed in both shapes and copied',
         (tester) async {
+      // Sharing is offered only at a milestone, so this reads the fifth.
+      finished([1, 2, 3, 4]);
       await openJourney(tester, accessible: true);
-      await tapLeaf(tester, 12);
+      await tapLeaf(tester, 5);
       await confirmReading(tester);
 
       await tester.tap(find.text('مشاركة'));
       await wait(tester, 900);
 
-      expect(find.byType(HadithPoster), findsOneWidget);
+      expect(find.byType(MilestonePoster), findsOneWidget);
       expect(
-        tester.widget<HadithPoster>(find.byType(HadithPoster)).format,
+        tester.widget<MilestonePoster>(find.byType(MilestonePoster)).format,
         PosterFormat.feed,
       );
       expect(find.text('إظهار اسمي'), findsNothing,
@@ -429,13 +428,14 @@ void main() {
       await tester.tap(find.text('حالة'));
       await wait(tester, 400);
       expect(
-        tester.widget<HadithPoster>(find.byType(HadithPoster)).format,
+        tester.widget<MilestonePoster>(find.byType(MilestonePoster)).format,
         PosterFormat.story,
       );
 
       await tester.tap(find.text('نسخ النص'));
       await wait(tester);
-      expect(copied, contains(hadiths.getByNumber(12)!.title));
+      expect(
+          copied, startsWith('🌱 بداية جميلة!\nأتممت قراءة أول خمسة أحاديث!'));
       await wait(tester, 4500);
     });
 

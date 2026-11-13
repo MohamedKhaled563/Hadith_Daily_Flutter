@@ -180,21 +180,38 @@ void journeySuite() {
       expect(arabicDayCount(12, consecutive: true), '١٢ يوماً متتالية');
     });
 
-    test('every milestone has a message and uses its details', () {
-      for (final mark in kJourneyMilestones) {
-        final text =
-            JourneyCopy.milestone(mark, lastTitle: 'لا تغضب', days: 42);
-        expect(text.title, isNotEmpty);
-        expect(text.body, isNot(contains('!')));
+    test('every milestone says the owner\'s words, letter for letter', () {
+      // Each body is one unbroken string here, so a lost space where the
+      // copy file splits a line shows up as a failure.
+      const expected = {
+        5: (
+          '🌱 بداية جميلة!',
+          'أتممت قراءة أول خمسة أحاديث! بدأت رحلتك مع الأربعين النووية، وكل حديث تقرؤه يفتح لك باباً جديداً من الفهم والعمل. واصل رحلتك!',
+        ),
+        10: (
+          '🌿 خطواتك تصنع أثراً!',
+          'أتممت قراءة 10 أحاديث! عشرة أحاديث أصبحت جزءاً من رحلتك. اجعل ما تعلمته نوراً تسترشد به في حياتك، واستمر في اكتشاف المزيد.',
+        ),
+        20: (
+          '💚 وصلت إلى منتصف الرحلة!',
+          'أتممت قراءة 20 حديثاً من الأربعين النووية! قطعت شوطاً جميلاً، وما زالت أمامك معانٍ كثيرة تستحق أن تكتشفها وتتدبرها وتعمل بها.',
+        ),
+        30: (
+          '🌸 اقتربت من إتمام الرحلة!',
+          'أتممت قراءة 30 حديثا! ثلاثون خطوة في رحلتك مع هدي النبي ﷺ، ولم يتبقَّ سوى 12 حديثاً لتكمل هذه الرحلة الجميلة. واصل، فأنت تقترب!',
+        ),
+        42: (
+          '✨ أتممت الرحلة!',
+          'أكملت قراءة الأحاديث الاثنين والأربعين! اثنان وأربعون حديثاً، ومعانٍ كثيرة تستحق أن تصحبك في حياتك. نسأل الله أن ينفعك بما قرأت، وأن يجعلها علماً نافعاً وعملاً صالحاً.',
+        ),
+      };
+      expect(expected.keys, kJourneyMilestones);
+      for (final MapEntry(key: mark, value: (title, body))
+          in expected.entries) {
+        final text = JourneyCopy.milestone(mark);
+        expect(text.title, title, reason: '$mark');
+        expect(text.body, body, reason: '$mark');
       }
-      expect(
-        JourneyCopy.milestone(10, lastTitle: 'لا تغضب', days: 9).body,
-        contains('لا تغضب'),
-      );
-      expect(
-        JourneyCopy.milestone(42, lastTitle: 'x', days: 42).body,
-        contains('٤٢ يوماً'),
-      );
     });
   });
 

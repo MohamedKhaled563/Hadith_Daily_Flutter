@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/data/journey/journey_copy.dart';
+import 'package:hadith_app/data/journey/journey_engine.dart';
 import 'package:hadith_app/data/journey/journey_models.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/features/journey/journey_posters.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A poster has a fixed canvas, so anything too long clips silently on an
-/// image the reader has already sent. Every hadith title goes through both
-/// shapes here, since the overflow only shows up in a layout.
+/// image the reader has already sent. Every milestone message goes through
+/// both shapes here, since the overflow only shows up in a layout.
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -34,17 +35,20 @@ void main() {
   });
 
   for (final format in PosterFormat.values) {
-    testWidgets('every hadith fits the ${format.name} poster', (tester) async {
-      for (final hadith in HadithRepository().hadiths) {
+    testWidgets('every milestone fits the ${format.name} poster',
+        (tester) async {
+      for (final mark in kJourneyMilestones) {
         await layOut(
           tester,
-          HadithPoster(
+          MilestonePoster(
             format: format,
-            hadith: hadith,
+            milestone: mark,
             name: 'اسم طويل جداً لقارئ يحب الأسماء الطويلة كثيراً',
           ),
           format.size,
         );
+        expect(find.text(JourneyCopy.milestone(mark).title), findsOneWidget);
+        expect(find.text(JourneyCopy.milestone(mark).body), findsOneWidget);
       }
     });
 
@@ -91,14 +95,23 @@ void main() {
     test('carry the link when there is one', () {
       expect(JourneyCopy.treeCaption(15, 'https://x.example'),
           contains('https://x.example'));
-      expect(JourneyCopy.hadithCaption('لا تغضب', 16, 'https://x.example'),
+      expect(JourneyCopy.milestoneCaption(5, 'https://x.example'),
           contains('https://x.example'));
     });
 
     test('leave the line out when there is none', () {
       expect(JourneyCopy.treeCaption(15, null), isNot(contains('null')));
-      expect(JourneyCopy.hadithCaption('لا تغضب', 16, null),
-          isNot(contains('null')));
+      expect(JourneyCopy.milestoneCaption(5, null), isNot(contains('null')));
+    });
+
+    test('a milestone sends its own message, word for word', () {
+      for (final mark in kJourneyMilestones) {
+        final message = JourneyCopy.milestone(mark);
+        expect(
+          JourneyCopy.milestoneCaption(mark, null),
+          '${message.title}\n${message.body}',
+        );
+      }
     });
 
     test('read properly before the first hadith is finished', () {

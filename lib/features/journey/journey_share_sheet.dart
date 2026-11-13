@@ -16,7 +16,6 @@ import '../../core/widgets/tap_target.dart';
 import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_points.dart';
 import '../../data/journey/journey_repository.dart';
-import '../../data/models/hadith.dart';
 import 'journey_posters.dart';
 
 typedef PosterBuilder = Widget Function(PosterFormat format, String? name);
@@ -32,17 +31,14 @@ Future<void> shareTree(BuildContext context) {
   );
 }
 
-/// Shares a hadith the reader has just finished.
-Future<void> shareHadith(BuildContext context, Hadith hadith) {
+/// Shares a milestone the reader has just reached, in the milestone's own
+/// words: on the poster, and as the text beside it or copied.
+Future<void> shareMilestone(BuildContext context, int milestone) {
   return _showPosterSheet(
     context: context,
-    caption: JourneyCopy.hadithCaption(
-      hadith.title,
-      hadith.number,
-      AppLinks.storeLink,
-    ),
+    caption: JourneyCopy.milestoneCaption(milestone, AppLinks.storeLink),
     builder: (format, name) =>
-        HadithPoster(format: format, hadith: hadith, name: name),
+        MilestonePoster(format: format, milestone: milestone, name: name),
   );
 }
 
