@@ -850,6 +850,8 @@ void main() {
       await wait(tester);
 
       expect(find.text('اقرأ'), findsOneWidget);
+      expect(find.textContaining('أَنَسِ بْنِ مَالِكٍ'), findsOneWidget,
+          reason: 'the narrator is read first');
       await throughReading(tester);
       expect(blanks(), findsWidgets, reason: 'one word in three hidden');
       await press(tester, 'أخفِ أكثر');
@@ -857,6 +859,9 @@ void main() {
       expect(find.text('حفظته'), findsNothing,
           reason: 'the text is shown before the reader answers');
       await press(tester, 'أظهر النص');
+      expect(find.text('رواه'), findsOneWidget,
+          reason: 'the source is recited with it');
+      expect(find.text('البخاري'), findsOneWidget);
       await press(tester, 'حفظته');
       await wait(tester, 600);
 
@@ -906,10 +911,14 @@ void main() {
       await wait(tester);
 
       expect(find.text('الجزء ١ من ٣'), findsOneWidget);
+      expect(find.textContaining('عُمَرَ بن الخطاب'), findsOneWidget,
+          reason: 'the narrator opens the first part');
       await throughReading(tester);
       await press(tester, 'أخفِ أكثر');
       await press(tester, 'سمّعه كاملاً');
       await press(tester, 'أظهر النص');
+      expect(find.text('رواه'), findsNothing,
+          reason: 'the source closes the last part, not the first');
       await press(tester, 'حفظته');
       await wait(tester, 600);
 

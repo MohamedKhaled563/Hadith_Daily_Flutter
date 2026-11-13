@@ -8,6 +8,7 @@ import 'package:hadith_app/data/journey/journey_repository.dart';
 import 'package:hadith_app/data/journey/journey_store.dart';
 import 'package:hadith_app/data/journey/memorization.dart';
 import 'package:hadith_app/data/journey/weekly_board.dart';
+import 'package:hadith_app/data/models/hadith.dart';
 import 'package:hadith_app/data/repositories/hadith_repository.dart';
 import 'package:hadith_app/data/services/notification_planner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -74,6 +75,91 @@ void memoSuite() {
 
     test('a hadith with no punctuation is one sentence', () {
       expect(memoSentences('لا يؤمن أحدكم حتى يحب لأخيه'), hasLength(1));
+    });
+  });
+
+  group('the narrator and the source are learned with it', () {
+    List<String> wordsOf(List<MemoSentence> sentences) => [
+          for (final s in sentences) ...s.text.trim().split(RegExp(r'\s+')),
+        ];
+
+    test('every hadith has both to learn', () {
+      for (final hadith in hadiths.getAll()) {
+        expect(hadith.isnad.trim(), isNotEmpty, reason: '${hadith.number}');
+        expect(hadith.mukhrij.trim(), isNotEmpty, reason: '${hadith.number}');
+      }
+    });
+
+    test('a hadith takes as many sessions as before', () {
+      for (final hadith in hadiths.getAll()) {
+        expect(
+          memoPassage(hadith).length,
+          memoParts(hadith.text).length,
+          reason: 'hadith ${hadith.number}',
+        );
+      }
+    });
+
+    test('the narrator opens the first part, the source closes the last', () {
+      for (final hadith in hadiths.getAll()) {
+        final parts = memoPassage(hadith);
+        final reason = 'hadith ${hadith.number}';
+
+        expect(parts.first.first.line, MemoLine.narrator, reason: reason);
+        expect(
+          parts.last.last,
+          MemoSentence('رواه ${hadith.mukhrij.trim()}', MemoLine.source),
+          reason: reason,
+        );
+        for (final part in parts.skip(1)) {
+          expect(part.map((s) => s.line), isNot(contains(MemoLine.narrator)),
+              reason: reason);
+        }
+        for (final part in parts.take(parts.length - 1)) {
+          expect(part.map((s) => s.line), isNot(contains(MemoLine.source)),
+              reason: reason);
+        }
+      }
+    });
+
+    test('every word is there once, in reading order', () {
+      for (final hadith in hadiths.getAll()) {
+        final all = [for (final part in memoPassage(hadith)) ...part];
+        expect(
+          wordsOf(all),
+          [
+            ...hadith.isnad.trim().split(RegExp(r'\s+')),
+            ...hadith.text.trim().split(RegExp(r'\s+')),
+            'رواه',
+            ...hadith.mukhrij.trim().split(RegExp(r'\s+')),
+          ],
+          reason: 'hadith ${hadith.number}',
+        );
+      }
+    });
+
+    test('a session stays a session with them', () {
+      for (final hadith in hadiths.getAll()) {
+        for (final part in memoPassage(hadith)) {
+          expect(wordsOf(part).length, lessThanOrEqualTo(110),
+              reason: 'hadith ${hadith.number}');
+        }
+      }
+    });
+
+    test('a hadith with neither is its text alone', () {
+      const bare = Hadith(
+        number: 99,
+        title: 't',
+        text: 'إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى.',
+        explanation: '',
+      );
+      expect(memoPassage(bare), [
+        [
+          for (final s in memoSentences(bare.text))
+            MemoSentence(s, MemoLine.matn),
+        ],
+      ]);
     });
   });
 
