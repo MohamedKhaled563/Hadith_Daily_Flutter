@@ -200,7 +200,6 @@ class TreePoster extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = data.completeCount;
-    final colors = TreeColors.poster();
 
     return _PosterFrame(
       format: format,
@@ -221,10 +220,10 @@ class TreePoster extends StatelessWidget {
           Expanded(
             child: CustomPaint(
               size: Size.infinite,
+              // Loaded by shareTree before the poster is built.
               painter: JourneyTreePainter(
                 looks: leafLooks(data),
-                memorized: memorizedLeaves(data),
-                colors: colors,
+                art: TreeArt.ready,
               ),
             ),
           ),

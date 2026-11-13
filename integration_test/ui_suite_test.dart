@@ -29,6 +29,7 @@ import 'package:hadith_app/features/journey/journey_ring.dart';
 import 'package:hadith_app/features/journey/journey_screen.dart';
 import 'package:hadith_app/features/journey/journey_tree.dart';
 import 'package:hadith_app/features/journey/weekly_board_screen.dart';
+import 'package:hadith_app/features/memorize/memo_list_screen.dart';
 import 'package:hadith_app/features/memorize/memorize_screen.dart';
 import 'package:hadith_app/firebase_options.dart';
 import 'package:integration_test/integration_test.dart';
@@ -537,31 +538,30 @@ void main() {
 
     testWidgets('a key under the tree says what each leaf means',
         (tester) async {
-      finished([1]);
-      journey.recordTextRead(3);
+      finished([1, 2]);
       journey.learnPart(1, totalParts: 1);
       await openJourney(tester);
 
-      // Hadith 1 is read, 2 is next, 3 is started and the rest are not.
-      for (final label in [
-        'مكتمل',
-        'حديث اليوم',
-        'بدأت قراءته',
-        'لم يُقرأ بعد',
-        'في حفظك',
-      ]) {
+      // Three kinds of leaf: 1 is memorized, 2 is read, the rest are not.
+      for (final label in ['مكتمل', 'لم يُقرأ بعد', 'في حفظك']) {
         expect(find.text(label), findsOneWidget, reason: label);
+        expect(
+          find.descendant(
+            of: find.ancestor(of: find.text(label), matching: find.byType(Row))
+                .first,
+            matching: find.byType(LeafSwatch),
+          ),
+          findsOneWidget,
+          reason: 'a leaf beside «$label»',
+        );
       }
-      expect(find.byType(LeafSwatch), findsNWidgets(5));
     });
 
     testWidgets('the key shows only the leaves the tree has', (tester) async {
       await openJourney(tester);
 
-      expect(find.text('حديث اليوم'), findsOneWidget);
       expect(find.text('لم يُقرأ بعد'), findsOneWidget);
       expect(find.text('مكتمل'), findsNothing);
-      expect(find.text('بدأت قراءته'), findsNothing);
       expect(find.text('في حفظك'), findsNothing);
     });
 
@@ -1019,17 +1019,50 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).last,
       );
+      // The page it opens starts from the same hadith.
+      // Clear of the floating tab bar before tapping.
+      await Scrollable.ensureVisible(
+        tester.element(find.byType(MemoEntry)),
+        alignment: .4,
+      );
+      await wait(tester, 400);
+      await tester.tap(find.text('ابدأ بحفظ «$shortest»'));
+      await wait(tester, 800);
+      expect(find.text('لم تحفظ حديثاً بعد'), findsOneWidget);
+      expect(find.text(shortest), findsOneWidget);
+      expect(find.text('ابدأ حفظه'), findsOneWidget);
+      Navigator.of(tester.element(find.byType(MemoListScreen))).pop();
+      await wait(tester, 800);
 
       journey.learnPart(13, totalParts: 1);
       now = DateTime(2026, 11, 8, 12);
       journey.recordMessageRead('m', hadithNumber: 1);
       await wait(tester, 600);
       await tester.scrollUntilVisible(
-        find.text('مراجعة «$shortest»'),
+        find.text('موعد مراجعة «$shortest» اليوم'),
         200,
         scrollable: find.byType(Scrollable).last,
       );
       expect(find.text('في حفظك ١'), findsWidgets);
+
+      // Today's review on top; once done, its card says so.
+      await Scrollable.ensureVisible(
+        tester.element(find.byType(MemoEntry)),
+        alignment: .4,
+      );
+      await wait(tester, 400);
+      await tester.tap(find.text('موعد مراجعة «$shortest» اليوم'));
+      await wait(tester, 800);
+      expect(find.text('مراجعة اليوم'), findsOneWidget);
+      expect(find.text('راجعه الآن'), findsOneWidget);
+      expect(find.text('كل ما تحفظه (١)'), findsOneWidget);
+      journey.review(13, remembered: true);
+      await wait(tester, 800);
+      expect(find.text('راجعه الآن'), findsNothing);
+      expect(find.text('أتممت مراجعة اليوم.'), findsOneWidget);
+      expect(find.textContaining('راجعته اليوم. نعود إليه'), findsOneWidget);
+      Navigator.of(tester.element(find.byType(MemoListScreen))).pop();
+      await wait(tester, 800);
 
       // Back up to the tree, which the list let go of further down.
       await tester.scrollUntilVisible(
@@ -1304,7 +1337,7 @@ void main() {
       );
       expect(
         labels.where((l) => l.startsWith('الحديث ٢:')).single,
-        endsWith('حديث اليوم'),
+        endsWith('لم يُقرأ بعد'),
       );
       expect(
         labels.where((l) => l.startsWith('الحديث ٤٢:')).single,

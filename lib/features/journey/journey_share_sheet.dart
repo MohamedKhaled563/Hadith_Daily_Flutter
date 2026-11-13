@@ -17,12 +17,17 @@ import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_points.dart';
 import '../../data/journey/journey_repository.dart';
 import 'journey_posters.dart';
+import 'journey_tree.dart';
 
 typedef PosterBuilder = Widget Function(PosterFormat format, String? name);
 
 /// Shares the reader's tree.
-Future<void> shareTree(BuildContext context) {
+Future<void> shareTree(BuildContext context) async {
   final data = JourneyRepository().data;
+  // The poster paints the tree straight away, so it must be decoded first.
+  // It almost always is: the tree on the screen behind loaded it.
+  await TreeArt.load();
+  if (!context.mounted) return;
   return _showPosterSheet(
     context: context,
     caption: JourneyCopy.treeCaption(data.completeCount, AppLinks.storeLink),
