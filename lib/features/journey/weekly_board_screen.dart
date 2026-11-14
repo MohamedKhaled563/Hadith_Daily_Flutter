@@ -144,11 +144,13 @@ class _BoardCard extends StatelessWidget {
     // sits on it is drawn with the dark palette, so it is read from inside.
     return HonorCard(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-      child: Builder(builder: _content),
+      child: Builder(builder: (inside) => _content(inside, host: context)),
     );
   }
 
-  Widget _content(BuildContext context) {
+  /// [host] is the screen outside the card: a sheet opened from it takes the
+  /// app's theme, not the card's dark one.
+  Widget _content(BuildContext context, {required BuildContext host}) {
     final palette = context.palette;
     final muted = TextStyle(
       fontFamily: kSans,
@@ -221,7 +223,7 @@ class _BoardCard extends StatelessWidget {
               label: 'شارك لوحة الأسبوع',
               icon: Icons.ios_share_rounded,
               onTap: () => shareBoard(
-                context,
+                host,
                 weekLabel: JourneyCopy.boardWeek(board.weekStart),
                 listLabel: list.label,
                 rows: [

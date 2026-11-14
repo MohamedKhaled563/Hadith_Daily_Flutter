@@ -922,6 +922,11 @@ void main() {
       await tester.tap(find.text('شارك لوحة الأسبوع'));
       await until(tester, () => shows(find.byType(BoardPoster)));
       expect(find.text('إظهار اسمي'), findsNothing);
+      // Opened from the emerald card, the sheet still takes the app's theme.
+      expect(
+        Theme.of(tester.element(find.text('نسخ النص'))).brightness,
+        Brightness.light,
+      );
 
       await tester.ensureVisible(find.text('نسخ النص'));
       await wait(tester, 300);
