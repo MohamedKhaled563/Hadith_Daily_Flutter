@@ -7,6 +7,7 @@ import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/glass_panel.dart';
 import '../../core/widgets/icon_badge.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
@@ -120,8 +121,7 @@ class TodayStepsScreen extends StatelessWidget {
   }
 }
 
-//// The big ring and one line on where the day stands, on a card of their
-/// own with a soft light behind the ring.
+/// The big ring and one line on where the day stands.
 class _Summary extends StatelessWidget {
   const _Summary({required this.done, required this.counted});
 
@@ -140,64 +140,38 @@ class _Summary extends StatelessWidget {
         : counted
             ? JourneyCopy.stepsDayCounted
             : JourneyCopy.stepsHowToCount;
-    final glow = complete ? palette.success : palette.ornamentGold;
 
+    // The ring stands on the page itself, as it always did; only the line
+    // under it sits on a small glass note.
     return Semantics(
       label: '${StepsRing.describe(done)}. $line',
       excludeSemantics: true,
-      child: ParchmentCard(
-        elevated: true,
-        showWatermark: false,
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-        // Full width, so the ring and the line centre on the card rather
-        // than on the widest of the two.
-        child: SizedBox(
-          width: double.infinity,
-          child: Column(
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      glow.withValues(alpha: .3),
-                      glow.withValues(alpha: 0),
-                    ],
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: StepsRing(done: done, size: 112),
-                ),
+      child: Column(
+        children: [
+          StepsRing(done: done, size: 112),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: glassTile(
+              context,
+              tint: complete
+                  ? palette.successWash
+                  : palette.parchmentTop.withValues(alpha: .9),
+              edge: complete ? palette.success : null,
+            ),
+            child: Text(
+              line,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 14.5,
+                height: AppLeading.body,
+                fontWeight: FontWeight.w600,
+                color: complete ? palette.success : palette.bodyText,
               ),
-              const SizedBox(height: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: complete ? palette.successWash : palette.surface,
-                  borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
-                  border: Border.all(
-                    color: complete
-                        ? palette.success.withValues(alpha: .35)
-                        : palette.cardBorder,
-                  ),
-                ),
-                child: Text(
-                  line,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 14.5,
-                    height: AppLeading.body,
-                    fontWeight: FontWeight.w600,
-                    color: complete ? palette.success : palette.bodyText,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

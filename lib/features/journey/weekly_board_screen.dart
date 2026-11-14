@@ -9,6 +9,7 @@ import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/honor_card.dart';
 import '../../core/widgets/icon_badge.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/pill_tabs.dart';
@@ -16,6 +17,8 @@ import '../../data/journey/board_service.dart';
 import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_repository.dart';
 import '../../data/journey/weekly_board.dart';
+import 'journey_posters.dart';
+import 'journey_share_sheet.dart';
 
 /// The board's three published lists.
 enum BoardList {
@@ -137,6 +140,15 @@ class _BoardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // An honour roll: emerald under gold, as the card that opens it. What
+    // sits on it is drawn with the dark palette, so it is read from inside.
+    return HonorCard(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+      child: Builder(builder: _content),
+    );
+  }
+
+  Widget _content(BuildContext context) {
     final palette = context.palette;
     final muted = TextStyle(
       fontFamily: kSans,
@@ -145,72 +157,89 @@ class _BoardCard extends StatelessWidget {
       color: palette.mutedText,
     );
     final board = this.board;
+    final rows = board == null
+        ? const <BoardRow>[]
+        : switch (list) {
+            BoardList.points => board.points,
+            BoardList.sharing => board.sharing,
+            BoardList.memo => board.memo,
+          };
 
-    return ParchmentCard(
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
-      showWatermark: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Center(
-            child: IconBadge(icon: Icons.emoji_events_rounded, size: 50),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Center(
+          child: HonorMedal(icon: Icons.emoji_events_rounded, size: 52),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          board == null
+              ? 'تُنشر كل جمعة'
+              : 'أسبوع ${JourneyCopy.boardWeek(board.weekStart)}',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: kSans,
+            fontSize: 17,
+            height: AppLeading.chrome,
+            fontWeight: FontWeight.w800,
+            color: palette.goldText,
           ),
-          const SizedBox(height: 10),
-          Text(
-            board == null
-                ? 'تُنشر كل جمعة'
-                : 'أسبوع ${JourneyCopy.boardWeek(board.weekStart)}',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: kSans,
-              fontSize: 17,
-              height: AppLeading.chrome,
-              fontWeight: FontWeight.w800,
-              color: palette.goldText,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(JourneyCopy.boardNote,
-              textAlign: TextAlign.center, style: muted),
-          const SizedBox(height: 14),
-          if (board == null)
+        ),
+        const SizedBox(height: 2),
+        Text(JourneyCopy.boardNote, textAlign: TextAlign.center, style: muted),
+        const SizedBox(height: 14),
+        if (board == null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : Text(
+                    JourneyCopy.boardNotYet,
+                    textAlign: TextAlign.center,
+                    style: muted.copyWith(fontSize: 14.5),
+                  ),
+          )
+        else ...[
+          _ListTabs(selected: list, onSelected: onList),
+          const SizedBox(height: 12),
+          if (list == BoardList.memo)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              child: loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Text(
-                      JourneyCopy.boardNotYet,
-                      textAlign: TextAlign.center,
-                      style: muted.copyWith(fontSize: 14.5),
-                    ),
-            )
-          else ...[
-            _ListTabs(selected: list, onSelected: onList),
-            const SizedBox(height: 12),
-            if (list == BoardList.memo)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  'أسماء بالترتيب فقط، بلا أعداد: ما يحفظه القارئ بينه وبين ربه.',
-                  textAlign: TextAlign.center,
-                  style: muted,
-                ),
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'أسماء بالترتيب فقط، بلا أعداد: ما يحفظه القارئ بينه وبين ربه.',
+                textAlign: TextAlign.center,
+                style: muted,
               ),
-            AnimatedSwitcher(
-              duration: context.motion(AppDurations.content),
-              child: _Rows(
-                key: ValueKey(list),
-                list: list,
-                rows: switch (list) {
-                  BoardList.points => board.points,
-                  BoardList.sharing => board.sharing,
-                  BoardList.memo => board.memo,
-                },
+            ),
+          AnimatedSwitcher(
+            duration: context.motion(AppDurations.content),
+            child: _Rows(key: ValueKey(list), list: list, rows: rows),
+          ),
+          if (rows.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            HonorButton(
+              label: 'شارك لوحة الأسبوع',
+              icon: Icons.ios_share_rounded,
+              onTap: () => shareBoard(
+                context,
+                weekLabel: JourneyCopy.boardWeek(board.weekStart),
+                listLabel: list.label,
+                rows: [
+                  for (final row in rows)
+                    PosterBoardRow(
+                      name: row.name,
+                      value: switch (list) {
+                        BoardList.points => '${toArabicDigits(row.value)} نقطة',
+                        BoardList.sharing => arabicMessageCount(row.value),
+                        BoardList.memo => null,
+                      },
+                    ),
+                ],
               ),
             ),
           ],
         ],
-      ),
+      ],
     );
   }
 }

@@ -804,7 +804,7 @@ class _JourneyTreeState extends State<JourneyTree>
   String _describe(int number, LeafLook look) {
     final state = switch (look) {
       LeafLook.complete => 'قرأته',
-      LeafLook.memorized => 'قرأته، وفي حفظك',
+      LeafLook.memorized => 'قرأته، وحفظته',
       LeafLook.empty => 'لم يُقرأ بعد',
     };
     return 'الحديث ${toArabicDigits(number)}: ${widget.titleOf(number)}، '

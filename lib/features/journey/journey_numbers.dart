@@ -5,6 +5,7 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/botanical_sheet.dart';
+import '../../core/widgets/glass_panel.dart';
 import '../../core/widgets/icon_badge.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/tap_target.dart';
@@ -26,6 +27,7 @@ class JourneyNumbers extends StatelessWidget {
     required this.allPoints,
     required this.memorized,
     required this.canShare,
+    this.canShareJourney = false,
   });
 
   final StreakResult streak;
@@ -40,6 +42,9 @@ class JourneyNumbers extends StatelessWidget {
 
   /// Whether there is a week worth sharing yet.
   final bool canShare;
+
+  /// Whether the whole journey has anything to show yet.
+  final bool canShareJourney;
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +80,7 @@ class JourneyNumbers extends StatelessWidget {
                 label: 'أفضل استمرارية',
               ),
               _Number(
-                icon: Icons.auto_awesome_rounded,
+                icon: kPointsIcon,
                 tone: BadgeTone.gold,
                 value: toArabicDigits(weekPoints),
                 unit: 'نقطة',
@@ -124,11 +129,22 @@ class JourneyNumbers extends StatelessWidget {
               ),
             ],
           ),
+          if (canShareJourney) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => shareJourneyHarvest(context),
+              icon: const Icon(Icons.ios_share_rounded, size: 18),
+              label: const Text('شارك حصاد رحلتك'),
+            ),
+          ],
         ],
       ),
     );
   }
 }
+
+/// The mark for points, here, in «كيف تُحسب؟» and on the posters.
+const kPointsIcon = Icons.star_rounded;
 
 /// The noun that follows a count of days, as it would be read aloud.
 String _dayUnit(int count) => switch (count) {
@@ -194,11 +210,7 @@ class _HowButton extends StatelessWidget {
           width: 34,
           height: 34,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: palette.surface,
-            border: Border.all(color: palette.cardBorder, width: 1.2),
-          ),
+          decoration: glassTile(context, radius: 17),
           child: Icon(
             Icons.question_mark_rounded,
             size: 18,
@@ -306,11 +318,7 @@ class _Number extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.fromLTRB(6, 10, 6, 10),
-        decoration: BoxDecoration(
-          color: palette.surface.withValues(alpha: .75),
-          borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
-          border: Border.all(color: palette.cardBorder),
-        ),
+        decoration: glassTile(context),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -409,11 +417,7 @@ class _HowCounted extends StatelessWidget {
         Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-          decoration: BoxDecoration(
-            color: palette.surface.withValues(alpha: .8),
-            borderRadius: BorderRadius.circular(AppRadii.listItem),
-            border: Border.all(color: palette.cardBorder),
-          ),
+          decoration: glassTile(context, radius: AppRadii.listItem),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -468,7 +472,7 @@ class _HowCounted extends StatelessWidget {
           ],
         ),
         section(
-          mark: const IconBadge(icon: Icons.auto_awesome_rounded, size: 32),
+          mark: const IconBadge(icon: kPointsIcon, size: 32),
           title: 'النقاط',
           children: [
             for (final (i, (what, points, limit)) in _points.indexed) ...[

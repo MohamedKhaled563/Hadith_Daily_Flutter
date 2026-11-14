@@ -16,6 +16,7 @@ class IconBadge extends StatelessWidget {
     this.child,
     this.tone = BadgeTone.gold,
     this.size = 40,
+    this.palette,
   }) : assert(icon != null || child != null);
 
   final IconData? icon;
@@ -25,9 +26,13 @@ class IconBadge extends StatelessWidget {
   final BadgeTone tone;
   final double size;
 
+  /// The colours to draw with, when not the theme's: a poster is always
+  /// light, whatever mode the reader is in.
+  final BotanicalPalette? palette;
+
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
+    final palette = this.palette ?? context.palette;
     final (wash, ink) = toneColors(palette, tone);
 
     return ExcludeSemantics(

@@ -105,7 +105,7 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
     danger: Color(0xFF96291F),
     dangerWash: Color(0xFFF3DDD7),
     warm: Color(0xFFD2643A),
-    warmText: Color(0xFFA9481F),
+    warmText: Color(0xFF9C421B),
     warmWash: Color(0xFFFBE3D3),
     goldWash: Color(0xFFF6EBCB),
   );

@@ -8,6 +8,7 @@ import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/glass_panel.dart';
 import '../../core/widgets/icon_badge.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
@@ -159,6 +160,14 @@ String hadithCount(int count) => switch (count) {
       _ => '${toArabicDigits(count)} حديثاً',
     };
 
+/// [count] hadiths as the object of «حفظت»: حفظت حديثاً واحداً، حديثين،
+/// ٤ أحاديث، ١٢ حديثاً.
+String heldCount(int count) => switch (count) {
+      1 => 'حديثاً واحداً',
+      2 => 'حديثين',
+      _ => hadithCount(count),
+    };
+
 void _open(BuildContext context, Widget screen) {
   AppHaptics.tap();
   Navigator.push(context, appPageRoute(child: screen));
@@ -201,7 +210,7 @@ class _Header extends StatelessWidget {
                   ),
                   if (held > 0)
                     Text(
-                      'في حفظك ${hadithCount(held)}',
+                      'حفظت ${heldCount(held)}',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: kSans,
@@ -596,14 +605,12 @@ class _Note extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: done ? palette.successWash : palette.surface,
-        borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
-        border: Border.all(
-          color: done
-              ? palette.success.withValues(alpha: .35)
-              : palette.cardBorder,
-        ),
+      decoration: glassTile(
+        context,
+        tint: done
+            ? palette.successWash
+            : palette.parchmentTop.withValues(alpha: .9),
+        edge: done ? palette.success : null,
       ),
       child: Row(
         children: [
@@ -1291,8 +1298,8 @@ class MemoEntry extends StatelessWidget {
       _ => (
           'راجع حفظك',
           plan.next == null
-              ? 'في حفظك ${hadithCount(plan.held.length)}، وكلها ثابتة.'
-              : 'في حفظك ${hadithCount(plan.held.length)}. المراجعة '
+              ? 'حفظت ${heldCount(plan.held.length)}، وكلها ثابتة.'
+              : 'حفظت ${heldCount(plan.held.length)}. المراجعة '
                   'القادمة ${_whenFrom(data.memoOf(plan.next!).due!, today)}.',
         ),
     };

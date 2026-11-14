@@ -9,6 +9,8 @@ import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/glass_panel.dart';
+import '../../core/widgets/honor_card.dart';
 import '../../core/widgets/icon_badge.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/pill_tabs.dart';
@@ -264,6 +266,7 @@ class _JourneyBody extends StatelessWidget {
               allPoints: journey.allPoints,
               memorized: data.memorizedCount,
               canShare: journey.weeks.thisWeek > 0,
+              canShareJourney: journey.allPoints > 0 || streak.best > 0,
             ),
             const SizedBox(height: 12),
             const _BoardEntry(),
@@ -274,19 +277,15 @@ class _JourneyBody extends StatelessWidget {
   }
 }
 
-/// The way in to the weekly board. Quiet on purpose: the board is optional,
-/// and the journey above it is the point.
+/// The way in to the weekly board. The one card on the page drawn apart
+/// from the rest: emerald under a gold frame, as the board itself is.
 class _BoardEntry extends StatelessWidget {
   const _BoardEntry();
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return ParchmentCard(
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-      showWatermark: false,
-      showCornerOrnaments: false,
+    return HonorCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
       semanticLabel: 'لوحة الأسبوع، اختيارية، وتُنشر كل جمعة',
       onTap: () {
         AppHaptics.tap();
@@ -295,33 +294,40 @@ class _BoardEntry extends StatelessWidget {
           appPageRoute(child: const WeeklyBoardScreen()),
         );
       },
-      child: ExcludeSemantics(
-        child: Row(
-          children: [
-            const IconBadge(icon: Icons.emoji_events_rounded, size: 46),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const EntryTitle('لوحة الأسبوع'),
-                  const SizedBox(height: 2),
-                  Text(
-                    'اختيارية، وتُنشر كل جمعة',
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      fontSize: 13,
-                      height: AppLeading.chrome,
-                      color: palette.mutedText,
-                    ),
+      child: Builder(
+        // Inside the card the palette is the dark one.
+        builder: (context) {
+          final palette = context.palette;
+
+          return ExcludeSemantics(
+            child: Row(
+              children: [
+                const HonorMedal(icon: Icons.emoji_events_rounded),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const EntryTitle('لوحة الأسبوع'),
+                      const SizedBox(height: 2),
+                      Text(
+                        'اختيارية، وتُنشر كل جمعة',
+                        style: TextStyle(
+                          fontFamily: kSans,
+                          fontSize: 13,
+                          height: AppLeading.chrome,
+                          color: palette.mutedText,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                const ForwardChevron(emphasised: true),
+              ],
             ),
-            const SizedBox(width: 8),
-            const ForwardChevron(),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -382,14 +388,11 @@ class _TreeSummary extends StatelessWidget {
     Widget pill(String text, {required bool strong, Widget? mark}) => Container(
           padding:
               EdgeInsetsDirectional.fromSTEB(mark == null ? 11 : 8, 5, 11, 5),
-          decoration: BoxDecoration(
-            color: strong ? palette.goldWash : palette.surface,
-            borderRadius: BorderRadius.circular(AppRadii.pill),
-            border: Border.all(
-              color: strong
-                  ? palette.ornamentGold.withValues(alpha: .6)
-                  : palette.cardBorder,
-            ),
+          decoration: glassTile(
+            context,
+            radius: AppRadii.pill,
+            tint: strong ? palette.goldWash : null,
+            edge: strong ? palette.ornamentGold : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -416,7 +419,7 @@ class _TreeSummary extends StatelessWidget {
       children: [
         pill('${toArabicDigits(read)} من ٤٢ حديثاً', strong: true),
         if (memorized > 0)
-          pill('في حفظك ${toArabicDigits(memorized)}', strong: false),
+          pill('حفظت ${toArabicDigits(memorized)}', strong: false),
         if (streak > 0)
           pill(
             'استمرارية ${arabicDayCount(streak)}',
@@ -440,7 +443,7 @@ class _LeafKey extends StatelessWidget {
 
   static const _labels = {
     LeafLook.complete: 'قرأته',
-    LeafLook.memorized: 'في حفظك',
+    LeafLook.memorized: 'حفظته',
     LeafLook.empty: 'لم يُقرأ بعد',
   };
 

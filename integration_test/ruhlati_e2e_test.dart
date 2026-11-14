@@ -348,7 +348,7 @@ void main() {
 
     await tester.pumpWidget(app(const MemoListScreen()));
     await wait(tester, 800);
-    expect(find.text('في حفظك حديث واحد'), findsOneWidget);
+    expect(find.text('حفظت حديثاً واحداً'), findsOneWidget);
     expect(find.text(hadiths.getByNumber(1)!.title), findsOneWidget);
     // Reviewed yesterday, so not due today: it waits in the list.
     expect(find.text('دوره اليوم'), findsNothing);

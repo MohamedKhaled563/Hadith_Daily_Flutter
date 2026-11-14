@@ -84,6 +84,54 @@ void main() {
       }
     });
 
+    testWidgets('the journey fits the ${format.name} poster, big or not',
+        (tester) async {
+      for (final (best, points, held) in [
+        (0, 0, 0),
+        (1, 2, 1),
+        (365, 9999, 42)
+      ]) {
+        await layOut(
+          tester,
+          JourneyHarvestPoster(
+            format: format,
+            bestStreak: best,
+            points: points,
+            memorized: held,
+            name: 'اسم طويل جداً لقارئ يحب الأسماء الطويلة كثيراً',
+          ),
+          format.size,
+        );
+        for (final label in ['أفضل استمرارية', 'كل نقاطي', 'حفظت']) {
+          expect(find.text(label), findsOneWidget, reason: label);
+        }
+        expect(find.text('حصاد رحلتي'), findsOneWidget);
+      }
+    });
+
+    testWidgets('a full board fits the ${format.name} poster', (tester) async {
+      for (final values in [true, false]) {
+        await layOut(
+          tester,
+          BoardPoster(
+            format: format,
+            weekLabel: 'أسبوع ٢٨ نوفمبر – ٤ ديسمبر',
+            listLabel: values ? 'المشاركة' : 'الحفظ',
+            rows: [
+              for (var i = 1; i <= 10; i++)
+                PosterBoardRow(
+                  name: 'قارئ باسم مستعار طويل نوعاً ما $i',
+                  value: values ? '١٢٣٤ نقطة' : null,
+                ),
+            ],
+          ),
+          format.size,
+        );
+        expect(find.textContaining('قارئ باسم مستعار'), findsNWidgets(10));
+        expect(find.text(JourneyCopy.posterFindUs), findsOneWidget);
+      }
+    });
+
     testWidgets('the tree fits the ${format.name} poster, name or not',
         (tester) async {
       for (final name in [null, 'سارة']) {
@@ -144,6 +192,31 @@ void main() {
           '${message.title}\n${message.body}',
         );
       }
+    });
+
+    test('the journey leaves memorizing out until there is some', () {
+      final none = JourneyCopy.journeyCaption(
+        bestStreak: 3,
+        points: 40,
+        memorized: 0,
+      );
+      expect(none, isNot(contains('حفظت')));
+      expect(none, isNot(contains('null')));
+      expect(
+        JourneyCopy.journeyCaption(
+          bestStreak: 3,
+          points: 40,
+          memorized: 2,
+          link: 'https://x.example',
+        ),
+        allOf(contains('حفظت ٢ من ٤٢'), contains('https://x.example')),
+      );
+    });
+
+    test('the board says which week, and the way to the app', () {
+      final caption = JourneyCopy.boardCaption('٧ – ١٣ نوفمبر', 'https://x');
+      expect(caption, contains('٧ – ١٣ نوفمبر'));
+      expect(caption, contains('https://x'));
     });
 
     test('read properly before the first hadith is finished', () {

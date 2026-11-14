@@ -656,7 +656,7 @@ void main() {
       await openJourney(tester);
 
       // Three kinds of leaf: 1 is memorized, 2 is read, the rest are not.
-      for (final label in ['قرأته', 'لم يُقرأ بعد', 'في حفظك']) {
+      for (final label in ['قرأته', 'لم يُقرأ بعد', 'حفظته']) {
         expect(find.text(label), findsOneWidget, reason: label);
         expect(
           find.descendant(
@@ -676,7 +676,7 @@ void main() {
 
       expect(find.text('لم يُقرأ بعد'), findsOneWidget);
       expect(find.text('قرأته'), findsNothing);
-      expect(find.text('في حفظك'), findsNothing);
+      expect(find.text('حفظته'), findsNothing);
     });
 
     testWidgets('the day\'s next step is the one picked out', (tester) async {
@@ -732,6 +732,24 @@ void main() {
       await tester.tap(find.text('نسخ النص'));
       await until(tester, () => copied != null);
       expect(copied, startsWith('هذا الأسبوع: استمرارية يوم واحد'));
+      await wait(tester, 4500);
+    });
+
+    testWidgets('the whole journey can be shared as well as the week',
+        (tester) async {
+      finished([1]);
+      await openJourney(tester);
+
+      await scrollTo(tester, find.text('شارك حصاد رحلتك'));
+      await tester.tap(find.text('شارك حصاد رحلتك'));
+      await until(tester, () => shows(find.byType(JourneyHarvestPoster)));
+      expect(find.text('حصاد رحلتي'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('نسخ النص'));
+      await wait(tester, 300);
+      await tester.tap(find.text('نسخ النص'));
+      await until(tester, () => copied != null);
+      expect(copied, startsWith('حصادي مع الأربعين النووية حتى الآن'));
       await wait(tester, 4500);
     });
 
@@ -884,6 +902,38 @@ void main() {
       await wait(tester, 400);
       expect(find.text('رسالتان'), findsOneWidget);
       expect(find.text('٣٤٥'), findsNothing);
+    });
+
+    testWidgets('a published board can be shared, with no name of the sharer',
+        (tester) async {
+      journey.setUser('reader-a');
+      boardStore.board = WeeklyBoard(
+        week: boardWeekOf('2026-11-07'),
+        points: const [
+          BoardRow(name: 'أم يوسف', value: 345),
+          BoardRow(name: 'نور', value: 300),
+        ],
+        sharing: const [],
+      );
+      await openBoard(tester);
+
+      await tester.ensureVisible(find.text('شارك لوحة الأسبوع'));
+      await wait(tester, 300);
+      await tester.tap(find.text('شارك لوحة الأسبوع'));
+      await until(tester, () => shows(find.byType(BoardPoster)));
+      expect(find.text('إظهار اسمي'), findsNothing);
+
+      await tester.ensureVisible(find.text('نسخ النص'));
+      await wait(tester, 300);
+      await tester.tap(find.text('نسخ النص'));
+      await until(tester, () => copied != null);
+      expect(copied, contains('لوحة أسبوع ٧ – ١٣ نوفمبر'));
+      await wait(tester, 4500);
+
+      // An empty list has nothing to share.
+      await tester.tap(find.text('المشاركة'));
+      await wait(tester, 600);
+      expect(find.text('شارك لوحة الأسبوع'), findsNothing);
     });
 
     testWidgets('the reader joins under a nickname, renames, and leaves',
@@ -1199,7 +1249,7 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).last,
       );
-      expect(find.text('في حفظك ١'), findsWidgets);
+      expect(find.text('حفظت ١'), findsWidgets);
 
       // Today's review on top; once done, its card says so.
       await Scrollable.ensureVisible(
