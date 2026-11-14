@@ -20,6 +20,10 @@ class AppColors {
   /// Never use for text on a light surface: 2.13:1 on parchment (WCAG AA needs 4.5:1).
   static const gold = Color(0xFFD9A521);
   static const goldLight = Color(0xFFF0D88E);
+
+  /// The second and third places on the weekly board. Gold is [gold].
+  static const medalSilver = Color(0xFFA7ADB4);
+  static const medalBronze = Color(0xFFB87333);
   static const goldBorder = Color(0xFFD6BE88);
 
   /// Text-safe gold for light surfaces — 5.18:1 on parchment #EFE8DC.

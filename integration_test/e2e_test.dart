@@ -371,7 +371,7 @@ void main() {
 
   testWidgets('6. the reader joins the board, and the points sync',
       (tester) async {
-    expect(board.join(useName: true), isTrue);
+    expect(board.join(nickname: readerName), isTrue);
 
     final expected = journey.thisWeekPoints.device;
     await until(

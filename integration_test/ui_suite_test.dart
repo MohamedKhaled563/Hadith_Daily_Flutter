@@ -589,30 +589,48 @@ void main() {
       await wait(tester, 300);
     }
 
-    testWidgets('a new reader has no points and no records yet',
+    // What a screen reader is told, read from the widget that says it.
+    Finder said(String label) => find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == label,
+        );
+
+    testWidgets('a new reader sees both harvests at zero, nothing to share',
         (tester) async {
       await openJourney(tester);
 
-      await scrollTo(tester, find.text('نقاطك هذا الأسبوع'));
-      expect(find.text('الماضي ٠'), findsOneWidget);
+      await scrollTo(tester, find.text('حصاد رحلتك'));
+      expect(find.text('حصاد الأسبوع'), findsOneWidget);
+      expect(said('نقاط الأسبوع: ٠ نقطة'), findsOneWidget);
+      expect(said('كل نقاطك: ٠ نقطة'), findsOneWidget);
+      expect(said('حفظت: ٠ / ٤٢ حديثاً'), findsOneWidget);
       expect(find.text('شارك حصاد أسبوعك'), findsNothing);
-
-      // Before any record, one line rather than eight dashes.
-      await scrollTo(tester, find.textContaining('أرقامك تظهر هنا'));
-      expect(find.text('أرقامك'), findsOneWidget);
-      expect(find.text(JourneyRecord.weekWrote.label), findsNothing);
     });
 
-    testWidgets('records are tiles once there are any', (tester) async {
+    testWidgets('the old records, minutes and grace days are off the tab',
+        (tester) async {
       finished([1]);
       await openJourney(tester);
 
-      await scrollTo(tester, find.text(JourneyRecord.weekWrote.label));
+      await scrollTo(tester, find.text('حصاد رحلتك'));
       for (final record in JourneyRecord.values) {
-        expect(find.text(record.label), findsOneWidget);
+        expect(find.text(record.label), findsNothing, reason: record.label);
       }
-      expect(find.text('—'), findsWidgets, reason: 'records not yet set');
-      expect(find.textContaining('أرقامك تظهر هنا'), findsNothing);
+      for (final gone in ['أيام سماح', 'أرقامك', 'أنت مقابل نفسك']) {
+        expect(find.text(gone), findsNothing, reason: gone);
+      }
+      expect(find.text('لوحة الأسبوع'), findsOneWidget);
+    });
+
+    testWidgets('«كيف تُحسب؟» explains each number', (tester) async {
+      await openJourney(tester);
+      await scrollTo(tester, find.text('حصاد رحلتك'));
+
+      await tester.tap(find.byTooltip('كيف تُحسب؟'));
+      await until(tester, () => shows(find.text('كيف تُحسب أرقامك؟')));
+      expect(find.text('الاستمرارية'), findsWidgets);
+      expect(find.text('النقاط'), findsOneWidget);
+      expect(find.text('رسالة لك يقبلها المشرف'), findsOneWidget);
+      expect(find.textContaining('يوم سماح'), findsOneWidget);
     });
 
     testWidgets('a key under the tree says what each leaf means',
@@ -666,36 +684,23 @@ void main() {
       );
     });
 
-    testWidgets('a week of reading shows its points and records',
+    testWidgets('a week of reading shows its points, and the journey all',
         (tester) async {
-      final now = DateTime(2026, 11, 14, 12);
+      var now = DateTime(2026, 11, 10, 12);
       await journey.debugReset(store: store, clock: () => now);
+      // Last week: one message.
+      journey.recordMessageRead('z', hadithNumber: 1);
+      // This week, from Saturday: two messages and a hadith, 2 + 2 + 10.
+      now = DateTime(2026, 11, 14, 12);
       journey.recordMessageRead('a', hadithNumber: 1);
       journey.recordMessageRead('b', hadithNumber: 2);
       journey.recordFullRead(1, seconds: 300);
-      // What a screen reader is told, read from the widget that says it.
-      Finder said(String label) => find.byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == label,
-          );
 
       await openJourney(tester);
-      await scrollTo(tester, find.text('نقاطك هذا الأسبوع'));
-      // Two messages and a hadith: 2 + 2 + 10.
-      expect(
-        said('نقاطك هذا الأسبوع ١٤، والأسبوع الماضي ٠'),
-        findsOneWidget,
-      );
+      await scrollTo(tester, find.text('حصاد رحلتك'));
+      expect(said('نقاط الأسبوع: ١٤ نقطة'), findsOneWidget);
+      expect(said('كل نقاطك: ١٦ نقطة'), findsOneWidget);
       expect(find.text('شارك حصاد أسبوعك'), findsOneWidget);
-
-      await scrollTo(tester, find.text(JourneyRecord.weekWrote.label));
-      expect(
-        said('${JourneyRecord.dayMinutes.label}: ٥ دقائق'),
-        findsOneWidget,
-      );
-      expect(
-        said('${JourneyRecord.weekWrote.label}: —'),
-        findsOneWidget,
-      );
     });
 
     testWidgets('the harvest of the week can be previewed and copied',
@@ -710,7 +715,7 @@ void main() {
 
       await tester.tap(find.text('نسخ النص'));
       await until(tester, () => copied != null);
-      expect(copied, startsWith('هذا الأسبوع: يوم واحد'));
+      expect(copied, startsWith('هذا الأسبوع: استمرارية يوم واحد'));
       await wait(tester, 4500);
     });
 
@@ -865,29 +870,82 @@ void main() {
       expect(find.text('٣٤٥'), findsNothing);
     });
 
-    testWidgets('the reader joins, picks a name, and leaves', (tester) async {
+    testWidgets('the reader joins under a nickname, renames, and leaves',
+        (tester) async {
       journey.setUser('reader-a');
       await wait(tester, 300);
       await openBoard(tester);
 
       expect(find.text(JourneyCopy.boardOff), findsOneWidget);
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
-
-      await tester.tap(find.byType(Switch));
+      await tester.ensureVisible(find.text('اظهر في اللوحة'));
+      await tester.tap(find.text('اظهر في اللوحة'));
+      await until(tester, () => shows(find.text('اسمك في اللوحة')));
+      // The account's name is offered, and can be replaced.
+      expect(find.widgetWithText(TextField, 'سارة'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'المشرف');
+      await tester.tap(find.text('احفظ'));
       await wait(tester, 400);
-      expect(board.membership.value?.name, kAnonymousName,
-          reason: 'on, but anonymous until the reader picks their name');
+      expect(find.text('هذا الاسم محجوز، اختر غيره.'), findsOneWidget);
+      expect(boardStore.scores, isEmpty);
+
+      await tester.enterText(find.byType(TextField), 'نور الهدى');
+      await tester.tap(find.text('احفظ'));
+      await until(tester, () => boardStore.scores['reader-a'] != null);
+      expect(boardStore.scores['reader-a']?.name, 'نور الهدى');
+      expect(find.textContaining('«نور الهدى»'), findsOneWidget);
       expect(find.text(JourneyCopy.boardOn), findsOneWidget);
-      expect(boardStore.scores['reader-a']?.name, kAnonymousName);
 
-      await tester.tap(find.text('باسمي: سارة'));
-      await wait(tester, 400);
-      expect(boardStore.scores['reader-a']?.name, 'سارة');
+      await tester.tap(find.text('غيّر الاسم'));
+      await until(tester, () => shows(find.text('اسمك في اللوحة')));
+      await tester.enterText(find.byType(TextField), 'أبو أحمد');
+      await tester.tap(find.text('احفظ'));
+      await until(
+        tester,
+        () => boardStore.scores['reader-a']?.name == 'أبو أحمد',
+      );
+      expect(boardStore.scores['reader-a']?.name, 'أبو أحمد');
 
-      await tester.tap(find.byType(Switch));
-      await wait(tester, 400);
+      await tester.ensureVisible(find.text('اخرج من اللوحة'));
+      await tester.tap(find.text('اخرج من اللوحة'));
+      await until(tester, () => boardStore.scores.isEmpty);
       expect(boardStore.scores, isEmpty);
       expect(find.text(JourneyCopy.boardOff), findsOneWidget);
+    });
+
+    testWidgets('a reader on the board as «فاعل خير» is asked for a nickname',
+        (tester) async {
+      boardStore.scores['reader-a'] = ScoreEntry(
+        uid: 'reader-a',
+        week: boardWeekOf('2026-11-07'),
+        device: 0,
+        name: kAnonymousName,
+      );
+      journey.setUser('reader-a');
+      await wait(tester, 600);
+      await openBoard(tester);
+
+      expect(find.text(JourneyCopy.boardPickNickname), findsOneWidget);
+      expect(find.text('اختر اسماً'), findsOneWidget);
+    });
+
+    testWidgets('the top three wear medals, and the rest a number',
+        (tester) async {
+      boardStore.board = WeeklyBoard(
+        week: boardWeekOf('2026-11-07'),
+        points: [
+          for (var i = 0; i < 5; i++) BoardRow(name: 'قارئ $i', value: 300 - i),
+        ],
+        sharing: const [],
+      );
+      await openBoard(tester);
+
+      for (var i = 0; i < 5; i++) {
+        expect(find.text('قارئ $i'), findsOneWidget);
+      }
+      expect(find.text('الحفظ'), findsOneWidget, reason: 'the three tabs');
+      await tester.tap(find.text('الحفظ'));
+      await wait(tester);
+      expect(find.textContaining('بلا أعداد'), findsOneWidget);
     });
 
     testWidgets('the reader sees their own points, never a rank',
@@ -1136,13 +1194,19 @@ void main() {
       await tester.tap(find.text('موعد مراجعة «$shortest» اليوم'));
       await wait(tester, 800);
       expect(find.text('مراجعة اليوم'), findsOneWidget);
-      expect(find.text('راجعه الآن'), findsOneWidget);
-      expect(find.text('كل ما تحفظه (١)'), findsOneWidget);
+      expect(find.text('دوره اليوم'), findsOneWidget);
+      expect(find.text('راجِع'), findsOneWidget);
+      // Shown once, at the top: not again in a list below.
+      expect(find.text(shortest), findsOneWidget);
+      expect(find.textContaining('ما تحفظه ('), findsNothing);
       journey.review(13, remembered: true);
-      await wait(tester, 800);
-      expect(find.text('راجعه الآن'), findsNothing);
+      await until(tester, () => !shows(find.text('راجِع')));
+      expect(find.text('راجِع'), findsNothing);
       expect(find.text('أتممت مراجعة اليوم.'), findsOneWidget);
-      expect(find.textContaining('راجعته اليوم. نعود إليه'), findsOneWidget);
+      expect(
+        find.textContaining('راجعته اليوم، وثبت أكثر. نعود إليه'),
+        findsOneWidget,
+      );
       Navigator.of(tester.element(find.byType(MemoListScreen))).pop();
       await wait(tester, 800);
 
@@ -1158,6 +1222,44 @@ void main() {
           .whereType<JourneyTreePainter>()
           .single;
       expect(painter.memorized, {13}, reason: 'its leaf has the dot');
+    });
+
+    testWidgets('three due: two at the top, the third folded, none twice',
+        (tester) async {
+      var now = DateTime(2026, 11, 1, 12);
+      await journey.debugReset(store: store, clock: () => now);
+      finished([1, 2, 3, 4]);
+      for (final number in [1, 2, 3, 4]) {
+        journey.learnPart(number, totalParts: 1);
+      }
+      // A day later all four are due; 4 is reviewed early, so it is not.
+      now = DateTime(2026, 11, 2, 12);
+      journey.review(4, remembered: true);
+      now = DateTime(2026, 11, 2, 13);
+
+      await tester.pumpWidget(app(const MemoListScreen()));
+      await wait(tester, 900);
+
+      final titles = [
+        for (final n in [1, 2, 3, 4]) hadiths.getByNumber(n)!.title
+      ];
+      expect(find.text('دوره اليوم'), findsNWidgets(2));
+      expect(find.text('وحديث آخر اليوم'), findsOneWidget);
+      expect(find.text(titles[2]), findsNothing, reason: 'folded away');
+      await tester.tap(find.text('وحديث آخر اليوم'));
+      await wait(tester, 600);
+      expect(find.text('دوره اليوم'), findsNWidgets(3));
+      // Each hadith once on the page.
+      for (final title in titles) {
+        expect(find.text(title), findsOneWidget, reason: title);
+      }
+
+      // Reviewing the first keeps its card where it was, now done.
+      journey.review(1, remembered: true);
+      await until(tester, () => find.text('دوره اليوم').evaluate().length == 2);
+      double top(String title) => tester.getTopLeft(find.text(title)).dy;
+      expect(top(titles[0]), lessThan(top(titles[1])), reason: 'still first');
+      expect(find.textContaining('وثبت أكثر'), findsOneWidget);
     });
 
     testWidgets('a review reminder opens that review', (tester) async {
@@ -1304,13 +1406,18 @@ void main() {
 
       await openJourney(tester);
       await tester.scrollUntilVisible(
-        find.text('سلسلتك الآن'),
+        find.text('حصاد رحلتك'),
         200,
         scrollable: find.byType(Scrollable).last,
       );
-      expect(find.text('٨ أيام'), findsWidgets,
-          reason: 'a figure says its unit');
-      expect(find.text('أيام سماح'), findsOneWidget);
+      // Eight days in a row; this week (from Saturday the 7th) holds three.
+      Finder said(String label) => find.byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == label,
+          );
+      expect(said('الاستمرارية: ٨ أيام'), findsOneWidget);
+      expect(said('أفضل استمرارية: ٣ أيام'), findsOneWidget);
+      expect(said('أفضل استمرارية: ٨ أيام'), findsOneWidget);
+      expect(find.text('أيام سماح'), findsNothing);
     });
 
     testWidgets('sign-in moves a guest tree, and two accounts stay apart',

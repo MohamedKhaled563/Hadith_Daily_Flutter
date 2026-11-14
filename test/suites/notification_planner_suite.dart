@@ -113,7 +113,7 @@ void notificationPlannerSuite() {
         )!;
 
         expect(reminder.title, 'لا بأس');
-        expect(reminder.body, 'فاتك أمس، وسلسلتك كما هي. نكمل اليوم؟');
+        expect(reminder.body, 'فاتك أمس، واستمراريتك كما هي. نكمل اليوم؟');
       });
 
       test('one missed day with no grace day keeps their place', () {

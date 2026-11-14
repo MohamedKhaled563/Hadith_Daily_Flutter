@@ -281,7 +281,8 @@ class _StepCard extends StatelessWidget {
                 : palette.surfaceSunken,
       ),
       child: done
-          ? const Icon(Icons.check_rounded, size: 20, color: AppColors.softCream)
+          ? const Icon(Icons.check_rounded,
+              size: 20, color: AppColors.softCream)
           : Text(
               toArabicDigits(number),
               textScaler: TextScaler.noScaling,

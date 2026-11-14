@@ -178,6 +178,12 @@ class JourneyRepository {
         approvedOn: _approvedOn,
       );
 
+  /// The most days in a row this week, up to today.
+  int get bestThisWeek => bestRunInWeek(_data, weekStartKey(today), today);
+
+  /// Every point earned, each week capped as on the board.
+  int get allPoints => totalPoints(_data, approvedOn: _approvedOn);
+
   Map<JourneyRecord, int> get records =>
       journeyRecords(_data, today: today, approvedOn: _approvedOn);
 
