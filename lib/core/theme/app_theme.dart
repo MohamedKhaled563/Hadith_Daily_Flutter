@@ -92,11 +92,19 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
+          // Complete and not inherited, like Material's own labelLarge: a
+          // button lerps between the two when the theme changes, and a
+          // TextStyle cannot lerp between inherited and not.
           textStyle: const TextStyle(
+            inherit: false,
             fontFamily: kSans,
             fontSize: 15,
             height: AppLeading.chrome,
             fontWeight: FontWeight.w700,
+            letterSpacing: 0,
+            textBaseline: TextBaseline.alphabetic,
+            leadingDistribution: TextLeadingDistribution.even,
+            decoration: TextDecoration.none,
           ),
           minimumSize: const Size(48, 44),
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -107,11 +115,19 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: palette.goldText,
           backgroundColor: palette.surface,
+          // Complete and not inherited, like Material's own labelLarge: a
+          // button lerps between the two when the theme changes, and a
+          // TextStyle cannot lerp between inherited and not.
           textStyle: const TextStyle(
+            inherit: false,
             fontFamily: kSans,
             fontSize: 15,
             height: AppLeading.chrome,
             fontWeight: FontWeight.w800,
+            letterSpacing: 0,
+            textBaseline: TextBaseline.alphabetic,
+            leadingDistribution: TextLeadingDistribution.even,
+            decoration: TextDecoration.none,
           ),
           minimumSize: const Size(48, 46),
           padding: const EdgeInsets.symmetric(horizontal: 18),
