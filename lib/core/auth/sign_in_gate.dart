@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../features/auth/email_code_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/signup_screen.dart';
 import '../theme/app_palette.dart';
@@ -8,6 +9,7 @@ import '../widgets/app_button.dart';
 import '../widgets/asset_helper.dart';
 import '../widgets/botanical_sheet.dart';
 import '../widgets/smooth_page_route.dart';
+import 'auth_service.dart';
 
 /// Asks a guest to sign in, at the moment it actually matters.
 ///
@@ -35,7 +37,10 @@ Future<bool> requireSignIn(
   /// "So your likes follow you to your next phone", not "auth required".
   required String reason,
 }) async {
-  if (AppStateController().isLoggedIn) return true;
+  if (AppStateController().isLoggedIn) {
+    if (!AuthService.instance.needsEmailCode) return true;
+    return _confirmEmail(context, reason: reason);
+  }
 
   final signedIn = await showBotanicalSheet<bool>(
     context: context,
@@ -43,8 +48,81 @@ Future<bool> requireSignIn(
     subtitle: reason,
     child: const _SignInPrompt(),
   );
+  if (signedIn != true) return false;
 
-  return signedIn ?? false;
+  // Sign-up and sign-in already ask for the code; this only catches a reader
+  // who got through some other way with an unconfirmed address.
+  if (AuthService.instance.needsEmailCode && context.mounted) {
+    return _confirmEmail(context, reason: reason);
+  }
+  return true;
+}
+
+/// A signed-in email account that hasn't confirmed its address yet. Asks
+/// first rather than opening the code screen straight away: that screen sends
+/// an email the moment it opens, and a reader who tapped a heart should not
+/// get one without choosing to.
+Future<bool> _confirmEmail(
+  BuildContext context, {
+  required String reason,
+}) async {
+  final wantsCode = await showBotanicalSheet<bool>(
+    context: context,
+    title: 'يحتاج هذا إلى بريد مؤكد',
+    subtitle: reason,
+    child: const _ConfirmEmailPrompt(),
+  );
+  if (wantsCode != true || !context.mounted) return false;
+  final outcome = await EmailCodeScreen.open(context);
+  return outcome == EmailCodeOutcome.verified;
+}
+
+class _ConfirmEmailPrompt extends StatelessWidget {
+  const _ConfirmEmailPrompt();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+    final email = AuthService.instance.currentUser?.email ?? '';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'سنرسل رمزاً من ستة أرقام إلى بريدك، وبعد كتابته يكتمل حسابك.',
+          textAlign: TextAlign.center,
+          style: textTheme.bodySmall?.copyWith(color: palette.mutedText),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          email,
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.ltr,
+          style: textTheme.bodySmall?.copyWith(
+            color: palette.bodyText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 22),
+        AppButton(
+          text: 'إرسال الرمز',
+          icon: Icons.mark_email_read_outlined,
+          onPressed: () => Navigator.pop(context, true),
+        ),
+        const SizedBox(height: 10),
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(0, 48),
+            foregroundColor: palette.mutedText,
+          ),
+          child: const Text('ليس الآن'),
+        ),
+      ],
+    );
+  }
 }
 
 class _SignInPrompt extends StatelessWidget {

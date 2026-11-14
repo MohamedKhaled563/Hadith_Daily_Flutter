@@ -11,6 +11,8 @@ import 'package:hadith_app/features/dashboard/weekly_board_page.dart';
 import 'package:hadith_app/firebase_options.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'support/confirm_email.dart';
+
 /// The weekly board through the real SDK and the real firestore.rules,
 /// against the local Firebase emulators, never the live project.
 ///
@@ -39,6 +41,7 @@ void main() {
       email: 'board-$stamp@example.test',
       password: 'test-only-$stamp',
     );
+    await confirmEmailInEmulator(host);
     return credential.user!.uid;
   }
 

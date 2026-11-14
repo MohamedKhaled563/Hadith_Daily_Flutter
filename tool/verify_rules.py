@@ -94,7 +94,19 @@ def check(label: str, got_ok: bool, want_ok: bool) -> None:
     print(f"[{status}] {label} — {verb} (expected {expect})")
 
 
-def id_token_for(uid: str) -> str:
+def test_email(uid: str) -> str:
+    return f"{uid}@example.test"
+
+
+def id_token_for(uid: str, verified: bool = True) -> str:
+    # Phase 21: shared writes need email_verified in the token, which a bare
+    # custom token never carries. So the throwaway account is given an
+    # address (and, by default, a confirmed one) before signing in; the ID
+    # token then carries email and email_verified like a real reader's.
+    try:
+        auth.update_user(uid, email=test_email(uid), email_verified=verified)
+    except auth.UserNotFoundError:
+        auth.create_user(uid=uid, email=test_email(uid), email_verified=verified)
     custom_token = auth.create_custom_token(uid).decode()
     resp = requests.post(
         f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key={API_KEY}",
@@ -148,6 +160,95 @@ def sweep_test_messages() -> None:
             doc_id = doc["name"].rsplit("/", 1)[-1]
             admin_delete("communityMessages", doc_id)
             print(f"  (swept a leftover test message: {doc_id})")
+
+
+def commit_create(path: str, fields: dict, id_token: str) -> requests.Response:
+    """Creates a doc with `createdAt` set to the server's request time, the
+    REST equivalent of FieldValue.serverTimestamp()."""
+    name = f"projects/{PROJECT}/databases/(default)/documents/{path}"
+    return requests.post(
+        f"{FIRESTORE_URL}:commit",
+        json={
+            "writes": [
+                {
+                    "update": {"name": name, "fields": _encode_fields(fields)},
+                    "updateTransforms": [
+                        {"fieldPath": "createdAt", "setToServerValue": "REQUEST_TIME"}
+                    ],
+                    "currentDocument": {"exists": False},
+                }
+            ]
+        },
+        headers=rest_headers(id_token),
+    )
+
+
+def verify_phase_21(uid_a: str, token_a: str) -> None:
+    """An unconfirmed email account can read and keep its own things, but
+    cannot do anything other readers would see; and nobody can write an
+    address that isn't their own."""
+    uid_c = f"rules-test-c-{uuid.uuid4().hex[:8]}"
+    token_c = id_token_for(uid_c, verified=False)
+    try:
+        resp = create_doc(
+            "communityMessages",
+            {
+                "authorUid": uid_c,
+                "authorName": "غير مؤكد",
+                "message": "رسالة اختبار",
+                "hadithNumber": 1,
+                "status": "pending",
+                "likeCount": 0,
+            },
+            token_c,
+        )
+        check("unconfirmed account submits a community post", resp.status_code == 200, False)
+
+        resp = create_doc(
+            "feedbackMessages",
+            {
+                "authorUid": uid_c,
+                "userName": "غير مؤكد",
+                "userEmail": test_email(uid_c),
+                "message": "ملاحظة",
+                "read": False,
+            },
+            token_c,
+        )
+        check("unconfirmed account sends feedback", resp.status_code == 200, False)
+
+        resp = create_doc(
+            "feedbackMessages",
+            {
+                "authorUid": uid_a,
+                "userName": "منتحل",
+                "userEmail": "someone.else@example.com",
+                "message": "ملاحظة",
+                "read": False,
+            },
+            token_a,
+        )
+        check("feedback 'from' an address that isn't yours", resp.status_code == 200, False)
+
+        resp = commit_create(
+            f"users/{uid_c}",
+            {"displayName": "مستخدم", "email": "ceo@example.com"},
+            token_c,
+        )
+        check("profile doc with someone else's address", resp.status_code == 200, False)
+
+        resp = commit_create(
+            f"users/{uid_c}",
+            {"displayName": "مستخدم", "email": test_email(uid_c)},
+            token_c,
+        )
+        check("unconfirmed account creates its own profile doc", resp.status_code == 200, True)
+    finally:
+        admin_delete("users", uid_c)
+        try:
+            auth.delete_user(uid_c)
+        except auth.UserNotFoundError:
+            pass
 
 
 def main() -> int:
@@ -791,12 +892,13 @@ def main() -> int:
         {
             "authorUid": uid_a,
             "userName": "كاتب الاختبار",
-            "userEmail": "a@test",
+            "userEmail": test_email(uid_a),
             "message": "ملاحظة اختبار",
             "read": False,
         },
         token_a,
     )
+    check("send feedback from your own address", resp.status_code == 200, True)
     if resp.status_code == 200:
         feedback_id = resp.json()["name"].rsplit("/", 1)[-1]
 
@@ -825,6 +927,9 @@ def main() -> int:
         check("delete your own feedback", resp.status_code == 200, True)
     else:
         check("delete your own feedback (setup failed)", False, True)
+
+    print("\n== confirmed email (phase 21) ==")
+    verify_phase_21(uid_a, token_a)
 
     # -- notificationMessages: readable without an account -------------------
     # The app lost its sign-in wall, and the scheduler needs this pool on a

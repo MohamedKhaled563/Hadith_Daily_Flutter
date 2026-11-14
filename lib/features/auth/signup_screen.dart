@@ -17,6 +17,8 @@ import '../../core/widgets/tap_target.dart';
 import '../home/home_screen.dart';
 import '../legal/legal_document_screen.dart';
 import 'auth_error_messages.dart';
+import 'email_code_screen.dart';
+import 'email_typos.dart';
 
 /// Real sign-up screen: email/password creates a Firebase account; Google
 /// signs in via the official `google_sign_in` flow.
@@ -129,12 +131,16 @@ class _SignUpScreenState extends State<SignUpScreen>
     if (contact.isEmpty) {
       return 'أدخل بريدك الإلكتروني';
     }
-    if (!contact.contains('@')) {
+    if (!looksLikeEmail(contact)) {
       return 'أدخل بريداً إلكترونياً صحيحاً';
     }
+    final fix = suggestEmailFix(contact);
+    if (fix != null) {
+      return 'يبدو أن في البريد خطأً، هل المقصود $fix؟';
+    }
 
-    if (_passwordController.text.length < 6) {
-      return 'كلمة المرور يجب ألا تقل عن ٦ أحرف';
+    if (_passwordController.text.length < 8) {
+      return 'كلمة المرور يجب ألا تقل عن ٨ أحرف';
     }
     if (!_acceptedTerms) {
       return 'وافق على شروط الاستخدام للمتابعة';
@@ -215,7 +221,18 @@ class _SignUpScreenState extends State<SignUpScreen>
     }
     if (!mounted) return;
 
-    _finish();
+    // The account exists; now the address has to be proved. The code screen
+    // sends the code itself as it opens.
+    setState(() => _submitting = false);
+    final outcome = await EmailCodeScreen.open(context);
+    if (!mounted) return;
+    if (outcome == EmailCodeOutcome.changeEmail) {
+      // The new account was deleted and its name released; the form still
+      // holds what they typed, so only the address needs fixing.
+      setState(() => _error = 'صحّح البريد ثم أنشئ الحساب من جديد');
+      return;
+    }
+    _finish(verified: outcome == EmailCodeOutcome.verified);
   }
 
   Future<void> _submitGoogle() async {
@@ -261,9 +278,13 @@ class _SignUpScreenState extends State<SignUpScreen>
   /// Sign-in succeeded. Either hand the result back to the gate that opened
   /// this screen, or — when this is the start of the session — replace the
   /// stack with Home so there is nothing to go "back" to.
-  void _finish() {
+  ///
+  /// [verified] is false when the reader put off confirming their email: the
+  /// gate then reports "not signed in" to its caller, since the action they
+  /// were after needs a confirmed address.
+  void _finish({bool verified = true}) {
     if (widget.returnOnSuccess) {
-      Navigator.pop(context, true);
+      Navigator.pop(context, verified);
       return;
     }
     // Drops the stack rather than replacing one route: a brand-new account
@@ -460,7 +481,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                     color: palette.bodyText,
                                   ),
                                   decoration: _inputDecoration(
-                                    '٦ أحرف على الأقل',
+                                    '٨ أحرف على الأقل',
                                     palette.mutedText,
                                   ),
                                 ),

@@ -8,12 +8,13 @@ import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/asset_helper.dart';
-import '../../core/widgets/botanical_sheet.dart';
 import '../../core/widgets/glass_panel.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../home/home_screen.dart';
 import 'auth_error_messages.dart';
+import 'email_code_screen.dart';
+import 'password_reset_screen.dart';
 import 'signup_screen.dart';
 
 /// Sign-in screen: email/password and Google both go through Firebase Auth.
@@ -125,6 +126,21 @@ class _LoginScreenState extends State<LoginScreen>
     }
     if (!mounted) return;
 
+    // Accounts made before the code existed (or put off at sign-up) are
+    // asked to confirm once here. "Not now" still lets them in.
+    if (AuthService.instance.needsEmailCode) {
+      setState(() => _submitting = false);
+      final outcome = await EmailCodeScreen.open(context);
+      if (!mounted) return;
+      if (outcome == EmailCodeOutcome.changeEmail) {
+        setState(() => _error =
+            'حُذف الحساب غير المؤكد، ويمكن إنشاء حساب جديد بالبريد الصحيح');
+        return;
+      }
+      _finish(verified: outcome == EmailCodeOutcome.verified);
+      return;
+    }
+
     _finish();
   }
 
@@ -203,9 +219,12 @@ class _LoginScreenState extends State<LoginScreen>
   /// Sign-in succeeded. Either hand the result back to the gate that opened
   /// this screen, or — when this is the start of the session — replace the
   /// stack with Home so there is nothing to go "back" to.
-  void _finish() {
+  ///
+  /// [verified] is false when the reader put off confirming their email; the
+  /// gate then tells its caller the action can't go ahead yet.
+  void _finish({bool verified = true}) {
     if (widget.returnOnSuccess) {
-      Navigator.pop(context, true);
+      Navigator.pop(context, verified);
       return;
     }
     Navigator.pushReplacement(
@@ -322,7 +341,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 child: TextButton(
                                   onPressed: _submitting
                                       ? null
-                                      : _showForgotPasswordSheet,
+                                      : _openPasswordReset,
                                   style: TextButton.styleFrom(
                                     minimumSize: const Size(0, 36),
                                     padding: const EdgeInsets.symmetric(
@@ -415,151 +434,20 @@ class _LoginScreenState extends State<LoginScreen>
     if (_error != null) setState(() => _error = null);
   }
 
-  void _showForgotPasswordSheet() {
-    final emailCtrl =
-        TextEditingController(text: _usernameController.text.trim());
-
-    showBotanicalSheet<void>(
-      context: context,
-      title: 'نسيت كلمة المرور؟',
-      subtitle:
-          'أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور',
-      child: Builder(
-        builder: (sheetContext) {
-          final palette = sheetContext.palette;
-          String? error;
-          String? success;
-          bool sending = false;
-
-          return StatefulBuilder(
-            builder: (_, setSheetState) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: palette.surface,
-                    borderRadius: BorderRadius.circular(AppRadii.listItem),
-                    border: Border.all(
-                      color: error != null
-                          ? const Color(0xFFB3261E)
-                          : palette.cardBorder,
-                    ),
-                  ),
-                  child: TextField(
-                    controller: emailCtrl,
-                    enabled: !sending && success == null,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.username],
-                    textDirection: TextDirection.ltr,
-                    textAlign: TextAlign.left,
-                    onChanged: (_) {
-                      if (error != null) setSheetState(() => error = null);
-                    },
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      fontSize: 13.5,
-                      color: palette.bodyText,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'name@example.com',
-                      hintTextDirection: TextDirection.ltr,
-                      hintStyle: TextStyle(
-                        fontFamily: kSans,
-                        fontSize: 12.5,
-                        color: palette.mutedText,
-                      ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                ),
-                if (error != null) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                      error!,
-                      style: const TextStyle(
-                        fontFamily: kSans,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFB3261E),
-                      ),
-                    ),
-                  ),
-                ],
-                if (success != null) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                      success!,
-                      style: TextStyle(
-                        fontFamily: kSans,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: palette.goldText,
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                AppButton(
-                  text: sending
-                      ? 'جارٍ الإرسال…'
-                      : (success != null ? 'تم' : 'إرسال رابط إعادة التعيين'),
-                  icon: sending
-                      ? null
-                      : (success != null
-                          ? Icons.check_rounded
-                          : Icons.send_rounded),
-                  onPressed: sending
-                      ? () {}
-                      : success != null
-                          ? () => Navigator.pop(sheetContext)
-                          : () async {
-                              final email = emailCtrl.text.trim();
-                              if (email.isEmpty) {
-                                setSheetState(
-                                  () => error = 'أدخل بريدك الإلكتروني أولاً',
-                                );
-                                return;
-                              }
-                              setSheetState(() => sending = true);
-                              try {
-                                await AuthService.instance
-                                    .sendPasswordResetEmail(email);
-                                setSheetState(() {
-                                  sending = false;
-                                  success =
-                                      'تم إرسال الرابط — تحقق من بريدك الإلكتروني';
-                                });
-                              } on FirebaseAuthException catch (e) {
-                                setSheetState(() {
-                                  sending = false;
-                                  error = authErrorMessage(e);
-                                });
-                              } catch (_) {
-                                // Otherwise a network-level hiccup here
-                                // leaves `sending` stuck true forever, with
-                                // the sheet showing a spinner with no way
-                                // forward but dismissing it.
-                                setSheetState(() {
-                                  sending = false;
-                                  error =
-                                      'تعذّر الإرسال، تحقق من اتصالك بالإنترنت وحاول مرة أخرى';
-                                });
-                              }
-                            },
-                ),
-              ],
-            ),
-          );
-        },
+  /// "Forgot password" is a code from the app's own address, typed with the
+  /// new password on its own screen (PasswordResetScreen), which signs the
+  /// reader in when it's done. It used to be Firebase's reset link: English,
+  /// from a firebaseapp.com address, and a trip out to a web page.
+  Future<void> _openPasswordReset() async {
+    final signedIn = await Navigator.push<bool>(
+      context,
+      appPageRoute(
+        child: PasswordResetScreen(
+          initialEmail: _usernameController.text.trim(),
+        ),
       ),
     );
+    if (signedIn == true && mounted) _finish();
   }
 }
 
