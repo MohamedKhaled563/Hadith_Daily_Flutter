@@ -564,6 +564,12 @@ void main() {
           (await db.doc('scores/$uid').get()).data()?['name'] == 'سارة القارئة',
       what: 'the new name',
     );
+    // The database can answer before the screen has drawn its next frame.
+    await until(
+      tester,
+      () async => find.textContaining('«سارة القارئة»').evaluate().isNotEmpty,
+      what: 'the new name on the board screen',
+    );
     expect(find.textContaining('«سارة القارئة»'), findsOneWidget);
   });
 

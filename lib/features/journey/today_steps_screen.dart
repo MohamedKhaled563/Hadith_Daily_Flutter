@@ -7,6 +7,7 @@ import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/icon_badge.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../data/journey/journey_copy.dart';
@@ -93,7 +94,7 @@ class TodayStepsScreen extends StatelessWidget {
                       done: steps.done,
                       counted: day?.isPresent ?? false,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
                     TodaySteps(
                       steps: steps,
                       next: next == null ? null : hadiths.getByNumber(next),
@@ -119,7 +120,8 @@ class TodayStepsScreen extends StatelessWidget {
   }
 }
 
-/// The big ring and one line on where the day stands.
+//// The big ring and one line on where the day stands, on a card of their
+/// own with a soft light behind the ring.
 class _Summary extends StatelessWidget {
   const _Summary({required this.done, required this.counted});
 
@@ -132,37 +134,77 @@ class _Summary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final line = done >= StepsRing.total
+    final complete = done >= StepsRing.total;
+    final line = complete
         ? JourneyCopy.stepsAllDone
         : counted
             ? JourneyCopy.stepsDayCounted
             : JourneyCopy.stepsHowToCount;
+    final glow = complete ? palette.success : palette.ornamentGold;
 
     return Semantics(
       label: '${StepsRing.describe(done)}. $line',
       excludeSemantics: true,
-      child: Column(
-        children: [
-          StepsRing(done: done, size: 112),
-          const SizedBox(height: 12),
-          Text(
-            line,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: kSans,
-              fontSize: 14.5,
-              height: AppLeading.body,
-              fontWeight: FontWeight.w600,
-              color: palette.mutedText,
-            ),
+      child: ParchmentCard(
+        elevated: true,
+        showWatermark: false,
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+        // Full width, so the ring and the line centre on the card rather
+        // than on the widest of the two.
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      glow.withValues(alpha: .3),
+                      glow.withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: StepsRing(done: done, size: 112),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: complete ? palette.successWash : palette.surface,
+                  borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
+                  border: Border.all(
+                    color: complete
+                        ? palette.success.withValues(alpha: .35)
+                        : palette.cardBorder,
+                  ),
+                ),
+                child: Text(
+                  line,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 14.5,
+                    height: AppLeading.body,
+                    fontWeight: FontWeight.w600,
+                    color: complete ? palette.success : palette.bodyText,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// The three steps, in the order they lead into each other.
+/// The three steps, in the order they lead into each other, on a line that
+/// joins their numbers.
 class TodaySteps extends StatelessWidget {
   const TodaySteps({
     super.key,
@@ -202,17 +244,22 @@ class TodaySteps extends StatelessWidget {
       children: [
         _StepCard(
           number: 1,
+          first: true,
           done: steps.message,
           current: current == 0,
+          nextDone: steps.hadith,
+          icon: Icons.mail_outline_rounded,
           title: 'اقرأ رسالة اليوم',
           subtitle: steps.message ? null : 'رسالة قصيرة من كلام النبي ﷺ',
           onTap: onOpenMessage,
         ),
-        const SizedBox(height: 10),
         _StepCard(
           number: 2,
+          previousDone: steps.message,
           done: steps.hadith,
           current: current == 1,
+          nextDone: steps.wrote,
+          icon: Icons.menu_book_rounded,
           title: hadithStep,
           subtitle: hadithNext,
           detail: hadith == null || steps.hadith
@@ -220,11 +267,13 @@ class TodaySteps extends StatelessWidget {
               : arabicMinuteCount(ReadingRule.minutesFor(hadith)),
           onTap: hadith == null ? null : () => onOpenHadith(hadith.number),
         ),
-        const SizedBox(height: 10),
         _StepCard(
           number: 3,
+          previousDone: steps.hadith,
           done: steps.wrote,
           current: current == 2,
+          last: true,
+          icon: Icons.edit_note_rounded,
           title: 'اكتب رسالتك',
           subtitle: writing == null || steps.wrote
               ? null
@@ -242,6 +291,11 @@ class _StepCard extends StatelessWidget {
     required this.number,
     required this.done,
     required this.title,
+    required this.icon,
+    this.first = false,
+    this.last = false,
+    this.previousDone = false,
+    this.nextDone = false,
     this.current = false,
     this.subtitle,
     this.detail,
@@ -253,6 +307,19 @@ class _StepCard extends StatelessWidget {
 
   /// The step to do now: picked out so the eye lands on it.
   final bool current;
+
+  /// The first step has no line running in above its number, the last
+  /// none running on below it.
+  final bool first;
+  final bool last;
+
+  /// Whether the step before this one is done, for the line coming in.
+  final bool previousDone;
+
+  /// Whether the step after this one is done too, so the line between them
+  /// is drawn as travelled.
+  final bool nextDone;
+  final IconData icon;
   final String title;
 
   /// A quieter second line, so a long step never wraps into a paragraph.
@@ -269,8 +336,8 @@ class _StepCard extends StatelessWidget {
 
     final badge = AnimatedContainer(
       duration: context.motion(AppDurations.content),
-      width: 34,
-      height: 34,
+      width: 36,
+      height: 36,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
@@ -278,11 +345,30 @@ class _StepCard extends StatelessWidget {
             ? green
             : current
                 ? palette.ornamentGold
-                : palette.surfaceSunken,
+                : palette.surface,
+        border: Border.all(
+          color: done
+              ? green
+              : current
+                  ? palette.ornamentGold
+                  : palette.cardBorderStrong,
+          width: 1.4,
+        ),
+        boxShadow: current
+            ? [
+                BoxShadow(
+                  color: palette.ornamentGold.withValues(alpha: .4),
+                  blurRadius: 10,
+                ),
+              ]
+            : null,
       ),
       child: done
-          ? const Icon(Icons.check_rounded,
-              size: 20, color: AppColors.softCream)
+          ? const Icon(
+              Icons.check_rounded,
+              size: 20,
+              color: AppColors.softCream,
+            )
           : Text(
               toArabicDigits(number),
               textScaler: TextScaler.noScaling,
@@ -296,12 +382,44 @@ class _StepCard extends StatelessWidget {
             ),
     );
 
+    // The number sits on a line outside the card, so the three read as one
+    // path from the first step to the last: green where both ends are done,
+    // gold where the path has got to, a hairline ahead.
+    Color segment(bool from, bool to) => from && to
+        ? green.withValues(alpha: .55)
+        : from
+            ? palette.ornamentGold.withValues(alpha: .6)
+            : palette.cardBorder;
+    Widget line(Color color) => Container(width: 2.5, color: color);
+    final rail = SizedBox(
+      width: 36,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 16,
+            child: first ? null : line(segment(previousDone, done)),
+          ),
+          badge,
+          if (!last) Expanded(child: line(segment(done, nextDone))),
+        ],
+      ),
+    );
+
     final content = Row(
       children: [
-        badge,
+        IconBadge(
+          icon: icon,
+          size: 38,
+          tone: done
+              ? BadgeTone.green
+              : current
+                  ? BadgeTone.gold
+                  : BadgeTone.quiet,
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -330,51 +448,88 @@ class _StepCard extends StatelessWidget {
                   ),
                 ),
               ],
+              if (detail != null) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: palette.goldWash,
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.schedule_rounded,
+                        size: 13,
+                        color: palette.goldText,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        detail!,
+                        style: TextStyle(
+                          fontFamily: kSans,
+                          fontSize: 12,
+                          height: AppLeading.chrome,
+                          fontWeight: FontWeight.w700,
+                          color: palette.goldText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
-        if (detail != null) ...[
-          const SizedBox(width: 8),
-          Text(
-            detail!,
-            style: TextStyle(
-              fontFamily: kSans,
-              fontSize: 12.5,
-              height: AppLeading.chrome,
-              fontWeight: FontWeight.w600,
-              color: palette.goldText,
-            ),
-          ),
-        ],
         // Only a step still to do points onward; a done one stays tappable
         // but quiet.
-        if (onTap != null && !done)
-          Icon(
-            // chevron_left: "forward" in a right-to-left app.
-            Icons.chevron_left_rounded,
-            size: 22,
-            color: current ? palette.goldText : palette.mutedText,
-          ),
+        if (onTap != null && !done) ...[
+          const SizedBox(width: 8),
+          ForwardChevron(emphasised: current),
+        ],
       ],
     );
 
-    return Opacity(
-      opacity: done ? .78 : 1,
-      child: ParchmentCard(
-        onTap: onTap,
-        semanticLabel: [
-          title,
-          if (subtitle != null) subtitle!,
-          if (detail != null) detail!,
-          if (done) 'تمّت',
-        ].join('، '),
-        elevated: current,
-        borderColor: current ? palette.ornamentGold : null,
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-        showWatermark: false,
-        showCornerOrnaments: false,
-        // The label says it all once; the text inside would repeat it.
-        child: ExcludeSemantics(child: content),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          rail,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: last ? 0 : 12),
+              child: Opacity(
+                opacity: done ? .82 : 1,
+                child: ParchmentCard(
+                  onTap: onTap,
+                  semanticLabel: [
+                    title,
+                    if (subtitle != null) subtitle!,
+                    if (detail != null) detail!,
+                    if (done) 'تمّت',
+                  ].join('، '),
+                  elevated: current,
+                  borderColor: current
+                      ? palette.ornamentGold
+                      : done
+                          ? palette.success.withValues(alpha: .35)
+                          : null,
+                  padding: const EdgeInsets.all(12),
+                  showWatermark: false,
+                  showCornerOrnaments: false,
+                  // The label says it all once; the text inside would repeat
+                  // it.
+                  child: ExcludeSemantics(child: content),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -396,6 +551,7 @@ class TodayStepsButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final left = StepsRing.total - steps.done;
+    final complete = left <= 0;
     final line = switch (left) {
       <= 0 => JourneyCopy.stepsAllDone,
       3 => 'ابدأ برسالة اليوم',
@@ -406,13 +562,13 @@ class TodayStepsButton extends StatelessWidget {
     return ParchmentCard(
       onTap: onTap,
       semanticLabel: 'خطوات اليوم، ${StepsRing.describe(steps.done)}، $line',
-      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       showWatermark: false,
       showCornerOrnaments: false,
       child: ExcludeSemantics(
         child: Row(
           children: [
-            StepsRing(done: steps.done, size: 46),
+            StepsRing(done: steps.done, size: 48),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -422,12 +578,13 @@ class TodayStepsButton extends StatelessWidget {
                     'خطوات اليوم',
                     style: TextStyle(
                       fontFamily: kSans,
-                      fontSize: 16,
+                      fontSize: 16.5,
                       height: AppLeading.chrome,
                       fontWeight: FontWeight.w800,
                       color: palette.bodyText,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     line,
                     maxLines: 1,
@@ -436,27 +593,39 @@ class TodayStepsButton extends StatelessWidget {
                       fontFamily: kSans,
                       fontSize: 13,
                       height: AppLeading.chrome,
-                      color: palette.goldText,
+                      fontWeight: FontWeight.w600,
+                      color: complete ? palette.success : palette.goldText,
                     ),
                   ),
                 ],
               ),
             ),
-            Text(
-              '${toArabicDigits(steps.done)} / ٣',
-              textScaler: TextScaler.noScaling,
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: palette.mutedText,
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: complete ? palette.successWash : palette.goldWash,
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+                border: Border.all(
+                  color: complete
+                      ? palette.success.withValues(alpha: .35)
+                      : palette.ornamentGold.withValues(alpha: .5),
+                ),
+              ),
+              child: Text(
+                '${toArabicDigits(steps.done)} / ٣',
+                textScaler: TextScaler.noScaling,
+                style: TextStyle(
+                  fontFamily: kSans,
+                  fontSize: 13.5,
+                  height: 1.2,
+                  fontWeight: FontWeight.w800,
+                  color: complete ? palette.success : palette.goldText,
+                ),
               ),
             ),
-            Icon(
-              Icons.chevron_left_rounded,
-              size: 22,
-              color: palette.mutedText,
-            ),
+            const SizedBox(width: 8),
+            const ForwardChevron(),
           ],
         ),
       ),

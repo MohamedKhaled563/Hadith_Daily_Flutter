@@ -8,6 +8,7 @@ import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/icon_badge.dart';
 import '../../core/widgets/parchment_card.dart';
 import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
@@ -398,30 +399,40 @@ class _MoreToday extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: TapTarget(
-        onTap: onTap,
-        semanticLabel: '$label، اعرضها',
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: kSans,
-                  fontSize: 14,
-                  height: AppLeading.chrome,
-                  fontWeight: FontWeight.w800,
+      child: Center(
+        child: TapTarget(
+          onTap: onTap,
+          semanticLabel: '$label، اعرضها',
+          child: Container(
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 7, 10, 7),
+            decoration: BoxDecoration(
+              color: palette.goldWash,
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              border: Border.all(
+                color: palette.ornamentGold.withValues(alpha: .55),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 14,
+                    height: AppLeading.chrome,
+                    fontWeight: FontWeight.w800,
+                    color: palette.goldText,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(
+                  Icons.expand_more_rounded,
+                  size: 22,
                   color: palette.goldText,
                 ),
-              ),
-              Icon(
-                Icons.expand_more_rounded,
-                size: 22,
-                color: palette.goldText,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -470,26 +481,38 @@ class _SectionTitle extends StatelessWidget {
       header: true,
       child: Row(
         children: [
+          const IconBadge(icon: Icons.event_repeat_rounded, size: 32),
+          const SizedBox(width: 10),
           Text(
             text,
             style: TextStyle(
               fontFamily: kSans,
-              fontSize: 16,
+              fontSize: 16.5,
               height: AppLeading.chrome,
               fontWeight: FontWeight.w800,
-              color: palette.goldText,
+              color: palette.bodyText,
             ),
           ),
           const Spacer(),
           if (trailing != null)
-            Text(
-              trailing!,
-              style: TextStyle(
-                fontFamily: kSans,
-                fontSize: 13,
-                height: AppLeading.chrome,
-                fontWeight: FontWeight.w700,
-                color: palette.success,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              decoration: BoxDecoration(
+                color: palette.successWash,
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+                border: Border.all(
+                  color: palette.success.withValues(alpha: .35),
+                ),
+              ),
+              child: Text(
+                trailing!,
+                style: TextStyle(
+                  fontFamily: kSans,
+                  fontSize: 13,
+                  height: AppLeading.chrome,
+                  fontWeight: FontWeight.w800,
+                  color: palette.success,
+                ),
               ),
             ),
         ],
@@ -509,29 +532,52 @@ class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final line = Expanded(
-      child: Container(height: 1.2, color: palette.cardBorderStrong),
-    );
+    Widget line({required bool startFades}) => Expanded(
+          child: Container(
+            height: 1.2,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: AlignmentDirectional.centerStart,
+                end: AlignmentDirectional.centerEnd,
+                colors: startFades
+                    ? [
+                        palette.cardBorderStrong.withValues(alpha: 0),
+                        palette.cardBorderStrong,
+                      ]
+                    : [
+                        palette.cardBorderStrong,
+                        palette.cardBorderStrong.withValues(alpha: 0),
+                      ],
+              ),
+            ),
+          ),
+        );
 
     return Semantics(
       header: true,
       child: Row(
         children: [
-          line,
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+          line(startFades: true),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              border: Border.all(color: palette.cardBorder),
+            ),
             child: Text(
               '$label (${toArabicDigits(count)})',
               style: TextStyle(
                 fontFamily: kSans,
-                fontSize: 14,
+                fontSize: 13.5,
                 height: AppLeading.chrome,
                 fontWeight: FontWeight.w800,
                 color: palette.mutedText,
               ),
             ),
           ),
-          line,
+          line(startFades: false),
         ],
       ),
     );
@@ -551,8 +597,13 @@ class _Note extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: done ? palette.successWash : palette.surfaceSunken,
-        borderRadius: BorderRadius.circular(14),
+        color: done ? palette.successWash : palette.surface,
+        borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
+        border: Border.all(
+          color: done
+              ? palette.success.withValues(alpha: .35)
+              : palette.cardBorder,
+        ),
       ),
       child: Row(
         children: [
@@ -673,8 +724,11 @@ class _DueCard extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: palette.ornamentGold.withValues(alpha: .18),
+                      color: palette.goldWash,
                       borderRadius: BorderRadius.circular(AppRadii.pill),
+                      border: Border.all(
+                        color: palette.ornamentGold.withValues(alpha: .5),
+                      ),
                     ),
                     child: Text(
                       'دوره اليوم',
@@ -726,20 +780,38 @@ class _DueCard extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+              padding: const EdgeInsetsDirectional.fromSTEB(14, 9, 10, 9),
               decoration: BoxDecoration(
                 color: green,
                 borderRadius: BorderRadius.circular(AppRadii.pill),
+                boxShadow: [
+                  BoxShadow(
+                    color: green.withValues(alpha: .35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              child: const Text(
-                'راجِع',
-                style: TextStyle(
-                  fontFamily: kSans,
-                  fontSize: 14.5,
-                  height: 1.1,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.softCream,
-                ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'راجِع',
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 14.5,
+                      height: 1.1,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.softCream,
+                    ),
+                  ),
+                  SizedBox(width: 2),
+                  Icon(
+                    Icons.chevron_left_rounded,
+                    size: 18,
+                    color: AppColors.softCream,
+                  ),
+                ],
               ),
             ),
           ],
@@ -969,23 +1041,33 @@ class _Row extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (action != null)
-                  Text(
-                    action!,
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      fontSize: 14,
-                      height: AppLeading.chrome,
-                      fontWeight: FontWeight.w800,
-                      color: palette.success,
+                if (action != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: palette.successWash,
+                      borderRadius: BorderRadius.circular(AppRadii.pill),
+                      border: Border.all(
+                        color: palette.success.withValues(alpha: .35),
+                      ),
+                    ),
+                    child: Text(
+                      action!,
+                      style: TextStyle(
+                        fontFamily: kSans,
+                        fontSize: 13.5,
+                        height: AppLeading.chrome,
+                        fontWeight: FontWeight.w800,
+                        color: palette.success,
+                      ),
                     ),
                   ),
-                Icon(
-                  // chevron_left: "forward" in a right-to-left app.
-                  Icons.chevron_left_rounded,
-                  size: 20,
-                  color: palette.mutedText,
-                ),
+                  const SizedBox(width: 6),
+                ],
+                const ForwardChevron(),
               ],
             ),
           ),
@@ -1221,20 +1303,15 @@ class MemoEntry extends StatelessWidget {
       borderColor: due > 0 ? palette.ornamentGold : null,
       showWatermark: false,
       showCornerOrnaments: false,
-      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       semanticLabel: '$heading، $line',
       onTap: () => _open(context, const MemoListScreen()),
       child: Row(
         children: [
-          Container(
-            width: 54,
-            height: 54,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: palette.surfaceSunken,
-              shape: BoxShape.circle,
-            ),
-            child: const LeafSwatch(LeafLook.memorized, height: 38),
+          IconBadge(
+            size: 48,
+            tone: due > 0 ? BadgeTone.gold : BadgeTone.quiet,
+            child: const LeafSwatch(LeafLook.memorized, height: 30),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1245,10 +1322,10 @@ class MemoEntry extends StatelessWidget {
                   heading,
                   style: TextStyle(
                     fontFamily: kSans,
-                    fontSize: 17,
+                    fontSize: 16.5,
                     height: AppLeading.chrome,
                     fontWeight: FontWeight.w800,
-                    color: palette.goldText,
+                    color: palette.bodyText,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1258,10 +1335,10 @@ class MemoEntry extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: kSans,
-                    fontSize: 13.5,
+                    fontSize: 13,
                     height: AppLeading.chrome,
                     fontWeight: due > 0 ? FontWeight.w700 : FontWeight.w500,
-                    color: due > 0 ? palette.bodyText : palette.mutedText,
+                    color: due > 0 ? palette.goldText : palette.mutedText,
                   ),
                 ),
               ],
@@ -1270,13 +1347,20 @@ class MemoEntry extends StatelessWidget {
           const SizedBox(width: 8),
           if (due > 0)
             Container(
-              constraints: const BoxConstraints(minWidth: 26),
-              height: 26,
-              padding: const EdgeInsets.symmetric(horizontal: 7),
+              constraints: const BoxConstraints(minWidth: 28),
+              height: 28,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: palette.ornamentGold,
                 borderRadius: BorderRadius.circular(AppRadii.pill),
+                border: Border.all(color: palette.parchmentTop, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: palette.ornamentGold.withValues(alpha: .45),
+                    blurRadius: 8,
+                  ),
+                ],
               ),
               child: Text(
                 toArabicDigits(due),
@@ -1291,7 +1375,8 @@ class MemoEntry extends StatelessWidget {
             )
           else if (plan.doneToday)
             Icon(Icons.check_circle_rounded, color: palette.success, size: 24),
-          Icon(Icons.chevron_left_rounded, color: palette.mutedText),
+          const SizedBox(width: 8),
+          ForwardChevron(emphasised: due > 0),
         ],
       ),
     );

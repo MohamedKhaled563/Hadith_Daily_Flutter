@@ -9,9 +9,10 @@ import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/asset_helper.dart';
 import '../../core/widgets/bottom_navigation.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/icon_badge.dart';
 import '../../core/widgets/parchment_card.dart';
+import '../../core/widgets/pill_tabs.dart';
 import '../../core/widgets/smooth_page_route.dart';
-import '../../core/widgets/tap_target.dart';
 import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_repository.dart';
 import '../../data/repositories/hadith_repository.dart';
@@ -114,10 +115,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: _SectionTabs(
             selected: _section,
-            onSelected: (section) {
-              AppHaptics.selection();
-              setState(() => _section = section);
-            },
+            onSelected: (section) => setState(() => _section = section),
           ),
         ),
         const SizedBox(height: 8),
@@ -148,51 +146,13 @@ class _SectionTabs extends StatelessWidget {
   static const _labels = ['رحلتي', 'المفضلة'];
 
   @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: palette.surfaceSunken,
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < _labels.length; i++)
-            Expanded(
-              child: TapTarget(
-                onTap: () => onSelected(i),
-                semanticLabel: _labels[i],
-                selected: selected == i,
-                pressScale: AppPress.cardScale,
-                child: AnimatedContainer(
-                  duration: context.motion(AppDurations.control),
-                  curve: AppDurations.curve,
-                  height: 34,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: selected == i ? palette.surface : Colors.transparent,
-                    borderRadius: BorderRadius.circular(AppRadii.pill),
-                  ),
-                  child: Text(
-                    _labels[i],
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      fontSize: 14,
-                      height: AppLeading.chrome,
-                      fontWeight: FontWeight.w700,
-                      color:
-                          selected == i ? palette.goldText : palette.mutedText,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PillTabs<int>(
+        values: const [0, 1],
+        labelOf: (i) => _labels[i],
+        selected: selected,
+        onSelected: onSelected,
+        height: 36,
+      );
 }
 
 class _JourneyBody extends StatelessWidget {
@@ -324,59 +284,52 @@ class _BoardEntry extends StatelessWidget {
     final palette = context.palette;
 
     return ParchmentCard(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       showWatermark: false,
       showCornerOrnaments: false,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            AppHaptics.tap();
-            Navigator.push(
-              context,
-              appPageRoute(child: const WeeklyBoardScreen()),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.format_list_numbered_rtl_rounded,
-                  size: 22,
-                  color: palette.goldText,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _CardTitle('لوحة الأسبوع'),
-                      Text(
-                        'اختيارية، وتُنشر كل جمعة',
-                        style: TextStyle(
-                          fontFamily: kSans,
-                          fontSize: 13,
-                          height: AppLeading.chrome,
-                          color: palette.mutedText,
-                        ),
-                      ),
-                    ],
+      semanticLabel: 'لوحة الأسبوع، اختيارية، وتُنشر كل جمعة',
+      onTap: () {
+        AppHaptics.tap();
+        Navigator.push(
+          context,
+          appPageRoute(child: const WeeklyBoardScreen()),
+        );
+      },
+      child: ExcludeSemantics(
+        child: Row(
+          children: [
+            const IconBadge(icon: Icons.emoji_events_rounded, size: 46),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const EntryTitle('لوحة الأسبوع'),
+                  const SizedBox(height: 2),
+                  Text(
+                    'اختيارية، وتُنشر كل جمعة',
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 13,
+                      height: AppLeading.chrome,
+                      color: palette.mutedText,
+                    ),
                   ),
-                ),
-                Icon(Icons.chevron_left_rounded, color: palette.mutedText),
-              ],
+                ],
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            const ForwardChevron(),
+          ],
         ),
       ),
     );
   }
 }
 
-class _CardTitle extends StatelessWidget {
-  const _CardTitle(this.text);
+/// The title on a card that opens a page of its own.
+class EntryTitle extends StatelessWidget {
+  const EntryTitle(this.text, {super.key});
 
   final String text;
 
@@ -384,12 +337,14 @@ class _CardTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: TextStyle(
         fontFamily: kSans,
-        fontSize: 16,
+        fontSize: 16.5,
         height: AppLeading.chrome,
-        fontWeight: FontWeight.w700,
-        color: context.palette.goldText,
+        fontWeight: FontWeight.w800,
+        color: context.palette.bodyText,
       ),
     );
   }
@@ -424,21 +379,33 @@ class _TreeSummary extends StatelessWidget {
       );
     }
 
-    Widget pill(String text, {required bool strong}) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+    Widget pill(String text, {required bool strong, Widget? mark}) => Container(
+          padding:
+              EdgeInsetsDirectional.fromSTEB(mark == null ? 11 : 8, 5, 11, 5),
           decoration: BoxDecoration(
-            color: palette.surfaceSunken,
-            borderRadius: BorderRadius.circular(99),
-          ),
-          child: Text(
-            text,
-            style: TextStyle(
-              fontFamily: kSans,
-              fontSize: strong ? 15 : 13,
-              height: AppLeading.chrome,
-              fontWeight: strong ? FontWeight.w800 : FontWeight.w700,
-              color: palette.goldText,
+            color: strong ? palette.goldWash : palette.surface,
+            borderRadius: BorderRadius.circular(AppRadii.pill),
+            border: Border.all(
+              color: strong
+                  ? palette.ornamentGold.withValues(alpha: .6)
+                  : palette.cardBorder,
             ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (mark != null) ...[mark, const SizedBox(width: 5)],
+              Text(
+                text,
+                style: TextStyle(
+                  fontFamily: kSans,
+                  fontSize: strong ? 14.5 : 13,
+                  height: AppLeading.chrome,
+                  fontWeight: strong ? FontWeight.w800 : FontWeight.w700,
+                  color: palette.goldText,
+                ),
+              ),
+            ],
           ),
         );
 
@@ -451,7 +418,15 @@ class _TreeSummary extends StatelessWidget {
         if (memorized > 0)
           pill('في حفظك ${toArabicDigits(memorized)}', strong: false),
         if (streak > 0)
-          pill('استمرارية ${arabicDayCount(streak)}', strong: false),
+          pill(
+            'استمرارية ${arabicDayCount(streak)}',
+            strong: false,
+            mark: Icon(
+              Icons.local_fire_department_rounded,
+              size: 16,
+              color: palette.warm,
+            ),
+          ),
       ],
     );
   }

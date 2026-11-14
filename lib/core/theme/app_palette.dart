@@ -31,6 +31,7 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
     required this.warm,
     required this.warmText,
     required this.warmWash,
+    required this.goldWash,
   });
 
   /// Parchment card gradient, top → bottom.
@@ -77,6 +78,10 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
   final Color warmText;
   final Color warmWash;
 
+  /// A pale gold ground for badges, chips and the card that asks to be
+  /// opened next. [goldText] clears AA on it in both themes.
+  final Color goldWash;
+
   static const light = BotanicalPalette(
     // Lighter than the page now (L* 99 → 95 over a 93 ground). The old card
     // was darker than the scaffold, so it read as sunk rather than raised.
@@ -102,6 +107,7 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
     warm: Color(0xFFD2643A),
     warmText: Color(0xFFA9481F),
     warmWash: Color(0xFFFBE3D3),
+    goldWash: Color(0xFFF6EBCB),
   );
 
   static const dark = BotanicalPalette(
@@ -127,6 +133,7 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
     warm: Color(0xFFF0A07A),
     warmText: Color(0xFFF0A07A),
     warmWash: Color(0xFF3A2A20),
+    goldWash: Color(0xFF332C17),
   );
 
   /// Convenience accessor so call sites read as
@@ -158,6 +165,7 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
     Color? warm,
     Color? warmText,
     Color? warmWash,
+    Color? goldWash,
   }) {
     return BotanicalPalette(
       parchmentTop: parchmentTop ?? this.parchmentTop,
@@ -182,6 +190,7 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
       warm: warm ?? this.warm,
       warmText: warmText ?? this.warmText,
       warmWash: warmWash ?? this.warmWash,
+      goldWash: goldWash ?? this.goldWash,
     );
   }
 
@@ -212,6 +221,7 @@ class BotanicalPalette extends ThemeExtension<BotanicalPalette> {
       warm: Color.lerp(warm, other.warm, t)!,
       warmText: Color.lerp(warmText, other.warmText, t)!,
       warmWash: Color.lerp(warmWash, other.warmWash, t)!,
+      goldWash: Color.lerp(goldWash, other.goldWash, t)!,
     );
   }
 }

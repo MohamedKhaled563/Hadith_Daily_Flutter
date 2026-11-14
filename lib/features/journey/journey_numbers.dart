@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/arabic_numerals.dart';
+import '../../core/widgets/botanical_sheet.dart';
+import '../../core/widgets/icon_badge.dart';
 import '../../core/widgets/parchment_card.dart';
+import '../../core/widgets/tap_target.dart';
 import '../../data/journey/journey_engine.dart';
 import '../../data/journey/journey_points.dart';
 import 'journey_share_sheet.dart';
+import 'journey_tree.dart';
 
 /// The reader's numbers on رحلتي, in two parts: this week's harvest and the
 /// whole journey's. Three numbers each, the same three ideas: keeping at it,
@@ -41,86 +46,83 @@ class JourneyNumbers extends StatelessWidget {
     final palette = context.palette;
 
     return ParchmentCard(
-      padding: const EdgeInsets.fromLTRB(16, 8, 8, 14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
       showWatermark: false,
       showCornerOrnaments: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          const _PartHeader(
+            icon: Icons.calendar_month_rounded,
+            title: 'حصاد الأسبوع',
+            trailing: _HowButton(),
+          ),
+          const SizedBox(height: 12),
+          _Tiles(
             children: [
-              const Expanded(child: _PartTitle('حصاد الأسبوع')),
-              IconButton(
-                tooltip: 'كيف تُحسب؟',
-                icon: Icon(
-                  Icons.info_outline_rounded,
-                  color: palette.goldText,
-                ),
-                onPressed: () => showHowCounted(context),
+              _Number(
+                icon: Icons.local_fire_department_rounded,
+                tone: BadgeTone.warm,
+                value: toArabicDigits(streak.current),
+                unit: _dayUnit(streak.current),
+                label: 'الاستمرارية',
+              ),
+              _Number(
+                icon: Icons.workspace_premium_rounded,
+                tone: BadgeTone.green,
+                value: toArabicDigits(bestThisWeek),
+                unit: _dayUnit(bestThisWeek),
+                label: 'أفضل استمرارية',
+              ),
+              _Number(
+                icon: Icons.auto_awesome_rounded,
+                tone: BadgeTone.gold,
+                value: toArabicDigits(weekPoints),
+                unit: 'نقطة',
+                label: 'نقاط الأسبوع',
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8),
-            child: Row(
-              children: [
-                _Number(
-                  value: toArabicDigits(streak.current),
-                  unit: _dayUnit(streak.current),
-                  label: 'الاستمرارية',
-                ),
-                _Number(
-                  value: toArabicDigits(bestThisWeek),
-                  unit: _dayUnit(bestThisWeek),
-                  label: 'أفضل استمرارية',
-                ),
-                _Number(
-                  value: toArabicDigits(weekPoints),
-                  unit: 'نقطة',
-                  label: 'نقاط الأسبوع',
-                ),
-              ],
+          if (canShare) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => shareHarvest(context),
+              icon: const Icon(Icons.ios_share_rounded, size: 18),
+              label: const Text('شارك حصاد أسبوعك'),
             ),
-          ),
-          if (canShare)
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextButton.icon(
-                onPressed: () => shareHarvest(context),
-                icon: const Icon(Icons.ios_share_rounded, size: 18),
-                label: const Text('شارك حصاد أسبوعك'),
-              ),
-            )
-          else
-            const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8),
-            child: Divider(height: 1, color: palette.cardBorder),
+          ],
+          const SizedBox(height: 16),
+          _OrnamentRule(color: palette.cardBorderStrong),
+          const SizedBox(height: 14),
+          const _PartHeader(
+            icon: Icons.park_rounded,
+            title: 'حصاد رحلتك',
           ),
           const SizedBox(height: 12),
-          const _PartTitle('حصاد رحلتك'),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8),
-            child: Row(
-              children: [
-                _Number(
-                  value: toArabicDigits(streak.best),
-                  unit: _dayUnit(streak.best),
-                  label: 'أفضل استمرارية',
-                ),
-                _Number(
-                  value: toArabicDigits(allPoints),
-                  unit: 'نقطة',
-                  label: 'كل نقاطك',
-                ),
-                _Number(
-                  value: '${toArabicDigits(memorized)} / ٤٢',
-                  unit: 'حديثاً',
-                  label: 'حفظت',
-                ),
-              ],
-            ),
+          _Tiles(
+            children: [
+              _Number(
+                icon: Icons.emoji_events_rounded,
+                tone: BadgeTone.gold,
+                value: toArabicDigits(streak.best),
+                unit: _dayUnit(streak.best),
+                label: 'أفضل استمرارية',
+              ),
+              _Number(
+                icon: Icons.stars_rounded,
+                tone: BadgeTone.gold,
+                value: toArabicDigits(allPoints),
+                unit: 'نقطة',
+                label: 'كل نقاطك',
+              ),
+              _Number(
+                leaf: true,
+                tone: BadgeTone.gold,
+                value: '${toArabicDigits(memorized)} / ٤٢',
+                unit: 'حديثاً',
+                label: 'حفظت',
+              ),
+            ],
           ),
         ],
       ),
@@ -136,45 +138,189 @@ String _dayUnit(int count) => switch (count) {
       _ => 'يوماً',
     };
 
-class _PartTitle extends StatelessWidget {
-  const _PartTitle(this.text);
+/// A part's title with its mark, and anything that belongs beside it.
+class _PartHeader extends StatelessWidget {
+  const _PartHeader({required this.icon, required this.title, this.trailing});
 
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-        header: true,
-        child: Text(
-          text,
-          style: TextStyle(
-            fontFamily: kSans,
-            fontSize: 16,
-            height: AppLeading.chrome,
-            fontWeight: FontWeight.w800,
-            color: context.palette.goldText,
-          ),
-        ),
-      );
-}
-
-/// One number: the figure, its unit and what it counts.
-class _Number extends StatelessWidget {
-  const _Number({required this.value, required this.unit, required this.label});
-
-  final String value;
-  final String unit;
-  final String label;
+  final IconData icon;
+  final String title;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return Expanded(
-      child: Semantics(
-        label: '$label: $value $unit',
-        excludeSemantics: true,
+    return Row(
+      children: [
+        IconBadge(icon: icon, size: 34),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text(
+              title,
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 16.5,
+                height: AppLeading.chrome,
+                fontWeight: FontWeight.w800,
+                color: palette.bodyText,
+              ),
+            ),
+          ),
+        ),
+        if (trailing != null) trailing!,
+      ],
+    );
+  }
+}
+
+/// The ⓘ beside the week's title: a small round button, not a stray icon.
+class _HowButton extends StatelessWidget {
+  const _HowButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Tooltip(
+      message: 'كيف تُحسب؟',
+      // The button says it already; the tooltip is for the eye.
+      excludeFromSemantics: true,
+      child: TapTarget(
+        onTap: () => showHowCounted(context),
+        semanticLabel: 'كيف تُحسب؟',
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: palette.surface,
+            border: Border.all(color: palette.cardBorder, width: 1.2),
+          ),
+          child: Icon(
+            Icons.question_mark_rounded,
+            size: 18,
+            color: palette.goldText,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A fine gold rule with a diamond at its middle, between the two parts.
+class _OrnamentRule extends StatelessWidget {
+  const _OrnamentRule({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget line(bool towardsCentreAtEnd) => Expanded(
+          child: Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: AlignmentDirectional.centerStart,
+                end: AlignmentDirectional.centerEnd,
+                colors: towardsCentreAtEnd
+                    ? [color.withValues(alpha: 0), color]
+                    : [color, color.withValues(alpha: 0)],
+              ),
+            ),
+          ),
+        );
+
+    return ExcludeSemantics(
+      child: Row(
+        children: [
+          line(true),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Transform.rotate(
+              angle: .785398,
+              child: Container(width: 6, height: 6, color: color),
+            ),
+          ),
+          line(false),
+        ],
+      ),
+    );
+  }
+}
+
+/// Three tiles in a row, a small gap between them.
+class _Tiles extends StatelessWidget {
+  const _Tiles({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(child: children[i]),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// One number on a tile of its own: its mark, the figure with its unit, and
+/// what it counts.
+class _Number extends StatelessWidget {
+  const _Number({
+    required this.value,
+    required this.unit,
+    required this.label,
+    required this.tone,
+    this.icon,
+    this.leaf = false,
+  });
+
+  final String value;
+  final String unit;
+  final String label;
+  final BadgeTone tone;
+  final IconData? icon;
+
+  /// A gold leaf for the mark, as on the tree.
+  final bool leaf;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final (_, ink) = IconBadge.toneColors(palette, tone);
+
+    return Semantics(
+      // Each figure is read on its own, not run together with the rest.
+      container: true,
+      label: '$label: $value $unit',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(6, 10, 6, 10),
+        decoration: BoxDecoration(
+          color: palette.surface.withValues(alpha: .75),
+          borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
+          border: Border.all(color: palette.cardBorder),
+        ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            SizedBox(
+              height: 22,
+              child: leaf
+                  ? const LeafSwatch(LeafLook.memorized, height: 20)
+                  : Icon(icon, size: 20, color: ink),
+            ),
+            const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text.rich(
@@ -184,7 +330,7 @@ class _Number extends StatelessWidget {
                       text: value,
                       style: TextStyle(
                         fontFamily: kSans,
-                        fontSize: 22,
+                        fontSize: 21,
                         height: 1.2,
                         fontWeight: FontWeight.w900,
                         color: palette.bodyText,
@@ -194,7 +340,7 @@ class _Number extends StatelessWidget {
                       text: ' $unit',
                       style: TextStyle(
                         fontFamily: kSans,
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                         color: palette.mutedText,
                       ),
@@ -204,16 +350,16 @@ class _Number extends StatelessWidget {
                 maxLines: 1,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               label,
               textAlign: TextAlign.center,
               maxLines: 2,
               style: TextStyle(
                 fontFamily: kSans,
-                fontSize: 12.5,
+                fontSize: 12,
                 height: AppLeading.chrome,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: palette.goldText,
               ),
             ),
@@ -225,11 +371,10 @@ class _Number extends StatelessWidget {
 }
 
 /// «كيف تُحسب؟»: what each number counts, short and calm.
-Future<void> showHowCounted(BuildContext context) => showModalBottomSheet<void>(
+Future<void> showHowCounted(BuildContext context) => showBotanicalSheet<void>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => const _HowCounted(),
+      title: 'كيف تُحسب أرقامك؟',
+      child: const _HowCounted(),
     );
 
 class _HowCounted extends StatelessWidget {
@@ -256,105 +401,155 @@ class _HowCounted extends StatelessWidget {
     );
     final muted = body.copyWith(fontSize: 12.5, color: palette.mutedText);
 
-    Widget section(String title, List<Widget> children) => Padding(
-          padding: const EdgeInsets.only(bottom: 18),
+    Widget section({
+      required Widget mark,
+      required String title,
+      required List<Widget> children,
+    }) =>
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+          decoration: BoxDecoration(
+            color: palette.surface.withValues(alpha: .8),
+            borderRadius: BorderRadius.circular(AppRadii.listItem),
+            border: Border.all(color: palette.cardBorder),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Semantics(
-                header: true,
-                child: Text(
-                  title,
-                  style: body.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: palette.goldText,
+              Row(
+                children: [
+                  mark,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Semantics(
+                      header: true,
+                      child: Text(
+                        title,
+                        style: body.copyWith(
+                          fontSize: 16,
+                          height: AppLeading.chrome,
+                          fontWeight: FontWeight.w800,
+                          color: palette.goldText,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               ...children,
             ],
           ),
         );
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        section(
+          mark: const IconBadge(
+            icon: Icons.local_fire_department_rounded,
+            tone: BadgeTone.warm,
+            size: 32,
+          ),
+          title: 'الاستمرارية',
           children: [
             Text(
-              'كيف تُحسب أرقامك؟',
-              textAlign: TextAlign.center,
-              style: body.copyWith(fontSize: 18, fontWeight: FontWeight.w900),
+              'أيام متتالية قرأت فيها رسالة اليوم أو حديثاً، أو حفظت أو '
+              'راجعت. وكل ${toArabicDigits(kDaysPerGrace)} أيام متتالية '
+              'تمنحك يوم سماح، حتى يومين، يحفظ استمراريتك إن فاتك يوم.',
+              style: body,
             ),
-            const SizedBox(height: 16),
-            section('الاستمرارية', [
-              Text(
-                'أيام متتالية قرأت فيها رسالة اليوم أو حديثاً، أو حفظت أو '
-                'راجعت. وكل ${toArabicDigits(kDaysPerGrace)} أيام متتالية '
-                'تمنحك يوم سماح، حتى يومين، يحفظ استمراريتك إن فاتك يوم.',
-                style: body,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'وأفضل استمرارية أطول ما بلغته: في هذا الأسبوع، وفي رحلتك كلها.',
-                style: muted,
-              ),
-            ]),
-            section('النقاط', [
-              for (final (what, points, limit) in _points)
-                Semantics(
-                  label: '$what: ${toArabicDigits(points)} نقاط، $limit',
-                  excludeSemantics: true,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(what, style: body)),
-                        Text(limit, style: muted),
-                        const SizedBox(width: 10),
-                        Container(
-                          constraints: const BoxConstraints(minWidth: 34),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: palette.ornamentGold.withValues(alpha: .18),
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                          child: Text(
-                            toArabicDigits(points),
-                            style: body.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: palette.goldText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 6),
-              Text(
-                'وأقصى ما يُحسب من نشاطك على الهاتف '
-                '${toArabicDigits(PointRules.deviceWeekCap)} نقطة في الأسبوع. '
-                'النقاط تقيس نشاطك في التطبيق فقط.',
-                style: muted,
-              ),
-            ]),
-            section('حفظت', [
-              Text(
-                'الأحاديث التي أتممت حفظها من الأربعين النووية، من ٤٢ حديثاً.',
-                style: body,
-              ),
-            ]),
+            const SizedBox(height: 4),
+            Text(
+              'وأفضل استمرارية أطول ما بلغته: في هذا الأسبوع، وفي رحلتك كلها.',
+              style: muted,
+            ),
           ],
         ),
-      ),
+        section(
+          mark: const IconBadge(icon: Icons.auto_awesome_rounded, size: 32),
+          title: 'النقاط',
+          children: [
+            for (final (i, (what, points, limit)) in _points.indexed) ...[
+              if (i > 0) Divider(height: 1, color: palette.cardBorder),
+              Semantics(
+                label: '$what: ${toArabicDigits(points)} نقاط، $limit',
+                excludeSemantics: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              what,
+                              style: body.copyWith(
+                                height: AppLeading.chrome,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              limit,
+                              style: muted.copyWith(height: AppLeading.chrome),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        constraints: const BoxConstraints(minWidth: 38),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: palette.goldWash,
+                          borderRadius: BorderRadius.circular(AppRadii.pill),
+                          border: Border.all(
+                            color: palette.ornamentGold.withValues(alpha: .5),
+                          ),
+                        ),
+                        child: Text(
+                          toArabicDigits(points),
+                          style: body.copyWith(
+                            height: AppLeading.chrome,
+                            fontWeight: FontWeight.w800,
+                            color: palette.goldText,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              'وأقصى ما يُحسب من نشاطك على الهاتف '
+              '${toArabicDigits(PointRules.deviceWeekCap)} نقطة في الأسبوع. '
+              'النقاط تقيس نشاطك في التطبيق فقط.',
+              style: muted,
+            ),
+          ],
+        ),
+        section(
+          mark: const IconBadge(
+            size: 32,
+            child: LeafSwatch(LeafLook.memorized),
+          ),
+          title: 'حفظت',
+          children: [
+            Text(
+              'الأحاديث التي أتممت حفظها من الأربعين النووية، من ٤٢ حديثاً.',
+              style: body,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

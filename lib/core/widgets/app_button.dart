@@ -43,13 +43,21 @@ class AppButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: isSecondary ? palette.surface : green,
         foregroundColor: isSecondary ? green : scheme.onPrimary,
-        elevation: 0,
+        // The primary action stands a little off the page on a soft green
+        // shadow; the secondary one lies flat, outlined.
+        elevation: isSecondary ? 0 : 3,
+        shadowColor: green.withValues(alpha: .45),
+        surfaceTintColor: Colors.transparent,
         // 54 tall, comfortably above the 48dp minimum target.
         minimumSize: Size(expand ? double.infinity : 0, 54),
         padding: const EdgeInsets.symmetric(horizontal: 24),
         textStyle: AppTextStyles.buttonText,
         shape: StadiumBorder(
-          side: isSecondary ? BorderSide(color: green) : BorderSide.none,
+          side: isSecondary
+              ? BorderSide(color: green.withValues(alpha: .7), width: 1.4)
+              : BorderSide(
+                  color: Color.lerp(green, Colors.black, .18)!,
+                ),
         ),
       ),
       child: Row(

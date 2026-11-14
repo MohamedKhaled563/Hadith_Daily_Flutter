@@ -109,6 +109,12 @@ void main() {
       test('$mode · warning',
           () => expectAA('warning', p.warning, p.warningWash));
       test('$mode · danger', () => expectAA('danger', p.danger, p.dangerWash));
+      test('$mode · gold on its wash',
+          () => expectAA('goldText', p.goldText, p.goldWash));
+      test('$mode · body on the gold wash',
+          () => expectAA('bodyText', p.bodyText, p.goldWash));
+      test('$mode · warm text on its wash',
+          () => expectAA('warmText', p.warmText, p.warmWash));
     }
   });
 

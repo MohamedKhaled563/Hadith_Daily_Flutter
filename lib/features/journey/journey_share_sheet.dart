@@ -155,13 +155,22 @@ class _PosterSheetBodyState extends State<_PosterSheetBody> {
       children: [
         // A scaled-down view of the exact poster that will be sent.
         Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: SizedBox(
-              height: _previewHeight,
-              width: _previewHeight * size.width / size.height,
-              child: FittedBox(
-                child: widget.builder(_format, _name),
+          child: DecoratedBox(
+            // Framed like a print on the table, so the preview reads as the
+            // card that will be sent rather than part of the sheet.
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: palette.cardBorderStrong, width: 1.2),
+              boxShadow: AppElevation.hero(isDark: context.isDarkMode),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: SizedBox(
+                height: _previewHeight,
+                width: _previewHeight * size.width / size.height,
+                child: FittedBox(
+                  child: widget.builder(_format, _name),
+                ),
               ),
             ),
           ),

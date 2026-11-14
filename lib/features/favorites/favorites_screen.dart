@@ -514,10 +514,24 @@ class _CategoryTab extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        // The chosen tab as on رحلتي's own switch: raised, with a gold edge.
         decoration: BoxDecoration(
-          color: isSelected ? palette.surface : Colors.transparent,
+          color: isSelected ? palette.parchmentTop : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadii.pill),
-          boxShadow: isSelected ? AppElevation.card : null,
+          border: Border.all(
+            color: isSelected
+                ? palette.ornamentGold.withValues(alpha: .55)
+                : Colors.transparent,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: palette.ornamentGold.withValues(alpha: .22),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -537,8 +551,8 @@ class _CategoryTab extends StatelessWidget {
                   fontFamily: kSans,
                   fontSize: 13,
                   height: AppLeading.chrome,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                  color: isSelected ? palette.bodyText : palette.mutedText,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  color: isSelected ? palette.goldText : palette.mutedText,
                 ),
               ),
             ),

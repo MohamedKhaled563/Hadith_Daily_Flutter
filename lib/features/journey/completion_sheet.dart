@@ -68,16 +68,28 @@ class _CompletionBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Center(child: CompletedLeaf()),
-        const SizedBox(height: 8),
-        Text(
-          '${toArabicDigits(outcome.completeCount)} من ٤٢ حديثاً',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: kSans,
-            fontSize: 14,
-            height: AppLeading.chrome,
-            fontWeight: FontWeight.w700,
-            color: palette.goldText,
+        const SizedBox(height: 10),
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            decoration: BoxDecoration(
+              color: palette.goldWash,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: palette.ornamentGold.withValues(alpha: .55),
+              ),
+            ),
+            child: Text(
+              '${toArabicDigits(outcome.completeCount)} من ٤٢ حديثاً',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: kSans,
+                fontSize: 14,
+                height: AppLeading.chrome,
+                fontWeight: FontWeight.w800,
+                color: palette.goldText,
+              ),
+            ),
           ),
         ),
         if (isMilestone) ...[
@@ -101,6 +113,9 @@ class _CompletionBody extends StatelessWidget {
               decoration: BoxDecoration(
                 color: palette.warmWash,
                 borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: palette.warm.withValues(alpha: .45),
+                ),
               ),
               child: Text(
                 outcome.record?.brokenLine ?? 'أطول استمرارية لك حتى الآن',

@@ -61,6 +61,10 @@ class _TapTargetState extends State<TapTarget> {
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      // A node of its own. Without it a button beside other labelled
+      // widgets (figures on a card) was merged with them into one node the
+      // size of the card, read as a single button and tapped in its middle.
+      container: true,
       button: true,
       label: widget.semanticLabel,
       toggled: widget.toggled,

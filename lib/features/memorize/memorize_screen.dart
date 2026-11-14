@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
@@ -311,21 +312,38 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     onReveal: (i) => setState(() => _revealed.add(i)),
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  result ??
-                      (_shown
-                          ? 'قارن بما سمّعته، وقل بصدق: هل كان كله معك؟'
-                          : 'سمّعه من ذاكرتك، ثم أظهر النص لتقارن. المس أي فراغ إن احتجت تلميحاً.'),
-                  textAlign: TextAlign.center,
-                  style: (result != null
-                          ? textTheme.bodyMedium?.copyWith(
-                              color: palette.goldText,
-                              fontWeight: FontWeight.w700,
-                            )
-                          : textTheme.bodySmall
-                              ?.copyWith(color: palette.mutedText))
-                      ?.copyWith(height: AppLeading.body),
+                const SizedBox(height: 12),
+                AnimatedContainer(
+                  duration: context.motion(AppDurations.content),
+                  padding: result == null
+                      ? const EdgeInsets.symmetric(horizontal: 6)
+                      : const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  decoration: BoxDecoration(
+                    color: result == null
+                        ? palette.goldWash.withValues(alpha: 0)
+                        : palette.goldWash,
+                    borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
+                    border: Border.all(
+                      color: result == null
+                          ? palette.ornamentGold.withValues(alpha: 0)
+                          : palette.ornamentGold.withValues(alpha: .55),
+                    ),
+                  ),
+                  child: Text(
+                    result ??
+                        (_shown
+                            ? 'قارن بما سمّعته، وقل بصدق: هل كان كله معك؟'
+                            : 'سمّعه من ذاكرتك، ثم أظهر النص لتقارن. المس أي فراغ إن احتجت تلميحاً.'),
+                    textAlign: TextAlign.center,
+                    style: (result != null
+                            ? textTheme.bodyMedium?.copyWith(
+                                color: palette.goldText,
+                                fontWeight: FontWeight.w700,
+                              )
+                            : textTheme.bodySmall
+                                ?.copyWith(color: palette.mutedText))
+                        ?.copyWith(height: AppLeading.body),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 if (result != null)
@@ -438,26 +456,58 @@ class _StepRow extends StatelessWidget {
                 color: palette.cardBorder,
               ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              padding: EdgeInsetsDirectional.fromSTEB(
+                i < step.index ? 8 : 12,
+                5,
+                12,
+                5,
+              ),
               decoration: BoxDecoration(
-                color: i == step.index ? palette.ornamentGold : palette.surface,
+                color: i == step.index
+                    ? palette.ornamentGold
+                    : i < step.index
+                        ? palette.goldWash
+                        : palette.surface,
                 borderRadius: BorderRadius.circular(99),
                 border: Border.all(
                   color: i <= step.index
                       ? palette.ornamentGold
                       : palette.cardBorder,
                 ),
+                boxShadow: i == step.index
+                    ? [
+                        BoxShadow(
+                          color: palette.ornamentGold.withValues(alpha: .4),
+                          blurRadius: 8,
+                        ),
+                      ]
+                    : null,
               ),
-              child: Text(
-                labels[i],
-                style: TextStyle(
-                  fontFamily: kSans,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: i == step.index
-                      ? palette.parchmentTop
-                      : palette.mutedText,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (i < step.index) ...[
+                    Icon(
+                      Icons.done_rounded,
+                      size: 15,
+                      color: palette.goldText,
+                    ),
+                    const SizedBox(width: 3),
+                  ],
+                  Text(
+                    labels[i],
+                    style: TextStyle(
+                      fontFamily: kSans,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: i == step.index
+                          ? palette.parchmentTop
+                          : i < step.index
+                              ? palette.goldText
+                              : palette.mutedText,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

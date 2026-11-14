@@ -494,8 +494,17 @@ void main() {
       await tapLeaf(tester, 5);
       await confirmReading(tester);
 
-      await tester.tap(find.text('مشاركة'));
-      await wait(tester, 900);
+      // Each sheet slides up and may open with its buttons below the fold:
+      // wait for the button, bring it into view, then press it.
+      Future<void> press(String label) async {
+        await until(tester, () => shows(find.text(label)));
+        await tester.ensureVisible(find.text(label));
+        await wait(tester, 300);
+        await tester.tap(find.text(label));
+      }
+
+      await press('مشاركة');
+      await until(tester, () => shows(find.byType(MilestonePoster)));
 
       expect(find.byType(MilestonePoster), findsOneWidget);
       expect(
@@ -505,8 +514,15 @@ void main() {
       expect(find.text('إظهار اسمي'), findsNothing,
           reason: 'a guest has no name to show');
 
-      await tester.tap(find.text('حالة'));
-      await wait(tester, 400);
+      await press('حالة');
+      await until(
+        tester,
+        () =>
+            tester
+                .widget<MilestonePoster>(find.byType(MilestonePoster))
+                .format ==
+            PosterFormat.story,
+      );
       expect(
         tester.widget<MilestonePoster>(find.byType(MilestonePoster)).format,
         PosterFormat.story,
@@ -1514,6 +1530,12 @@ void main() {
         // top and the left of the tree.
         for (final number in [1, 22, 42]) {
           await tapLeaf(tester, number);
+          // The page slides in; on a busy emulator it can take longer
+          // than the fixed wait.
+          await until(
+            tester,
+            () => shows(find.text(hadiths.getByNumber(number)!.title)),
+          );
           expect(
             find.text(hadiths.getByNumber(number)!.title),
             findsOneWidget,
