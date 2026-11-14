@@ -14,6 +14,11 @@ String authErrorMessage(FirebaseAuthException e) {
       return 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
     case 'email-already-in-use':
       return 'هذا البريد الإلكتروني مستخدم بالفعل';
+    // Google sign-in with an address that already has a password account.
+    // Used to fall through to "unexpected error", which left the owner of
+    // the address with no idea what to do next.
+    case 'account-exists-with-different-credential':
+      return 'لهذا البريد حساب بكلمة مرور، ادخل بها أو أعد تعيينها من «نسيت كلمة المرور»';
     case 'weak-password':
       return 'كلمة المرور ضعيفة جداً';
     case 'too-many-requests':

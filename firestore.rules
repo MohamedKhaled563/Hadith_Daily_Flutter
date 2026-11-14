@@ -71,6 +71,20 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && roleOf(request.auth.uid) == 'admin';
     }
+    // Phase 21: a confirmed email. Google and Apple accounts always carry
+    // email_verified; an email/password account gets it only once the reader
+    // types the code we emailed (functions/src/index.ts, verifyEmailCode),
+    // which only the server can set. Required for anything other readers
+    // see — posts, likes, reports, feedback, the weekly board — so an address
+    // nobody proved they own can't act as a member. A reader's own favourites
+    // and reading journey stay open: they affect no one else.
+    //
+    // DEPLOY ORDER: only deploy this after the app version with the code
+    // screen is live. Older versions have no way to enter a code, so their
+    // unverified readers would be locked out of these actions.
+    function isVerified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
     // Whether request.auth's own like doc exists once this request's writes
     // are applied — existsAfter() sees a transaction's own prior writes, so
     // this reflects CommunityService.toggleLike's real outcome rather than
@@ -146,7 +160,10 @@ service cloud.firestore {
       // HadithRepository and never left the device.
       match /likes/{uid} {
         allow read: if request.auth != null;
-        allow create, delete: if request.auth != null
+        // Liking needs a confirmed email (phase 21); taking a like back
+        // never does, so nobody is stuck with a like they can't remove.
+        allow create: if isVerified() && request.auth.uid == uid;
+        allow delete: if request.auth != null
                     && request.auth.uid == uid;
         allow update: if false;
       }
@@ -269,11 +286,17 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if request.auth.uid == uid || isModerator();
 
+      // Phase 21: `email` must be the account's own address and `createdAt`
+      // the server's clock. Both used to be taken on trust, so a modified
+      // client could show staff any address it liked in the Users tab.
       allow create: if request.auth.uid == uid
                   && request.resource.data.keys().hasOnly(
                        ['displayName', 'email', 'createdAt'])
                   && request.resource.data.displayName is string
-                  && request.resource.data.displayName.size() <= 100;
+                  && request.resource.data.displayName.size() <= 100
+                  && request.resource.data.email
+                       == request.auth.token.get('email', '')
+                  && request.resource.data.createdAt == request.time;
 
       // Two unrelated things, so an OR:
       //   1. the account owner, renaming themselves — never touches role.
@@ -419,7 +442,7 @@ service cloud.firestore {
     match /scores/{uid} {
       allow read: if request.auth != null
                   && (request.auth.uid == uid || isModerator());
-      allow create, update: if request.auth != null
+      allow create, update: if isVerified()
                   && request.auth.uid == uid
                   && validOwnScore();
       // The reader leaving, deleting their account, or a moderator
@@ -481,7 +504,7 @@ service cloud.firestore {
       //      update access already is below, so no status/authorUid
       //      constraint; still worth keeping the size/range validation so a
       //      bad row in the sheet can't write garbage.
-      allow create: if (request.auth != null
+      allow create: if (isVerified()
                         && request.resource.data.authorUid == request.auth.uid
                         && request.resource.data.status == 'pending'
                         && request.resource.data.likeCount == 0
@@ -575,7 +598,8 @@ service cloud.firestore {
       // in it to change.
       match /likes/{uid} {
         allow read: if request.auth != null;
-        allow create, delete: if request.auth != null
+        allow create: if isVerified() && request.auth.uid == uid;
+        allow delete: if request.auth != null
                     && request.auth.uid == uid;
         allow update: if false;
       }
@@ -593,15 +617,18 @@ service cloud.firestore {
       allow read: if isModerator()
                 || (request.auth != null
                     && resource.data.authorUid == request.auth.uid);
-      allow create: if request.auth != null
+      // Phase 21: confirmed email only, and `userEmail` must be the sender's
+      // own address. Before, any address passed, so feedback could be filed
+      // "from" a stranger and a moderator's reply would land in their inbox.
+      allow create: if isVerified()
                   && request.resource.data.authorUid == request.auth.uid
                   && request.resource.data.message is string
                   && request.resource.data.message.size() > 0
                   && request.resource.data.message.size() <= 2000
                   && request.resource.data.userName is string
                   && request.resource.data.userName.size() <= 100
-                  && request.resource.data.userEmail is string
-                  && request.resource.data.userEmail.size() <= 200
+                  && request.resource.data.userEmail
+                       == request.auth.token.get('email', '')
                   && request.resource.data.read == false;
       // A moderator/admin toggling `read` after reviewing it, or deleting
       // it outright — no author-side edit or delete, since this is a
@@ -632,7 +659,7 @@ service cloud.firestore {
       // objected to a post is a way to start an argument, not to moderate.
       allow read: if isModerator();
 
-      allow create: if request.auth != null
+      allow create: if isVerified()
                   && reportId == request.resource.data.postId + '_' + request.auth.uid
                   && request.resource.data.reporterUid == request.auth.uid
                   && request.resource.data.postId is string
@@ -658,7 +685,8 @@ service cloud.firestore {
     }
 
     // Everything else stays fully locked until a later phase explicitly
-    // opens it up.
+    // opens it up. That includes phase 21's emailCodes/ and emailCodeIps/:
+    // only the Cloud Functions touch them, through the Admin SDK.
     match /{document=**} {
       allow read, write: if false;
     }

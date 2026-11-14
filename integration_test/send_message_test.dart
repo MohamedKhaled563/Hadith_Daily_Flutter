@@ -12,6 +12,8 @@ import 'package:hadith_app/features/share/add_message_screen.dart';
 import 'package:hadith_app/firebase_options.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'support/confirm_email.dart';
+
 /// The whole of «شارك رسالتك», through the real screen, the real SDK and the
 /// real firestore.rules, against the local Firebase emulators and never the
 /// live project.
@@ -60,6 +62,7 @@ void main() {
       email: 'writer-$stamp@example.test',
       password: 'test-only-$stamp',
     );
+    await confirmEmailInEmulator(host);
     uid = credential.user!.uid;
     // AppStateController hears about the sign-in through its own listener.
     await Future<void>.delayed(const Duration(milliseconds: 300));

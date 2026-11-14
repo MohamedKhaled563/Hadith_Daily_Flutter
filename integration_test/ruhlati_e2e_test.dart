@@ -26,6 +26,8 @@ import 'package:hadith_app/firebase_options.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/confirm_email.dart';
+
 /// رحلتي end to end, for several readers on one phone, through the real
 /// services, the real screens and the real firestore.rules, against the
 /// local Firebase emulators — never the live project.
@@ -223,6 +225,7 @@ void main() {
           password: password,
           displayName: reader.account,
         );
+        await confirmEmailInEmulator(host);
       });
       final uid = FirebaseAuth.instance.currentUser!.uid;
       uids[reader.nick] = uid;
@@ -481,6 +484,7 @@ void main() {
         password: password,
         displayName: 'مراجع $stamp',
       );
+      await confirmEmailInEmulator(host);
     });
     final moderator = FirebaseAuth.instance.currentUser!.uid;
     expect(

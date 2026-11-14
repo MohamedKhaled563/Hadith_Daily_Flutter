@@ -14,6 +14,7 @@ import '../../core/widgets/smooth_page_route.dart';
 import '../../core/widgets/tap_target.dart';
 import '../home/home_screen.dart';
 import 'auth_error_messages.dart';
+import 'email_code_screen.dart';
 import 'signup_screen.dart';
 
 /// Sign-in screen: email/password and Google both go through Firebase Auth.
@@ -125,6 +126,21 @@ class _LoginScreenState extends State<LoginScreen>
     }
     if (!mounted) return;
 
+    // Accounts made before the code existed (or put off at sign-up) are
+    // asked to confirm once here. "Not now" still lets them in.
+    if (AuthService.instance.needsEmailCode) {
+      setState(() => _submitting = false);
+      final outcome = await EmailCodeScreen.open(context);
+      if (!mounted) return;
+      if (outcome == EmailCodeOutcome.changeEmail) {
+        setState(() => _error =
+            'حُذف الحساب غير المؤكد، ويمكن إنشاء حساب جديد بالبريد الصحيح');
+        return;
+      }
+      _finish(verified: outcome == EmailCodeOutcome.verified);
+      return;
+    }
+
     _finish();
   }
 
@@ -203,9 +219,12 @@ class _LoginScreenState extends State<LoginScreen>
   /// Sign-in succeeded. Either hand the result back to the gate that opened
   /// this screen, or — when this is the start of the session — replace the
   /// stack with Home so there is nothing to go "back" to.
-  void _finish() {
+  ///
+  /// [verified] is false when the reader put off confirming their email; the
+  /// gate then tells its caller the action can't go ahead yet.
+  void _finish({bool verified = true}) {
     if (widget.returnOnSuccess) {
-      Navigator.pop(context, true);
+      Navigator.pop(context, verified);
       return;
     }
     Navigator.pushReplacement(

@@ -25,6 +25,8 @@ import 'package:hadith_app/firebase_options.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/confirm_email.dart';
+
 /// One reader, end to end, through the real screens, the real services,
 /// the real firestore.rules and the dashboard's own pages, against the
 /// local Firebase emulators — never the live project.
@@ -226,13 +228,14 @@ void main() {
 
   testWidgets('2. signing up keeps the guest reading, in the database',
       (tester) async {
-    await tester.runAsync(
-      () => AuthService.instance.signUpWithEmail(
+    await tester.runAsync(() async {
+      await AuthService.instance.signUpWithEmail(
         email: readerEmail,
         password: password,
         displayName: readerName,
-      ),
-    );
+      );
+      await confirmEmailInEmulator(host);
+    });
     readerUid = FirebaseAuth.instance.currentUser!.uid;
     journey.setUser(readerUid);
 
@@ -311,6 +314,7 @@ void main() {
         password: password,
         displayName: 'مشرف $stamp',
       );
+      await confirmEmailInEmulator(host);
     });
     final moderator = FirebaseAuth.instance.currentUser!.uid;
     expect(

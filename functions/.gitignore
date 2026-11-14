@@ -1,0 +1,5 @@
+node_modules/
+lib/
+# Emulator-only secret values (test pepper, dummy mail password).
+.secret.local
+*.local
