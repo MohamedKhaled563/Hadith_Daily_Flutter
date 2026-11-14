@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_palette.dart';
 import 'asset_helper.dart';
+import 'glass_panel.dart';
 import 'islamic_pattern_painter.dart';
 import 'tap_target.dart';
 
-/// The app's one parchment surface.
+/// The app's one card surface: parchment, as frosted glass.
 ///
 /// Replaces four near-identical implementations that had drifted to five
 /// different corner radii and four different shadow recipes. All colour comes
-/// from [BotanicalPalette], so it repaints correctly on a theme change.
+/// from [BotanicalPalette], so it repaints correctly on a theme change. How
+/// see-through it is lives in [GlassFill], where contrast_test can hold it.
 class ParchmentCard extends StatelessWidget {
   const ParchmentCard({
     super.key,
@@ -45,59 +47,48 @@ class ParchmentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final isDark = context.isDarkMode;
-    const radius = AppRadii.card;
+    final shape = BorderRadius.circular(AppRadii.card);
+    final top = isDark ? GlassFill.darkTop : GlassFill.lightTop;
+    final bottom = isDark ? GlassFill.darkBottom : GlassFill.lightBottom;
 
-    final surface = DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: elevated
-              ? [
-                  palette.parchmentTop,
-                  palette.parchmentMid,
-                  palette.parchmentBottom,
-                ]
-              : [palette.parchmentTop, palette.parchmentMid],
-        ),
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(
-          color: borderColor ?? palette.cardBorder,
-          width: 1.4,
-        ),
-        boxShadow:
+    // Parchment, turned to frosted glass: the scene behind shows through as
+    // a soft wash of colour, the edge catches the light along the top, and
+    // the shadow stays outside, where it cannot cloud the fill.
+    final surface = CustomPaint(
+      painter: OutsideShadowPainter(
+        shadows:
             elevated ? AppElevation.hero(isDark: isDark) : AppElevation.card,
+        borderRadius: shape,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: Stack(
-          children: [
-            // Ornament layers: never announced, never hit-tested.
-            Positioned.fill(
-              child: ExcludeSemantics(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: showWatermark
-                        ? IslamicWatermarkPainter(
-                            color: palette.watermark,
-                            strokeWidth: 1.15,
-                          )
-                        : null,
-                    // One ornament per corner: the gold brackets and the
-                    // botanical branches occupy the same two corners, and
-                    // together they read as clutter.
-                    foregroundPainter: showCornerOrnaments && !showBotanicals
-                        ? CornerOrnamentPainter(color: palette.cornerOrnament)
-                        : null,
-                  ),
-                ),
+        borderRadius: shape,
+        child: Frost(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: elevated
+                    ? [
+                        palette.parchmentTop.withValues(alpha: top),
+                        palette.parchmentMid.withValues(alpha: bottom + .02),
+                        palette.parchmentBottom.withValues(alpha: bottom),
+                      ]
+                    : [
+                        palette.parchmentTop.withValues(alpha: top),
+                        palette.parchmentMid.withValues(alpha: bottom),
+                      ],
+              ),
+              borderRadius: shape,
+              border: GradientBoxBorder(
+                gradient: borderColor == null
+                    ? glassEdge(context, strong: elevated)
+                    : glassEdgeIn(borderColor!),
+                width: borderColor == null ? 1.3 : 1.6,
               ),
             ),
-
-            if (showBotanicals) ..._botanicals(isDark),
-
-            Padding(padding: padding, child: child),
-          ],
+            child: _layers(context, palette, isDark),
+          ),
         ),
       ),
     );
@@ -108,6 +99,59 @@ class ParchmentCard extends StatelessWidget {
       onTap: onTap,
       semanticLabel: semanticLabel,
       child: surface,
+    );
+  }
+
+  Widget _layers(BuildContext context, BotanicalPalette palette, bool isDark) {
+    return Stack(
+      children: [
+        // The light on the glass: a soft sheen just inside the top edge.
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 64,
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    palette.parchmentTop.withValues(alpha: isDark ? .10 : .55),
+                    palette.parchmentTop.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Ornament layers: never announced, never hit-tested.
+        Positioned.fill(
+          child: ExcludeSemantics(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: showWatermark
+                    ? IslamicWatermarkPainter(
+                        color: palette.watermark,
+                        strokeWidth: 1.15,
+                      )
+                    : null,
+                // One ornament per corner: the gold brackets and the
+                // botanical branches occupy the same two corners, and
+                // together they read as clutter.
+                foregroundPainter: showCornerOrnaments && !showBotanicals
+                    ? CornerOrnamentPainter(color: palette.cornerOrnament)
+                    : null,
+              ),
+            ),
+          ),
+        ),
+
+        if (showBotanicals) ..._botanicals(isDark),
+
+        Padding(padding: padding, child: child),
+      ],
     );
   }
 

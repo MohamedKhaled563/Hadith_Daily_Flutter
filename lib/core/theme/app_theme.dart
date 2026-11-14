@@ -65,6 +65,96 @@ class AppTheme {
         bodySmall: AppTextStyles.smallText.copyWith(color: mutedColor),
         labelLarge: AppTextStyles.buttonText,
       ),
+      // Sheets are parchment with the cards' gold hairline, so one opened
+      // from a card reads as part of the same page rather than a grey slab.
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: palette.parchmentTop,
+        surfaceTintColor: Colors.transparent,
+        modalBackgroundColor: palette.parchmentTop,
+        dragHandleColor: palette.cardBorderStrong,
+        dragHandleSize: const Size(44, 4),
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadii.sheet),
+          ),
+          side: BorderSide(color: palette.cardBorder, width: 1.2),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: palette.parchmentTop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          side: BorderSide(color: palette.cardBorder, width: 1.2),
+        ),
+      ),
+      // Quiet actions in the app's own type, bold enough to read as buttons.
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          // Complete and not inherited, like Material's own labelLarge: a
+          // button lerps between the two when the theme changes, and a
+          // TextStyle cannot lerp between inherited and not.
+          textStyle: const TextStyle(
+            inherit: false,
+            fontFamily: kSans,
+            fontSize: 15,
+            height: AppLeading.chrome,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0,
+            textBaseline: TextBaseline.alphabetic,
+            leadingDistribution: TextLeadingDistribution.even,
+            decoration: TextDecoration.none,
+          ),
+          minimumSize: const Size(48, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          shape: const StadiumBorder(),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: palette.goldText,
+          backgroundColor: palette.surface,
+          // Complete and not inherited, like Material's own labelLarge: a
+          // button lerps between the two when the theme changes, and a
+          // TextStyle cannot lerp between inherited and not.
+          textStyle: const TextStyle(
+            inherit: false,
+            fontFamily: kSans,
+            fontSize: 15,
+            height: AppLeading.chrome,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0,
+            textBaseline: TextBaseline.alphabetic,
+            leadingDistribution: TextLeadingDistribution.even,
+            decoration: TextDecoration.none,
+          ),
+          minimumSize: const Size(48, 46),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          shape: const StadiumBorder(),
+          side: BorderSide(
+            color: palette.ornamentGold.withValues(alpha: .6),
+            width: 1.2,
+          ),
+        ),
+      ),
+      dividerTheme: DividerThemeData(color: palette.cardBorder, thickness: 1),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: brightness == Brightness.dark
+              ? AppColors.softCreamDark
+              : AppColors.darkEmerald,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        textStyle: TextStyle(
+          fontFamily: kSans,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: brightness == Brightness.dark
+              ? AppColors.primaryTextDark
+              : AppColors.softCream,
+        ),
+      ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: brightness == Brightness.dark
             ? AppColors.secondaryCardDark

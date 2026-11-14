@@ -142,6 +142,27 @@ class JourneyCopy {
       'و${toArabicDigits(harvest.points)} نقطة مع الأربعين النووية في تطبيق '
       '«طيّب قلبك»، فاقرأ معي.${_linkLine(link)}';
 
+  /// Sent beside the journey's harvest: the three numbers رحلتي shows for
+  /// the whole journey, memorized only once there is one.
+  static String journeyCaption({
+    required int bestStreak,
+    required int points,
+    required int memorized,
+    String? link,
+  }) {
+    final held = memorized == 0
+        ? ''
+        : '، وحفظت ${toArabicDigits(memorized)} من ٤٢ حديثاً';
+    return 'حصادي مع الأربعين النووية حتى الآن: أفضل استمرارية '
+        '${arabicDayCount(bestStreak)}، و${toArabicDigits(points)} نقطة$held، '
+        'في تطبيق «طيّب قلبك»، فاقرأ معي.${_linkLine(link)}';
+  }
+
+  /// Sent beside the weekly board's poster.
+  static String boardCaption(String week, String? link) =>
+      'لوحة أسبوع $week في تطبيق «طيّب قلبك»: قراء يجتمعون على الأربعين '
+      'النووية كل أسبوع. اقرأ معنا.${_linkLine(link)}';
+
   /// Memorizing. Plain about what the app can know: the reader says whether
   /// they had it, and the app keeps the dates.
   static JourneyMessage memoMilestone(int count, {required String lastTitle}) =>

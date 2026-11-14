@@ -134,21 +134,43 @@ class AppScreen extends StatelessWidget {
       extendBody: true,
       extendBodyBehindAppBar: true,
       bottomNavigationBar: bottomNavigationBar,
-      body: AppBackground(
-        showBottomLandscape: showBottomLandscape,
-        // Wrapping in the bar's scope here, once, means every screen built
-        // with a bottomNavigationBar automatically reserves the bar's real
-        // measured height (see BottomNavigation.reservedHeight) instead of
-        // each screen needing to remember to wrap itself.
-        child: SafeArea(
-          bottom: false,
-          child: bottomNavigationBar == null
-              ? child
-              : BottomNavigation.scope(child: child),
+      body: _ScreenBackdrop(
+        child: AppBackground(
+          showBottomLandscape: showBottomLandscape,
+          // Wrapping in the bar's scope here, once, means every screen built
+          // with a bottomNavigationBar automatically reserves the bar's real
+          // measured height (see BottomNavigation.reservedHeight) instead of
+          // each screen needing to remember to wrap itself.
+          child: SafeArea(
+            bottom: false,
+            child: bottomNavigationBar == null
+                ? child
+                : BottomNavigation.scope(child: child),
+          ),
         ),
       ),
     );
   }
+}
+
+/// One shared backdrop for every glass card on a screen, so the scene is
+/// blurred once rather than once per card. The key lives as long as the
+/// screen does: a new key on every rebuild would make each card start over.
+class _ScreenBackdrop extends StatefulWidget {
+  const _ScreenBackdrop({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_ScreenBackdrop> createState() => _ScreenBackdropState();
+}
+
+class _ScreenBackdropState extends State<_ScreenBackdrop> {
+  final _key = BackdropKey();
+
+  @override
+  Widget build(BuildContext context) =>
+      BackdropGroup(backdropKey: _key, child: widget.child);
 }
 
 /// Tints the sky of the landscape to the hour: lavender and peach at dawn,

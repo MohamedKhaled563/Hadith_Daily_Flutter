@@ -80,7 +80,12 @@ class StepsRing extends StatelessWidget {
               painter: _RingPainter(
                 progress: progress,
                 stroke: stroke,
-                track: palette.surfaceSunken,
+                // A faint gold, so the steps still to take show on a dark
+                // card as well as a light one.
+                track: Color.alphaBlend(
+                  palette.ornamentGold.withValues(alpha: dark ? .18 : .14),
+                  palette.surfaceSunken,
+                ),
                 ground: complete
                     ? Color.alphaBlend(
                         green.withValues(alpha: dark ? .22 : .12),

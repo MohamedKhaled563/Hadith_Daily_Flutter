@@ -1023,7 +1023,7 @@ class _MemoCard extends StatelessWidget {
           false,
         ),
       MemoProgress(isMemorized: true) => (
-          'في حفظك. المراجعة القادمة ${_when(memo.due!, today)}.',
+          'حفظته. المراجعة القادمة ${_when(memo.due!, today)}.',
           'سمّعه',
           false,
         ),

@@ -9,12 +9,16 @@ import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/circle_icon_button.dart';
+import '../../core/widgets/honor_card.dart';
+import '../../core/widgets/icon_badge.dart';
 import '../../core/widgets/parchment_card.dart';
-import '../../core/widgets/tap_target.dart';
+import '../../core/widgets/pill_tabs.dart';
 import '../../data/journey/board_service.dart';
 import '../../data/journey/journey_copy.dart';
 import '../../data/journey/journey_repository.dart';
 import '../../data/journey/weekly_board.dart';
+import 'journey_posters.dart';
+import 'journey_share_sheet.dart';
 
 /// The board's three published lists.
 enum BoardList {
@@ -136,6 +140,17 @@ class _BoardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // An honour roll under a gold frame, as the card that opens it: gold
+    // leaf in light mode, emerald in dark. Its palette is read from inside.
+    return HonorCard(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+      child: Builder(builder: (inside) => _content(inside, host: context)),
+    );
+  }
+
+  /// [host] is the screen outside the card: a sheet opened from it takes the
+  /// app's theme, not the card's dark one.
+  Widget _content(BuildContext context, {required BuildContext host}) {
     final palette = context.palette;
     final muted = TextStyle(
       fontFamily: kSans,
@@ -144,68 +159,89 @@ class _BoardCard extends StatelessWidget {
       color: palette.mutedText,
     );
     final board = this.board;
+    final rows = board == null
+        ? const <BoardRow>[]
+        : switch (list) {
+            BoardList.points => board.points,
+            BoardList.sharing => board.sharing,
+            BoardList.memo => board.memo,
+          };
 
-    return ParchmentCard(
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
-      showWatermark: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            board == null
-                ? 'تُنشر كل جمعة'
-                : 'أسبوع ${JourneyCopy.boardWeek(board.weekStart)}',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: kSans,
-              fontSize: 17,
-              height: AppLeading.chrome,
-              fontWeight: FontWeight.w800,
-              color: palette.goldText,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Center(
+          child: HonorMedal(icon: Icons.emoji_events_rounded, size: 52),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          board == null
+              ? 'تُنشر كل جمعة'
+              : 'أسبوع ${JourneyCopy.boardWeek(board.weekStart)}',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: kSans,
+            fontSize: 17,
+            height: AppLeading.chrome,
+            fontWeight: FontWeight.w800,
+            color: palette.goldText,
           ),
-          const SizedBox(height: 2),
-          Text(JourneyCopy.boardNote,
-              textAlign: TextAlign.center, style: muted),
-          const SizedBox(height: 14),
-          if (board == null)
+        ),
+        const SizedBox(height: 2),
+        Text(JourneyCopy.boardNote, textAlign: TextAlign.center, style: muted),
+        const SizedBox(height: 14),
+        if (board == null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : Text(
+                    JourneyCopy.boardNotYet,
+                    textAlign: TextAlign.center,
+                    style: muted.copyWith(fontSize: 14.5),
+                  ),
+          )
+        else ...[
+          _ListTabs(selected: list, onSelected: onList),
+          const SizedBox(height: 12),
+          if (list == BoardList.memo)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              child: loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Text(
-                      JourneyCopy.boardNotYet,
-                      textAlign: TextAlign.center,
-                      style: muted.copyWith(fontSize: 14.5),
-                    ),
-            )
-          else ...[
-            _ListTabs(selected: list, onSelected: onList),
-            const SizedBox(height: 12),
-            if (list == BoardList.memo)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  'أسماء بالترتيب فقط، بلا أعداد: ما يحفظه القارئ بينه وبين ربه.',
-                  textAlign: TextAlign.center,
-                  style: muted,
-                ),
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'أسماء بالترتيب فقط، بلا أعداد: ما يحفظه القارئ بينه وبين ربه.',
+                textAlign: TextAlign.center,
+                style: muted,
               ),
-            AnimatedSwitcher(
-              duration: context.motion(AppDurations.content),
-              child: _Rows(
-                key: ValueKey(list),
-                list: list,
-                rows: switch (list) {
-                  BoardList.points => board.points,
-                  BoardList.sharing => board.sharing,
-                  BoardList.memo => board.memo,
-                },
+            ),
+          AnimatedSwitcher(
+            duration: context.motion(AppDurations.content),
+            child: _Rows(key: ValueKey(list), list: list, rows: rows),
+          ),
+          if (rows.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            HonorButton(
+              label: 'شارك لوحة الأسبوع',
+              icon: Icons.ios_share_rounded,
+              onTap: () => shareBoard(
+                host,
+                weekLabel: JourneyCopy.boardWeek(board.weekStart),
+                listLabel: list.label,
+                rows: [
+                  for (final row in rows)
+                    PosterBoardRow(
+                      name: row.name,
+                      value: switch (list) {
+                        BoardList.points => '${toArabicDigits(row.value)} نقطة',
+                        BoardList.sharing => arabicMessageCount(row.value),
+                        BoardList.memo => null,
+                      },
+                    ),
+                ],
               ),
             ),
           ],
         ],
-      ),
+      ],
     );
   }
 }
@@ -218,67 +254,12 @@ class _ListTabs extends StatelessWidget {
   final ValueChanged<BoardList> onSelected;
 
   @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: palette.surfaceSunken,
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-      ),
-      child: Row(
-        children: [
-          for (final list in BoardList.values)
-            Expanded(
-              child: TapTarget(
-                onTap: () {
-                  AppHaptics.selection();
-                  onSelected(list);
-                },
-                semanticLabel: list.label,
-                selected: list == selected,
-                pressScale: 1,
-                child: AnimatedContainer(
-                  duration: context.motion(AppDurations.control),
-                  height: 38,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: list == selected
-                        ? palette.surface
-                        : palette.surface.withValues(alpha: 0),
-                    borderRadius: BorderRadius.circular(AppRadii.pill),
-                    boxShadow: list == selected
-                        ? [
-                            BoxShadow(
-                              color:
-                                  palette.ornamentGold.withValues(alpha: .25),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Text(
-                    list.label,
-                    style: TextStyle(
-                      fontFamily: kSans,
-                      fontSize: 14,
-                      height: 1.1,
-                      fontWeight:
-                          list == selected ? FontWeight.w800 : FontWeight.w600,
-                      color: list == selected
-                          ? palette.goldText
-                          : palette.mutedText,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PillTabs<BoardList>(
+        values: BoardList.values,
+        labelOf: (list) => list.label,
+        selected: selected,
+        onSelected: onSelected,
+      );
 }
 
 class _Rows extends StatelessWidget {
@@ -314,7 +295,8 @@ class _Rows extends StatelessWidget {
 
     return Column(
       children: [
-        for (final (i, row) in rows.indexed)
+        for (final (i, row) in rows.indexed) ...[
+          if (i > 3) Divider(height: 1, indent: 52, color: palette.cardBorder),
           _Row(
             rank: i + 1,
             name: row.name,
@@ -329,6 +311,7 @@ class _Rows extends StatelessWidget {
                     ? arabicMessageCount(row.value)
                     : '${toArabicDigits(row.value)} نقطة',
           ),
+        ],
       ],
     );
   }
@@ -365,23 +348,57 @@ class _Row extends StatelessWidget {
           '${toArabicDigits(rank)}، $name${spoken == null ? '' : '، $spoken'}',
       excludeSemantics: true,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3),
+        margin: EdgeInsets.symmetric(vertical: medal == null ? 0 : 3),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: medal == null
-              ? palette.surface.withValues(alpha: 0)
-              : medal.withValues(alpha: .10),
-          borderRadius: BorderRadius.circular(14),
+          gradient: medal == null
+              ? null
+              : LinearGradient(
+                  begin: AlignmentDirectional.centerStart,
+                  end: AlignmentDirectional.centerEnd,
+                  colors: [
+                    medal.withValues(alpha: .16),
+                    medal.withValues(alpha: .04),
+                  ],
+                ),
+          borderRadius: BorderRadius.circular(AppRadii.listItem - 6),
+          border: medal == null
+              ? null
+              : Border.all(color: medal.withValues(alpha: .35)),
         ),
         child: Row(
           children: [
             Container(
-              width: 30,
-              height: 30,
+              width: 32,
+              height: 32,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: medal ?? palette.surfaceSunken,
+                gradient: medal == null
+                    ? null
+                    : RadialGradient(
+                        center: const Alignment(-.3, -.4),
+                        colors: [
+                          Color.lerp(medal, palette.parchmentTop, .45)!,
+                          medal,
+                        ],
+                      ),
+                color: medal == null ? palette.surface : null,
+                border: Border.all(
+                  color: medal == null
+                      ? palette.cardBorder
+                      : Color.lerp(medal, palette.bodyText, .25)!,
+                  width: 1.4,
+                ),
+                boxShadow: medal == null
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: medal.withValues(alpha: .4),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
               ),
               child: Text(
                 toArabicDigits(rank),
@@ -412,13 +429,27 @@ class _Row extends StatelessWidget {
               ),
             ),
             if (value != null)
-              Text(
-                value!,
-                style: TextStyle(
-                  fontFamily: kSans,
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                  color: medal == null ? palette.mutedText : palette.goldText,
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: medal == null ? palette.surface : palette.parchmentTop,
+                  borderRadius: BorderRadius.circular(AppRadii.pill),
+                  border: Border.all(
+                    color: medal == null
+                        ? palette.cardBorder
+                        : medal.withValues(alpha: .45),
+                  ),
+                ),
+                child: Text(
+                  value!,
+                  style: TextStyle(
+                    fontFamily: kSans,
+                    fontSize: 14,
+                    height: AppLeading.chrome,
+                    fontWeight: FontWeight.w800,
+                    color: medal == null ? palette.mutedText : palette.goldText,
+                  ),
                 ),
               ),
           ],
@@ -465,32 +496,58 @@ class _YouCard extends StatelessWidget {
             excludeSemantics: true,
             child: Row(
               children: [
-                Icon(Icons.eco_rounded, size: 20, color: palette.goldText),
-                const SizedBox(width: 6),
-                Text(
-                  'نقاطك هذا الأسبوع',
-                  style: body.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: palette.bodyText,
+                const IconBadge(
+                  icon: Icons.eco_rounded,
+                  tone: BadgeTone.green,
+                  size: 44,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'نقاطك هذا الأسبوع',
+                        style: body.copyWith(
+                          fontSize: 14,
+                          height: AppLeading.chrome,
+                          fontWeight: FontWeight.w700,
+                          color: palette.bodyText,
+                        ),
+                      ),
+                      Text(
+                        toArabicDigits(now),
+                        style: TextStyle(
+                          fontFamily: kSans,
+                          fontSize: 24,
+                          height: 1.25,
+                          fontWeight: FontWeight.w900,
+                          color: palette.goldText,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  toArabicDigits(now),
-                  style: TextStyle(
-                    fontFamily: kSans,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: palette.goldText,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                    border: Border.all(color: palette.cardBorder),
+                  ),
+                  child: Text(
+                    'الماضي ${toArabicDigits(last)}',
+                    style: body.copyWith(
+                      height: AppLeading.chrome,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-                const Spacer(),
-                Text('الماضي ${toArabicDigits(last)}', style: body),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Divider(height: 1, color: palette.cardBorder),
           const SizedBox(height: 12),
           if (journey.isGuest) ...[
@@ -543,7 +600,7 @@ class _YouCard extends StatelessWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                TextButton.icon(
+                OutlinedButton.icon(
                   onPressed: () => _pickNickname(
                     context,
                     current: entry.anonymous ? null : entry.name,
@@ -665,9 +722,40 @@ class _NicknameSheetState extends State<_NicknameSheet> {
               if (_problem != null) setState(() => _problem = null);
             },
             onSubmitted: (_) => _save(),
+            style: TextStyle(
+              fontFamily: kSans,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: palette.bodyText,
+            ),
             decoration: InputDecoration(
               labelText: 'الاسم المستعار',
               errorText: _problem,
+              filled: true,
+              fillColor: palette.surface,
+              prefixIcon: Icon(Icons.badge_outlined, color: palette.goldText),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
+                borderSide: BorderSide(color: palette.cardBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
+                borderSide: BorderSide(color: palette.cardBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
+                borderSide: BorderSide(color: palette.ornamentGold, width: 1.6),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
+                borderSide: BorderSide(color: palette.danger),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadii.listItem - 4),
+                borderSide: BorderSide(color: palette.danger, width: 1.6),
+              ),
             ),
           ),
           const SizedBox(height: 10),

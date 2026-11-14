@@ -348,7 +348,7 @@ void main() {
 
     await tester.pumpWidget(app(const MemoListScreen()));
     await wait(tester, 800);
-    expect(find.text('في حفظك حديث واحد'), findsOneWidget);
+    expect(find.text('حفظت حديثاً واحداً'), findsOneWidget);
     expect(find.text(hadiths.getByNumber(1)!.title), findsOneWidget);
     // Reviewed yesterday, so not due today: it waits in the list.
     expect(find.text('دوره اليوم'), findsNothing);
@@ -563,6 +563,12 @@ void main() {
       () async =>
           (await db.doc('scores/$uid').get()).data()?['name'] == 'سارة القارئة',
       what: 'the new name',
+    );
+    // The database can answer before the screen has drawn its next frame.
+    await until(
+      tester,
+      () async => find.textContaining('«سارة القارئة»').evaluate().isNotEmpty,
+      what: 'the new name on the board screen',
     );
     expect(find.textContaining('«سارة القارئة»'), findsOneWidget);
   });

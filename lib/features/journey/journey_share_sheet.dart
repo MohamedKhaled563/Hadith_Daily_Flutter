@@ -68,12 +68,59 @@ Future<void> shareHarvest(BuildContext context) {
   );
 }
 
+/// Shares the whole journey: the three numbers under «حصاد رحلتك».
+Future<void> shareJourneyHarvest(BuildContext context) {
+  final journey = JourneyRepository();
+  final best = journey.streak.best;
+  final points = journey.allPoints;
+  final memorized = journey.data.memorizedCount;
+  return _showPosterSheet(
+    context: context,
+    caption: JourneyCopy.journeyCaption(
+      bestStreak: best,
+      points: points,
+      memorized: memorized,
+      link: AppLinks.storeLink,
+    ),
+    builder: (format, name) => JourneyHarvestPoster(
+      format: format,
+      bestStreak: best,
+      points: points,
+      memorized: memorized,
+      name: name,
+    ),
+  );
+}
+
+/// Shares one of the board's published lists, as the board shows it.
+Future<void> shareBoard(
+  BuildContext context, {
+  required String weekLabel,
+  required String listLabel,
+  required List<PosterBoardRow> rows,
+}) {
+  return _showPosterSheet(
+    context: context,
+    caption: JourneyCopy.boardCaption(weekLabel, AppLinks.storeLink),
+    // The board is names the readers chose to show; the sharer's own name
+    // has no place on it.
+    allowName: false,
+    builder: (format, _) => BoardPoster(
+      format: format,
+      weekLabel: 'أسبوع $weekLabel',
+      listLabel: listLabel,
+      rows: rows,
+    ),
+  );
+}
+
 /// Shows the poster the reader is about to send, as the message share sheet
 /// does, with a choice of shape and of whether their name is on it.
 Future<void> _showPosterSheet({
   required BuildContext context,
   required String caption,
   required PosterBuilder builder,
+  bool allowName = true,
 }) {
   return showBotanicalSheet<void>(
     context: context,
@@ -83,6 +130,7 @@ Future<void> _showPosterSheet({
       hostContext: context,
       caption: caption,
       builder: builder,
+      allowName: allowName,
     ),
   );
 }
@@ -92,6 +140,7 @@ class _PosterSheetBody extends StatefulWidget {
     required this.hostContext,
     required this.caption,
     required this.builder,
+    this.allowName = true,
   });
 
   /// The screen behind the sheet. Sharing outlives the sheet, which closes
@@ -99,6 +148,9 @@ class _PosterSheetBody extends StatefulWidget {
   final BuildContext hostContext;
   final String caption;
   final PosterBuilder builder;
+
+  /// Whether the poster can carry the reader's name at all.
+  final bool allowName;
 
   @override
   State<_PosterSheetBody> createState() => _PosterSheetBodyState();
@@ -147,7 +199,7 @@ class _PosterSheetBodyState extends State<_PosterSheetBody> {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final size = _format.size;
-    final signedIn = AppStateController().isLoggedIn;
+    final signedIn = AppStateController().isLoggedIn && widget.allowName;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -155,13 +207,22 @@ class _PosterSheetBodyState extends State<_PosterSheetBody> {
       children: [
         // A scaled-down view of the exact poster that will be sent.
         Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: SizedBox(
-              height: _previewHeight,
-              width: _previewHeight * size.width / size.height,
-              child: FittedBox(
-                child: widget.builder(_format, _name),
+          child: DecoratedBox(
+            // Framed like a print on the table, so the preview reads as the
+            // card that will be sent rather than part of the sheet.
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: palette.cardBorderStrong, width: 1.2),
+              boxShadow: AppElevation.hero(isDark: context.isDarkMode),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: SizedBox(
+                height: _previewHeight,
+                width: _previewHeight * size.width / size.height,
+                child: FittedBox(
+                  child: widget.builder(_format, _name),
+                ),
               ),
             ),
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_palette.dart';
 import 'asset_helper.dart';
+import 'glass_panel.dart';
 import 'tap_target.dart';
 
 /// The app's standard 44×44 circular icon control — back arrows, menu,
@@ -52,11 +53,13 @@ class CircleIconButton extends StatelessWidget {
       child: Container(
         width: 44,
         height: 44,
+        // Glass, like the cards: a little of the scene through the fill,
+        // and the edge bright at the top.
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: palette.surface,
-          border: Border.all(
-            color: emphasised ? palette.cardBorderStrong : palette.cardBorder,
+          borderRadius: BorderRadius.circular(22),
+          color: palette.parchmentTop.withValues(alpha: .88),
+          border: GradientBoxBorder(
+            gradient: glassEdge(context, strong: emphasised),
             width: emphasised ? 1.4 : 1.2,
           ),
           boxShadow: AppElevation.card,

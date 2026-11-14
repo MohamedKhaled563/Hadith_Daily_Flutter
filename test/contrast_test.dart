@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/core/theme/app_colors.dart';
 import 'package:hadith_app/core/theme/app_palette.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
+import 'package:hadith_app/core/widgets/glass_panel.dart';
+import 'package:hadith_app/core/widgets/honor_card.dart';
 
 /// Guards the colour pairs an audit found below WCAG AA.
 ///
@@ -109,6 +111,12 @@ void main() {
       test('$mode · warning',
           () => expectAA('warning', p.warning, p.warningWash));
       test('$mode · danger', () => expectAA('danger', p.danger, p.dangerWash));
+      test('$mode · gold on its wash',
+          () => expectAA('goldText', p.goldText, p.goldWash));
+      test('$mode · body on the gold wash',
+          () => expectAA('bodyText', p.bodyText, p.goldWash));
+      test('$mode · warm text on its wash',
+          () => expectAA('warmText', p.warmText, p.warmWash));
     }
   });
 
@@ -187,6 +195,72 @@ void main() {
       );
       expectAA('quote text on chip', BotanicalPalette.dark.bodyText, chip);
     });
+  });
+
+  group('glass cards, over the darkest scene they can sit on', () {
+    // The cards are see-through, so text sits on the fill blended with the
+    // blurred painting behind it. GlassFill holds the worst patch of the
+    // shipped artwork (the hills, blurred as the cards blur them).
+    for (final (name, palette, top, bottom, worst) in [
+      (
+        'light',
+        BotanicalPalette.light,
+        GlassFill.lightTop,
+        GlassFill.lightBottom,
+        GlassFill.lightWorstBackdrop,
+      ),
+      (
+        'dark',
+        BotanicalPalette.dark,
+        GlassFill.darkTop,
+        GlassFill.darkBottom,
+        GlassFill.darkWorstBackdrop,
+      ),
+    ]) {
+      test(name, () {
+        for (final (part, fill) in [
+          ('top', palette.parchmentTop.withValues(alpha: top)),
+          ('bottom', palette.parchmentMid.withValues(alpha: bottom)),
+          ('raised bottom', palette.parchmentBottom.withValues(alpha: bottom)),
+        ]) {
+          final ground = flatten(fill, worst);
+          for (final (what, ink) in [
+            ('body text', palette.bodyText),
+            ('muted text', palette.mutedText),
+            ('gold text', palette.goldText),
+            ('green text', palette.success),
+            ('warm text', palette.warmText),
+          ]) {
+            expectAA('$what on the $part of a $name glass card', ink, ground);
+          }
+        }
+      });
+    }
+  });
+
+  test('the board card: its text on emerald, on gold leaf, and on gold', () {
+    const emeraldLight = Color(0xFF2A4A37);
+    for (final ground in [emeraldLight, AppColors.darkEmerald]) {
+      for (final (what, ink) in [
+        ('body text', BotanicalPalette.dark.bodyText),
+        ('muted text', BotanicalPalette.dark.mutedText),
+        ('gold text', BotanicalPalette.dark.goldText),
+      ]) {
+        expectAA('$what on the board card', ink, ground);
+      }
+    }
+    for (final ground in HonorCard.lightColors) {
+      for (final (what, ink) in [
+        ('body text', BotanicalPalette.light.bodyText),
+        ('muted text', BotanicalPalette.light.mutedText),
+        ('gold text', BotanicalPalette.light.goldText),
+      ]) {
+        expectAA('$what on the light board card', ink, ground);
+      }
+    }
+    for (final gold in [AppColors.gold, AppColors.goldLight]) {
+      expectAA('the share label on gold', AppColors.darkEmerald, gold);
+    }
   });
 
   test('flatten composites alpha the way the renderer does', () {
