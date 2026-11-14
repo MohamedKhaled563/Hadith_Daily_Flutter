@@ -258,27 +258,14 @@ class AuthService {
   /// replayed against another. Apple only ever sees the hash; Firebase only
   /// ever sees the raw value.
   Future<UserCredential?> signInWithApple() async {
-    final rawNonce = _generateNonce();
+    final apple = await _appleIdCredential(const [
+      AppleIDAuthorizationScopes.email,
+      AppleIDAuthorizationScopes.fullName,
+    ]);
+    if (apple == null) return null;
+    final appleCredential = apple.appleId;
 
-    final AuthorizationCredentialAppleID appleCredential;
-    try {
-      appleCredential = await SignInWithApple.getAppleIDCredential(
-        scopes: const [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-        nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
-      );
-    } on SignInWithAppleAuthorizationException catch (e) {
-      if (e.code == AuthorizationErrorCode.canceled) return null;
-      rethrow;
-    }
-
-    final credential = OAuthProvider('apple.com').credential(
-      idToken: appleCredential.identityToken,
-      rawNonce: rawNonce,
-    );
-    final userCredential = await _auth.signInWithCredential(credential);
+    final userCredential = await _auth.signInWithCredential(apple.credential);
     final user = userCredential.user!;
 
     // Apple hands over the reader's name exactly once — on the very first
@@ -302,6 +289,50 @@ class AuthService {
 
     await _mirrorUserDocBestEffort(_auth.currentUser ?? user);
     return userCredential;
+  }
+
+  /// Shows Apple's sheet and returns a Firebase credential for the chosen
+  /// Apple ID without signing in with it, plus the one-time authorization
+  /// code Apple issued alongside. Null if dismissed.
+  ///
+  /// Account deletion re-authenticates with this, for the same reason it
+  /// uses [googleCredential] rather than signing in, and keeps the
+  /// authorization code: Apple requires an app that deletes a Sign in with
+  /// Apple account to revoke its token, and revoking needs that code.
+  Future<({OAuthCredential credential, String authorizationCode})?>
+      appleCredential() async {
+    final apple = await _appleIdCredential(const []);
+    if (apple == null) return null;
+    return (
+      credential: apple.credential,
+      authorizationCode: apple.appleId.authorizationCode,
+    );
+  }
+
+  /// Apple's sheet plus the nonce handshake shared by sign-in and
+  /// re-authentication. Null if the reader dismissed the sheet.
+  Future<({AuthorizationCredentialAppleID appleId, OAuthCredential credential})?>
+      _appleIdCredential(List<AppleIDAuthorizationScopes> scopes) async {
+    final rawNonce = _generateNonce();
+
+    final AuthorizationCredentialAppleID appleId;
+    try {
+      appleId = await SignInWithApple.getAppleIDCredential(
+        scopes: scopes,
+        nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
+      );
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) return null;
+      rethrow;
+    }
+
+    return (
+      appleId: appleId,
+      credential: OAuthProvider('apple.com').credential(
+        idToken: appleId.identityToken,
+        rawNonce: rawNonce,
+      ),
+    );
   }
 
   /// A cryptographically random nonce, in the URL-safe alphabet Apple

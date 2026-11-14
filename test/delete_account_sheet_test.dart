@@ -108,6 +108,32 @@ void main() {
     expect(find.textContaining('Google'), findsOneWidget);
   });
 
+  // App Store 5.1.1(v): an Apple account must be deletable in the app too,
+  // confirmed through Apple rather than a password it doesn't have.
+  testWidgets('an Apple account confirms through Apple, with no password',
+      (tester) async {
+    String? passedPassword = 'unset';
+    await tester.pumpWidget(
+      _wrap(
+        DeleteAccountForm(
+          method: ReauthMethod.apple,
+          onConfirm: (password, onProgress) async => passedPassword = password,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('كلمة المرور'), findsNothing);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.textContaining('Apple'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'حذف');
+    await tester.pump();
+    await tester.tap(find.text('حذف حسابي نهائياً'));
+    await tester.pump();
+    expect(passedPassword, isNull);
+  });
+
   testWidgets('the sheet says what will be deleted', (tester) async {
     await tester.pumpWidget(
       _wrap(

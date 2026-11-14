@@ -9,7 +9,7 @@ import 'message_like_service.dart';
 
 /// Which sign-in method an account uses, so the delete flow knows what kind
 /// of re-authentication to ask for.
-enum ReauthMethod { password, google, unsupported }
+enum ReauthMethod { password, google, apple, unsupported }
 
 /// Deletes an account and everything it owns, from the client.
 ///
@@ -34,7 +34,8 @@ enum ReauthMethod { password, google, unsupported }
 ///  3. **Their posts, then their feedback, then their favourites and reading
 ///     journey, then the profile doc, then the username claim.** Each later step's rule depends on `request.auth`
 ///     still being this user, so the Auth account goes last.
-///  4. **The Auth account.**
+///  4. **The Auth account.** For Sign in with Apple, its token is revoked
+///     first, as Apple requires.
 ///
 /// What this deliberately does not reach: the `likes/` subcollections *other
 /// readers* left on posts being deleted. Firestore does not cascade, and the
@@ -58,7 +59,17 @@ class AccountDeletionService {
   /// takes a minute — without opening the floodgates on a phone connection.
   static const _probeBatch = 16;
 
+  /// The authorization code Apple issued with the last Apple
+  /// re-authentication, kept until [deleteAccount] revokes the token with it.
+  String? _appleAuthorizationCode;
+
   /// How the signed-in account should re-authenticate.
+  ///
+  /// Apple only on iOS: that is the only place the app offers Sign in with
+  /// Apple, and Apple's sheet needs extra web setup to appear anywhere else.
+  /// App Store guideline 5.1.1(v) requires every kind of account to be
+  /// deletable in the app, so this used to be a rejection waiting to happen:
+  /// Apple accounts fell through to `unsupported` and were told to email us.
   ReauthMethod get reauthMethod {
     final user = _auth.currentUser;
     if (user == null) return ReauthMethod.unsupported;
@@ -66,6 +77,10 @@ class AccountDeletionService {
     final providers = user.providerData.map((p) => p.providerId).toSet();
     if (providers.contains('password')) return ReauthMethod.password;
     if (providers.contains('google.com')) return ReauthMethod.google;
+    if (providers.contains('apple.com') &&
+        defaultTargetPlatform == TargetPlatform.iOS) {
+      return ReauthMethod.apple;
+    }
     return ReauthMethod.unsupported;
   }
 
@@ -102,6 +117,16 @@ class AccountDeletionService {
           throw FirebaseAuthException(code: 'cancelled-by-user');
         }
         await user.reauthenticateWithCredential(credential);
+
+      case ReauthMethod.apple:
+        // Same idea as Google: re-authenticate, never sign in, so a
+        // different Apple ID is refused with `user-mismatch`.
+        final apple = await AuthService.instance.appleCredential();
+        if (apple == null) {
+          throw FirebaseAuthException(code: 'cancelled-by-user');
+        }
+        await user.reauthenticateWithCredential(apple.credential);
+        _appleAuthorizationCode = apple.authorizationCode;
 
       case ReauthMethod.unsupported:
         throw FirebaseAuthException(code: 'unsupported-provider');
@@ -167,6 +192,20 @@ class AccountDeletionService {
     await _deleteProfileAndUsername(user);
 
     onProgress('جارٍ إغلاق الحساب…');
+    // Apple requires an app that deletes a Sign in with Apple account to
+    // revoke its token, which also removes the app from the reader's
+    // "Sign in with Apple" list in their Apple ID settings. It needs the
+    // account still signed in, so it comes just before the delete. A failure
+    // here doesn't stop the deletion the reader asked for.
+    final appleCode = _appleAuthorizationCode;
+    _appleAuthorizationCode = null;
+    if (appleCode != null) {
+      try {
+        await _auth.revokeTokenWithAuthorizationCode(appleCode);
+      } catch (error) {
+        debugPrint('Apple token revocation failed: $error');
+      }
+    }
     await user.delete();
   }
 

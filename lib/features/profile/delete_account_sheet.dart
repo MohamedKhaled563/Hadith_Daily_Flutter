@@ -154,7 +154,9 @@ class _DeleteAccountFormState extends State<DeleteAccountForm> {
       case 'cancelled-by-user':
         return 'لم يكتمل تأكيد الهوية';
       case 'user-mismatch':
-        return 'اخترت حساب Google مختلفاً، اختر الحساب الذي تريد حذفه';
+        return widget.method == ReauthMethod.apple
+            ? 'حساب Apple المختار غير هذا الحساب، اختر الحساب الذي تريد حذفه'
+            : 'اخترت حساب Google مختلفاً، اختر الحساب الذي تريد حذفه';
       case 'requires-recent-login':
         return 'انتهت صلاحية الجلسة، سجّل الخروج وادخل مجدداً ثم أعد المحاولة';
       case 'unsupported-provider':
@@ -285,10 +287,13 @@ class _DeleteAccountFormState extends State<DeleteAccountForm> {
               ),
             ),
           ),
-        ] else if (widget.method == ReauthMethod.google) ...[
+        ] else if (widget.method == ReauthMethod.google ||
+            widget.method == ReauthMethod.apple) ...[
           const SizedBox(height: 12),
           Text(
-            'سيُطلب منك تأكيد هويتك عبر Google قبل الحذف.',
+            widget.method == ReauthMethod.apple
+                ? 'سيُطلب منك تأكيد هويتك عبر Apple قبل الحذف.'
+                : 'سيُطلب منك تأكيد هويتك عبر Google قبل الحذف.',
             style: textTheme.bodySmall?.copyWith(color: palette.mutedText),
           ),
         ],

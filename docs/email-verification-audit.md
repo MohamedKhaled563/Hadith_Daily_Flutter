@@ -26,7 +26,9 @@ never an address.
 - **Paste:** a «لصق الرمز» button on both code screens. It reads the clipboard only when tapped.
 - **Rules:** `isVerified()` on shared writes, plus the F4 fixes. **Deploy the rules only after the
   app version with the code screen is published.**
-- **Still open from this report:** F3 (Apple account deletion), F6 (staff sign-in), F10 (App Check).
+- **F3 fixed:** Apple accounts can delete themselves in the app (re-authentication through Apple,
+  then the Apple token is revoked before the account goes).
+- **Still open from this report:** F6 (staff sign-in), F10 (App Check).
 
 ## The short version
 
