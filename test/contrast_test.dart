@@ -7,6 +7,7 @@ import 'package:hadith_app/core/theme/app_colors.dart';
 import 'package:hadith_app/core/theme/app_palette.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
 import 'package:hadith_app/core/widgets/glass_panel.dart';
+import 'package:hadith_app/core/widgets/honor_card.dart';
 
 /// Guards the colour pairs an audit found below WCAG AA.
 ///
@@ -237,7 +238,7 @@ void main() {
     }
   });
 
-  test('the board card: dark-theme text on its emerald, dark on its gold', () {
+  test('the board card: its text on emerald, on gold leaf, and on gold', () {
     const emeraldLight = Color(0xFF2A4A37);
     for (final ground in [emeraldLight, AppColors.darkEmerald]) {
       for (final (what, ink) in [
@@ -246,6 +247,15 @@ void main() {
         ('gold text', BotanicalPalette.dark.goldText),
       ]) {
         expectAA('$what on the board card', ink, ground);
+      }
+    }
+    for (final ground in HonorCard.lightColors) {
+      for (final (what, ink) in [
+        ('body text', BotanicalPalette.light.bodyText),
+        ('muted text', BotanicalPalette.light.mutedText),
+        ('gold text', BotanicalPalette.light.goldText),
+      ]) {
+        expectAA('$what on the light board card', ink, ground);
       }
     }
     for (final gold in [AppColors.gold, AppColors.goldLight]) {

@@ -9,10 +9,11 @@ import 'tap_target.dart';
 
 /// The one card that stands apart from the rest: the weekly board.
 ///
-/// Deep emerald under a gold frame, like a certificate, the same in light
-/// and dark (the bottom bar is the same emerald, so it belongs). What sits
-/// inside is drawn with the dark palette, so pills, chips and text built
-/// for the dark theme read on it without a second set of colours.
+/// A certificate under a double gold frame, with a gold glow. In dark mode
+/// it is deep emerald, and what sits inside is drawn with the dark palette.
+/// In light mode it is warm gold leaf, drawn with the light palette, so it
+/// still stands apart from the glass cards without a dark slab on a light
+/// page.
 class HonorCard extends StatelessWidget {
   const HonorCard({
     super.key,
@@ -34,23 +35,32 @@ class HonorCard extends StatelessWidget {
   static const _top = Color(0xFF2A4A37);
   static const _bottom = Color(0xFF13211A);
 
+  /// The gold leaf of light mode, lit from the top left. Public so
+  /// contrast_test can hold the text on it to AA.
+  static const lightColors = [
+    Color(0xFFFFFAEB),
+    Color(0xFFF8EBC4),
+    Color(0xFFF2DFAA),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final shape = BorderRadius.circular(AppRadii.card);
+    final dark = Theme.of(context).brightness == Brightness.dark;
 
     final surface = CustomPaint(
       painter: OutsideShadowPainter(
         borderRadius: shape,
         shadows: [
           BoxShadow(
-            color: AppColors.gold.withValues(alpha: .30),
+            color: AppColors.gold.withValues(alpha: dark ? .30 : .38),
             blurRadius: 18,
             offset: const Offset(0, 4),
           ),
-          const BoxShadow(
-            color: Color(0x401B3322),
+          BoxShadow(
+            color: Color(dark ? 0x401B3322 : 0x26574008),
             blurRadius: 22,
-            offset: Offset(0, 10),
+            offset: const Offset(0, 10),
             spreadRadius: -4,
           ),
         ],
@@ -59,10 +69,12 @@ class HonorCard extends StatelessWidget {
         borderRadius: shape,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [_top, AppColors.darkEmerald, _bottom],
+              colors: dark
+                  ? const [_top, AppColors.darkEmerald, _bottom]
+                  : lightColors,
             ),
             borderRadius: shape,
             border: const GradientBoxBorder(
@@ -85,7 +97,9 @@ class HonorCard extends StatelessWidget {
                   child: IgnorePointer(
                     child: CustomPaint(
                       painter: IslamicWatermarkPainter(
-                        color: AppColors.gold.withValues(alpha: .12),
+                        color: AppColors.gold.withValues(
+                          alpha: dark ? .12 : .16,
+                        ),
                       ),
                     ),
                   ),
@@ -100,7 +114,9 @@ class HonorCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(AppRadii.card - 5),
                         border: Border.all(
-                          color: AppColors.gold.withValues(alpha: .28),
+                          color: AppColors.gold.withValues(
+                            alpha: dark ? .28 : .5,
+                          ),
                         ),
                       ),
                     ),
@@ -119,7 +135,9 @@ class HonorCard extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          AppColors.goldLight.withValues(alpha: .12),
+                          dark
+                              ? AppColors.goldLight.withValues(alpha: .12)
+                              : AppColors.card.withValues(alpha: .6),
                           AppColors.goldLight.withValues(alpha: 0),
                         ],
                       ),
@@ -129,7 +147,7 @@ class HonorCard extends StatelessWidget {
               ),
               Padding(
                 padding: padding,
-                child: Theme(data: _inside, child: child),
+                child: dark ? Theme(data: _inside, child: child) : child,
               ),
             ],
           ),

@@ -140,8 +140,8 @@ class _BoardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // An honour roll: emerald under gold, as the card that opens it. What
-    // sits on it is drawn with the dark palette, so it is read from inside.
+    // An honour roll under a gold frame, as the card that opens it: gold
+    // leaf in light mode, emerald in dark. Its palette is read from inside.
     return HonorCard(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       child: Builder(builder: (inside) => _content(inside, host: context)),

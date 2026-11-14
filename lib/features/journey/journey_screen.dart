@@ -278,7 +278,8 @@ class _JourneyBody extends StatelessWidget {
 }
 
 /// The way in to the weekly board. The one card on the page drawn apart
-/// from the rest: emerald under a gold frame, as the board itself is.
+/// from the rest: a double gold frame on gold leaf, or emerald in dark
+/// mode, as the board itself is.
 class _BoardEntry extends StatelessWidget {
   const _BoardEntry();
 
@@ -295,7 +296,7 @@ class _BoardEntry extends StatelessWidget {
         );
       },
       child: Builder(
-        // Inside the card the palette is the dark one.
+        // Read the palette inside the card: in dark mode it is the card's own.
         builder: (context) {
           final palette = context.palette;
 
