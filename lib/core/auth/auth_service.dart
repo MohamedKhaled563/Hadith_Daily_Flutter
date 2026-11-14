@@ -61,6 +61,24 @@ class EmailCodeCheck {
   final int attemptsLeft;
 }
 
+/// What the server said about a password-reset code and new password.
+enum PasswordResetStatus {
+  reset,
+  wrong,
+  expired,
+  tooManyAttempts,
+
+  /// No live code for this address — including when it has no account,
+  /// which the server never reveals.
+  noCode,
+}
+
+class PasswordResetResult {
+  const PasswordResetResult(this.status, {this.attemptsLeft = 0});
+  final PasswordResetStatus status;
+  final int attemptsLeft;
+}
+
 class AuthService {
   AuthService._internal();
   static final AuthService instance = AuthService._internal();
@@ -434,6 +452,64 @@ class AuthService {
     await _auth.currentUser?.getIdToken(true);
   }
 
+  // --------------------------------------------------- password reset ----
+  //
+  // The phone app resets a forgotten password with the same six-digit code,
+  // from the app's own address, typed here with the new password
+  // (functions/src/index.ts: sendPasswordResetCode, resetPasswordWithCode).
+  // The server answers the same whether or not the address has an account.
+
+  /// Asks for a reset code to [email]. [EmailCodeSendStatus.verified] is
+  /// never returned here.
+  Future<EmailCodeSend> sendPasswordResetCode(String email) async {
+    final data = await _callFunction('sendPasswordResetCode', {
+      'email': email.trim(),
+    });
+    if (data['status'] == 'wait') {
+      return EmailCodeSend(
+        EmailCodeSendStatus.wait,
+        waitSeconds: (data['retryAfterSeconds'] as num?)?.toInt() ?? 60,
+      );
+    }
+    return EmailCodeSend(
+      EmailCodeSendStatus.sent,
+      waitSeconds: (data['resendAfterSeconds'] as num?)?.toInt() ?? 60,
+    );
+  }
+
+  /// Sets [newPassword] if [code] is right, then signs in with it. The
+  /// server also marks the address verified (the code proved the inbox) and
+  /// signs the account out everywhere else.
+  Future<PasswordResetResult> resetPasswordWithCode({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final data = await _callFunction('resetPasswordWithCode', {
+      'email': email.trim(),
+      'code': code,
+      'newPassword': newPassword,
+    });
+    switch (data['status']) {
+      case 'reset':
+        await signInWithEmail(email: email.trim(), password: newPassword);
+        return const PasswordResetResult(PasswordResetStatus.reset);
+      case 'wrong':
+        return PasswordResetResult(
+          PasswordResetStatus.wrong,
+          attemptsLeft: (data['attemptsLeft'] as num?)?.toInt() ?? 0,
+        );
+      case 'expired':
+        return const PasswordResetResult(PasswordResetStatus.expired);
+      case 'too-many-attempts':
+        return const PasswordResetResult(PasswordResetStatus.tooManyAttempts);
+      default:
+        return const PasswordResetResult(PasswordResetStatus.noCode);
+    }
+  }
+
+  /// Firebase's own reset link. Only the staff dashboard still uses it; the
+  /// phone app uses [sendPasswordResetCode].
   Future<void> sendPasswordResetEmail(String email) async {
     // Firebase's own reset email follows this, not the phone's language;
     // without it readers got the English template.

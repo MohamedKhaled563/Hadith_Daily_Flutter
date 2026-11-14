@@ -17,6 +17,13 @@ never an address.
 - **App:** a code screen after sign-up and on sign-in for unconfirmed accounts, and a prompt before
   shared actions. Also: an 8-character password minimum, a typo hint, Arabic reset emails, and a
   message for `account-exists-with-different-credential`.
+- **Password reset:** by code too (`sendPasswordResetCode`, `resetPasswordWithCode`), from the
+  same address and in the same Arabic layout. The reader types the code and a new password in the
+  app and is signed in. It gives the same answer whether or not the address has an account. A
+  successful reset confirms the address and signs out other devices. Google and Apple accounts get
+  a note saying how they sign in. Firebase's own reset link is now used only by the staff
+  dashboard.
+- **Paste:** a «لصق الرمز» button on both code screens. It reads the clipboard only when tapped.
 - **Rules:** `isVerified()` on shared writes, plus the F4 fixes. **Deploy the rules only after the
   app version with the code screen is published.**
 - **Still open from this report:** F3 (Apple account deletion), F6 (staff sign-in), F10 (App Check).

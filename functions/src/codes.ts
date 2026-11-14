@@ -96,9 +96,29 @@ export function maskEmail(email: string): string {
 }
 
 /**
- * A short, stable key for a network address. Hashed so the rate-limit docs
- * never hold anyone's IP address.
+ * A short, stable doc id for a network address or an email address. Hashed
+ * so the rate-limit docs never hold anyone's IP or email in the clear.
  */
-export function ipKey(ip: string): string {
-  return createHash("sha256").update(ip).digest("hex").slice(0, 32);
+export function shortHash(value: string): string {
+  return createHash("sha256").update(value).digest("hex").slice(0, 32);
+}
+
+/** Trimmed and lowercased if it looks like an address, else null. */
+export function normalizeEmail(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const email = value.trim().toLowerCase();
+  if (email.length > 254) return null;
+  return /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email) ? email : null;
+}
+
+/** Same minimum as the sign-up screen. */
+export const MIN_PASSWORD_LENGTH = 8;
+export const MAX_PASSWORD_LENGTH = 128;
+
+export function isAcceptablePassword(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length >= MIN_PASSWORD_LENGTH &&
+    value.length <= MAX_PASSWORD_LENGTH
+  );
 }

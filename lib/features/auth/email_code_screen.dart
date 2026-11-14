@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/theme/app_palette.dart';
@@ -13,6 +12,7 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_loading_overlay.dart';
 import '../../core/widgets/glass_panel.dart';
 import '../../core/widgets/smooth_page_route.dart';
+import 'code_input.dart';
 
 /// How the reader left [EmailCodeScreen].
 enum EmailCodeOutcome {
@@ -323,42 +323,17 @@ class _EmailCodeScreenState extends State<EmailCodeScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        GlassField(
-                          child: TextField(
-                            controller: _codeController,
-                            focusNode: _codeFocus,
-                            enabled: !_busy,
-                            autofocus: true,
-                            keyboardType: TextInputType.number,
-                            textInputAction: TextInputAction.done,
-                            autofillHints: const [AutofillHints.oneTimeCode],
-                            inputFormatters: [_CodeDigitsFormatter()],
-                            textDirection: TextDirection.ltr,
-                            textAlign: TextAlign.center,
-                            onChanged: (value) {
-                              if (_error != null) setState(() => _error = null);
-                              if (value.length == 6) _check();
-                            },
-                            onSubmitted: (_) => _check(),
-                            style: TextStyle(
-                              fontFamily: kSans,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 10,
-                              color: palette.bodyText,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: '••••••',
-                              hintStyle: TextStyle(
-                                fontSize: 22,
-                                letterSpacing: 10,
-                                color: palette.mutedText,
-                              ),
-                              border: InputBorder.none,
-                              isDense: true,
-                              semanticCounterText: '',
-                            ),
-                          ),
+                        CodeField(
+                          controller: _codeController,
+                          focusNode: _codeFocus,
+                          enabled: !_busy,
+                          autofocus: true,
+                          onComplete: (_) => _check(),
+                          onEdited: () {
+                            if (_error != null) setState(() => _error = null);
+                          },
+                          onNothingToPaste: () => setState(() => _error =
+                              'لا يوجد رمز منسوخ، انسخ الرمز من البريد ثم اضغط «لصق الرمز»'),
                         ),
                         if (_error != null || _notice != null) ...[
                           const SizedBox(height: 12),
@@ -447,34 +422,6 @@ class _EmailCodeScreenState extends State<EmailCodeScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Keeps the field to six ASCII digits. Arabic keyboards type ٠-٩ (and
-/// Persian ones ۰-۹); those are turned into 0-9 rather than refused, and
-/// anything else — spaces or dashes from a pasted code — is dropped.
-class _CodeDigitsFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final buffer = StringBuffer();
-    for (final rune in newValue.text.runes) {
-      if (rune >= 0x30 && rune <= 0x39) {
-        buffer.writeCharCode(rune);
-      } else if (rune >= 0x660 && rune <= 0x669) {
-        buffer.writeCharCode(rune - 0x660 + 0x30);
-      } else if (rune >= 0x6F0 && rune <= 0x6F9) {
-        buffer.writeCharCode(rune - 0x6F0 + 0x30);
-      }
-      if (buffer.length == 6) break;
-    }
-    final text = buffer.toString();
-    return TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }

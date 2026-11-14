@@ -11,10 +11,15 @@
  * Google and Apple sign-ins never come through this: those providers have
  * already verified the address.
  *
+ * The same machinery resets a forgotten password: a code to the address,
+ * typed in the app with the new password (sendPasswordResetCode,
+ * resetPasswordWithCode).
+ *
  * Firestore docs this owns (all closed to clients by the catch-all rule):
- *   emailCodes/{uid}        the live code's HMAC, expiry, attempts, send log
- *   emailCodeIps/{ipKey}    one network address's sends in the last day
- *   _emulatorEmailCodes     emulator only: where a test reads the code
+ *   emailCodes/{uid}               the live code's HMAC, expiry, attempts, sends
+ *   passwordResetCodes/{emailHash} the same for a reset, keyed by address
+ *   emailCodeIps/{ipHash}          one network address's sends in the last day
+ *   _emulatorEmailCodes            emulator only: where a test reads the mail
  */
 import {initializeApp} from "firebase-admin/app";
 import {getAuth, UserRecord} from "firebase-admin/auth";
@@ -31,17 +36,25 @@ import {
   CODE_TTL_MS,
   DAY,
   hashCode,
-  ipKey,
   ipWaitMs,
+  isAcceptablePassword,
   isCodeShaped,
   MAX_ATTEMPTS,
   maskEmail,
   newCode,
+  normalizeEmail,
   recentSends,
   RESEND_COOLDOWN_MS,
   sameHash,
+  shortHash,
 } from "./codes.js";
-import {buildCodeEmail, SENDER_NAME} from "./email.js";
+import {
+  buildCodeEmail,
+  buildProviderEmail,
+  buildResetEmail,
+  Mail,
+  SENDER_NAME,
+} from "./email.js";
 
 initializeApp();
 
@@ -86,13 +99,23 @@ function callerIp(request: CallableRequest): string {
 
 let transport: Transporter | undefined;
 
-async function deliver(uid: string, to: string, code: string): Promise<void> {
+/**
+ * Sends [mail] to [to]. In the emulator nothing is sent: the mail lands in
+ * _emulatorEmailCodes/{testKey} for the end-to-end test to read.
+ */
+async function deliver(
+  testKey: string,
+  to: string,
+  mail: Mail,
+  code = "",
+): Promise<void> {
   if (isEmulator) {
-    // Never email from the emulator. The end-to-end test reads it from here.
-    await db().collection("_emulatorEmailCodes").doc(uid).set({code, to});
+    await db()
+      .collection("_emulatorEmailCodes")
+      .doc(testKey)
+      .set({code, to, subject: mail.subject});
     return;
   }
-  const mail = buildCodeEmail(code);
   transport ??= nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
@@ -140,7 +163,9 @@ export const sendEmailCode = onCall(
     const now = Date.now();
     const code = newCode();
     const hash = hashCode(OTP_PEPPER.value(), user.uid, email, code);
-    const ipRef = db().collection("emailCodeIps").doc(ipKey(callerIp(request)));
+    const ipRef = db()
+      .collection("emailCodeIps")
+      .doc(shortHash(callerIp(request)));
 
     const waitMs = await db().runTransaction(async (tx) => {
       const [codeSnap, ipSnap] = await tx.getAll(codeRef(user.uid), ipRef);
@@ -171,7 +196,7 @@ export const sendEmailCode = onCall(
     }
 
     try {
-      await deliver(user.uid, email, code);
+      await deliver(user.uid, email, buildCodeEmail(code), code);
     } catch (error) {
       logger.error("Confirmation email failed", {
         uid: user.uid,
@@ -264,6 +289,201 @@ export const verifyEmailCode = onCall(
     await ref.delete();
     logger.info("Email confirmed by code", {uid: user.uid});
     return {status: "verified"};
+  },
+);
+
+// --------------------------------------------------- password reset ----
+//
+// Replaces Firebase's own reset email (English template, a link to a
+// firebaseapp.com page) with the same six-digit code as sign-up: sent from the
+// app's address, in Arabic, typed in the app together with the new password.
+//
+// Neither call needs a signed-in user, so both are written for strangers:
+// - Every answer is the same whether or not the address has an account, so
+//   this can't be used to find out who uses the app.
+// - Limits are kept per address (hashed), whether or not it has an account,
+//   plus the shared per-network cap, so nobody can flood an inbox.
+// - Codes are HMAC'd under "reset:<uid>", so a sign-up code can never be
+//   replayed here or the other way round.
+
+const resetRef = (email: string) =>
+  db().collection("passwordResetCodes").doc(shortHash(email));
+
+function signInProvider(user: UserRecord): "Google" | "Apple" | null {
+  const ids = user.providerData.map((p) => p.providerId);
+  if (ids.includes("google.com")) return "Google";
+  if (ids.includes("apple.com")) return "Apple";
+  return null;
+}
+
+async function findUser(email: string): Promise<UserRecord | null> {
+  try {
+    return await getAuth().getUserByEmail(email);
+  } catch (error) {
+    if ((error as {code?: string}).code === "auth/user-not-found") return null;
+    throw error;
+  }
+}
+
+/**
+ * Emails a reset code to [email] if it belongs to a password account; a
+ * Google or Apple account gets a short note saying how it signs in instead;
+ * an unknown address gets nothing. The answer is the same in all three cases:
+ *   {status: "sent", resendAfterSeconds, expiresInSeconds}
+ *   {status: "wait", retryAfterSeconds}
+ */
+export const sendPasswordResetCode = onCall(
+  {secrets: [GMAIL_APP_PASSWORD, OTP_PEPPER]},
+  async (request) => {
+    const email = normalizeEmail(
+      (request.data as {email?: unknown} | null)?.email,
+    );
+    if (!email) {
+      throw new HttpsError("invalid-argument", "A valid email is needed.");
+    }
+
+    const user = await findUser(email);
+    const hasPassword = user !== null && isPasswordAccount(user);
+    const now = Date.now();
+    const code = newCode();
+    const ref = resetRef(email);
+    const ipRef = db()
+      .collection("emailCodeIps")
+      .doc(shortHash(callerIp(request)));
+
+    const waitMs = await db().runTransaction(async (tx) => {
+      const [snap, ipSnap] = await tx.getAll(ref, ipRef);
+      const sends = recentSends(snap.get("sends"), now);
+      const ipSends = recentSends(ipSnap.get("sends"), now);
+      const wait = Math.max(
+        accountWaitMs(sends, now),
+        ipWaitMs(ipSends, now),
+      );
+      if (wait > 0) return wait;
+
+      tx.set(ref, {
+        sends: [...sends, now],
+        ...(hasPassword
+          ? {
+            uid: user!.uid,
+            hash: hashCode(OTP_PEPPER.value(), `reset:${user!.uid}`, email, code),
+            expiresAt: Timestamp.fromMillis(now + CODE_TTL_MS),
+            attempts: 0,
+          }
+          : {}),
+      });
+      tx.set(ipRef, {
+        sends: [...ipSends, now],
+        expiresAt: Timestamp.fromMillis(now + DAY),
+      });
+      return 0;
+    });
+
+    if (waitMs > 0) {
+      return {status: "wait", retryAfterSeconds: Math.ceil(waitMs / 1000)};
+    }
+
+    const provider = user && !hasPassword ? signInProvider(user) : null;
+    try {
+      if (hasPassword) {
+        await deliver(`reset-${user!.uid}`, email, buildResetEmail(code), code);
+      } else if (provider) {
+        await deliver(`reset-${user!.uid}`, email, buildProviderEmail(provider));
+      }
+    } catch (error) {
+      logger.error("Password reset email failed", {
+        to: maskEmail(email),
+        error: String(error),
+      });
+      throw new HttpsError("unavailable", "The email could not be sent.");
+    }
+
+    logger.info("Password reset requested", {
+      to: maskEmail(email),
+      outcome: hasPassword ? "code" : provider ? "provider-note" : "no-account",
+    });
+    return {
+      status: "sent",
+      resendAfterSeconds: RESEND_COOLDOWN_MS / 1000,
+      expiresInSeconds: CODE_TTL_MS / 1000,
+    };
+  },
+);
+
+/**
+ * Sets a new password if the code is right. Also marks the address verified
+ * (the reader just proved they read its inbox) and signs the account out on
+ * every other device, in case the reset is happening because someone else
+ * knew the old password.
+ *
+ * Returns one of:
+ *   {status: "reset"}
+ *   {status: "wrong", attemptsLeft}
+ *   {status: "expired" | "too-many-attempts" | "no-code"}
+ */
+export const resetPasswordWithCode = onCall(
+  {secrets: [OTP_PEPPER]},
+  async (request) => {
+    const data = (request.data ?? {}) as {
+      email?: unknown;
+      code?: unknown;
+      newPassword?: unknown;
+    };
+    const email = normalizeEmail(data.email);
+    const code = data.code;
+    const newPassword = data.newPassword;
+    if (!email || !isCodeShaped(code)) {
+      throw new HttpsError("invalid-argument", "Email and a six-digit code.");
+    }
+    if (!isAcceptablePassword(newPassword)) {
+      throw new HttpsError("invalid-argument", "Password must be 8 to 128.");
+    }
+
+    const now = Date.now();
+    const ref = resetRef(email);
+    const check = await db().runTransaction<Check & {uid?: string}>(
+      async (tx) => {
+        const snap = await tx.get(ref);
+        const stored = snap.get("hash");
+        const uid = snap.get("uid");
+        if (typeof stored !== "string" || typeof uid !== "string") {
+          return {status: "no-code"};
+        }
+        const expiresAt = snap.get("expiresAt") as Timestamp | undefined;
+        if (!expiresAt || expiresAt.toMillis() <= now) {
+          return {status: "expired"};
+        }
+        const attempts = Number(snap.get("attempts") ?? 0);
+        if (attempts >= MAX_ATTEMPTS) return {status: "too-many-attempts"};
+
+        const expected = hashCode(OTP_PEPPER.value(), `reset:${uid}`, email, code);
+        if (sameHash(expected, stored)) return {status: "match", uid};
+
+        tx.update(ref, {attempts: attempts + 1});
+        const attemptsLeft = MAX_ATTEMPTS - attempts - 1;
+        return attemptsLeft > 0
+          ? {status: "wrong", attemptsLeft}
+          : {status: "too-many-attempts"};
+      },
+    );
+
+    if (check.status !== "match") return check;
+
+    // The account must still be the one the code was sent for.
+    const user = await getAuth().getUser(check.uid!).catch(() => null);
+    if (!user || user.email?.toLowerCase() !== email) {
+      await ref.delete();
+      return {status: "no-code"};
+    }
+
+    await getAuth().updateUser(user.uid, {
+      password: newPassword,
+      emailVerified: true,
+    });
+    await getAuth().revokeRefreshTokens(user.uid);
+    await ref.delete();
+    logger.info("Password reset by code", {uid: user.uid});
+    return {status: "reset"};
   },
 );
 

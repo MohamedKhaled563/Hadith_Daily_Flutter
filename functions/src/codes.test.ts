@@ -7,7 +7,9 @@ import {
   hashCode,
   HOUR,
   ipWaitMs,
+  isAcceptablePassword,
   isCodeShaped,
+  normalizeEmail,
   maskEmail,
   MAX_SENDS_PER_IP_PER_DAY,
   MINUTE,
@@ -74,6 +76,20 @@ test("one network address is capped per day", () => {
   const under = Array.from({length: MAX_SENDS_PER_IP_PER_DAY - 1}, () => now - HOUR);
   assert.equal(ipWaitMs(under, now), 0);
   assert.equal(ipWaitMs([...under, now - HOUR], now), DAY - HOUR);
+});
+
+test("email addresses are normalized or refused", () => {
+  assert.equal(normalizeEmail("  Ahmed@Gmail.COM "), "ahmed@gmail.com");
+  for (const bad of ["", "ahmed", "a@b", "a b@c.com", 42, null]) {
+    assert.equal(normalizeEmail(bad), null, String(bad));
+  }
+});
+
+test("new passwords are 8 to 128 characters", () => {
+  assert.equal(isAcceptablePassword("1234567"), false);
+  assert.equal(isAcceptablePassword("12345678"), true);
+  assert.equal(isAcceptablePassword("x".repeat(129)), false);
+  assert.equal(isAcceptablePassword(12345678), false);
 });
 
 test("addresses are masked in logs", () => {
