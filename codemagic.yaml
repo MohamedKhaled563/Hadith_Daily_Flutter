@@ -5,8 +5,10 @@
 # Codemagic only reads this file once the app's settings in Codemagic are
 # switched to "codemagic.yaml" instead of the Workflow Editor.
 #
-# Two things must exist before the first run, and both need the paid Apple
-# Developer account:
+# ios-unsigned (first workflow below) needs none of this and can run today.
+#
+# For ios-release, two things must exist before the first run, and both need
+# the paid Apple Developer account:
 #   1. An App Store Connect API key, added in Codemagic under
 #      Team settings -> Integrations -> Developer Portal, and named exactly
 #      as in `integrations:` below.
@@ -15,6 +17,37 @@
 #      (ios/Runner/Runner.entitlements asks for it, so signing fails without).
 
 workflows:
+  # An unsigned .ipa for testing on our own iPhones before the Apple Developer
+  # account exists. Needs no Apple account and no signing setup: install the
+  # file with Sideloadly or AltStore and a free Apple ID. Sign in with Apple
+  # does not work in a sideloaded build (free Apple IDs can't use that
+  # capability); everything else does. This is NOT the App Store build: that
+  # is ios-release below.
+  ios-unsigned:
+    name: iOS unsigned IPA (sideload test)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Build the app without signing
+        script: |
+          flutter build ios --release --no-codesign \
+            --build-number=$PROJECT_BUILD_NUMBER
+      - name: Package it as an .ipa
+        script: |
+          # An .ipa is just Runner.app inside a folder called Payload, zipped.
+          cd "$CM_BUILD_DIR/build/ios/iphoneos"
+          rm -rf Payload
+          mkdir Payload
+          cp -R Runner.app Payload/
+          zip -qry "$CM_BUILD_DIR/tayebqalbak-unsigned.ipa" Payload
+    artifacts:
+      - tayebqalbak-unsigned.ipa
+
   ios-release:
     name: iOS release (TestFlight)
     instance_type: mac_mini_m2
