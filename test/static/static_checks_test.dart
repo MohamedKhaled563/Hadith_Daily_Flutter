@@ -311,7 +311,14 @@ void main() {
 
     test('everything the journey stores is named in the policy', () {
       final policy = read('lib/core/legal/legal_documents.dart');
-      for (final phrase in ['رحلتك', 'لوحة الأسبوع', 'ما حفظته', 'فاعل خير']) {
+      // The board publishes a nickname the reader picks; «فاعل خير» is no
+      // longer offered (QA PT-024).
+      for (final phrase in [
+        'رحلتك',
+        'لوحة الأسبوع',
+        'ما حفظته',
+        'الاسم المستعار'
+      ]) {
         expect(policy, contains(phrase));
       }
     });

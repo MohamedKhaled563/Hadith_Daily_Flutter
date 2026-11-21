@@ -213,6 +213,40 @@ void regressionSuite({
       await settle(tester);
       expect(find.text('المفضلة والمحفوظات'), findsOneWidget);
     });
+
+    // QA PT-021: «محفوظاتي» in the drawer was a number with nothing behind
+    // it, while «مشاركاتي» beside it opened its list. The drawer only shows
+    // that counter to a signed-in reader, which a host test cannot be, so
+    // this opens the page the counter now leads to.
+    testWidgets('open as a page of their own, with a way back', (tester) async {
+      await tester.pumpWidget(wrap(Builder(
+        builder: (context) => Scaffold(
+          body: Center(
+            child: TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(builder: (_) => const SavedItemsPage()),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      )));
+      await tester.tap(find.text('open'));
+      await settle(tester, 10);
+      expect(find.byType(SavedItemsPage), findsOneWidget);
+      expect(find.text('المفضلة والمحفوظات'), findsOneWidget);
+      expect(find.byIcon(Icons.menu_rounded), findsNothing,
+          reason: 'a page of its own goes back, not to the drawer');
+
+      await tester.tap(find.descendant(
+        of: find.byType(SavedItemsPage),
+        matching: find.byIcon(Icons.chevron_right_rounded),
+      ));
+      await settle(tester, 10);
+      expect(find.byType(SavedItemsPage), findsNothing);
+      expect(find.text('open'), findsOneWidget);
+    });
   });
 
   group('reading', () {

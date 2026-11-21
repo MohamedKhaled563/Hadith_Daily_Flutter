@@ -8,6 +8,7 @@ import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/botanical_sheet.dart';
 import '../../core/widgets/circle_icon_button.dart';
 import '../../core/widgets/honor_card.dart';
 import '../../core/widgets/icon_badge.dart';
@@ -684,7 +685,7 @@ class _NicknameSheetState extends State<_NicknameSheet> {
         20,
         0,
         20,
-        20 + MediaQuery.viewInsetsOf(context).bottom,
+        sheetBottomGap(context, 20) + MediaQuery.viewInsetsOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

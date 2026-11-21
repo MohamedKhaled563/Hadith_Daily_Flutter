@@ -4,9 +4,13 @@ import '../theme/app_palette.dart';
 
 /// One bottom-sheet launcher for the app.
 ///
-/// Both previous sheets hand-rolled a Container with a grab handle, hardcoded
-/// their colours, and omitted `useSafeArea` — so on a gesture-navigation device
-/// their content could sit under the home indicator.
+/// Both previous sheets hand-rolled a Container with a grab handle and
+/// hardcoded their colours.
+///
+/// `useSafeArea` does not keep the bottom clear: Flutter's sheet wraps its
+/// content in `SafeArea(bottom: false)`. The bottom is handled here, by
+/// [sheetBottomGap], so a sheet's last button stays above the system
+/// navigation bar (QA PT-017: «إرسال الاقتراح» was half hidden under it).
 ///
 /// It is now actually botanical, which the name always claimed: the parchment
 /// gradient and the gold rim the rest of the app uses, rather than a flat
@@ -25,7 +29,8 @@ Future<T?> showBotanicalSheet<T>({
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    // Keeps content clear of the home indicator and any notch.
+    // Keeps content clear of the status bar, any notch and the sides. Not the
+    // bottom; see [sheetBottomGap].
     useSafeArea: true,
     builder: (sheetContext) {
       final palette = sheetContext.palette;
@@ -52,7 +57,10 @@ Future<T?> showBotanicalSheet<T>({
             border: Border.all(color: palette.cardBorder, width: 1.2),
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+            // The parchment still runs under the navigation bar; only the
+            // content is lifted above it.
+            padding: EdgeInsets.fromLTRB(
+                24, 12, 24, sheetBottomGap(sheetContext, 24)),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -99,3 +107,12 @@ Future<T?> showBotanicalSheet<T>({
     },
   );
 }
+
+/// The space under a bottom sheet's content: [gap], plus the system
+/// navigation bar when the keyboard is closed.
+///
+/// `MediaQuery.paddingOf` is the bar's height less whatever the keyboard
+/// already covers, so a sheet lifted by `viewInsets` does not get the bar's
+/// height a second time.
+double sheetBottomGap(BuildContext context, double gap) =>
+    gap + MediaQuery.paddingOf(context).bottom;

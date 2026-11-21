@@ -7,6 +7,7 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_motion.dart';
 import '../../core/utils/arabic_numerals.dart';
+import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_empty_state.dart';
 import '../../core/widgets/app_snack.dart';
 import '../../core/widgets/asset_helper.dart';
@@ -21,16 +22,33 @@ import '../../data/repositories/hadith_repository.dart';
 import '../hadith/hadith_detail_screen.dart';
 import '../messages/daily_message_screen.dart';
 
+/// The saved list as a page of its own, opened from «محفوظاتي» in the
+/// drawer. That counter used to be a number with nothing behind it, while
+/// «مشاركاتي» beside it opened its list (QA PT-021 / ISSUE-005).
+class SavedItemsPage extends StatelessWidget {
+  const SavedItemsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => AppScreen(
+        child: FavoritesScreen(onBack: () => Navigator.maybePop(context)),
+      );
+}
+
 /// A tab inside [HomeScreen]'s IndexedStack — the host supplies the Scaffold
-/// and the background.
+/// and the background. [SavedItemsPage] hosts it as a page of its own.
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({
     super.key,
     this.onOpenDrawer,
+    this.onBack,
     this.showHeader = true,
   });
 
   final VoidCallback? onOpenDrawer;
+
+  /// Shows a back button in the header instead of the menu, for the page
+  /// opened from «محفوظاتي» in the drawer.
+  final VoidCallback? onBack;
 
   /// False inside the journey tab, which supplies the title itself.
   final bool showHeader;
@@ -96,7 +114,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (widget.onOpenDrawer != null)
+                if (widget.onBack != null)
+                  CircleIconButton(
+                    icon: Icons.chevron_right_rounded,
+                    semanticLabel: 'رجوع',
+                    onTap: widget.onBack!,
+                  )
+                else if (widget.onOpenDrawer != null)
                   CircleIconButton(
                     icon: Icons.menu_rounded,
                     semanticLabel: 'فتح قائمة الإعدادات',
