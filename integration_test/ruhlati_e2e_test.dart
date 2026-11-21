@@ -307,7 +307,7 @@ void main() {
         12,
       ].fold<int>(0, (a, b) => a + b),
     );
-    expect(journey.bestThisWeek, inInclusiveRange(1, 3));
+    expect(journey.daysThisWeek, inInclusiveRange(1, 3));
   });
 
   testWidgets('3. after a fresh start, نور sees her days on every screen',
@@ -325,7 +325,7 @@ void main() {
           children: [
             JourneyNumbers(
               streak: journey.streak,
-              bestThisWeek: journey.bestThisWeek,
+              daysThisWeek: journey.daysThisWeek,
               weekPoints: journey.thisWeekPoints.total,
               allPoints: journey.allPoints,
               memorized: journey.data.memorizedCount,

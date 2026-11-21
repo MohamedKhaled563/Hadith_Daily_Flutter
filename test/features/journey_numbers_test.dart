@@ -26,7 +26,7 @@ const _numbers = JourneyNumbers(
     graceBanked: 1,
     presentToday: true,
   ),
-  bestThisWeek: 5,
+  daysThisWeek: 5,
   weekPoints: 65,
   allPoints: 185,
   memorized: 4,
@@ -43,12 +43,12 @@ SemanticsNode? _node(WidgetTester tester, String label) {
 
 void main() {
   group('the numbers card', () {
-    testWidgets('the «كيف تُحسب؟» button is a node of its own, button-sized',
+    testWidgets('the ⓘ button is a node of its own, button-sized',
         (tester) async {
       final semantics = tester.ensureSemantics();
       await _pump(tester, _numbers);
 
-      final how = _node(tester, 'كيف تُحسب؟');
+      final how = _node(tester, 'ماذا تعني هذه الأرقام؟');
       expect(how, isNotNull, reason: 'not merged into the card');
       expect(how!.rect.width, lessThanOrEqualTo(60));
       expect(how.rect.height, lessThanOrEqualTo(60));
@@ -61,7 +61,8 @@ void main() {
 
       for (final label in [
         'الاستمرارية: ١١ يوماً',
-        'أفضل استمرارية: ٥ أيام',
+        'أيام حضورك: ٥ / ٧ أيام',
+        'أفضل استمرارية: ١١ يوماً',
         'نقاط الأسبوع: ٦٥ نقطة',
         'كل نقاطك: ١٨٥ نقطة',
         'حفظت: ٤ / ٤٢ حديثاً',
@@ -84,11 +85,34 @@ void main() {
       tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
 
-    testWidgets('«كيف تُحسب؟» opens the explanation', (tester) async {
+    testWidgets('both streaks sit with the journey, none with the week',
+        (tester) async {
       await _pump(tester, _numbers);
-      await tester.tap(find.byTooltip('كيف تُحسب؟'));
+      final journeyTop = tester.getTopLeft(find.text('حصاد رحلتك')).dy;
+      for (final label in ['الاستمرارية', 'أفضل استمرارية']) {
+        expect(tester.getTopLeft(find.text(label)).dy, greaterThan(journeyTop),
+            reason: label);
+      }
+      expect(
+          tester.getTopLeft(find.text('أيام حضورك')).dy, lessThan(journeyTop));
+    });
+
+    testWidgets('the ⓘ explains every number in a line', (tester) async {
+      await _pump(tester, _numbers);
+      expect(find.byTooltip('ماذا تعني هذه الأرقام؟'), findsNWidgets(2),
+          reason: 'one beside each part');
+      await tester.tap(find.byTooltip('ماذا تعني هذه الأرقام؟').first);
       await tester.pumpAndSettle();
-      expect(find.text('كيف تُحسب أرقامك؟'), findsOneWidget);
+      expect(find.text('ماذا تعني أرقامك؟'), findsOneWidget);
+      for (final name in [
+        'أيام حضورك',
+        'نقاط الأسبوع',
+        'أفضل استمرارية',
+        'كل نقاطك',
+      ]) {
+        // On the card behind, and once more in the sheet.
+        expect(find.text(name), findsNWidgets(2), reason: name);
+      }
       expect(find.text('رسالة لك يقبلها المشرف'), findsOneWidget);
     });
   });

@@ -261,7 +261,7 @@ class _JourneyBody extends StatelessWidget {
             const SizedBox(height: 12),
             JourneyNumbers(
               streak: streak,
-              bestThisWeek: journey.bestThisWeek,
+              daysThisWeek: journey.daysThisWeek,
               weekPoints: journey.thisWeekPoints.total,
               allPoints: journey.allPoints,
               memorized: data.memorizedCount,

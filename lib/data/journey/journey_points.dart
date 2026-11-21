@@ -122,23 +122,17 @@ WeekPoints weekPoints(
   );
 }
 
-/// The most days in a row the reader was present in the week starting
-/// [weekStart], up to [today]. Grace days are left out: this is the plain
-/// run the reader can count on the week, at most seven.
-int bestRunInWeek(JourneyData data, String weekStart, String today) {
-  var best = 0;
-  var run = 0;
+/// The days the reader was present in the week starting [weekStart], up to
+/// [today], in a row or not: «أيام حضورك» out of seven. Grace days are left
+/// out, since the reader was not there.
+int daysPresentInWeek(JourneyData data, String weekStart, String today) {
+  var days = 0;
   for (var i = 0; i < 7; i++) {
     final key = dayKeyPlus(weekStart, i);
     if (key.compareTo(today) > 0) break;
-    if (data.days[key]?.isPresent ?? false) {
-      run++;
-      best = math.max(best, run);
-    } else {
-      run = 0;
-    }
+    if (data.days[key]?.isPresent ?? false) days++;
   }
-  return best;
+  return days;
 }
 
 /// Every point the reader has earned, week by week, each week capped the
@@ -283,20 +277,13 @@ class Harvest {
     required this.days,
     required this.minutes,
     required this.lastWeekMinutes,
-    this.streak = 0,
-    this.bestRun = 0,
     this.points = 0,
   });
 
+  /// Days present this week so far, out of seven: «أيام حضورك».
   final int days;
   final int minutes;
   final int lastWeekMinutes;
-
-  /// Days in a row as of the harvest day, the same number رحلتي shows.
-  final int streak;
-
-  /// The most days in a row inside the week.
-  final int bestRun;
 
   /// The week's points, capped as on the board.
   final int points;
@@ -310,24 +297,18 @@ Harvest harvestFor(
   Iterable<String> approvedOn = const [],
 }) {
   final start = weekStartKey(friday);
-  var days = 0, seconds = 0;
+  var seconds = 0;
   for (var day = start; day.compareTo(friday) <= 0; day = dayKeyPlus(day, 1)) {
-    final entry = data.days[day];
-    if (entry == null) continue;
-    seconds += entry.seconds;
-    if (entry.isPresent) days++;
+    seconds += data.days[day]?.seconds ?? 0;
   }
   var lastSeconds = 0;
   for (var i = 0; i < 7; i++) {
     lastSeconds += data.days[dayKeyPlus(start, i - 7)]?.seconds ?? 0;
   }
   return Harvest(
-    days: days,
+    days: daysPresentInWeek(data, start, friday),
     minutes: minutesOf(seconds),
     lastWeekMinutes: minutesOf(lastSeconds),
-    streak:
-        computeStreak(data.days, friday, storedBest: data.bestStreak).current,
-    bestRun: bestRunInWeek(data, start, friday),
     points: weekPoints(data, start, approvedOn: approvedOn).total,
   );
 }

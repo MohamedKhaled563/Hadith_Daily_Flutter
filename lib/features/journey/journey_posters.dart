@@ -271,7 +271,7 @@ class PosterFigure {
   final BadgeTone tone;
 }
 
-/// The week's harvest: three numbers, the ones رحلتي shows for the week,
+/// The week's harvest: the two numbers رحلتي shows for the week,
 /// each with the mark it has there. No comparison with anyone, so it reads
 /// as an invitation. A Status has the room to stack them.
 class HarvestPoster extends StatelessWidget {
@@ -301,18 +301,11 @@ class HarvestPoster extends StatelessWidget {
       name: name,
       figures: [
         PosterFigure(
-          icon: Icons.local_fire_department_rounded,
-          tone: BadgeTone.warm,
-          value: toArabicDigits(harvest.streak),
-          unit: _posterDayUnit(harvest.streak),
-          label: 'الاستمرارية',
-        ),
-        PosterFigure(
-          icon: Icons.workspace_premium_rounded,
+          icon: Icons.event_available_rounded,
           tone: BadgeTone.green,
-          value: toArabicDigits(harvest.bestRun),
-          unit: _posterDayUnit(harvest.bestRun),
-          label: 'أفضل استمرارية',
+          value: '${toArabicDigits(harvest.days)} / ٧',
+          unit: 'أيام',
+          label: 'أيام حضوري',
         ),
         PosterFigure(
           icon: Icons.star_rounded,
@@ -374,7 +367,7 @@ class JourneyHarvestPoster extends StatelessWidget {
   }
 }
 
-/// Three numbers on the light poster ground, under a title.
+/// A row of numbers on the light poster ground, under a title.
 class _NumbersPoster extends StatelessWidget {
   const _NumbersPoster({
     required this.format,

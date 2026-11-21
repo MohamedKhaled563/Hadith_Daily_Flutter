@@ -15,14 +15,16 @@ import 'journey_share_sheet.dart';
 import 'journey_tree.dart';
 
 /// The reader's numbers on رحلتي, in two parts: this week's harvest and the
-/// whole journey's. Three numbers each, the same three ideas: keeping at it,
-/// the best run, and points; memorized hadiths stand in for the run on the
-/// journey side, since the best run of all time sits there already.
+/// whole journey's. The week holds only what starts again on Saturday: the
+/// days present out of seven, and its points. Both streaks run across weeks,
+/// so they sit with the journey, side by side, over all the points and the
+/// hadiths held. A «best» cut off at Saturday once read as smaller than the
+/// streak beside it, which is why neither streak is on the week.
 class JourneyNumbers extends StatelessWidget {
   const JourneyNumbers({
     super.key,
     required this.streak,
-    required this.bestThisWeek,
+    required this.daysThisWeek,
     required this.weekPoints,
     required this.allPoints,
     required this.memorized,
@@ -32,8 +34,8 @@ class JourneyNumbers extends StatelessWidget {
 
   final StreakResult streak;
 
-  /// The most days in a row this week.
-  final int bestThisWeek;
+  /// Days present this week so far, out of seven.
+  final int daysThisWeek;
   final int weekPoints;
   final int allPoints;
 
@@ -60,24 +62,17 @@ class JourneyNumbers extends StatelessWidget {
           const _PartHeader(
             icon: Icons.calendar_month_rounded,
             title: 'حصاد الأسبوع',
-            trailing: _HowButton(),
+            trailing: _InfoButton(),
           ),
           const SizedBox(height: 12),
           _Tiles(
             children: [
               _Number(
-                icon: Icons.local_fire_department_rounded,
-                tone: BadgeTone.warm,
-                value: toArabicDigits(streak.current),
-                unit: _dayUnit(streak.current),
-                label: 'الاستمرارية',
-              ),
-              _Number(
-                icon: Icons.workspace_premium_rounded,
+                icon: Icons.event_available_rounded,
                 tone: BadgeTone.green,
-                value: toArabicDigits(bestThisWeek),
-                unit: _dayUnit(bestThisWeek),
-                label: 'أفضل استمرارية',
+                value: '${toArabicDigits(daysThisWeek)} / ٧',
+                unit: 'أيام',
+                label: 'أيام حضورك',
               ),
               _Number(
                 icon: kPointsIcon,
@@ -102,10 +97,18 @@ class JourneyNumbers extends StatelessWidget {
           const _PartHeader(
             icon: Icons.park_rounded,
             title: 'حصاد رحلتك',
+            trailing: _InfoButton(),
           ),
           const SizedBox(height: 12),
           _Tiles(
             children: [
+              _Number(
+                icon: Icons.local_fire_department_rounded,
+                tone: BadgeTone.warm,
+                value: toArabicDigits(streak.current),
+                unit: _dayUnit(streak.current),
+                label: 'الاستمرارية',
+              ),
               _Number(
                 icon: Icons.emoji_events_rounded,
                 tone: BadgeTone.gold,
@@ -113,6 +116,11 @@ class JourneyNumbers extends StatelessWidget {
                 unit: _dayUnit(streak.best),
                 label: 'أفضل استمرارية',
               ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _Tiles(
+            children: [
               _Number(
                 icon: Icons.stars_rounded,
                 tone: BadgeTone.gold,
@@ -191,28 +199,31 @@ class _PartHeader extends StatelessWidget {
   }
 }
 
-/// The ⓘ beside the week's title: a small round button, not a stray icon.
-class _HowButton extends StatelessWidget {
-  const _HowButton();
+/// The ⓘ beside each part's title: a small round button, not a stray icon,
+/// that says in a line what each number counts.
+class _InfoButton extends StatelessWidget {
+  const _InfoButton();
+
+  static const label = 'ماذا تعني هذه الأرقام؟';
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
     return Tooltip(
-      message: 'كيف تُحسب؟',
+      message: label,
       // The button says it already; the tooltip is for the eye.
       excludeFromSemantics: true,
       child: TapTarget(
         onTap: () => showHowCounted(context),
-        semanticLabel: 'كيف تُحسب؟',
+        semanticLabel: label,
         child: Container(
           width: 34,
           height: 34,
           alignment: Alignment.center,
           decoration: glassTile(context, radius: 17),
           child: Icon(
-            Icons.question_mark_rounded,
+            Icons.info_outline_rounded,
             size: 18,
             color: palette.goldText,
           ),
@@ -378,15 +389,59 @@ class _Number extends StatelessWidget {
   }
 }
 
-/// «كيف تُحسب؟»: what each number counts, short and calm.
+/// What each number counts, a line each, then how a day and points count.
 Future<void> showHowCounted(BuildContext context) => showBotanicalSheet<void>(
       context: context,
-      title: 'كيف تُحسب أرقامك؟',
+      title: 'ماذا تعني أرقامك؟',
       child: const _HowCounted(),
     );
 
 class _HowCounted extends StatelessWidget {
   const _HowCounted();
+
+  /// Each number on the card, with its mark and a line on what it counts.
+  static const _week = [
+    (
+      Icons.event_available_rounded,
+      BadgeTone.green,
+      'أيام حضورك',
+      'كم يوماً حضرت من أيام هذا الأسبوع. يبدأ الأسبوع يوم السبت.',
+    ),
+    (
+      kPointsIcon,
+      BadgeTone.gold,
+      'نقاط الأسبوع',
+      'ما جمعته من نقاط منذ السبت.',
+    ),
+  ];
+
+  static const _journey = [
+    (
+      Icons.local_fire_department_rounded,
+      BadgeTone.warm,
+      'الاستمرارية',
+      'أيام متتالية حضرت فيها حتى اليوم. تعود إلى الصفر إن فاتك يوم '
+          'ولا يوم سماح معك.',
+    ),
+    (
+      Icons.emoji_events_rounded,
+      BadgeTone.gold,
+      'أفضل استمرارية',
+      'أطول استمرارية بلغتها منذ بدأت.',
+    ),
+    (
+      Icons.stars_rounded,
+      BadgeTone.gold,
+      'كل نقاطك',
+      'كل ما جمعته من نقاط منذ بدأت.',
+    ),
+    (
+      null,
+      BadgeTone.gold,
+      'حفظت',
+      'الأحاديث التي أتممت حفظها، من ٤٢ حديثاً.',
+    ),
+  ];
 
   static const _points = [
     ('رسالة اليوم تقرؤها', PointRules.message, 'حتى ١٠ في اليوم'),
@@ -447,27 +502,80 @@ class _HowCounted extends StatelessWidget {
           ),
         );
 
+    List<Widget> glossary(
+      List<(IconData?, BadgeTone, String, String)> rows,
+    ) =>
+        [
+          for (final (i, (icon, tone, name, meaning)) in rows.indexed) ...[
+            if (i > 0) Divider(height: 1, color: palette.cardBorder),
+            Semantics(
+              label: '$name: $meaning',
+              excludeSemantics: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 22,
+                      child: icon == null
+                          ? const LeafSwatch(LeafLook.memorized)
+                          : Icon(
+                              icon,
+                              size: 19,
+                              color: IconBadge.toneColors(palette, tone).$2,
+                            ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: body.copyWith(
+                              height: AppLeading.chrome,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(meaning, style: muted),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        section(
+          mark: const IconBadge(icon: Icons.calendar_month_rounded, size: 32),
+          title: 'حصاد الأسبوع',
+          children: glossary(_week),
+        ),
+        section(
+          mark: const IconBadge(icon: Icons.park_rounded, size: 32),
+          title: 'حصاد رحلتك',
+          children: glossary(_journey),
+        ),
         section(
           mark: const IconBadge(
             icon: Icons.local_fire_department_rounded,
             tone: BadgeTone.warm,
             size: 32,
           ),
-          title: 'الاستمرارية',
+          title: 'متى يُحسب يومك؟',
           children: [
             Text(
-              'أيام متتالية قرأت فيها رسالة اليوم أو حديثاً، أو حفظت أو '
-              'راجعت. وكل ${toArabicDigits(kDaysPerGrace)} أيام متتالية '
-              'تمنحك يوم سماح، حتى يومين، يحفظ استمراريتك إن فاتك يوم.',
+              'يُحسب يومك إذا قرأت رسالة اليوم أو حديثاً، أو حفظت أو راجعت. '
+              'وكل ${toArabicDigits(kDaysPerGrace)} أيام متتالية تمنحك يوم '
+              'سماح، حتى يومين، يحفظ استمراريتك إن فاتك يوم.',
               style: body,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'وأفضل استمرارية أطول ما بلغته: في هذا الأسبوع، وفي رحلتك كلها.',
-              style: muted,
             ),
           ],
         ),
@@ -537,19 +645,6 @@ class _HowCounted extends StatelessWidget {
               '${toArabicDigits(PointRules.deviceWeekCap)} نقطة في الأسبوع. '
               'النقاط تقيس نشاطك في التطبيق فقط.',
               style: muted,
-            ),
-          ],
-        ),
-        section(
-          mark: const IconBadge(
-            size: 32,
-            child: LeafSwatch(LeafLook.memorized),
-          ),
-          title: 'حفظت',
-          children: [
-            Text(
-              'الأحاديث التي أتممت حفظها من الأربعين النووية، من ٤٢ حديثاً.',
-              style: body,
             ),
           ],
         ),
