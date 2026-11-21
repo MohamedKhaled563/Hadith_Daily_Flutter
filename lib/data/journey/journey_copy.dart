@@ -189,6 +189,9 @@ class JourneyCopy {
           ),
       };
 
+  /// A new hadith on a day one was already started (see kNewMemoPerDay).
+  static const memoStartTomorrow = 'بدأت اليوم حفظ حديث جديد، فنبدأ هذا غداً.';
+
   /// After learning a hadith's last part, without a milestone.
   static JourneyMessage memorized(String title) => JourneyMessage(
         title: 'حفظت «$title»',

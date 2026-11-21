@@ -8,7 +8,7 @@ import 'journey_engine.dart';
 import 'journey_models.dart';
 import 'journey_points.dart';
 import 'journey_store.dart';
-import 'memorization.dart' as memorization show dueReviews;
+import 'memorization.dart' as memorization show canStartMemo, dueReviews;
 import 'memorization.dart';
 
 /// What finishing a hadith added up to, for the completion sheet.
@@ -366,13 +366,20 @@ class JourneyRepository {
   /// The hadiths due for review today, the longest waiting first.
   List<int> get dueReviews => memorization.dueReviews(_data.memo, today);
 
+  /// Whether [hadithNumber] may be memorized today: always for one already
+  /// started, and for a new one only while today's new start is free.
+  bool canStartMemo(int hadithNumber) =>
+      memorization.canStartMemo(_data.memo, hadithNumber, today);
+
   /// One more part of [hadithNumber] learned by heart, out of [totalParts].
   /// The last part makes it memorized. Nothing changes for a hadith already
   /// memorized.
   MemoOutcome learnPart(int hadithNumber, {required int totalParts}) {
     final day = today;
     final before = _data.memoOf(hadithNumber);
-    if (before.isMemorized) {
+    // A new hadith past today's limit is not started; the screens say so
+    // before the reader gets here (see [canStartMemo]).
+    if (before.isMemorized || !canStartMemo(hadithNumber)) {
       return MemoOutcome(
         hadithNumber: hadithNumber,
         progress: before,
@@ -415,7 +422,12 @@ class JourneyRepository {
         remembered: remembered,
       );
     }
-    final after = afterReview(before, remembered: remembered, today: day);
+    final after = afterReview(
+      before,
+      remembered: remembered,
+      today: day,
+      load: reviewLoad(_data.memo, except: hadithNumber),
+    );
     _record(JourneyEvent(
       dayKey: day,
       memoHadith: hadithNumber,

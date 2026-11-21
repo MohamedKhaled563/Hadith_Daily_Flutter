@@ -20,6 +20,22 @@ import 'journey_engine.dart';
 /// back. After the last step the hadith is kept, with no review planned.
 const kReviewIntervals = [1, 3, 7, 16, 35, 90];
 
+/// How many days either side of its due day each step's review may move,
+/// to the day with the fewest other reviews. Hadiths memorized close
+/// together would otherwise come back together at every step. The first
+/// two steps stay exact: they are too short to move.
+const kReviewSpread = [0, 0, 1, 2, 3, 5];
+
+/// How many other reviews a day may already hold before a review due on it
+/// looks for a lighter day nearby (see [spreadDue]). Two a day is the most
+/// the intervals give a reader who starts a hadith every few days, so that
+/// steady pace is never moved.
+const kReviewsAtEase = 2;
+/// How many new hadiths a reader may start memorizing in one reading day.
+/// Hadiths started together come back together, and one a day keeps the
+/// reviews light. Going on with a hadith already started is never held.
+const kNewMemoPerDay = 1;
+
 /// The most of the hadith's own words a learning session asks for, before
 /// its narrator and source (see [memoPassage]). 26 of the 42 hadiths are
 /// shorter than 40 words and fit one session; the six longest (84 to 179
@@ -48,6 +64,7 @@ class MemoProgress {
     this.due,
     this.misses = 0,
     this.memorizedOn,
+    this.startedOn,
   });
 
   factory MemoProgress.fromJson(Object? raw) {
@@ -58,6 +75,7 @@ class MemoProgress {
       due: raw['due'] as String?,
       misses: (raw['misses'] as num?)?.toInt() ?? 0,
       memorizedOn: raw['on'] as String?,
+      startedOn: raw['st'] as String?,
     );
   }
 
@@ -77,6 +95,10 @@ class MemoProgress {
   /// The reading day the last part was learned.
   final String? memorizedOn;
 
+  /// The reading day the first part was learned. Null for hadiths started
+  /// before this was recorded.
+  final String? startedOn;
+
   bool get isMemorized => box != null;
   bool get isLearning => box == null && parts > 0;
   bool get isKept => (box ?? 0) >= kReviewIntervals.length;
@@ -88,6 +110,7 @@ class MemoProgress {
         if (due != null) 'due': due,
         if (misses > 0) 'misses': misses,
         if (memorizedOn != null) 'on': memorizedOn,
+        if (startedOn != null) 'st': startedOn,
       };
 
   @override
@@ -97,10 +120,12 @@ class MemoProgress {
       other.box == box &&
       other.due == due &&
       other.misses == misses &&
-      other.memorizedOn == memorizedOn;
+      other.memorizedOn == memorizedOn &&
+      other.startedOn == startedOn;
 
   @override
-  int get hashCode => Object.hash(parts, box, due, misses, memorizedOn);
+  int get hashCode =>
+      Object.hash(parts, box, due, misses, memorizedOn, startedOn);
 }
 
 /// After learning one more part of a hadith of [totalParts] parts on
@@ -111,22 +136,31 @@ MemoProgress afterPartLearned(
   required String today,
 }) {
   if (progress.isMemorized) return progress;
+  final startedOn = progress.parts == 0 ? today : progress.startedOn;
   final parts = math.min(progress.parts + 1, totalParts);
-  if (parts < totalParts) return MemoProgress(parts: parts);
+  if (parts < totalParts) {
+    return MemoProgress(parts: parts, startedOn: startedOn);
+  }
   return MemoProgress(
     parts: totalParts,
     box: 0,
     due: dayKeyPlus(today, kReviewIntervals.first),
     memorizedOn: today,
+    startedOn: startedOn,
   );
 }
 
 /// After a review on [today]. Remembered moves one step on, and past the
 /// last step the hadith is kept. Not remembered moves one step back.
+///
+/// [load] is how many other hadiths are due on each day (see [reviewLoad]);
+/// the next review moves within its step's [kReviewSpread] to the lightest
+/// of those days.
 MemoProgress afterReview(
   MemoProgress progress, {
   required bool remembered,
   required String today,
+  Map<String, int> load = const {},
 }) {
   final box = progress.box;
   if (box == null || progress.isKept) return progress;
@@ -137,19 +171,69 @@ MemoProgress afterReview(
       box: next,
       due: next >= kReviewIntervals.length
           ? null
-          : dayKeyPlus(today, kReviewIntervals[next]),
+          : spreadDue(today, next, load),
       misses: progress.misses,
       memorizedOn: progress.memorizedOn,
+      startedOn: progress.startedOn,
     );
   }
   final back = math.max(0, box - 1);
   return MemoProgress(
     parts: progress.parts,
     box: back,
-    due: dayKeyPlus(today, kReviewIntervals[back]),
+    due: spreadDue(today, back, load),
     misses: progress.misses + 1,
     memorizedOn: progress.memorizedOn,
+    startedOn: progress.startedOn,
   );
+}
+
+/// How many hadiths are due on each day, leaving out [except]: what
+/// [afterReview] weighs when it places that hadith's next review.
+Map<String, int> reviewLoad(Map<int, MemoProgress> memo, {int? except}) {
+  final load = <String, int>{};
+  for (final entry in memo.entries) {
+    final due = entry.value.due;
+    if (due == null || entry.key == except) continue;
+    load[due] = (load[due] ?? 0) + 1;
+  }
+  return load;
+}
+
+/// The day a review at [step] lands, counted from [today]: its interval,
+/// unless that day already holds [kReviewsAtEase] others in [load]. Then it
+/// moves up to [kReviewSpread] days either way to the day with the fewest.
+/// On a tie the day nearest the interval wins, then the earlier one.
+///
+/// A day with room is never left: the first two steps cannot move, and a
+/// review moved early onto an empty day could meet those of hadiths not
+/// memorized yet.
+String spreadDue(String today, int step, Map<String, int> load) {
+  final interval = kReviewIntervals[step];
+  var best = dayKeyPlus(today, interval);
+  var bestLoad = load[best] ?? 0;
+  if (bestLoad < kReviewsAtEase) return best;
+  for (var off = 1; off <= kReviewSpread[step]; off++) {
+    for (final days in [interval - off, interval + off]) {
+      final day = dayKeyPlus(today, days);
+      final count = load[day] ?? 0;
+      if (count < bestLoad) {
+        best = day;
+        bestLoad = count;
+      }
+    }
+  }
+  return best;
+}
+
+/// Whether the reader may begin memorizing [number] on [today]. A hadith
+/// already started or memorized may always go on; a new one waits once
+/// [kNewMemoPerDay] others were started today.
+bool canStartMemo(Map<int, MemoProgress> memo, int number, String today) {
+  final progress = memo[number] ?? const MemoProgress();
+  if (progress.isMemorized || progress.parts > 0) return true;
+  final startedToday = memo.values.where((m) => m.startedOn == today).length;
+  return startedToday < kNewMemoPerDay;
 }
 
 /// The hadiths due for review on [today], the longest waiting first.
@@ -305,19 +389,39 @@ List<bool> hiddenWords(int length, int level) => [
     ];
 
 /// How many reviews fall on each day when a reader memorizes a new hadith
-/// every [newEvery] days and remembers every one, for checking the review
-/// load the intervals make. Day 0 is the first hadith.
+/// every [newEvery] days (or [perDay] of them each such day) and reviews
+/// every one on its day and remembers it, for checking the review load the
+/// intervals and their spread make. Day 0 is the first hadith.
 List<int> simulateReviewLoad({
   int hadiths = 42,
   int newEvery = 3,
+  int perDay = 1,
   int days = 400,
 }) {
+  const start = '2026-01-01';
   final load = List<int>.filled(days, 0);
-  for (var h = 0; h < hadiths; h++) {
-    var day = h * newEvery;
-    for (final interval in kReviewIntervals) {
-      day += interval;
-      if (day < days) load[day]++;
+  final memo = <int, MemoProgress>{};
+  var started = 0;
+  for (var d = 0; d < days; d++) {
+    final today = dayKeyPlus(start, d);
+    for (final number in dueReviews(memo, today)) {
+      load[d]++;
+      memo[number] = afterReview(
+        memo[number]!,
+        remembered: true,
+        today: today,
+        load: reviewLoad(memo, except: number),
+      );
+    }
+    if (d % newEvery == 0) {
+      for (var i = 0; i < perDay && started < hadiths; i++) {
+        memo[started] = afterPartLearned(
+          const MemoProgress(),
+          totalParts: 1,
+          today: today,
+        );
+        started++;
+      }
     }
   }
   return load;

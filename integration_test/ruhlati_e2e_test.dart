@@ -354,7 +354,7 @@ void main() {
     expect(find.text('حفظت حديثاً واحداً'), findsOneWidget);
     expect(find.text(hadiths.getByNumber(1)!.title), findsOneWidget);
     // Reviewed yesterday, so not due today: it waits in the list.
-    expect(find.text('دوره اليوم'), findsNothing);
+    expect(find.text('جاء موعد مراجعته'), findsNothing);
     expect(find.textContaining('المراجعة القادمة'), findsOneWidget);
   });
 

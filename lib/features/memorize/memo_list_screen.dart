@@ -67,6 +67,7 @@ class MemoPlan {
     required this.held,
     required this.next,
     required this.start,
+    required this.startWaits,
   });
 
   factory MemoPlan.of(JourneyData data, String today) {
@@ -91,6 +92,7 @@ class MemoPlan {
             !data.memoOf(number).isLearning)
           if (hadiths.getByNumber(number) case final hadith?) hadith,
     ]..sort((a, b) => a.text.length.compareTo(b.text.length));
+    final start = read.firstOrNull;
 
     return MemoPlan._(
       due: due,
@@ -104,7 +106,8 @@ class MemoPlan {
           if (entry.value.isMemorized) entry.key,
       ]..sort(),
       next: upcoming.isEmpty ? null : upcoming.first.key,
-      start: read.firstOrNull,
+      start: start,
+      startWaits: start != null && !canStartMemo(memo, start.number, today),
     );
   }
 
@@ -126,6 +129,9 @@ class MemoPlan {
   /// The shortest hadith read and not yet started: the easiest one to
   /// memorize next.
   final Hadith? start;
+
+  /// A new hadith was already started today, so [start] waits for tomorrow.
+  final bool startWaits;
 
   bool get isEmpty => held.isEmpty && learning.isEmpty;
 
@@ -370,7 +376,11 @@ class _ListsState extends State<_Lists> {
         ],
         if (plan.start case final start?) ...[
           const SizedBox(height: 18),
-          _StartCard(hadith: start, first: false),
+          _StartCard(
+            hadith: start,
+            first: false,
+            waits: widget.plan.startWaits,
+          ),
         ],
       ],
     );
@@ -714,7 +724,7 @@ class _DueCard extends StatelessWidget {
       showWatermark: false,
       showCornerOrnaments: false,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      semanticLabel: '${hadith.title}، دوره اليوم، $line',
+      semanticLabel: '${hadith.title}، جاء موعد مراجعته، $line',
       onTap: () => _open(context, ReviewScreen(hadith: hadith)),
       child: ExcludeSemantics(
         child: Row(
@@ -738,7 +748,7 @@ class _DueCard extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'دوره اليوم',
+                      'جاء موعد مراجعته',
                       style: TextStyle(
                         fontFamily: kSans,
                         fontSize: 11.5,
@@ -1125,9 +1135,16 @@ class _Strength extends StatelessWidget {
 
 /// The easiest hadith to memorize next: the shortest one read.
 class _StartCard extends StatelessWidget {
-  const _StartCard({required this.hadith, required this.first});
+  const _StartCard({
+    required this.hadith,
+    required this.first,
+    this.waits = false,
+  });
 
   final Hadith hadith;
+
+  /// Today's new start is taken, so this one begins tomorrow.
+  final bool waits;
 
   /// Nothing memorized yet, so this is where memorizing begins.
   final bool first;
@@ -1175,9 +1192,11 @@ class _StartCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      parts == 1
-                          ? 'أقصر ما قرأت، ويُحفظ في جلسة واحدة.'
-                          : 'أقصر ما قرأت ولم تحفظه بعد.',
+                      waits
+                          ? JourneyCopy.memoStartTomorrow
+                          : parts == 1
+                              ? 'أقصر ما قرأت، ويُحفظ في جلسة واحدة.'
+                              : 'أقصر ما قرأت ولم تحفظه بعد.',
                       style: TextStyle(
                         fontFamily: kSans,
                         fontSize: 12.5,
@@ -1194,7 +1213,9 @@ class _StartCard extends StatelessWidget {
           AppButton(
             text: 'ابدأ حفظه',
             isSecondary: !first,
-            onPressed: () => _open(context, MemorizeScreen(hadith: hadith)),
+            onPressed: waits
+                ? null
+                : () => _open(context, MemorizeScreen(hadith: hadith)),
           ),
         ],
       ),
