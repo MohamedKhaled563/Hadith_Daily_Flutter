@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hadith_app/core/share/share_service.dart';
 import 'package:hadith_app/core/theme/app_theme.dart';
+import 'package:hadith_app/core/widgets/app_button.dart';
 import 'package:hadith_app/core/widgets/bottom_navigation.dart';
 import 'package:hadith_app/data/journey/board_service.dart';
 import 'package:hadith_app/data/journey/journey_copy.dart';
@@ -1297,16 +1298,19 @@ void main() {
 
     testWidgets('three due: two at the top, the third folded, none twice',
         (tester) async {
-      var now = DateTime(2026, 11, 1, 12);
+      var now = DateTime(2026, 10, 31, 12);
       await journey.debugReset(store: store, clock: () => now);
       finished([1, 2, 3, 4]);
-      for (final number in [1, 2, 3, 4]) {
+      // One new hadith a day: 1, 2, 3 and 4 from 31 October on.
+      for (final (i, number) in [1, 2, 3, 4].indexed) {
+        now = DateTime(2026, 10, 31 + i, 12);
         journey.learnPart(number, totalParts: 1);
       }
-      // A day later all four are due; 4 is reviewed early, so it is not.
-      now = DateTime(2026, 11, 2, 12);
+      // On 4 November 1 to 3 are due, waiting longest first; 4 falls due
+      // that day too and is reviewed, so it is done, not due.
+      now = DateTime(2026, 11, 4, 12);
       journey.review(4, remembered: true);
-      now = DateTime(2026, 11, 2, 13);
+      now = DateTime(2026, 11, 4, 13);
 
       await tester.pumpWidget(app(const MemoListScreen()));
       await wait(tester, 900);
@@ -1332,6 +1336,56 @@ void main() {
       double top(String title) => tester.getTopLeft(find.text(title)).dy;
       expect(top(titles[0]), lessThan(top(titles[1])), reason: 'still first');
       expect(find.textContaining('وثبت أكثر'), findsOneWidget);
+    });
+
+    testWidgets('a second new hadith the same day waits for tomorrow',
+        (tester) async {
+      var now = DateTime(2026, 11, 7, 12);
+      await journey.debugReset(store: store, clock: () => now);
+      finished([13, 1, 7]);
+      journey.learnPart(13, totalParts: 1);
+
+      // The list still names the next one, but it starts tomorrow.
+      await tester.pumpWidget(app(const MemoListScreen()));
+      await wait(tester, 900);
+      await tester.scrollUntilVisible(
+        find.text('ابدأ حفظه'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text(JourneyCopy.memoStartTomorrow), findsOneWidget);
+      final start = tester.widget<AppButton>(
+        find.widgetWithText(AppButton, 'ابدأ حفظه'),
+      );
+      expect(start.onPressed, isNull, reason: 'not before tomorrow');
+
+      // Its own page says the same, and the screen records nothing.
+      final next = journey.data.hadith.keys
+          .firstWhere((n) => n != 13 && !journey.data.memoOf(n).isMemorized);
+      await tester.pumpWidget(
+        app(MemorizeScreen(hadith: hadiths.getByNumber(next)!)),
+      );
+      await wait(tester);
+      expect(find.text(JourneyCopy.memoStartTomorrow), findsOneWidget);
+      expect(journey.canStartMemo(next), isFalse);
+
+      // The next day it is free again.
+      now = DateTime(2026, 11, 8, 12);
+      journey.recordMessageRead('m', hadithNumber: 1);
+      await tester.pumpWidget(app(const MemoListScreen()));
+      await wait(tester, 900);
+      await tester.scrollUntilVisible(
+        find.text('ابدأ حفظه'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text(JourneyCopy.memoStartTomorrow), findsNothing);
+      expect(
+        tester
+            .widget<AppButton>(find.widgetWithText(AppButton, 'ابدأ حفظه'))
+            .onPressed,
+        isNotNull,
+      );
     });
 
     testWidgets('a review reminder opens that review', (tester) async {
