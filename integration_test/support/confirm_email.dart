@@ -16,9 +16,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 Future<void> confirmEmailInEmulator(String host) async {
   final auth = FirebaseAuth.instance;
   final user = auth.currentUser!;
-  // The project the SDK really talks to — on Android the default app comes
-  // from google-services.json, whatever --project the emulators run under.
-  final project = auth.app.options.projectId;
+  // The project the Auth emulator filed this account under, read from the
+  // account's own ID token. Not auth.app.options.projectId: on Android the
+  // default app comes from google-services.json (the live project's id),
+  // while the Auth SDK's requests carry no project at all, so the emulator
+  // files the account under the project it runs with (--project
+  // demo-journey). Asking the live id gives 400 USER_NOT_FOUND.
+  final token = await user.getIdTokenResult();
+  final project = token.claims?['aud'] as String? ??
+      auth.app.options.projectId;
   final client = HttpClient();
   try {
     final request = await client.postUrl(Uri.parse(
