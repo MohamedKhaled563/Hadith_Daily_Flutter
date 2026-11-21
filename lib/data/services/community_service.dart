@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import '../models/insight.dart';
 import 'message_like_service.dart';
 
@@ -119,7 +118,9 @@ class CommunityService {
   /// The write itself is not cancelled by this. It stays in Firestore's queue,
   /// which is why a caller must not send the message again. A rejection that
   /// arrives in time still throws.
-  @visibleForTesting
+  ///
+  /// Also used by [FeedbackService], whose «تواصل معنا» form had the same
+  /// endless «جارِ الإرسال...» offline (QA ISSUE-004).
   static Future<MessageDelivery> awaitDelivery(
     Future<void> write, {
     Duration budget = sendBudget,

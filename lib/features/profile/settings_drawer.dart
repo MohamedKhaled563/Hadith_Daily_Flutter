@@ -26,6 +26,7 @@ import '../../data/services/notification_scheduler.dart';
 import '../auth/login_screen.dart';
 import '../community/my_submissions_screen.dart';
 import '../community/report_sheet.dart';
+import '../favorites/favorites_screen.dart';
 import '../legal/legal_document_screen.dart';
 import 'delete_account_sheet.dart';
 
@@ -148,8 +149,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
               const SizedBox(height: 6),
               Text(
                 '• متن الأربعين النووية للإمام يحيى بن شرف النووي.\n'
-                '• جامع العلوم والحكم للحافظ ابن رجب الحنبلي.\n'
-                '• صحيح الإمام البخاري وصحيح الإمام مسلم.',
+                '• شرح الأربعين حديثاً النووية للإمام ابن دقيق العيد.',
                 style: textTheme.bodySmall,
               ),
               const SizedBox(height: 20),
@@ -251,7 +251,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                         error = null;
                       });
                       try {
-                        await FeedbackService.instance.submit(
+                        final delivery = await FeedbackService.instance.submit(
                           message: text,
                           userName: _state.userName,
                           userEmail: _state.userEmail,
@@ -259,8 +259,18 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                         if (sheetContext.mounted) {
                           Navigator.pop(sheetContext);
                         }
-                        if (mounted) {
+                        if (!mounted) return;
+                        if (delivery == MessageDelivery.confirmed) {
                           _toast('تم إرسال رسالتك، شكراً لتواصلك معنا');
+                        } else {
+                          // Already in Firestore's queue: it goes by itself
+                          // once the connection is back, so the sheet closes
+                          // rather than inviting a second send.
+                          _toast(
+                            'الاتصال ضعيف الآن، فحفظنا رسالتك وسنرسلها وحدها '
+                            'عند عودته، فلا داعي لكتابتها مرة أخرى',
+                            tone: SnackTone.warning,
+                          );
                         }
                       } catch (_) {
                         setFieldState(() {
@@ -822,6 +832,10 @@ class _ProfileHeader extends StatelessWidget {
                     icon: Icons.bookmark_rounded,
                     value: saved,
                     label: 'محفوظاتي',
+                    onTap: () => Navigator.push(
+                      context,
+                      appPageRoute(child: const SavedItemsPage()),
+                    ),
                   ),
                 ),
                 Container(
