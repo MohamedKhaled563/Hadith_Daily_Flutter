@@ -1265,7 +1265,7 @@ void main() {
       await tester.tap(find.text('موعد مراجعة «$shortest» اليوم'));
       await wait(tester, 800);
       expect(find.text('مراجعة اليوم'), findsOneWidget);
-      expect(find.text('دوره اليوم'), findsOneWidget);
+      expect(find.text('جاء موعد مراجعته'), findsOneWidget);
       expect(find.text('راجِع'), findsOneWidget);
       // Shown once, at the top: not again in a list below.
       expect(find.text(shortest), findsOneWidget);
@@ -1314,12 +1314,12 @@ void main() {
       final titles = [
         for (final n in [1, 2, 3, 4]) hadiths.getByNumber(n)!.title
       ];
-      expect(find.text('دوره اليوم'), findsNWidgets(2));
+      expect(find.text('جاء موعد مراجعته'), findsNWidgets(2));
       expect(find.text('وحديث آخر اليوم'), findsOneWidget);
       expect(find.text(titles[2]), findsNothing, reason: 'folded away');
       await tester.tap(find.text('وحديث آخر اليوم'));
       await wait(tester, 600);
-      expect(find.text('دوره اليوم'), findsNWidgets(3));
+      expect(find.text('جاء موعد مراجعته'), findsNWidgets(3));
       // Each hadith once on the page.
       for (final title in titles) {
         expect(find.text(title), findsOneWidget, reason: title);
@@ -1327,7 +1327,8 @@ void main() {
 
       // Reviewing the first keeps its card where it was, now done.
       journey.review(1, remembered: true);
-      await until(tester, () => find.text('دوره اليوم').evaluate().length == 2);
+      await until(
+          tester, () => find.text('جاء موعد مراجعته').evaluate().length == 2);
       double top(String title) => tester.getTopLeft(find.text(title)).dy;
       expect(top(titles[0]), lessThan(top(titles[1])), reason: 'still first');
       expect(find.textContaining('وثبت أكثر'), findsOneWidget);

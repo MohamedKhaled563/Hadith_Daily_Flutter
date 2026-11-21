@@ -107,8 +107,7 @@ class MemoPlan {
       ]..sort(),
       next: upcoming.isEmpty ? null : upcoming.first.key,
       start: start,
-      startWaits:
-          start != null && !canStartMemo(memo, start.number, today),
+      startWaits: start != null && !canStartMemo(memo, start.number, today),
     );
   }
 
@@ -725,7 +724,7 @@ class _DueCard extends StatelessWidget {
       showWatermark: false,
       showCornerOrnaments: false,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      semanticLabel: '${hadith.title}، دوره اليوم، $line',
+      semanticLabel: '${hadith.title}، جاء موعد مراجعته، $line',
       onTap: () => _open(context, ReviewScreen(hadith: hadith)),
       child: ExcludeSemantics(
         child: Row(
@@ -749,7 +748,7 @@ class _DueCard extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'دوره اليوم',
+                      'جاء موعد مراجعته',
                       style: TextStyle(
                         fontFamily: kSans,
                         fontSize: 11.5,

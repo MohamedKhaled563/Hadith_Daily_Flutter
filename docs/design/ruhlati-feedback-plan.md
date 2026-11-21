@@ -46,7 +46,7 @@ PR #19 (`e43e3a0`) already shipped part of the list. Checked on the emulator wit
 **Change** (`memo_list_screen.dart`, `MemoEntry`)
 - **Entry on رحلتي:** one well-designed button next to «خطوات اليوم». It has a gold leaf icon and a small badge with the number due today. The second line is short: «موعد مراجعة حديثين اليوم» or «كلها ثابتة».
 - **The page is one list.** It does not have three separate blocks.
-  1. **Due today**: one or two cards with a gold border and the tag «دوره اليوم». Each has one small «راجِع» button, not a full-width green block. If more than two are due, the first two are shown and a «و٣ غيرها» line opens the rest.
+  1. **Due today**: one or two cards with a gold border and the tag «جاء موعد مراجعته» (was «دوره اليوم»). Each has one small «راجِع» button, not a full-width green block. If more than two are due, the first two are shown and a «و٣ غيرها» line opens the rest.
   2. A clear separator: «كل ما تحفظه (٥)».
   3. Every other memorized hadith, as quiet rows: leaf number, title, strength dots, and when its next review is.
   4. Hadiths still being learned sit in this list with «أكمل».
