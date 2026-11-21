@@ -195,7 +195,8 @@ class _HadithDetailScreenState extends State<HadithDetailScreen>
       context: context,
       hadith: hadith,
       outcome: outcome,
-      canMemorize: !journey.data.memoOf(hadith.number).isMemorized,
+      canMemorize: !journey.data.memoOf(hadith.number).isMemorized &&
+          journey.canStartMemo(hadith.number),
     );
     if (!mounted) return;
 
@@ -1010,6 +1011,8 @@ class _MemoCard extends StatelessWidget {
     final memo = journey.data.memoOf(hadith.number);
     final parts = memoParts(hadith.text).length;
     final today = journey.today;
+    // A new hadith, and today's new start already taken: it waits a day.
+    final waits = !journey.canStartMemo(hadith.number);
 
     final (line, action, opens) = switch (memo) {
       MemoProgress(isKept: true) => (
@@ -1032,6 +1035,7 @@ class _MemoCard extends StatelessWidget {
           'أكمل حفظه',
           true,
         ),
+      _ when waits => (JourneyCopy.memoStartTomorrow, 'احفظ هذا الحديث', true),
       _ => (
           parts == 1
               ? 'يُحفظ في جلسة واحدة.'
@@ -1042,7 +1046,7 @@ class _MemoCard extends StatelessWidget {
           true,
         ),
     };
-    final primary = opens || memo.isDue(today);
+    final primary = (opens && !waits) || memo.isDue(today);
 
     return ParchmentCard(
       child: Column(
@@ -1064,7 +1068,9 @@ class _MemoCard extends StatelessWidget {
           AppButton(
             text: action,
             isSecondary: !primary,
-            onPressed: () => Navigator.push(
+            onPressed: waits
+                ? null
+                : () => Navigator.push(
               context,
               appPageRoute(
                 child: opens

@@ -44,6 +44,10 @@ class _MemorizeScreenState extends State<MemorizeScreen> {
 
   List<MemoSentence> get _sentences => _parts[_part];
 
+  /// A new hadith on a day one was already started: it can be read and
+  /// practised, but its learning starts tomorrow.
+  late final bool _waits = !_journey.canStartMemo(widget.hadith.number);
+
   MemoStep _step = MemoStep.read;
   int _sentence = 0;
 
@@ -110,6 +114,20 @@ class _MemorizeScreenState extends State<MemorizeScreen> {
                     '${toArabicDigits(_parts.length)}'
                 : null,
           ),
+          if (_waits) ...[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                JourneyCopy.memoStartTomorrow,
+                textAlign: TextAlign.center,
+                style: textTheme.bodySmall?.copyWith(
+                  color: palette.mutedText,
+                  height: AppLeading.body,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           _StepRow(step: _step),
           const SizedBox(height: 12),
@@ -221,11 +239,17 @@ class _MemorizeScreenState extends State<MemorizeScreen> {
           ];
         }
         return [
-          AppButton(
-            text: 'حفظته',
-            icon: Icons.check_rounded,
-            onPressed: _learned,
-          ),
+          if (_waits)
+            AppButton(
+              text: 'تم',
+              onPressed: () => Navigator.of(context).pop(),
+            )
+          else
+            AppButton(
+              text: 'حفظته',
+              icon: Icons.check_rounded,
+              onPressed: _learned,
+            ),
           const SizedBox(height: 8),
           AppButton(
             text: 'ليس بعد',

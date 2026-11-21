@@ -180,6 +180,105 @@ void memoSuite() {
     });
   });
 
+  group('reviews spread out', () {
+    const day = '2026-11-07';
+
+    test('a day with room keeps the interval exactly', () {
+      expect(spreadDue(day, 2, const {}), '2026-11-14');
+      expect(spreadDue(day, 2, const {'2026-11-14': 1}), '2026-11-14');
+    });
+
+    test('a full day moves it to the lightest day within the spread', () {
+      // Step 2 is 7 days, ±1: the 13th has room, the 15th has more.
+      expect(
+        spreadDue(day, 2, const {'2026-11-14': 2, '2026-11-15': 1}),
+        '2026-11-13',
+      );
+      // Step 3 is 16 days, ±2: only the farthest day is empty.
+      expect(
+        spreadDue(day, 3, const {
+          '2026-11-21': 1,
+          '2026-11-22': 1,
+          '2026-11-23': 3,
+          '2026-11-24': 1,
+          '2026-11-25': 0,
+        }),
+        '2026-11-25',
+      );
+    });
+
+    test('the first two steps never move', () {
+      expect(spreadDue(day, 0, const {'2026-11-08': 9}), '2026-11-08');
+      expect(spreadDue(day, 1, const {'2026-11-10': 9}), '2026-11-10');
+    });
+
+    test('the load leaves out the hadith being placed', () {
+      final memo = {
+        1: const MemoProgress(parts: 1, box: 2, due: '2026-11-14'),
+        2: const MemoProgress(parts: 1, box: 2, due: '2026-11-14'),
+        3: const MemoProgress(parts: 1, box: 3, due: '2026-11-20'),
+      };
+      expect(reviewLoad(memo), {'2026-11-14': 2, '2026-11-20': 1});
+      expect(reviewLoad(memo, except: 1), {'2026-11-14': 1, '2026-11-20': 1});
+    });
+
+    test('five started on one day stop coming back together', () {
+      // Old data, from before the daily limit: five on day 0.
+      final load = simulateReviewLoad(hadiths: 5, perDay: 5, newEvery: 400);
+      final max = load.reduce((a, b) => a > b ? a : b);
+      // The two short steps still bring all five; after that they part.
+      expect(load[1], 5);
+      expect(load[4], 5);
+      expect(load.skip(5).every((n) => n <= 3), isTrue);
+      expect(max, 5);
+    });
+  });
+
+  group('one new hadith a day', () {
+    const day = '2026-11-07';
+
+    test('a second new hadith waits for tomorrow', () {
+      final memo = {
+        13: afterPartLearned(const MemoProgress(), totalParts: 1, today: day),
+      };
+      expect(memo[13]!.startedOn, day);
+      expect(canStartMemo(memo, 1, day), isFalse);
+      expect(canStartMemo(memo, 1, '2026-11-08'), isTrue);
+    });
+
+    test('going on with one already started is never held', () {
+      final memo = {
+        13: afterPartLearned(const MemoProgress(), totalParts: 1, today: day),
+        2: afterPartLearned(
+          const MemoProgress(),
+          totalParts: 3,
+          today: '2026-11-06',
+        ),
+      };
+      expect(canStartMemo(memo, 2, day), isTrue);
+      expect(canStartMemo(memo, 13, day), isTrue);
+    });
+
+    test('the start day is kept through parts and reviews', () {
+      var memo = afterPartLearned(
+        const MemoProgress(),
+        totalParts: 2,
+        today: '2026-11-06',
+      );
+      memo = afterPartLearned(memo, totalParts: 2, today: day);
+      expect(memo.startedOn, '2026-11-06');
+      memo = afterReview(memo, remembered: true, today: '2026-11-08');
+      expect(memo.startedOn, '2026-11-06');
+      expect(MemoProgress.fromJson(memo.toJson()), memo);
+    });
+
+    test('hadiths started before the start day was kept never hold one back',
+        () {
+      final memo = {13: MemoProgress.fromJson({'parts': 1, 'box': 0})};
+      expect(canStartMemo(memo, 1, day), isTrue);
+    });
+  });
+
   group('one hadith, from learning to kept', () {
     const day = '2026-11-07';
 
@@ -357,11 +456,26 @@ void memoSuite() {
         for (var n = 1; n <= 42; n++)
           if (partsOf(n) == 1) n,
       ].take(10).toList();
-      final milestones = [
-        for (final n in short) journey.learnPart(n, totalParts: 1).milestone,
-      ];
+      // One new hadith a day.
+      final milestones = <int?>[];
+      for (final (i, n) in short.indexed) {
+        now = DateTime(2026, 11, 7 + i, 12);
+        milestones.add(journey.learnPart(n, totalParts: 1).milestone);
+      }
       expect(milestones, [1, null, null, null, 5, null, null, null, null, 10]);
       expect(journey.data.memorizedCount, 10);
+    });
+
+    test('a second new hadith the same day is not started', () {
+      journey.learnPart(13, totalParts: 1);
+      expect(journey.canStartMemo(1), isFalse);
+      final held = journey.learnPart(1, totalParts: 1);
+      expect(held.memorized, isFalse);
+      expect(journey.data.memoOf(1), const MemoProgress());
+
+      now = DateTime(2026, 11, 8, 12);
+      expect(journey.canStartMemo(1), isTrue);
+      expect(journey.learnPart(1, totalParts: 1).memorized, isTrue);
     });
 
     test('a long one is learned part by part', () {
@@ -425,7 +539,8 @@ void memoSuite() {
     });
 
     test('five memorized is a milestone', () {
-      for (final n in [13, 1, 7, 9, 15]) {
+      for (final (i, n) in [13, 1, 7, 9, 15].indexed) {
+        now = DateTime(2026, 11, 7 + i, 12);
         final outcome = journey.learnPart(n, totalParts: partsOf(n));
         if (n == 15) expect(outcome.milestone, 5);
       }
