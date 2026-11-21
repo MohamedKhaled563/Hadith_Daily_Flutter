@@ -129,7 +129,7 @@ void pointsSuite() {
   });
 
   group('the harvest numbers', () {
-    test('the best run in a week counts only days in a row', () {
+    test('the days present in a week count, in a row or not', () {
       final data = JourneyData(days: {
         day(0): reading(messages: 1),
         day(1): reading(hadiths: 1),
@@ -140,17 +140,17 @@ void pointsSuite() {
         // Writing alone does not count a day.
         day(6): reading(wrote: 1),
       });
-      expect(bestRunInWeek(data, saturday, day(6)), 3);
-      expect(bestRunInWeek(data, saturday, day(1)), 2,
+      expect(daysPresentInWeek(data, saturday, day(6)), 5);
+      expect(daysPresentInWeek(data, saturday, day(1)), 2,
           reason: 'only up to today');
-      expect(bestRunInWeek(data, day(7), day(7)), 0, reason: 'a new week');
+      expect(daysPresentInWeek(data, day(7), day(7)), 0, reason: 'a new week');
     });
 
-    test('a run from last week does not carry into this one', () {
+    test('days from last week do not count in this one', () {
       final data = JourneyData(days: {
         for (var i = -5; i <= 1; i++) day(i): reading(messages: 1),
       });
-      expect(bestRunInWeek(data, saturday, day(1)), 2);
+      expect(daysPresentInWeek(data, saturday, day(1)), 2);
     });
 
     test('all points add each week, each capped like the board', () {
@@ -175,7 +175,7 @@ void pointsSuite() {
 
     test('nothing read is nothing earned', () {
       expect(totalPoints(JourneyData.empty), 0);
-      expect(bestRunInWeek(JourneyData.empty, saturday, day(3)), 0);
+      expect(daysPresentInWeek(JourneyData.empty, saturday, day(3)), 0);
     });
   });
 
@@ -305,7 +305,7 @@ void pointsSuite() {
       expect(harvest.lastWeekMinutes, 18);
     });
 
-    test('carries the three numbers رحلتي shows for the week', () {
+    test('carries the two numbers رحلتي shows for the week', () {
       final data = JourneyData(days: {
         '2026-11-11': reading(messages: 1),
         '2026-11-12': reading(messages: 1, hadiths: 1),
@@ -314,12 +314,11 @@ void pointsSuite() {
 
       final harvest = harvestFor(data, friday, approvedOn: ['2026-11-12']);
 
-      expect(harvest.streak, 3);
-      expect(harvest.bestRun, 3);
+      expect(harvest.days, 3);
       expect(harvest.points, 2 + 12 + 2 + PointRules.approved);
       expect(
         JourneyCopy.harvestCaption(harvest, null),
-        startsWith('هذا الأسبوع: استمرارية ٣ أيام، و٣١ نقطة'),
+        startsWith('هذا الأسبوع: حضرت ٣ من ٧ أيام، وجمعت ٣١ نقطة'),
       );
     });
 

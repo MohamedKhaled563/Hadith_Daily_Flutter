@@ -55,21 +55,15 @@ void main() {
 
     testWidgets('the harvest fits the ${format.name} poster, big or not',
         (tester) async {
-      for (final (streak, best, points) in [
-        (0, 0, 0),
-        (1, 1, 2),
-        (365, 7, 450)
-      ]) {
+      for (final (days, points) in [(0, 0), (1, 2), (7, 450)]) {
         await layOut(
           tester,
           HarvestPoster(
             format: format,
             harvest: Harvest(
-              days: 7,
+              days: days,
               minutes: 90,
               lastWeekMinutes: 0,
-              streak: streak,
-              bestRun: best,
               points: points,
             ),
             weekLabel: 'أسبوع ١٤–٢٠ نوفمبر',
@@ -77,7 +71,7 @@ void main() {
           ),
           format.size,
         );
-        for (final label in ['الاستمرارية', 'أفضل استمرارية', 'نقاط الأسبوع']) {
+        for (final label in ['أيام حضوري', 'نقاط الأسبوع']) {
           expect(find.text(label), findsOneWidget, reason: label);
         }
         expect(find.text('حصاد أسبوعي'), findsOneWidget);

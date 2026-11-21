@@ -178,8 +178,8 @@ class JourneyRepository {
         approvedOn: _approvedOn,
       );
 
-  /// The most days in a row this week, up to today.
-  int get bestThisWeek => bestRunInWeek(_data, weekStartKey(today), today);
+  /// The days present this week, up to today, out of seven.
+  int get daysThisWeek => daysPresentInWeek(_data, weekStartKey(today), today);
 
   /// Every point earned, each week capped as on the board.
   int get allPoints => totalPoints(_data, approvedOn: _approvedOn);

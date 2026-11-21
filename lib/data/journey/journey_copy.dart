@@ -138,8 +138,8 @@ class JourneyCopy {
   static const harvestInvitation = 'حصاد أسبوعي مع الحديث';
 
   static String harvestCaption(Harvest harvest, String? link) =>
-      'هذا الأسبوع: استمرارية ${arabicDayCount(harvest.streak)}، '
-      'و${toArabicDigits(harvest.points)} نقطة مع الأربعين النووية في تطبيق '
+      'هذا الأسبوع: حضرت ${toArabicDigits(harvest.days)} من ٧ أيام، '
+      'وجمعت ${toArabicDigits(harvest.points)} نقطة مع الأربعين النووية في تطبيق '
       '«طيّب قلبك»، فاقرأ معي.${_linkLine(link)}';
 
   /// Sent beside the journey's harvest: the three numbers رحلتي shows for

@@ -167,9 +167,9 @@ Back
 # 3. رحلتي: tree, steps button, memo button, numbers, board.
 if (Tap 'رحلتي') { Check '03-journey-top' @('خطوات اليوم', 'الحديث ١:', 'الحديث ٤٢:') }
 & $adb -s $Serial shell input swipe 540 1700 540 700 500; Start-Sleep -Milliseconds 1200
-Check '04-journey-numbers' @('حصاد الأسبوع', 'حصاد رحلتك', 'الاستمرارية', 'كل نقاطك', 'حفظت')
-# 4. «كيف تُحسب؟» opens and closes.
-if (Tap 'كيف تُحسب؟' -content) { Check '05-how-counted' @('كيف تُحسب أرقامك؟', 'النقاط') ; Back }
+Check '04-journey-numbers' @('حصاد الأسبوع', 'حصاد رحلتك', 'الاستمرارية', 'أيام حضورك', 'كل نقاطك', 'حفظت')
+# 4. The ⓘ opens and closes.
+if (Tap 'ماذا تعني هذه الأرقام؟' -content) { Check '05-how-counted' @('ماذا تعني أرقامك؟', 'أيام حضورك', 'حصاد رحلتك') ; Back }
 # 5. The memo page.
 & $adb -s $Serial shell input swipe 540 900 540 1600 500; Start-Sleep -Milliseconds 1000
 if (TapStart @('ابدأ حفظك', 'راجع حفظك')) { Check '06-memo-page' @('راجع حفظك'); Back }

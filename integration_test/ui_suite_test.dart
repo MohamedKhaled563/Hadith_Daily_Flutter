@@ -637,12 +637,13 @@ void main() {
       expect(find.text('لوحة الأسبوع'), findsOneWidget);
     });
 
-    testWidgets('«كيف تُحسب؟» explains each number', (tester) async {
+    testWidgets('the ⓘ explains each number', (tester) async {
       await openJourney(tester);
       await scrollTo(tester, find.text('حصاد رحلتك'));
 
-      await tester.tap(find.byTooltip('كيف تُحسب؟'));
-      await until(tester, () => shows(find.text('كيف تُحسب أرقامك؟')));
+      await tester.tap(find.byTooltip('ماذا تعني هذه الأرقام؟').last);
+      await until(tester, () => shows(find.text('ماذا تعني أرقامك؟')));
+      expect(find.textContaining('يبدأ الأسبوع يوم السبت'), findsOneWidget);
       expect(find.text('الاستمرارية'), findsWidgets);
       expect(find.text('النقاط'), findsOneWidget);
       expect(find.text('رسالة لك يقبلها المشرف'), findsOneWidget);
@@ -1481,13 +1482,15 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).last,
       );
-      // Eight days in a row; this week (from Saturday the 7th) holds three.
+      // Eight days in a row; this week (from Saturday the 7th) holds three
+      // of them, said as days present, not as a second «best».
       Finder said(String label) => find.byWidgetPredicate(
             (w) => w is Semantics && w.properties.label == label,
           );
       expect(said('الاستمرارية: ٨ أيام'), findsOneWidget);
-      expect(said('أفضل استمرارية: ٣ أيام'), findsOneWidget);
+      expect(said('أيام حضورك: ٣ / ٧ أيام'), findsOneWidget);
       expect(said('أفضل استمرارية: ٨ أيام'), findsOneWidget);
+      expect(said('أفضل استمرارية: ٣ أيام'), findsNothing);
       expect(find.text('أيام سماح'), findsNothing);
     });
 
